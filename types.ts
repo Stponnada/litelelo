@@ -165,9 +165,7 @@ export interface Message {
   sender_id: string;
   content: string | null;
   created_at: string;
-  // --- ADD THESE LINES BACK ---
   message_type: 'text' | 'image' | 'gif';
   attachment_url: string | null;
-  // ---------------------------
   profiles: Profile | null; // joined sender profile
 }

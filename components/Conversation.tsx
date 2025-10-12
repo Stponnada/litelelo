@@ -6,7 +6,10 @@ import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { ConversationSummary, Message, Profile } from '../types';
 import Spinner from './Spinner';
-import { SendIcon, UserGroupIcon, PlusIcon, ImageIcon, GifIcon, XCircleIcon } from './icons';
+import { SendIcon, UserGroupIcon, PlusIcon, ImageIcon, XCircleIcon } from './icons';
+
+// Re-add GifIcon for the input menu
+const GifIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" }) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M12.75 8.25v7.5m6-7.5h-3.75m3.75 0a3.75 3.75 0 00-3.75-3.75H6.75A3.75 3.75 0 003 8.25v7.5A3.75 3.75 0 006.75 19.5h9A3.75 3.75 0 0019.5 15.75v-7.5A3.75 3.75 0 0015.75 4.5z" /></svg>);
 
 import GifPickerModal from './GifPickerModal';
 import LightBox from './lightbox';
@@ -67,6 +70,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
     
     useEffect(() => {
         if (!user || currentConversationId.startsWith('placeholder_')) return;
+        
         const channel = supabase.channel(`conversation:${currentConversationId}`)
             .on('postgres_changes', { 
                 event: 'INSERT', 
@@ -76,11 +80,13 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
             }, async (payload) => {
                 const newMsgRaw = payload.new;
                 if (newMsgRaw.sender_id === user.id) return;
+                
                 const { data: profile } = await supabase.from('profiles').select('*').eq('user_id', newMsgRaw.sender_id).single();
                 const newMsg: Message = { ...newMsgRaw, profiles: profile as Profile };
                 setMessages((prev) => [...prev, newMsg]);
             })
             .subscribe();
+
         return () => { supabase.removeChannel(channel); };
     }, [currentConversationId, user]);
     
@@ -178,7 +184,6 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                     messages.map((msg) => {
                         const isOwn = msg.sender_id === user?.id;
                         return (
-                            // --- START OF FIX ---
                             <div key={msg.id} className={`flex items-end gap-2 ${isOwn ? 'justify-end' : 'justify-start'}`}>
                                 {!isOwn && msg.profiles && (
                                     <img 
@@ -205,7 +210,6 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                                     )}
                                 </div>
                             </div>
-                            // --- END OF FIX ---
                         );
                     })
                 )}
