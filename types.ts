@@ -39,7 +39,7 @@ export interface Profile {
   follower_count: number;
   is_following: boolean; 
   is_followed_by?: boolean; 
-  roommates: Roommate[] | null; // <-- MODIFIED: From string array to Roommate array
+  roommates: Roommate[] | null;
   gender: string | null;
   birthday: string | null;
   avg_seller_rating?: number;
@@ -159,6 +159,13 @@ export interface Conversation {
   participants: ConversationParticipant[];
 }
 
+export interface MessageReaction {
+  message_id: number;
+  user_id: string;
+  emoji: string;
+  profiles: Profile | null;
+}
+
 export interface Message {
   id: number;
   conversation_id: string;
@@ -167,5 +174,9 @@ export interface Message {
   created_at: string;
   message_type: 'text' | 'image' | 'gif';
   attachment_url: string | null;
-  profiles: Profile | null; // joined sender profile
+  profiles: Profile | null;
+  reply_to_message_id: number | null;
+  is_edited: boolean;
+  is_deleted: boolean;
+  reactions: MessageReaction[];
 }
