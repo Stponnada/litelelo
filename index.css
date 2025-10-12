@@ -1,0 +1,33 @@
+/* src/index.css */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  /* Use theme() to access config values */
+  background-color: theme('colors.primary-light');
+  color: theme('colors.text-main-light');
+}
+
+.dark body {
+  /* Apply dark mode styles when .dark is on the html/body */
+  background-color: theme('colors.primary');
+  color: theme('colors.text-main');
+}
+
+@keyframes circuitFlowSmooth {
+  0% {
+    background-position: 0% 0%;
+    opacity: 0.6;
+  }
+  50% {
+    background-position: 100% 100%;
+    opacity: 0.8;
+  }
+  100% {
+    background-position: 0% 0%;
+    opacity: 0.6;
+  }
+}
+
