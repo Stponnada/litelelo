@@ -46,17 +46,18 @@ export interface Profile {
   total_seller_ratings?: number;
 }
 
-// ... (The rest of the file remains the same)
+
 export interface ConversationSummary {
   conversation_id: string;
   type: 'dm' | 'group';
-  name: string | null; // Group name or other user's name for DMs
+  name: string | null;
   participants: ConversationParticipant[];
   last_message_content: string | null;
   last_message_at: string | null;
   last_message_sender_id: string | null;
   unread_count: number;
 }
+
 export interface Post {
   id: string;
   user_id: string;
@@ -156,4 +157,14 @@ export interface Conversation {
   name: string | null;
   type: 'dm' | 'group';
   participants: ConversationParticipant[];
+}
+
+export interface Message {
+  id: number; // or string, depending on your DB gen_random_uuid() or bigint identity
+  conversation_id: string;
+  sender_id: string;
+  content: string | null;
+  created_at: string;
+  // Removed: message_type, attachment_url, reply_to_message_id, reactions
+  profiles: Profile | null; // joined sender profile
 }

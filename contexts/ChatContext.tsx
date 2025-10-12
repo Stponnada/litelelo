@@ -29,65 +29,98 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
 
     try {
-      // Step 1: Fetch existing conversations
-      const { data: existingConversations, error: convosError } = await supabase.rpc('get_conversations_for_user_v2');
-      if (convosError) throw convosError;
-      
-      const conversationsData = (existingConversations as ConversationSummary[]) || [];
+      // Step 1: Fetch all conversations with their last message and unread count.
+      // This is the most reliable way to get the core data for all conversation types.
+      const { data: initialConvos, error: rpcError } = await supabase.rpc('get_conversations_for_user_v2');
+      if (rpcError) throw rpcError;
 
-      // Step 2: Fetch followers and following to act as a "contacts list"
-      const { data: profiles, error: profilesError } = await supabase.rpc('get_directory_profiles');
-      if (profilesError) throw profilesError;
+      const allConversations = (initialConvos as ConversationSummary[]) || [];
 
-      const contacts = (profiles as Profile[]).filter(p => p.is_following || p.is_followed_by);
+      // Step 2: Separate the conversations into DMs and Groups. Groups are already correct.
+      const groupConversations = allConversations.filter(c => c.type === 'group');
+      const dmsFromRpc = allConversations.filter(c => c.type === 'dm');
+      const dmConversationIds = dmsFromRpc.map(c => c.conversation_id);
 
-      // Step 3: Create placeholder conversations for contacts who don't have an existing chat
-      const existingParticipantIds = new Set(conversationsData.flatMap(c => c.type === 'dm' ? c.participants.map(p => p.user_id) : []));
-      
-      const placeholderConversations: ConversationSummary[] = contacts.reduce((acc: ConversationSummary[], contact) => {
-        // If a chat with this contact doesn't already exist, create a placeholder
-        if (!existingParticipantIds.has(contact.user_id)) {
-          acc.push({
-            conversation_id: `placeholder_${contact.user_id}`, // Unique temporary ID
-            type: 'dm',
-            name: contact.full_name,
-            participants: [contact],
-            last_message_content: "Start a conversation!",
-            last_message_at: null,
-            last_message_sender_id: null,
-            unread_count: 0,
-          });
-        }
-        return acc;
-      }, []);
-      
-      // Step 4: Combine the lists and set the state
-      const unifiedList = [...conversationsData, ...placeholderConversations];
-      setConversations(unifiedList);
+      let correctedDms: ConversationSummary[] = [];
+
+      if (dmConversationIds.length > 0) {
+        // Step 3: Fetch the *other* participant's profile for ALL DMs in a single, efficient query.
+        // This is the key fix to solve the "User" name bug.
+        const { data: otherParticipantsData, error: participantsError } = await supabase
+          .from('conversation_participants')
+          .select(`
+            conversation_id,
+            profiles!inner (
+              user_id,
+              username,
+              full_name,
+              avatar_url
+            )
+          `)
+          .in('conversation_id', dmConversationIds)
+          .neq('user_id', user.id); // Crucially, we only fetch the OTHER user's profile.
+
+        if (participantsError) throw participantsError;
+
+        // Step 4: Create a simple map for easy lookup: { conversation_id -> other_user_profile }
+        const participantMap = new Map<string, Profile>();
+        (otherParticipantsData || []).forEach((p: any) => {
+          participantMap.set(p.conversation_id, p.profiles);
+        });
+
+        // Step 5: Rebuild the DM conversation summaries with the CORRECT participant data.
+        correctedDms = dmsFromRpc.map(dm => {
+          const otherUser = participantMap.get(dm.conversation_id);
+          // If we can't find the other user for some reason, we skip this conversation.
+          if (!otherUser) return null;
+
+          return {
+            ...dm, // Keep the last_message, unread_count, etc. from the RPC
+            name: otherUser.full_name || otherUser.username, // Use the correct name
+            participants: [otherUser], // The participants list should only contain the other person.
+          };
+        }).filter((c): c is ConversationSummary => c !== null); // Filter out any null/broken DMs
+      }
+
+      // Step 6: Combine the correct groups and the corrected DMs.
+      // Sort them by the last message time so the most recent chats are always at the top.
+      const finalConversationList = [...groupConversations, ...correctedDms].sort((a, b) => {
+        if (!a.last_message_at) return 1;
+        if (!b.last_message_at) return -1;
+        return new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime();
+      });
+
+      setConversations(finalConversationList);
 
     } catch (error) {
-      console.error('Error fetching unified chat list:', error);
+      console.error('Error fetching chat list:', error);
       setConversations([]);
     } finally {
       setLoading(false);
     }
   }, [user]);
 
+
   useEffect(() => {
     if (user) fetchConversations();
   }, [user, fetchConversations]);
 
-  // Real-time listener for new messages (no changes needed here from last fix)
+  // Real-time listener for new messages (no changes needed)
   useEffect(() => {
     if (!user) return;
     const handleNewMessage = (payload: any) => {
+        const newMessage = payload.new;
+        const convoExists = conversations.some(c => c.conversation_id === newMessage.conversation_id);
+
+        if (!convoExists) {
+            fetchConversations();
+            return;
+        }
+
         setConversations(prevConvos => {
-            const newMessage = payload.new;
             const convoIndex = prevConvos.findIndex(c => c.conversation_id === newMessage.conversation_id);
-            if (convoIndex === -1) {
-                fetchConversations();
-                return prevConvos;
-            }
+            if (convoIndex === -1) return prevConvos;
+
             const targetConvo = prevConvos[convoIndex];
             const updatedConvo = {
                 ...targetConvo,
@@ -113,32 +146,22 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, fetchConversations]);
+  }, [user, fetchConversations, conversations]);
   
   const markConversationAsRead = useCallback(async (conversationId: string) => {
     if (!user || conversationId.startsWith('placeholder_')) return;
-    
     const convo = conversations.find(c => c.conversation_id === conversationId);
     if (!convo || convo.unread_count === 0) return;
-    
     setConversations(prev => prev.map(c => 
       c.conversation_id === conversationId ? { ...c, unread_count: 0 } : c
     ));
-    
-    const { error } = await supabase.rpc('mark_messages_as_read_for_convo', { p_conversation_id: conversationId });
+    await supabase.rpc('mark_messages_as_read_for_convo', { p_conversation_id: conversationId });
+  }, [user, conversations]);
 
-    if (error) {
-      console.error('Failed to mark messages as read:', error);
-      fetchConversations();
-    }
-  }, [user, fetchConversations, conversations]);
-
-  const totalUnreadCount = conversations.reduce((sum, conv) => sum + (conv.last_message_at ? conv.unread_count : 0), 0);
+  const totalUnreadCount = conversations.reduce((sum, conv) => sum + (conv.unread_count || 0), 0);
 
   const updateConversationId = (placeholderId: string, newId: string) => {
-    setConversations(prev => 
-      prev.map(c => c.conversation_id === placeholderId ? { ...c, conversation_id: newId } : c)
-    );
+    fetchConversations();
   };
 
   const value = { conversations, totalUnreadCount, loading, markConversationAsRead, fetchConversations, updateConversationId };
