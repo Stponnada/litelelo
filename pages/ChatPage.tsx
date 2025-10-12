@@ -154,7 +154,7 @@ const ChatPage: React.FC = () => {
                         <img 
                           src={avatarSrc} 
                           alt={displayName} 
-                          className="w-14 h-14 rounded-2xl object-cover ring-2 ring-white/50 dark:ring-gray-800/50 transition-transform duration-200 group-hover:scale-105"
+                          className="w-14 h-14 rounded-full object-cover ring-2 ring-white/50 dark:ring-gray-800/50 transition-transform duration-200 group-hover:scale-105"
                         />
                       )}
                       {conv.unread_count > 0 && (
@@ -163,10 +163,6 @@ const ChatPage: React.FC = () => {
                         </span>
                       )}
                       
-                      {/* Online status indicator (you can add logic for this) */}
-                      {conv.type === 'dm' && (
-                        <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full ring-2 ring-white dark:ring-gray-900"></div>
-                      )}
                     </div>
                     
                     <div className="flex-1 min-w-0">

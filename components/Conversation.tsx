@@ -7,6 +7,7 @@ import { useAuth } from '../hooks/useAuth';
 import { ConversationSummary, Message, Profile } from '../types';
 import Spinner from './Spinner';
 import { SendIcon, UserGroupIcon, PlusIcon, ImageIcon, XCircleIcon } from './icons';
+import { formatMessageTime } from '../utils/timeUtils'; // Import the new function
 
 // Re-add GifIcon for the input menu
 const GifIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" }) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M12.75 8.25v7.5m6-7.5h-3.75m3.75 0a3.75 3.75 0 00-3.75-3.75H6.75A3.75 3.75 0 003 8.25v7.5A3.75 3.75 0 006.75 19.5h9A3.75 3.75 0 0019.5 15.75v-7.5A3.75 3.75 0 0015.75 4.5z" /></svg>);
@@ -167,7 +168,41 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
         }
     };
     
-    const renderHeader = () => { /* ... same as before ... */ };
+    const renderHeader = () => {
+        if (conversation.type === 'dm' && otherParticipant) {
+            return (
+                <Link to={`/profile/${otherParticipant.username}`} className="flex items-center space-x-3 group min-w-0">
+                    <img 
+                        src={otherParticipant.avatar_url || `https://ui-avatars.com/api/?name=${otherParticipant.full_name || otherParticipant.username}`} 
+                        className="w-10 h-10 rounded-full object-cover"
+                        alt="avatar"
+                    />
+                    <div className="min-w-0">
+                        <h3 className="font-bold text-lg text-text-main-light dark:text-text-main group-hover:underline truncate">
+                            {otherParticipant.full_name || otherParticipant.username}
+                        </h3>
+                    </div>
+                </Link>
+            );
+        }
+
+        if (conversation.type === 'group') {
+            return (
+                <Link to={`/chat/group/${conversation.conversation_id}`} className="flex items-center space-x-3 group min-w-0">
+                    <div className="w-10 h-10 rounded-full bg-tertiary-light dark:bg-tertiary flex items-center justify-center">
+                        <UserGroupIcon className="w-6 h-6 text-text-secondary-light dark:text-text-secondary" />
+                    </div>
+                    <div className="min-w-0">
+                        <h3 className="font-bold text-lg text-text-main-light dark:text-text-main group-hover:underline truncate">
+                            {conversation.name}
+                        </h3>
+                    </div>
+                </Link>
+            );
+        }
+
+        return null;
+    };
 
     return (
         <div className="flex flex-col h-full">
@@ -184,13 +219,18 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                     messages.map((msg) => {
                         const isOwn = msg.sender_id === user?.id;
                         return (
-                            <div key={msg.id} className={`flex items-end gap-2 ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                            <div key={msg.id} className={`group flex items-end gap-2 ${isOwn ? 'justify-end' : 'justify-start'}`}>
                                 {!isOwn && msg.profiles && (
                                     <img 
                                         src={msg.profiles.avatar_url || `https://ui-avatars.com/api/?name=${msg.profiles.username}`} 
                                         className="w-8 h-8 rounded-full mb-1"
                                         alt="avatar"
                                     />
+                                )}
+                                {isOwn && (
+                                    <p className="text-xs text-text-tertiary-light dark:text-text-tertiary mb-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                        {formatMessageTime(msg.created_at)}
+                                    </p>
                                 )}
                                 <div className={`max-w-[70%] rounded-2xl ${
                                     isOwn 
@@ -209,6 +249,11 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                                         </div>
                                     )}
                                 </div>
+                                {!isOwn && (
+                                    <p className="text-xs text-text-tertiary-light dark:text-text-tertiary mb-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                        {formatMessageTime(msg.created_at)}
+                                    </p>
+                                )}
                             </div>
                         );
                     })

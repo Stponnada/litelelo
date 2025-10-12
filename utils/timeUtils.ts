@@ -44,3 +44,8 @@ export const formatExactTimestamp = (timestamp: string): string => {
   const date = new Date(timestamp);
   return format(date, "h:mm a · MMM d, yyyy");
 };
+
+export const formatMessageTime = (timestamp: string): string => {
+  const date = new Date(timestamp);
+  return format(date, 'p'); // 'p' is short for time, like h:mm a
+};

@@ -25,6 +25,7 @@ import PlaceDetailPage from './pages/PlaceDetailPage';
 import LostAndFoundPage from './pages/LostAndFoundPage';
 import MarketplacePage from './pages/MarketplacePage';
 import SellerProfilePage from './pages/SellerProfilePage';
+import GroupInfoPage from './pages/GroupInfoPage'; // Import the new page
 
 const AppRoutes = () => {
   const { user, profile, isLoading } = useAuth();
@@ -70,6 +71,7 @@ const AppRoutes = () => {
         <Route path="/post/:postId" element={<PostPage />} />
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/chat/:username" element={<ChatPage />} />
+        <Route path="/chat/group/:conversationId" element={<GroupInfoPage />} />
       </Route>
 
       <Route path="/search" element={<SearchPage />} />
