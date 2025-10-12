@@ -160,11 +160,14 @@ export interface Conversation {
 }
 
 export interface Message {
-  id: number; // or string, depending on your DB gen_random_uuid() or bigint identity
+  id: number;
   conversation_id: string;
   sender_id: string;
   content: string | null;
   created_at: string;
-  // Removed: message_type, attachment_url, reply_to_message_id, reactions
+  // --- ADD THESE LINES BACK ---
+  message_type: 'text' | 'image' | 'gif';
+  attachment_url: string | null;
+  // ---------------------------
   profiles: Profile | null; // joined sender profile
 }

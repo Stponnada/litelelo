@@ -166,3 +166,82 @@ export const UserGroupIcon: React.FC<{ className?: string }> = ({ className = "w
     <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
   </svg>
 );
+
+export const GifIcon: React.FC<{ className?: string; title?: string }> = ({
+  className = "w-6 h-6",
+  title = "GIF icon",
+}) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    role="img"
+    aria-label={title}
+  >
+    <title>{title}</title>
+
+    {/* outer rounded rect (like a media card) */}
+    <rect x="1" y="4" width="22" height="14" rx="3" ry="3" fill="currentColor" opacity="0.08" />
+    <rect
+      x="1.5"
+      y="4.5"
+      width="21"
+      height="13"
+      rx="2.5"
+      stroke="currentColor"
+      strokeWidth="1.2"
+      fill="none"
+    />
+
+    {/* small film holes on top */}
+    <rect x="3" y="2" width="2" height="2" rx="0.4" fill="currentColor" />
+    <rect x="7" y="2" width="2" height="2" rx="0.4" fill="currentColor" />
+    <rect x="11" y="2" width="2" height="2" rx="0.4" fill="currentColor" />
+
+    {/* GIF label panel */}
+    <rect x="3.5" y="8.5" width="17" height="7" rx="1.2" fill="currentColor" opacity="0.02" />
+
+    {/* Text "GIF" — using SVG text for crispness; inherits currentColor */}
+    <text
+      x="12"
+      y="13.2"
+      textAnchor="middle"
+      fontFamily="Arial, Helvetica, sans-serif"
+      fontWeight={700}
+      fontSize="4.6"
+      fill="currentColor"
+    >
+      GIF
+    </text>
+
+    {/* subtle play/film strip accent */}
+    <path d="M3 11.5h18" stroke="currentColor" strokeWidth="0.6" opacity="0.5" />
+  </svg>
+);
+
+
+export const PlusIcon: React.FC<{ className?: string; title?: string }> = ({
+  className = "w-6 h-6",
+  title = "Add",
+}) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    role="img"
+    aria-label={title}
+  >
+    <title>{title}</title>
+
+    {/* plus sign only */}
+    <path
+      d="M12 5v14M5 12h14"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
