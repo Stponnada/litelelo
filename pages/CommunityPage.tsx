@@ -1,6 +1,6 @@
 // src/pages/CommunityPage.tsx
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
@@ -8,7 +8,8 @@ import { Post as PostType } from '../types';
 import Spinner from '../components/Spinner';
 import PostComponent from '../components/Post';
 import CreatePost from '../components/CreatePost';
-import { UserGroupIcon, ChatBubbleLeftRightIcon, ArrowLeftIcon } from '../components/icons';
+import ImageCropper from '../components/ImageCropper';
+import { UserGroupIcon, ChatBubbleLeftRightIcon, ArrowLeftIcon, CameraIcon } from '../components/icons';
 
 interface CommunityDetails {
     id: string;
@@ -23,6 +24,7 @@ interface CommunityDetails {
     conversation_id: string;
 }
 
+
 const CommunityPage: React.FC = () => {
     const { communityId } = useParams<{ communityId: string }>();
     const { user, profile: currentUserProfile } = useAuth();
@@ -33,6 +35,15 @@ const CommunityPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'private' | 'public'>('private');
+    
+    const [cropperState, setCropperState] = useState<{
+        isOpen: boolean;
+        type: 'avatar' | 'banner' | null;
+        src: string | null;
+    }>({ isOpen: false, type: null, src: null });
+    const [isSaving, setIsSaving] = useState(false);
+    const avatarInputRef = useRef<HTMLInputElement>(null);
+    const bannerInputRef = useRef<HTMLInputElement>(null);
     
     const fetchCommunityData = useCallback(async () => {
         if (!communityId) return;
@@ -61,12 +72,64 @@ const CommunityPage: React.FC = () => {
     useEffect(() => {
         fetchCommunityData();
     }, [fetchCommunityData]);
+    
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'banner') => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setCropperState({ isOpen: true, type, src: reader.result as string });
+            };
+            reader.readAsDataURL(file);
+        }
+        e.target.value = ''; // Reset input
+    };
+
+    const handleCropSave = async (croppedImageFile: File) => {
+        if (!community || !cropperState.type || !user) return;
+        setIsSaving(true);
+    
+        const fileType = cropperState.type;
+        const filePath = `${user.id}/community-assets/${community.id}/${fileType}.${croppedImageFile.name.split('.').pop()}`;
+        const columnToUpdate = fileType === 'avatar' ? 'avatar_url' : 'banner_url';
+
+        try {
+            // --- THIS IS THE FIX ---
+            // Upload to the correct 'community-assets' bucket
+            const { error: uploadError } = await supabase.storage
+                .from('community-assets') 
+                .upload(filePath, croppedImageFile, { upsert: true });
+            if (uploadError) throw uploadError;
+
+            // Get public URL from the correct bucket
+            const { data: { publicUrl } } = supabase.storage
+                .from('community-assets')
+                .getPublicUrl(filePath);
+            // --- END OF FIX ---
+            const newUrl = `${publicUrl}?t=${new Date().getTime()}`;
+
+            // Update database
+            const { error: dbError } = await supabase
+                .from('communities')
+                .update({ [columnToUpdate]: newUrl })
+                .eq('id', community.id);
+            if (dbError) throw dbError;
+
+            // Update local state for instant feedback
+            setCommunity(prev => prev ? { ...prev, [columnToUpdate]: newUrl } : null);
+            
+        } catch (err: any) {
+            console.error(`Failed to upload ${fileType}:`, err);
+        } finally {
+            setIsSaving(false);
+            setCropperState({ isOpen: false, type: null, src: null });
+        }
+    };
 
     const handleJoinToggle = async () => {
         if (!community || !user) return;
         const isCurrentlyMember = community.is_member;
         
-        // Optimistic update
         setCommunity({ ...community, is_member: !isCurrentlyMember, member_count: community.member_count + (!isCurrentlyMember ? 1 : -1) });
 
         try {
@@ -76,7 +139,6 @@ const CommunityPage: React.FC = () => {
                 await supabase.from('community_members').insert({ community_id: community.id, user_id: user.id });
             }
         } catch (err) {
-            // Revert on failure
              setCommunity({ ...community, is_member: isCurrentlyMember, member_count: community.member_count });
             console.error(err);
         }
@@ -92,7 +154,7 @@ const CommunityPage: React.FC = () => {
     }
 
     if (error || !community) {
-        return (
+         return (
             <div className="max-w-4xl mx-auto mt-12 px-4">
                 <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-8 backdrop-blur-sm">
                     <div className="flex items-start gap-4">
@@ -111,18 +173,28 @@ const CommunityPage: React.FC = () => {
         );
     }
     
+    const isOwner = user?.id === community.created_by;
     const privatePosts = posts.filter(p => !p.is_public);
     const publicPosts = posts.filter(p => p.is_public);
     const canPost = community.is_member;
-
     const placeholderText = activeTab === 'public'
         ? "Share something with everyone..."
         : "What's on your mind, member?";
 
     return (
         <div className="w-full min-h-screen bg-gradient-to-b from-transparent via-brand-green/5 to-transparent dark:via-brand-green/10">
+            {cropperState.isOpen && cropperState.src && (
+                <ImageCropper
+                    imageSrc={cropperState.src}
+                    aspect={cropperState.type === 'avatar' ? 1 : 16 / 6}
+                    cropShape={cropperState.type === 'avatar' ? 'round' : 'rect'}
+                    onSave={handleCropSave}
+                    onClose={() => setCropperState({ isOpen: false, type: null, src: null })}
+                    isSaving={isSaving}
+                />
+            )}
+
             <div className="max-w-5xl mx-auto px-4 py-6">
-                {/* Back Button */}
                 <Link 
                     to="/communities" 
                     className="inline-flex items-center gap-2 text-sm text-text-secondary-light dark:text-text-secondary hover:text-brand-green dark:hover:text-brand-green transition-colors mb-6 group"
@@ -131,10 +203,8 @@ const CommunityPage: React.FC = () => {
                     Back to all communities
                 </Link>
 
-                {/* Community Header Card */}
                 <div className="bg-white/80 dark:bg-secondary/80 backdrop-blur-sm rounded-3xl shadow-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50 overflow-hidden mb-8">
-                    {/* Banner */}
-                    <div className="relative h-48 md:h-56 bg-gradient-to-br from-brand-green/30 via-brand-green/20 to-tertiary-light dark:to-tertiary">
+                    <div className="relative h-48 md:h-56 bg-gradient-to-br from-brand-green/30 via-brand-green/20 to-tertiary-light dark:to-tertiary group">
                         {community.banner_url && (
                             <img 
                                 src={community.banner_url} 
@@ -143,22 +213,43 @@ const CommunityPage: React.FC = () => {
                             />
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                        {isOwner && (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={() => bannerInputRef.current?.click()}
+                                    className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                    <CameraIcon className="w-10 h-10 text-white" />
+                                </button>
+                                <input type="file" ref={bannerInputRef} onChange={(e) => handleFileChange(e, 'banner')} accept="image/*" hidden />
+                            </>
+                        )}
                     </div>
 
-                    {/* Community Info */}
                     <div className="p-6 md:p-8">
                         <div className="flex flex-col sm:flex-row sm:items-end -mt-28 md:-mt-32">
-                            {/* Avatar */}
-                            <div className="relative">
+                            <div className="relative group">
                                 <div className="absolute inset-0 bg-brand-green/30 blur-2xl rounded-full"></div>
                                 <img 
                                     src={community.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(community.name)}&background=3cfba2&color=000`} 
                                     alt={community.name} 
                                     className="relative w-32 h-32 md:w-36 md:h-36 rounded-3xl border-4 border-white dark:border-secondary object-cover shadow-2xl"
                                 />
+                                 {isOwner && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={() => avatarInputRef.current?.click()}
+                                            className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl"
+                                        >
+                                            <CameraIcon className="w-8 h-8 text-white" />
+                                        </button>
+                                        <input type="file" ref={avatarInputRef} onChange={(e) => handleFileChange(e, 'avatar')} accept="image/*" hidden />
+                                    </>
+                                )}
                             </div>
 
-                            {/* Name & Actions */}
                             <div className="sm:ml-6 mt-4 sm:mt-0 flex-grow flex flex-col sm:flex-row justify-between sm:items-end gap-4">
                                 <div>
                                     <h1 className="text-3xl md:text-4xl font-black text-text-main-light dark:text-text-main mb-2">
@@ -175,7 +266,6 @@ const CommunityPage: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {/* Action Buttons */}
                                 <div className="flex items-center gap-3">
                                     {community.is_member && community.conversation_id && (
                                         <Link 
@@ -201,7 +291,6 @@ const CommunityPage: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Description */}
                         {community.description && (
                             <p className="mt-6 text-text-secondary-light dark:text-text-secondary text-base leading-relaxed max-w-3xl">
                                 {community.description}
@@ -210,9 +299,7 @@ const CommunityPage: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Tabs & Content */}
                 <div>
-                    {/* Tab Navigation */}
                     <div className="flex gap-2 mb-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm border-2 border-tertiary-light/50 dark:border-tertiary/50 rounded-2xl p-2 shadow-lg w-fit">
                         <button 
                             onClick={() => setActiveTab('private')} 
@@ -236,7 +323,6 @@ const CommunityPage: React.FC = () => {
                         </button>
                     </div>
                     
-                    {/* Content Area */}
                     <div className="mt-6">
                         {canPost ? (
                             <>
@@ -253,11 +339,8 @@ const CommunityPage: React.FC = () => {
                                 )}
                                 
                                 <div className="space-y-5">
-                                    {/* --- THIS IS THE FIX --- */}
                                     {(activeTab === 'private' ? privatePosts : publicPosts).map((post: any, index: number) => {
                                         let postToRender: PostType = post;
-
-                                        // For member-only posts, transform the post to show the user as the author.
                                         if (activeTab === 'private') {
                                             postToRender = {
                                                 ...post,
@@ -268,7 +351,6 @@ const CommunityPage: React.FC = () => {
                                                     author_username: post.original_poster_username,
                                                     author_avatar_url: post.original_poster_avatar_url,
                                                 },
-                                                // Nullify this so the "Posted by @..." line doesn't appear redundantly.
                                                 original_poster_username: null,
                                             };
                                         }
@@ -283,9 +365,7 @@ const CommunityPage: React.FC = () => {
                                             </div>
                                         );
                                     })}
-                                    {/* --- END OF FIX --- */}
                                     
-                                    {/* Empty States */}
                                     {(activeTab === 'private' && privatePosts.length === 0) && (
                                         <div className="text-center py-20 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50">
                                             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-brand-green/10 flex items-center justify-center">

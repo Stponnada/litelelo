@@ -12,28 +12,25 @@ interface ImageCropperProps {
   cropShape: 'rect' | 'round';
   onSave: (croppedImageFile: File) => void;
   onClose: () => void;
+  isSaving: boolean; // --- 1. Add this new prop ---
 }
 
-const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, aspect, cropShape, onSave, onClose }) => {
+const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, aspect, cropShape, onSave, onClose, isSaving }) => {
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-
+  
   const onCropComplete = useCallback((_croppedArea: Area, croppedAreaPixels: Area) => {
     setCroppedAreaPixels(croppedAreaPixels);
   }, []);
 
   const handleSave = async () => {
-    if (!croppedAreaPixels) return;
-    setIsSaving(true);
+    if (!croppedAreaPixels || isSaving) return; // Prevent multiple clicks
     try {
       const croppedImageFile = await getCroppedImg(imageSrc, croppedAreaPixels);
       onSave(croppedImageFile);
     } catch (e) {
       console.error('Error cropping image:', e);
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -69,10 +66,11 @@ const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, aspect, cropShape
           <button onClick={onClose} className="py-2 px-6 rounded-full text-white hover:bg-gray-700">
             Cancel
           </button>
+          {/* --- 2. Update the button to show the spinner --- */}
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="py-2 px-6 rounded-full text-black bg-brand-green hover:bg-brand-green-darker disabled:opacity-50"
+            className="py-2 px-6 rounded-full text-black bg-brand-green hover:bg-brand-green-darker disabled:opacity-50 flex items-center justify-center w-32"
           >
             {isSaving ? <Spinner /> : 'Set Image'}
           </button>
