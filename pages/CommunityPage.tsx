@@ -46,10 +46,8 @@ const CommunityPage: React.FC = () => {
             setCommunity(communityData);
 
             const { data: postsData, error: postsError } = await supabase
-                .from('posts')
-                .select('*, profiles(*)')
-                .eq('community_id', communityId)
-                .order('created_at', { ascending: false });
+                .rpc('get_posts_for_community', { p_community_id: communityId });
+            
             if (postsError) throw postsError;
             setPosts((postsData as any) || []);
 
@@ -255,15 +253,37 @@ const CommunityPage: React.FC = () => {
                                 )}
                                 
                                 <div className="space-y-5">
-                                    {(activeTab === 'private' ? privatePosts : publicPosts).map((post, index) => (
-                                        <div 
-                                            key={post.id}
-                                            className="animate-in fade-in slide-in-from-bottom-4 duration-500"
-                                            style={{ animationDelay: `${index * 60}ms`, animationFillMode: 'backwards' }}
-                                        >
-                                            <PostComponent post={post} />
-                                        </div>
-                                    ))}
+                                    {/* --- THIS IS THE FIX --- */}
+                                    {(activeTab === 'private' ? privatePosts : publicPosts).map((post: any, index: number) => {
+                                        let postToRender: PostType = post;
+
+                                        // For member-only posts, transform the post to show the user as the author.
+                                        if (activeTab === 'private') {
+                                            postToRender = {
+                                                ...post,
+                                                author: {
+                                                    author_id: post.original_poster_user_id,
+                                                    author_type: 'user',
+                                                    author_name: post.original_poster_full_name,
+                                                    author_username: post.original_poster_username,
+                                                    author_avatar_url: post.original_poster_avatar_url,
+                                                },
+                                                // Nullify this so the "Posted by @..." line doesn't appear redundantly.
+                                                original_poster_username: null,
+                                            };
+                                        }
+                                        
+                                        return (
+                                            <div 
+                                                key={post.id}
+                                                className="animate-in fade-in slide-in-from-bottom-4 duration-500"
+                                                style={{ animationDelay: `${index * 60}ms`, animationFillMode: 'backwards' }}
+                                            >
+                                                <PostComponent post={postToRender} />
+                                            </div>
+                                        );
+                                    })}
+                                    {/* --- END OF FIX --- */}
                                     
                                     {/* Empty States */}
                                     {(activeTab === 'private' && privatePosts.length === 0) && (

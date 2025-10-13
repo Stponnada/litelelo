@@ -45,7 +45,7 @@ CREATE TABLE public.community_members (
 CREATE TABLE public.conversation_participants (
   conversation_id uuid NOT NULL,
   user_id uuid NOT NULL,
-  CONSTRAINT conversation_participants_pkey PRIMARY KEY (conversation_id, user_id),
+  CONSTRAINT conversation_participants_pkey PRIMARY KEY (user_id, conversation_id),
   CONSTRAINT conversation_participants_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES public.conversations(id),
   CONSTRAINT conversation_participants_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(user_id)
 );
@@ -53,7 +53,7 @@ CREATE TABLE public.conversation_read_timestamps (
   conversation_id uuid NOT NULL,
   user_id uuid NOT NULL,
   last_read_at timestamp with time zone NOT NULL,
-  CONSTRAINT conversation_read_timestamps_pkey PRIMARY KEY (conversation_id, user_id),
+  CONSTRAINT conversation_read_timestamps_pkey PRIMARY KEY (user_id, conversation_id),
   CONSTRAINT conversation_read_timestamps_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES public.conversations(id),
   CONSTRAINT conversation_read_timestamps_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
@@ -147,7 +147,7 @@ CREATE TABLE public.message_reactions (
   user_id uuid NOT NULL,
   emoji text NOT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
-  CONSTRAINT message_reactions_pkey PRIMARY KEY (message_id, user_id),
+  CONSTRAINT message_reactions_pkey PRIMARY KEY (user_id, message_id),
   CONSTRAINT message_reactions_message_id_fkey FOREIGN KEY (message_id) REFERENCES public.messages(id),
   CONSTRAINT message_reactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(user_id)
 );
@@ -177,6 +177,7 @@ CREATE TABLE public.posts (
   like_count bigint NOT NULL DEFAULT 0,
   dislike_count bigint NOT NULL DEFAULT 0,
   community_id uuid,
+  is_public boolean NOT NULL DEFAULT false,
   CONSTRAINT posts_pkey PRIMARY KEY (id),
   CONSTRAINT posts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(user_id),
   CONSTRAINT posts_community_id_fkey FOREIGN KEY (community_id) REFERENCES public.communities(id)
