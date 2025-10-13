@@ -124,31 +124,37 @@ const CommunityPage: React.FC = () => {
         if (!community || !user) return;
         const isCurrentlyMember = community.is_member;
         
-        // Optimistic update
+        // Optimistic update (this is correct, no changes needed here)
         setCommunity({ ...community, is_member: !isCurrentlyMember, member_count: community.member_count + (!isCurrentlyMember ? 1 : -1) });
 
         try {
-            // --- THIS IS THE FIX ---
             if (isCurrentlyMember) {
-                // Leaving the community
+                // --- LEAVING the community ---
+                // 1. Remove from community members (this was already here)
                 await supabase.from('community_members').delete().match({ community_id: community.id, user_id: user.id });
+
+                // 2. ALSO remove from the associated group chat
                 if (community.conversation_id) {
                     await supabase.from('conversation_participants').delete().match({ conversation_id: community.conversation_id, user_id: user.id });
                 }
+
             } else {
-                // Joining the community
+                // --- JOINING the community ---
+                // 1. Add to community members (this was already here)
                 await supabase.from('community_members').insert({ community_id: community.id, user_id: user.id });
+
+                // 2. ALSO add to the associated group chat
                 if (community.conversation_id) {
                     await supabase.from('conversation_participants').insert({ conversation_id: community.conversation_id, user_id: user.id });
                 }
             }
-            // --- END OF FIX ---
         } catch (err) {
             // Revert on failure
              setCommunity({ ...community, is_member: isCurrentlyMember, member_count: community.member_count });
-            console.error(err);
+            console.error("Failed to toggle community/chat membership:", err);
         }
     };
+
     
     if (loading) {
         return (
