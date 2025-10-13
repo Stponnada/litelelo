@@ -94,28 +94,22 @@ const CommunityPage: React.FC = () => {
         const columnToUpdate = fileType === 'avatar' ? 'avatar_url' : 'banner_url';
 
         try {
-            // --- THIS IS THE FIX ---
-            // Upload to the correct 'community-assets' bucket
             const { error: uploadError } = await supabase.storage
                 .from('community-assets') 
                 .upload(filePath, croppedImageFile, { upsert: true });
             if (uploadError) throw uploadError;
 
-            // Get public URL from the correct bucket
             const { data: { publicUrl } } = supabase.storage
                 .from('community-assets')
                 .getPublicUrl(filePath);
-            // --- END OF FIX ---
             const newUrl = `${publicUrl}?t=${new Date().getTime()}`;
 
-            // Update database
             const { error: dbError } = await supabase
                 .from('communities')
                 .update({ [columnToUpdate]: newUrl })
                 .eq('id', community.id);
             if (dbError) throw dbError;
 
-            // Update local state for instant feedback
             setCommunity(prev => prev ? { ...prev, [columnToUpdate]: newUrl } : null);
             
         } catch (err: any) {
@@ -130,15 +124,27 @@ const CommunityPage: React.FC = () => {
         if (!community || !user) return;
         const isCurrentlyMember = community.is_member;
         
+        // Optimistic update
         setCommunity({ ...community, is_member: !isCurrentlyMember, member_count: community.member_count + (!isCurrentlyMember ? 1 : -1) });
 
         try {
+            // --- THIS IS THE FIX ---
             if (isCurrentlyMember) {
+                // Leaving the community
                 await supabase.from('community_members').delete().match({ community_id: community.id, user_id: user.id });
+                if (community.conversation_id) {
+                    await supabase.from('conversation_participants').delete().match({ conversation_id: community.conversation_id, user_id: user.id });
+                }
             } else {
+                // Joining the community
                 await supabase.from('community_members').insert({ community_id: community.id, user_id: user.id });
+                if (community.conversation_id) {
+                    await supabase.from('conversation_participants').insert({ conversation_id: community.conversation_id, user_id: user.id });
+                }
             }
+            // --- END OF FIX ---
         } catch (err) {
+            // Revert on failure
              setCommunity({ ...community, is_member: isCurrentlyMember, member_count: community.member_count });
             console.error(err);
         }

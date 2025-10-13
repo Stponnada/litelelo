@@ -353,9 +353,12 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                         <h3 className="font-bold text-lg text-text-main-light dark:text-text-main group-hover:text-brand-green dark:group-hover:text-brand-green transition-colors truncate">
                             {conversation.name}
                         </h3>
+                        {/* --- THIS IS THE FIX --- */}
+                        {/* We add 1 to the participants length because the current user is not in that array */}
                         <p className="text-xs text-text-tertiary-light dark:text-text-tertiary">
-                            {conversation.participants.length} members
+                            {conversation.participants.length + 1} members
                         </p>
+                        {/* --- END OF FIX --- */}
                     </div>
                 </Link>
             );
