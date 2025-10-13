@@ -1,147 +1,133 @@
 // src/components/Post.tsx
 
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { supabase } from '../services/supabase';
-import { useAuth } from '../hooks/useAuth';
+import React from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { usePosts } from '../hooks/usePosts';
+import { useAuth } from '../hooks/useAuth';
 import { Post as PostType } from '../types';
-import { ThumbsUpIcon, ThumbsDownIcon, CommentIcon } from './icons';
 import { formatTimestamp } from '../utils/timeUtils';
-import LightBox from './lightbox';
-import { renderContentWithEmbeds } from '../utils/renderEmbeds'; // <-- Import new renderer
+import { supabase } from '../services/supabase';
+import { renderContentWithEmbeds } from '../utils/renderEmbeds';
+import { ChatBubbleOvalLeftEllipsisIcon, HeartIcon as HeartOutline, ArrowPathRoundedSquareIcon, ArrowDownCircleIcon } from './icons';
+import { HeartIcon as HeartSolid } from '@heroicons/react/24/solid';
 
-const Post = ({ post }: { post: PostType }) => {
-  const { user } = useAuth();
-  const { updatePostInContext } = usePosts();
+const PostComponent: React.FC<{ post: PostType }> = ({ post }) => {
+    const navigate = useNavigate();
+    const { user } = useAuth();
+    const { updatePostInContext } = usePosts();
+    const { author } = post;
 
-  const [userVote, setUserVote] = useState(post.user_vote);
-  const [isVoting, setIsVoting] = useState(false);
-  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+    if (!author) return null;
 
-  const handleVote = async (newVoteType: 'like' | 'dislike') => {
-    if (!user || isVoting) return;
-    setIsVoting(true);
-
-    const oldVote = userVote;
-    let newLikeCount = post.like_count;
-    let newDislikeCount = post.dislike_count;
-    let newVoteState = userVote;
-
-    if (newVoteType === oldVote) {
-      newVoteState = null;
-      if (newVoteType === 'like') newLikeCount--;
-      if (newVoteType === 'dislike') newDislikeCount--;
-    } else {
-      if (oldVote === 'like') newLikeCount--;
-      if (oldVote === 'dislike') newDislikeCount--;
-      if (newVoteType === 'like') newLikeCount++;
-      if (newVoteType === 'dislike') newDislikeCount++;
-      newVoteState = newVoteType;
-    }
-    
-    setUserVote(newVoteState);
-
-    updatePostInContext({
-      id: post.id,
-      like_count: newLikeCount,
-      dislike_count: newDislikeCount,
-      user_vote: newVoteState,
-    });
-
-    try {
-      if (newVoteState === null) {
-        await supabase.from('likes').delete().match({ user_id: user.id, post_id: post.id });
-      } else {
-        await supabase.from('likes').upsert({
-          user_id: user.id,
-          post_id: post.id,
-          like_type: newVoteState
-        }, { onConflict: 'user_id, post_id' });
-      }
-    } catch (error) {
-      console.error("Failed to vote:", error);
-      setUserVote(oldVote);
-      updatePostInContext({
-          id: post.id,
-          like_count: post.like_count,
-          dislike_count: post.dislike_count,
-          user_vote: oldVote
-      });
-    } finally {
-      setIsVoting(false);
-    }
-  };
-
-  const authorProfile = post.profiles;
-  const displayName = authorProfile?.full_name || authorProfile?.username || 'User';
-  const username = authorProfile?.username || 'user';
-  const avatarUrl = authorProfile?.avatar_url;
-  const avatarInitial = displayName.charAt(0).toUpperCase();
-
-  return (
-    <>
-      <article className="bg-secondary-light dark:bg-secondary p-4 rounded-lg border border-tertiary-light dark:border-tertiary">
-        <div className="flex items-start space-x-3">
-          <Link to={`/profile/${username}`} className="flex-shrink-0">
-            <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center font-bold text-text-main-light dark:text-text-main">
-              {avatarUrl ? <img src={avatarUrl} alt={displayName} className="w-full h-full rounded-full object-cover" /> : <span>{avatarInitial}</span>}
-            </div>
-          </Link>
-          
-          <div className="flex-1">
-              <div className="flex flex-col md:flex-row md:items-baseline md:space-x-2">
-                  <Link to={`/profile/${username}`} className="hover:underline">
-                      <p className="font-semibold text-text-main-light dark:text-text-main leading-tight">{displayName}</p>
-                  </Link>
-                  <div className="flex items-center space-x-2 text-sm text-text-tertiary-light dark:text-text-tertiary">
-                      <span>@{username}</span>
-                      <span className="text-gray-500">&middot;</span>
-                      <Link to={`/post/${post.id}`} className="hover:underline" title={new Date(post.created_at).toLocaleString()}>
-                          {formatTimestamp(post.created_at)}
-                      </Link>
-                  </div>
-              </div>
-              
-               <div className="mt-1 text-text-secondary-light dark:text-text-secondary">
-                  {renderContentWithEmbeds(post.content)}
-               </div>
-          </div>
-        </div>
-        
-        {post.image_url && 
-          <div className="block ml-13 mt-3">
-            <button onClick={() => setIsLightboxOpen(true)} className="w-full h-full focus:outline-none">
-              <img 
-                src={post.image_url} 
-                alt="Post content" 
-                className="rounded-lg w-full max-h-[500px] object-cover cursor-pointer" 
-              />
-            </button>
-          </div>
+    const handleVote = async (newVote: 'like' | 'dislike' | null) => {
+        if (!user) {
+            navigate('/login');
+            return;
         }
 
-        <div className="flex items-center text-text-tertiary-light dark:text-text-tertiary mt-4 text-sm ml-13">
-          <button disabled={isVoting} onClick={() => handleVote('like')} className="flex items-center space-x-2 hover:text-green-500 disabled:opacity-50">
-            <ThumbsUpIcon className={`w-5 h-5 ${userVote === 'like' ? 'text-green-500' : ''}`} />
-            <span>{post.like_count}</span>
-          </button>
-          <button disabled={isVoting} onClick={() => handleVote('dislike')} className="flex items-center space-x-2 ml-4 hover:text-red-500 disabled:opacity-50">
-            <ThumbsDownIcon className={`w-5 h-5 ${userVote === 'dislike' ? 'text-red-500' : ''}`} />
-            <span>{post.dislike_count}</span>
-          </button>
-          <Link to={`/post/${post.id}`} className="flex items-center space-x-2 ml-4 hover:text-blue-500">
-              <CommentIcon className="w-5 h-5" />
-              <span>{post.comment_count || 0}</span>
-          </Link>
-        </div>
-      </article>
+        const currentVote = post.user_vote;
+        let newLikeCount = post.like_count;
 
-      {isLightboxOpen && post.image_url && (
-          <LightBox imageUrl={post.image_url} onClose={() => setIsLightboxOpen(false)} />
-      )}
-    </>
-  );
+        // Optimistic update
+        if (newVote === 'like') {
+            newLikeCount = currentVote === 'like' ? post.like_count - 1 : post.like_count + 1;
+        } else if (currentVote === 'like') {
+            newLikeCount = post.like_count - 1;
+        }
+
+        updatePostInContext({
+            id: post.id,
+            like_count: newLikeCount,
+            user_vote: newVote === currentVote ? null : newVote,
+        });
+
+        // Backend update
+        try {
+            if (newVote === currentVote) {
+                // User is undoing their vote
+                await supabase.from('likes').delete().match({ user_id: user.id, post_id: post.id });
+            } else {
+                // User is casting a new vote or changing their vote
+                await supabase.from('likes').upsert(
+                    { user_id: user.id, post_id: post.id, like_type: newVote },
+                    { onConflict: 'user_id, post_id' }
+                );
+            }
+        } catch (error) {
+            console.error("Failed to update vote:", error);
+            // Revert optimistic update on failure
+            updatePostInContext({
+                id: post.id,
+                like_count: post.like_count,
+                user_vote: post.user_vote,
+            });
+        }
+    };
+
+    const authorLink = author.author_type === 'community' 
+        ? `/communities/${author.author_id}` 
+        : `/profile/${author.author_username}`;
+
+    return (
+        <div 
+            className="bg-secondary-light dark:bg-secondary rounded-xl shadow-lg border border-tertiary-light dark:border-tertiary p-4 cursor-pointer hover:bg-tertiary-light/30 dark:hover:bg-tertiary/30 transition-colors"
+            onClick={() => navigate(`/post/${post.id}`)}
+        >
+            <div className="flex items-start space-x-3">
+                <Link to={authorLink} onClick={e => e.stopPropagation()}>
+                    <img 
+                        src={author.author_avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(author.author_name || ' ')}&background=3cfba2&color=000`} 
+                        alt={author.author_name || ''} 
+                        className="w-12 h-12 rounded-full object-cover bg-gray-700" 
+                    />
+                </Link>
+                <div className="flex-1">
+                    <div className="flex items-baseline space-x-2">
+                        <Link to={authorLink} onClick={e => e.stopPropagation()} className="font-bold hover:underline text-text-main-light dark:text-text-main leading-tight">{author.author_name}</Link>
+                        {author.author_type === 'user' && (
+                            <span className="text-sm text-text-tertiary-light dark:text-text-tertiary">@{author.author_username}</span>
+                        )}
+                        <span className="text-sm text-text-tertiary-light dark:text-text-tertiary">&middot;</span>
+                        <span className="text-sm text-text-tertiary-light dark:text-text-tertiary hover:underline">{formatTimestamp(post.created_at)}</span>
+                    </div>
+                    
+                    {author.author_type === 'community' && post.original_poster_username && (
+                        <p className="text-xs text-text-tertiary-light dark:text-text-tertiary">
+                            Posted by <Link to={`/profile/${post.original_poster_username}`} onClick={e => e.stopPropagation()} className="hover:underline">@{post.original_poster_username}</Link>
+                        </p>
+                    )}
+                    
+                    <div className="mt-2 text-text-secondary-light dark:text-text-secondary space-y-2">
+                        {renderContentWithEmbeds(post.content)}
+                    </div>
+
+                    {post.image_url && (
+                        <div className="mt-3 rounded-lg overflow-hidden border border-tertiary-light dark:border-tertiary">
+                            <img src={post.image_url} alt="Post content" className="w-full h-auto max-h-[500px] object-cover" />
+                        </div>
+                    )}
+
+                    <div className="flex items-center space-x-6 mt-4 text-text-tertiary-light dark:text-text-tertiary">
+                        <div className="flex items-center space-x-1 group" onClick={(e) => { e.stopPropagation(); handleVote('like'); }}>
+                            <button className="p-1.5 rounded-full group-hover:bg-red-500/10 transition-colors">
+                                {post.user_vote === 'like' 
+                                    ? <HeartSolid className="w-5 h-5 text-red-500" /> 
+                                    : <HeartOutline className="w-5 h-5 group-hover:text-red-500" />
+                                }
+                            </button>
+                            <span className={`text-sm group-hover:text-red-500 ${post.user_vote === 'like' ? 'text-red-500 font-semibold' : ''}`}>{post.like_count}</span>
+                        </div>
+                        <Link to={`/post/${post.id}`} onClick={(e) => e.stopPropagation()} className="flex items-center space-x-1 group">
+                            <div className="p-1.5 rounded-full group-hover:bg-blue-500/10 transition-colors">
+                                <ChatBubbleOvalLeftEllipsisIcon className="w-5 h-5 group-hover:text-blue-500" />
+                            </div>
+                            <span className="text-sm group-hover:text-blue-500">{post.comment_count}</span>
+                        </Link>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 };
 
-export default Post;
+export default PostComponent;

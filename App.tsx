@@ -1,7 +1,6 @@
 // src/App.tsx
 
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-// --- REMOVED: useEffect ---
 import { AuthProvider } from './contexts/AuthContext';
 import { useAuth } from './hooks/useAuth';
 import { PostsProvider } from './contexts/PostsContext';
@@ -25,7 +24,11 @@ import PlaceDetailPage from './pages/PlaceDetailPage';
 import LostAndFoundPage from './pages/LostAndFoundPage';
 import MarketplacePage from './pages/MarketplacePage';
 import SellerProfilePage from './pages/SellerProfilePage';
-import GroupInfoPage from './pages/GroupInfoPage'; // Import the new page
+import GroupInfoPage from './pages/GroupInfoPage';
+// --- ADD THESE IMPORTS ---
+import CommunitiesListPage from './pages/CommunitiesListPage';
+import CommunityPage from './pages/CommunityPage';
+
 
 const AppRoutes = () => {
   const { user, profile, isLoading } = useAuth();
@@ -61,6 +64,9 @@ const AppRoutes = () => {
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
         <Route path="/directory" element={<DirectoryPage />} />
+        {/* --- ADD THESE ROUTES FOR COMMUNITIES --- */}
+        <Route path="/communities" element={<CommunitiesListPage />} />
+        <Route path="/communities/:communityId" element={<CommunityPage />} />
         <Route path="/campus" element={<CampusPage />} />
         <Route path="/campus/reviews" element={<CampusDirectoryPage />} />
         <Route path="/campus/reviews/:placeId" element={<PlaceDetailPage />} />
@@ -83,8 +89,6 @@ const AppRoutes = () => {
 };
 
 const App = () => {
-  // --- REMOVED: Service worker registration useEffect ---
-
   return (
     <Router>
       <ThemeProvider>

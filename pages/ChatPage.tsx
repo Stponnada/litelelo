@@ -64,6 +64,19 @@ const ChatPage: React.FC = () => {
   
   const selectedConversation = conversations.find(c => c.conversation_id === selectedConversationId);
 
+  // --- THIS IS THE FIX ---
+  // Determine a stable key. For DMs, it's the other user's ID. For groups, it's the conversation ID.
+  let conversationKey: string | undefined;
+  if (selectedConversation) {
+    if (selectedConversation.type === 'dm') {
+      const otherParticipant = getOtherParticipant(selectedConversation);
+      conversationKey = otherParticipant?.user_id;
+    } else {
+      conversationKey = selectedConversation.conversation_id;
+    }
+  }
+  // -------------------------
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-[calc(100vh-80px)]">
@@ -198,7 +211,7 @@ const ChatPage: React.FC = () => {
         <div className="w-full h-full flex-shrink-0 md:flex-1 flex flex-col bg-white/30 dark:bg-gray-900/30 backdrop-blur-sm">
           {selectedConversation ? (
             <Conversation 
-              key={selectedConversation.conversation_id}
+              key={conversationKey}
               conversation={selectedConversation}
               onBack={() => setSelectedConversationId(null)}
               onConversationCreated={handleConversationCreated}

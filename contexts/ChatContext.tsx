@@ -3,7 +3,7 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
-import { ConversationSummary, Profile } from '../types';
+import { ConversationSummary, Profile, DirectoryProfile } from '../types';
 
 interface ChatContextType {
   conversations: ConversationSummary[];
@@ -57,6 +57,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         finalSummaries = conversationsFromRpc.map(convo => {
           const participants = participantsMap.get(convo.conversation_id) || [];
+          // For DMs, the `otherParticipants` array should contain exactly one profile
           const otherParticipants = participants.filter(p => p.user_id !== user.id);
           
           let name = convo.name;
@@ -68,21 +69,37 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
 
-      const { data: profiles, error: profilesError } = await supabase.rpc('get_directory_profiles');
-      if (profilesError) throw profilesError;
+      // --- THIS IS THE FIX ---
+      // Call the new RPC and filter for only users
+      const { data: directoryData, error: directoryError } = await supabase.rpc('get_unified_directory');
+      if (directoryError) throw directoryError;
       
-      const contacts = (profiles as Profile[] || []).filter(p => p.is_following || p.is_followed_by);
+      const allProfiles = (directoryData as DirectoryProfile[] || []).filter(item => item.type === 'user');
       
+      const contacts = allProfiles.filter(p => p.is_following); // Or whatever your logic for "contacts" is
+      // --- END OF FIX ---
+
       const existingParticipantIds = new Set(
         (finalSummaries || []).flatMap(c => (c.participants || []).map(p => p.user_id))
       );
-
+      
+      // Convert DirectoryProfile to the shape needed for placeholder conversations
       const placeholderConversations = contacts
-        .filter(contact => !existingParticipantIds.has(contact.user_id))
+        .filter(contact => !existingParticipantIds.has(contact.id))
         .map(contact => ({
-            conversation_id: `placeholder_${contact.user_id}`, type: 'dm' as const, name: contact.full_name,
-            participants: [contact], last_message_content: "Start a conversation!", last_message_at: null,
-            last_message_sender_id: null, unread_count: 0,
+            conversation_id: `placeholder_${contact.id}`, 
+            type: 'dm' as const, 
+            name: contact.name,
+            participants: [{ 
+                user_id: contact.id, 
+                username: contact.username!, 
+                full_name: contact.name, 
+                avatar_url: contact.avatar_url 
+            }], 
+            last_message_content: "Start a conversation!", 
+            last_message_at: null,
+            last_message_sender_id: null, 
+            unread_count: 0,
         }));
       
       const combinedList = [...finalSummaries, ...placeholderConversations];
@@ -101,6 +118,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user]);
   
+  // ... (rest of the file is unchanged) ...
+
   useEffect(() => { if (user) fetchConversations() }, [user, fetchConversations]);
 
   useEffect(() => {
@@ -120,16 +139,13 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => { supabase.removeChannel(channel); };
   }, [user, conversations, fetchConversations]);
   
-  // --- THIS IS THE FIX ---
   const markConversationAsRead = useCallback(async (conversationId: string) => {
     if (!user?.id || conversationId.startsWith('placeholder_')) return;
 
-    // Optimistic UI update for immediate feedback
     setConversations(prev =>
         prev.map(c => (c.conversation_id === conversationId ? { ...c, unread_count: 0 } : c))
     );
 
-    // Update the backend
     const { error } = await supabase
       .from('conversation_read_timestamps')
       .upsert({
@@ -140,7 +156,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (error) {
       console.error('Failed to mark as read on backend:', error);
-      // If the backend fails, refetch to revert the optimistic update
       fetchConversations();
     }
   }, [user, fetchConversations]);
@@ -149,7 +164,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const updateConversationId = (placeholderId: string, newId: string) => {
     setConversations(prev => prev.map(c => c.conversation_id === placeholderId ? { ...c, conversation_id: newId } : c));
-    fetchConversations(); // Refetch to get the proper conversation details
   };
 
   const value = { conversations, totalUnreadCount, loading, markConversationAsRead, fetchConversations, updateConversationId };

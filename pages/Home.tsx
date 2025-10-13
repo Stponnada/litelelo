@@ -9,6 +9,7 @@ import { Profile } from '../types';
 import Spinner from '../components/Spinner';
 
 export const HomePage: React.FC = () => {
+    // The usePosts hook will now use the new RPC function internally
     const { posts, loading: postsLoading, error: postsError, addPostToContext } = usePosts();
     const { user } = useAuth();
     const [profile, setProfile] = useState<Profile | null>(null);

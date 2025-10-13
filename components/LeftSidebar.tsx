@@ -14,6 +14,7 @@ import {
   SunIcon,
   MoonIcon,
   BuildingLibraryIcon,
+  UserGroupIcon, // <-- 1. IMPORT THE NEW ICON
 } from './icons';
 
 const MenuIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" }) => (
@@ -65,13 +66,12 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ isExpanded, setIsExpanded, us
         </button>
 
         <nav className="flex-grow mt-4">
-          {/* 1st: Home Icon */}
           <NavLink to="/" icon={<HomeIcon className="w-7 h-7 flex-shrink-0" />} text="Home" />
-          
-          {/* 2nd: Campus Icon */}
           <NavLink to="/campus" icon={<BuildingLibraryIcon className="w-7 h-7 flex-shrink-0" />} text="Campus" />
           
-          {/* 3rd: Chat Icon (Messages) */}
+          {/* --- 2. ADDED THE COMMUNITIES NAVLINK HERE --- */}
+          <NavLink to="/communities" icon={<UserGroupIcon className="w-7 h-7 flex-shrink-0" />} text="Communities" />
+          
           <NavLink
             to="/chat"
             icon={
@@ -82,11 +82,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ isExpanded, setIsExpanded, us
             }
             text="Messages"
           />
-
-          {/* 4th: Directory Icon */}
           <NavLink to="/directory" icon={<BookOpenIcon className="w-7 h-7 flex-shrink-0" />} text="Directory" />
-          
-          {/* 5th: Profile Icon */}
           {username && (
             <NavLink to={`/profile/${username}`} icon={<UserIcon className="w-7 h-7 flex-shrink-0" />} text="Profile" />
           )}

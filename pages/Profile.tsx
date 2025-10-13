@@ -29,7 +29,7 @@ const TabButton: React.FC<{ label: string, isActive: boolean, onClick: () => voi
 
 const ProfilePage: React.FC = () => {
     const { username } = useParams<{ username: string }>();
-    const { user: currentUser, profile: currentUserProfile } = useAuth();
+    const { user: currentUser, profile: currentUserProfile, updateProfileContext } = useAuth();
     const navigate = useNavigate();
 
     const [profile, setProfile] = useState<Profile | null>(null);
@@ -50,14 +50,9 @@ const ProfilePage: React.FC = () => {
     const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
     const fetchProfileData = useCallback(async () => {
-        if (!username || !currentUser) return;
+        if (!username) return;
         setProfileLoading(true);
         try {
-            // --- THE FIX IS HERE ---
-            // The RPC function `get_profile_details` likely uses `auth.uid()` on the backend
-            // to determine the `is_following` status securely. Passing `current_user_id` from the client
-            // causes a function signature mismatch, leading to a 404 error.
-            // We only need to pass the username of the profile we want to view.
             const { data, error } = await supabase
                 .rpc('get_profile_details', {
                     profile_username: username,
@@ -72,31 +67,81 @@ const ProfilePage: React.FC = () => {
         } finally {
             setProfileLoading(false);
         }
-    }, [username, currentUser]); 
+    }, [username]); 
 
     const fetchPostsAndMentions = useCallback(async () => {
         if (!profile) return;
         setPostsLoading(true);
     
-        const postsPromise = supabase.from('posts').select('*, profiles(*)').eq('user_id', profile.user_id).order('created_at', { ascending: false });
-        const mentionsPromise = supabase.rpc('get_mentions_for_user', { profile_user_id: profile.user_id }).select('*, profiles(*)');
+        const postsPromise = supabase.rpc('get_posts_for_profile', { p_user_id: profile.user_id });
+        const mentionsPromise = supabase.rpc('get_mentions_for_user', { profile_user_id: profile.user_id });
         
         const [postsResult, mentionsResult] = await Promise.all([postsPromise, mentionsPromise]);
     
         if (postsResult.error) {
             console.error("Error fetching posts:", postsResult.error);
         } else {
-            const fetchedPosts = (postsResult.data as any) || [];
+            const fetchedPosts = (postsResult.data as any[] || []).map(p => ({
+                ...p,
+                author: {
+                  author_id: p.author_id,
+                  author_type: p.author_type,
+                  author_name: p.author_name,
+                  author_username: p.author_username,
+                  author_avatar_url: p.author_avatar_url,
+                }
+            }));
             setPosts(fetchedPosts);
             setMediaPosts(fetchedPosts.filter((p: PostType) => !!p.image_url));
         }
     
-        if (mentionsResult.error) console.error("Error fetching mentions:", mentionsResult.error);
-        else setMentions((mentionsResult.data as any) || []);
-    
+        if (mentionsResult.error) {
+            console.error("Error fetching mentions:", mentionsResult.error)
+        } else {
+             const fetchedMentions = (mentionsResult.data as any[] || [])
+                .filter(p => p.profiles)
+                .map(p => ({
+                    ...p,
+                    author: {
+                        author_id: p.profiles.user_id,
+                        author_type: 'user',
+                        author_name: p.profiles.full_name,
+                        author_username: p.profiles.username,
+                        author_avatar_url: p.profiles.avatar_url,
+                    },
+                    profiles: undefined
+                }));
+            setMentions(fetchedMentions);
+        }
+
         setPostsLoading(false);
     }, [profile]);
 
+    // --- THIS IS THE FIX ---
+    // This handler now correctly formats the post from the RPC before adding it to the local state
+    const handlePostCreated = (newPost: any) => {
+        const authorProfile = newPost.profiles as Profile | null;
+        const formattedPost: PostType = {
+            ...newPost,
+            like_count: 0,
+            dislike_count: 0,
+            comment_count: 0,
+            user_vote: null,
+            author: {
+                author_id: authorProfile?.user_id || '',
+                author_type: 'user',
+                author_name: authorProfile?.full_name || '',
+                author_username: authorProfile?.username || '',
+                author_avatar_url: authorProfile?.avatar_url || '',
+            },
+            original_poster_username: null,
+            profiles: null,
+        };
+        delete (formattedPost as any).profiles;
+        setPosts(prevPosts => [formattedPost, ...prevPosts]);
+    };
+    // --- END OF FIX ---
+    
     const fetchFriends = useCallback(async () => {
         if (!profile) return;
         setFriendsLoading(true);
@@ -239,7 +284,7 @@ const ProfilePage: React.FC = () => {
                         <div className="lg:col-span-2 mt-8 lg:mt-0"> 
                             {isOwnProfile && currentUserProfile && (
                                 <div className="mb-6">
-                                    <CreatePost onPostCreated={(newPost) => setPosts([newPost as PostType, ...posts])} profile={currentUserProfile} />
+                                    <CreatePost onPostCreated={handlePostCreated} profile={currentUserProfile} />
                                 </div>
                             )}
                             <div className="flex border-b border-tertiary-light dark:border-tertiary">
@@ -274,7 +319,10 @@ const ProfilePage: React.FC = () => {
         </>
     );
 };
+// --- THIS SECTION REMAINS UNCHANGED ---
+// ... (The EditProfileModal and ProfileDetail components are here, unchanged) ...
 
+// --- THIS SECTION REMAINS UNCHANGED ---
 const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, onSave: () => void }> = ({ userProfile, onClose, onSave }) => {
     const { user, updateProfileContext } = useAuth();
     const [profileData, setProfileData] = useState(userProfile);

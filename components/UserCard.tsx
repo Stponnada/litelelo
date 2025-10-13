@@ -2,81 +2,95 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Profile } from '../types';
+import { DirectoryProfile, Profile } from '../types';
 import Spinner from './Spinner';
-import { ChatIcon } from './icons';
-
-type listType = 'all' | 'following' | 'followers';
+import { UserGroupIcon } from './icons';
 
 interface UserCardProps {
-  profile: Profile;
+  profile: DirectoryProfile;
   isCurrentUser: boolean;
   isToggling: boolean;
-  onFollowToggle: (profile: Profile) => void;
+  onFollowToggle: (profile: DirectoryProfile) => void;
   onMessage: (profile: Profile) => void;
-  activeTab: listType;
+  activeTab?: string; // This is no longer used but kept for compatibility
 }
 
-const UserCard: React.FC<UserCardProps> = ({ profile, isCurrentUser, isToggling, onFollowToggle, onMessage, activeTab }) => {
-  
-  const handleFollowClick = (e: React.MouseEvent) => {
-    e.preventDefault(); e.stopPropagation();
-    onFollowToggle(profile);
-  };
+const UserCard: React.FC<UserCardProps> = ({ profile, isCurrentUser, isToggling, onFollowToggle, onMessage }) => {
+  const isCommunity = profile.type === 'community';
 
-  const handleMessageClick = (e: React.MouseEvent) => {
-    e.preventDefault(); e.stopPropagation();
-    onMessage(profile);
-  };
-  
-  const getButtonText = () => {
-    if (isToggling) return <Spinner/>;
-    if (profile.is_following) return 'Following';
-    if (activeTab === 'followers' && profile.is_followed_by && !profile.is_following) return 'Follow Back';
-    return 'Follow';
-  }
+  const linkTo = isCommunity 
+    ? `/communities/${profile.id}` 
+    : `/profile/${profile.username}`;
 
   return (
-    <Link 
-      to={`/profile/${profile.username}`} 
-      className="bg-secondary-light dark:bg-secondary p-4 rounded-lg flex items-center space-x-4 hover:bg-tertiary-light/60 dark:hover:bg-tertiary transition-colors border border-tertiary-light dark:border-tertiary"
-    >
-      <img 
-        src={profile.avatar_url || `https://ui-avatars.com/api/?name=${profile.full_name || profile.username}`} 
-        alt={profile.username}
-        className="w-16 h-16 rounded-full object-cover border-2 border-tertiary-light dark:border-gray-600"
-      />
-      <div className="text-left flex-grow overflow-hidden">
-        <h3 className="font-bold text-text-main-light dark:text-text-main text-lg truncate">{profile.full_name || profile.username}</h3>
-        <p className="text-sm text-text-secondary-light dark:text-text-secondary truncate">@{profile.username}</p>
-        {profile.follower_count !== undefined && (
-          <p className="text-xs text-text-tertiary-light dark:text-text-tertiary mt-1">{profile.follower_count} Followers</p>
-        )}
-      </div>
+    <div className="relative bg-secondary-light dark:bg-secondary rounded-2xl shadow-lg border border-tertiary-light dark:border-tertiary p-5 flex flex-col sm:flex-row items-center gap-5 transition-all duration-300 hover:border-brand-green/50">
       
-      {!isCurrentUser && (
-        <div className="flex items-center space-x-2 flex-shrink-0">
-            <button
-              onClick={handleMessageClick}
-              className="p-2 text-text-secondary-light dark:text-text-secondary rounded-full hover:bg-primary-light dark:hover:bg-primary transition-colors"
-              title={`Message ${profile.full_name}`}
-            >
-              <ChatIcon className="w-6 h-6" />
-            </button>
-            <button
-              onClick={handleFollowClick}
-              disabled={isToggling}
-              className={`font-semibold py-1.5 px-4 rounded-full text-sm transition-colors disabled:opacity-50 min-w-[100px] ${
-                profile.is_following
-                  ? 'bg-transparent border border-gray-400 dark:border-gray-500 text-text-main-light dark:text-text-main hover:border-red-500 hover:text-red-500'
-                  : 'bg-text-main-light text-primary-light dark:bg-white dark:text-black hover:bg-gray-700 dark:hover:bg-gray-200'
-              }`}
-            >
-              {getButtonText()}
-            </button>
+      {isCommunity && (
+          <div className="absolute top-3 right-3 bg-brand-green/10 text-brand-green text-xs font-bold uppercase px-3 py-1 rounded-full flex items-center gap-1.5">
+            <UserGroupIcon className="w-4 h-4" />
+            Community
+          </div>
+      )}
+
+      <Link to={linkTo} className="flex-shrink-0">
+        <img
+          src={profile.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name || ' ')}&background=random`}
+          alt={profile.name || 'avatar'}
+          className="w-24 h-24 rounded-full object-cover border-4 border-tertiary-light dark:border-tertiary"
+        />
+      </Link>
+
+      <div className="flex-1 text-center sm:text-left">
+        <Link to={linkTo}>
+          <h3 className="text-xl font-bold text-text-main-light dark:text-text-main hover:text-brand-green">{profile.name}</h3>
+        </Link>
+        
+        {!isCommunity && profile.username && (
+          <p className="text-sm text-text-tertiary-light dark:text-text-tertiary">@{profile.username}</p>
+        )}
+        
+        <p className="mt-2 text-sm text-text-secondary-light dark:text-text-secondary line-clamp-2 min-h-[40px]">
+          {profile.bio || (isCommunity ? 'No description provided.' : 'No bio yet.')}
+        </p>
+
+        <div className="mt-3 flex items-center justify-center sm:justify-start gap-4 text-sm text-text-tertiary-light dark:text-text-tertiary">
+            {isCommunity ? (
+                <div className="flex items-center gap-1">
+                    <UserGroupIcon className="w-4 h-4" />
+                    <strong>{profile.member_count}</strong> members
+                </div>
+            ) : (
+                <>
+                    <div className="flex items-center gap-1">
+                        <strong>{profile.follower_count || 0}</strong> followers
+                    </div>
+                </>
+            )}
+        </div>
+      </div>
+
+      {!isCurrentUser && !isCommunity && (
+        <div className="flex flex-col sm:flex-row gap-2 self-stretch sm:self-center">
+          <button
+            onClick={() => onMessage(profile as any)}
+            className="w-full sm:w-auto px-5 py-2.5 text-sm font-semibold rounded-lg bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
+          >
+            Message
+          </button>
+          <button
+            onClick={() => onFollowToggle(profile)}
+            disabled={isToggling}
+            className={`w-full sm:w-auto px-5 py-2.5 text-sm font-bold rounded-lg transition-all min-w-[100px] ${
+              profile.is_following
+                ? 'bg-transparent border-2 border-brand-green text-brand-green hover:bg-brand-green/10'
+                : 'bg-brand-green text-black hover:bg-brand-green-darker'
+            }`}
+          >
+            {isToggling ? <Spinner /> : profile.is_following ? 'Following' : 'Follow'}
+          </button>
         </div>
       )}
-    </Link>
+    </div>
   );
 };
 
