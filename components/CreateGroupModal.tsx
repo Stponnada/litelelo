@@ -45,7 +45,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose, onGroupCre
   useEffect(() => {
     const fetchUsers = async () => {
       setLoading(true);
-      const { data, error } = await supabase.rpc('get_directory_profiles');
+      const { data, error } = await supabase.rpc('get_unified_directory');
       if (error) {
         console.error("Error fetching users for group chat:", error);
       } else {
