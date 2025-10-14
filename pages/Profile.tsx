@@ -278,17 +278,18 @@ const ProfilePage: React.FC = () => {
                             <h2 className="text-xl font-bold">About {profile.full_name?.split(' ')[0] || profile.username}</h2>
                             
                             {profile.roommates && profile.roommates.length > 0 && (
-                                <div className="space-y-3">
-                                    <div className="flex items-center space-x-2">
-                                        <UserGroupIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary" />
-                                        <h3 className="font-semibold text-text-secondary-light dark:text-text-secondary">Roomies with:</h3>
-                                    </div>
-                                    <div className="flex items-center space-x-2 pl-2">
-                                        {profile.roommates.map(roomie => (
-                                            <Link to={`/profile/${roomie.username}`} key={roomie.user_id} className="flex flex-col items-center group" title={roomie.full_name || roomie.username}>
-                                                <img src={roomie.avatar_url || `https://ui-avatars.com/api/?name=${roomie.full_name || roomie.username}`} alt={roomie.username} className="w-12 h-12 rounded-full object-cover" />
-                                                <span className="text-xs mt-1 text-text-tertiary-light dark:text-text-tertiary group-hover:underline truncate w-16 text-center">{roomie.full_name?.split(' ')[0]}</span>
-                                            </Link>
+                                <div className="flex items-start space-x-2">
+                                    <UserGroupIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary mt-1 flex-shrink-0" />
+                                    <div className="text-text-secondary-light dark:text-text-secondary">
+                                        <span className="font-semibold">Roomies with: </span>
+                                        {profile.roommates.map((roomie, index) => (
+                                            <React.Fragment key={roomie.user_id}>
+                                                <Link to={`/profile/${roomie.username}`} className="font-semibold text-text-main-light dark:text-text-main hover:underline hover:text-brand-green">
+                                                    {roomie.full_name || roomie.username}
+                                                </Link>
+                                                {index < profile.roommates.length - 2 && ', '}
+                                                {index === profile.roommates.length - 2 && ' and '}
+                                            </React.Fragment>
                                         ))}
                                     </div>
                                 </div>

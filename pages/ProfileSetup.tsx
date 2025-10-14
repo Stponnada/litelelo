@@ -9,6 +9,7 @@ import { CameraIcon } from '../components/icons';
 import { BITS_BRANCHES, isMscBranch } from '../data/bitsBranches.ts';
 import { getKeyPair } from '../services/encryption';
 import ImageCropper from '../components/ImageCropper';
+import { BITS_DORMS } from '../data/bitsDorms.ts';
 
 const RELATIONSHIP_STATUSES = ['Single', 'In a Relationship', 'Married', "It's Complicated"];
 const DINING_HALLS = ['Mess 1', 'Mess 2'];
@@ -43,6 +44,7 @@ const ProfileSetup: React.FC = () => {
     src: string | null;
   }>({ isOpen: false, type: null, src: null });
   const [availableBranches, setAvailableBranches] = useState<string[]>([]);
+  const [availableDorms, setAvailableDorms] = useState<string[]>([]);
   const [isDualDegreeStudent, setIsDualDegreeStudent] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,6 +81,20 @@ const ProfileSetup: React.FC = () => {
     setIsDualDegreeStudent(isMsc);
     if (!isMsc) setFormData(prev => ({ ...prev, dual_degree_branch: '' }));
   }, [formData.branch, formData.campus]);
+
+  useEffect(() => {
+    const { campus, gender } = formData;
+    if (campus && gender && BITS_DORMS[campus] && BITS_DORMS[campus][gender]) {
+      const dorms = BITS_DORMS[campus][gender];
+      setAvailableDorms(dorms);
+      if (!dorms.includes(formData.dorm_building)) {
+        setFormData(prev => ({ ...prev, dorm_building: '' }));
+      }
+    } else {
+      setAvailableDorms([]);
+      setFormData(prev => ({ ...prev, dorm_building: '' }));
+    }
+  }, [formData.campus, formData.gender]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -295,7 +311,7 @@ const ProfileSetup: React.FC = () => {
                       {formData.campus ? (
                         <div className="flex items-center justify-between">
                           <span className="font-medium">{formData.campus}</span>
-                          <span className="text-xs bg-brand-green/20 text-brand-green px-2 py-1 rounded-full">Auto-detected</span>
+                          {/* <span className="text-xs bg-brand-green/20 text-brand-green px-2 py-1 rounded-full">Auto-detected</span>*/}
                         </div>
                       ) : (
                         'Detecting from email...'
@@ -309,7 +325,7 @@ const ProfileSetup: React.FC = () => {
                       {formData.admission_year ? (
                         <div className="flex items-center justify-between">
                           <span className="font-medium">{formData.admission_year}</span>
-                          <span className="text-xs bg-brand-green/20 text-brand-green px-2 py-1 rounded-full">Auto-detected</span>
+                          {/* <span className="text-xs bg-brand-green/20 text-brand-green px-2 py-1 rounded-full">Auto-detected</span>*/}
                         </div>
                       ) : (
                         'Detecting from email...'
@@ -488,15 +504,17 @@ const ProfileSetup: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label htmlFor="dorm_building" className="block text-text-secondary-light dark:text-text-secondary text-sm font-semibold mb-2">Dorm Building</label>
-                    <input 
-                      type="text" 
-                      name="dorm_building" 
-                      id="dorm_building" 
-                      value={formData.dorm_building} 
+                    <select
+                      name="dorm_building"
+                      id="dorm_building"
+                      value={formData.dorm_building}
                       onChange={handleChange}
-                      placeholder="e.g. Ram Bhawan"
-                      className="w-full p-4 bg-tertiary-light dark:bg-tertiary border-2 border-transparent focus:border-brand-green rounded-xl text-text-main-light dark:text-text-main transition-all duration-300 outline-none"
-                    />
+                      disabled={availableDorms.length === 0}
+                      className="w-full p-4 bg-tertiary-light dark:bg-tertiary border-2 border-transparent focus:border-brand-green rounded-xl text-text-main-light dark:text-text-main transition-all duration-300 outline-none disabled:opacity-50"
+                    >
+                      <option value="">Select Dorm</option>
+                      {availableDorms.map(dorm => <option key={dorm} value={dorm}>{dorm}</option>)}
+                    </select>
                   </div>
 
                   <div>

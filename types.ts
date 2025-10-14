@@ -1,5 +1,11 @@
 // src/types.ts
 // --- NEW: Interface for a roommate ---
+export interface Roommate {
+    user_id: string;
+    username: string;
+    full_name: string | null;
+    avatar_url: string | null;
+}
 
 // --- NEW: A polymorphic "Author" type that can be a user OR a community ---
 export interface AuthorProfile {
@@ -22,12 +28,6 @@ follower_count: number | null;
 member_count: number | null;
 }
 
-export interface Roommate {
-user_id: string;
-username: string;
-full_name: string | null;
-avatar_url: string | null;
-}
 export interface Friend {
 user_id: string;
 username: string;
