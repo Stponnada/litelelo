@@ -28,6 +28,7 @@ import GroupInfoPage from './pages/GroupInfoPage';
 // --- ADD THESE IMPORTS ---
 import CommunitiesListPage from './pages/CommunitiesListPage';
 import CommunityPage from './pages/CommunityPage';
+import CommunityMembersPage from './pages/CommunityMembersPage';
 
 
 const AppRoutes = () => {
@@ -67,6 +68,7 @@ const AppRoutes = () => {
         {/* --- ADD THESE ROUTES FOR COMMUNITIES --- */}
         <Route path="/communities" element={<CommunitiesListPage />} />
         <Route path="/communities/:communityId" element={<CommunityPage />} />
+        <Route path="/communities/:communityId/members" element={<CommunityMembersPage />} />
         <Route path="/campus" element={<CampusPage />} />
         <Route path="/campus/reviews" element={<CampusDirectoryPage />} />
         <Route path="/campus/reviews/:placeId" element={<PlaceDetailPage />} />

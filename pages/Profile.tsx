@@ -14,6 +14,13 @@ import ImageCropper from '../components/ImageCropper';
 import FollowListModal from '../components/FollowListModal';
 import LightBox from '../components/lightbox';
 
+// --- NEW TYPE FOR THE COMMUNITY LIST ---
+interface CommunityLink {
+    id: string;
+    name: string;
+    avatar_url: string | null;
+}
+
 const TabButton: React.FC<{ label: string, isActive: boolean, onClick: () => void }> = ({ label, isActive, onClick }) => (
     <button
         onClick={onClick}
@@ -45,6 +52,10 @@ const ProfilePage: React.FC = () => {
     
     const [friends, setFriends] = useState<Friend[]>([]);
     const [friendsLoading, setFriendsLoading] = useState(true);
+
+    // --- NEW STATE FOR COMMUNITIES ---
+    const [communities, setCommunities] = useState<CommunityLink[]>([]);
+    const [communitiesLoading, setCommunitiesLoading] = useState(true);
 
     const [followModalState, setFollowModalState] = useState<{ isOpen: boolean; listType: 'followers' | 'following' | null; }>({ isOpen: false, listType: null });
     const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
@@ -98,27 +109,22 @@ const ProfilePage: React.FC = () => {
         if (mentionsResult.error) {
             console.error("Error fetching mentions:", mentionsResult.error)
         } else {
-             const fetchedMentions = (mentionsResult.data as any[] || [])
-                .filter(p => p.profiles)
-                .map(p => ({
-                    ...p,
-                    author: {
-                        author_id: p.profiles.user_id,
-                        author_type: 'user',
-                        author_name: p.profiles.full_name,
-                        author_username: p.profiles.username,
-                        author_avatar_url: p.profiles.avatar_url,
-                    },
-                    profiles: undefined
-                }));
+             const fetchedMentions = (mentionsResult.data as any[] || []).map(p => ({
+                ...p,
+                author: {
+                    author_id: p.user_id,
+                    author_type: 'user',
+                    author_name: p.full_name,
+                    author_username: p.username,
+                    author_avatar_url: p.avatar_url,
+                }
+            }));
             setMentions(fetchedMentions);
         }
 
         setPostsLoading(false);
     }, [profile]);
 
-    // --- THIS IS THE FIX ---
-    // This handler now correctly formats the post from the RPC before adding it to the local state
     const handlePostCreated = (newPost: any) => {
         const authorProfile = newPost.profiles as Profile | null;
         const formattedPost: PostType = {
@@ -135,12 +141,12 @@ const ProfilePage: React.FC = () => {
                 author_avatar_url: authorProfile?.avatar_url || '',
             },
             original_poster_username: null,
+            // @ts-ignore
             profiles: null,
         };
         delete (formattedPost as any).profiles;
         setPosts(prevPosts => [formattedPost, ...prevPosts]);
     };
-    // --- END OF FIX ---
     
     const fetchFriends = useCallback(async () => {
         if (!profile) return;
@@ -155,6 +161,22 @@ const ProfilePage: React.FC = () => {
             setFriendsLoading(false);
         }
     }, [profile]);
+    
+    // --- NEW FUNCTION TO FETCH COMMUNITIES ---
+    const fetchCommunities = useCallback(async () => {
+        if (!profile) return;
+        setCommunitiesLoading(true);
+        try {
+            const { data, error } = await supabase.rpc('get_communities_for_user', { p_user_id: profile.user_id });
+            if (error) throw error;
+            setCommunities(data || []);
+        } catch (error) {
+            console.error("Error fetching communities:", error);
+        } finally {
+            setCommunitiesLoading(false);
+        }
+    }, [profile]);
+
 
     useEffect(() => {
         fetchProfileData();
@@ -164,8 +186,10 @@ const ProfilePage: React.FC = () => {
         if (profile) {
             fetchPostsAndMentions();
             fetchFriends();
+            // --- CALL THE NEW FUNCTION ---
+            fetchCommunities();
         }
-    }, [profile, fetchPostsAndMentions, fetchFriends]);
+    }, [profile, fetchPostsAndMentions, fetchFriends, fetchCommunities]);
     
     const handleFollowToggle = async () => {
       if (!currentUser || !profile || isTogglingFollow) return;
@@ -279,6 +303,11 @@ const ProfilePage: React.FC = () => {
                             {!friendsLoading && friends.length > 0 && (
                                 <><hr className="border-tertiary-light dark:border-tertiary !my-6" /><div><h3 className="text-lg font-bold mb-3">Friends</h3><div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-3">{friends.slice(0, 9).map(friend => (<Link to={`/profile/${friend.username}`} key={friend.user_id} className="flex flex-col items-center space-y-1 group" title={friend.full_name || friend.username}><img src={friend.avatar_url || `https://ui-avatars.com/api/?name=${friend.full_name || friend.username}`} alt={friend.username} className="w-16 h-16 rounded-full object-cover" /><p className="text-xs text-center text-text-tertiary-light dark:text-text-tertiary group-hover:underline truncate w-full">{friend.full_name || friend.username}</p></Link>))}</div></div></>
                             )}
+
+                            {/* --- NEW COMMUNITIES SECTION --- */}
+                            {!communitiesLoading && communities.length > 0 && (
+                                <><hr className="border-tertiary-light dark:border-tertiary !my-6" /><div><h3 className="text-lg font-bold mb-3">Communities</h3><div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-3">{communities.slice(0, 9).map(community => (<Link to={`/communities/${community.id}`} key={community.id} className="flex flex-col items-center space-y-1 group" title={community.name}><img src={community.avatar_url || `https://ui-avatars.com/api/?name=${community.name}&background=3cfba2&color=000`} alt={community.name} className="w-16 h-16 rounded-2xl object-cover" /><p className="text-xs text-center text-text-tertiary-light dark:text-text-tertiary group-hover:underline truncate w-full">{community.name}</p></Link>))}</div></div></>
+                            )}
                         </div>
 
                         <div className="lg:col-span-2 mt-8 lg:mt-0"> 
@@ -295,8 +324,8 @@ const ProfilePage: React.FC = () => {
                             <div className="mt-4">
                                 {postsLoading ? (<div className="text-center py-8"><Spinner/></div>) : (
                                     <>
-                                        {activeTab === 'posts' && (<div className="space-y-4">{posts.length > 0 ? posts.map(post => <PostComponent key={post.id} post={post} />) : <p className="text-center text-text-tertiary-light dark:text-text-tertiary py-8">No posts yet.</p>}</div>)}
-                                        {activeTab === 'mentions' && (<div className="space-y-4">{mentions.length > 0 ? mentions.map(post => <PostComponent key={post.id} post={post} />) : <p className="text-center text-text-tertiary-light dark:text-text-tertiary py-8">No mentions yet.</p>}</div>)}
+                                        {activeTab === 'posts' && (<div className="space-y-4">{posts.length > 0 ? posts.map(post => <PostComponent key={post.id} post={post} onImageClick={setLightboxUrl} />) : <p className="text-center text-text-tertiary-light dark:text-text-tertiary py-8">No posts yet.</p>}</div>)}
+                                        {activeTab === 'mentions' && (<div className="space-y-4">{mentions.length > 0 ? mentions.map(post => <PostComponent key={post.id} post={post} onImageClick={setLightboxUrl} />) : <p className="text-center text-text-tertiary-light dark:text-text-tertiary py-8">No mentions yet.</p>}</div>)}
                                         {activeTab === 'media' && (
                                             mediaPosts.length > 0 ? (
                                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
@@ -319,10 +348,7 @@ const ProfilePage: React.FC = () => {
         </>
     );
 };
-// --- THIS SECTION REMAINS UNCHANGED ---
-// ... (The EditProfileModal and ProfileDetail components are here, unchanged) ...
 
-// --- THIS SECTION REMAINS UNCHANGED ---
 const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, onSave: () => void }> = ({ userProfile, onClose, onSave }) => {
     const { user, updateProfileContext } = useAuth();
     const [profileData, setProfileData] = useState(userProfile);
@@ -433,6 +459,7 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
                 cropShape={cropperState.type === 'avatar' ? 'round' : 'rect'}
                 onSave={handleCropSave}
                 onClose={() => setCropperState({ isOpen: false, type: null, src: null })}
+                isSaving={isSaving}
             />
         );
     }

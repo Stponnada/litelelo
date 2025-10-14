@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
-import { Profile } from '../types';
+import { Profile, DirectoryProfile } from '../types';
 import Spinner from './Spinner';
 import { XCircleIcon, UserGroupIcon } from './icons';
 
@@ -12,11 +12,17 @@ interface CreateGroupModalProps {
   onGroupCreated: (conversationId: string) => void;
 }
 
+const CheckIcon = ({ className }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+  </svg>
+);
+
 const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose, onGroupCreated }) => {
   const { user } = useAuth();
   const [groupName, setGroupName] = useState('');
-  const [availableUsers, setAvailableUsers] = useState<Profile[]>([]);
-  const [selectedUsers, setSelectedUsers] = useState<Profile[]>([]);
+  const [availableUsers, setAvailableUsers] = useState<DirectoryProfile[]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<DirectoryProfile[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,10 +31,22 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose, onGroupCre
   // Generate consistent color based on user ID
   const getAvatarColor = (userId: string) => {
     const colors = [
-      'bg-red-500', 'bg-orange-500', 'bg-amber-500', 'bg-yellow-500',
-      'bg-lime-500', 'bg-green-500', 'bg-emerald-500', 'bg-teal-500',
-      'bg-cyan-500', 'bg-sky-500', 'bg-blue-500', 'bg-indigo-500',
-      'bg-violet-500', 'bg-purple-500', 'bg-fuchsia-500', 'bg-pink-500'
+      'bg-gradient-to-br from-red-400 to-red-600',
+      'bg-gradient-to-br from-orange-400 to-orange-600',
+      'bg-gradient-to-br from-amber-400 to-amber-600',
+      'bg-gradient-to-br from-yellow-400 to-yellow-600',
+      'bg-gradient-to-br from-lime-400 to-lime-600',
+      'bg-gradient-to-br from-green-400 to-green-600',
+      'bg-gradient-to-br from-emerald-400 to-emerald-600',
+      'bg-gradient-to-br from-teal-400 to-teal-600',
+      'bg-gradient-to-br from-cyan-400 to-cyan-600',
+      'bg-gradient-to-br from-sky-400 to-sky-600',
+      'bg-gradient-to-br from-blue-400 to-blue-600',
+      'bg-gradient-to-br from-indigo-400 to-indigo-600',
+      'bg-gradient-to-br from-violet-400 to-violet-600',
+      'bg-gradient-to-br from-purple-400 to-purple-600',
+      'bg-gradient-to-br from-fuchsia-400 to-fuchsia-600',
+      'bg-gradient-to-br from-pink-400 to-pink-600'
     ];
     const index = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
     return colors[index];
@@ -37,6 +55,10 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose, onGroupCre
   // Get initials from name
   const getInitials = (name: string | null | undefined, username: string) => {
     if (name && name.trim()) {
+      const parts = name.trim().split(' ');
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      }
       return name.trim()[0].toUpperCase();
     }
     return username[0].toUpperCase();
@@ -49,16 +71,17 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose, onGroupCre
       if (error) {
         console.error("Error fetching users for group chat:", error);
       } else {
-        setAvailableUsers(data.filter((p: Profile) => p.user_id !== user?.id) || []);
+        const usersOnly = (data as DirectoryProfile[] || []).filter(p => p.type === 'user' && p.id !== user?.id);
+        setAvailableUsers(usersOnly);
       }
       setLoading(false);
     };
     fetchUsers();
   }, [user]);
 
-  const handleToggleUser = (profile: Profile) => {
-    if (selectedUsers.some(u => u.user_id === profile.user_id)) {
-      setSelectedUsers(selectedUsers.filter(u => u.user_id !== profile.user_id));
+  const handleToggleUser = (profile: DirectoryProfile) => {
+    if (selectedUsers.some(u => u.id === profile.id)) {
+      setSelectedUsers(selectedUsers.filter(u => u.id !== profile.id));
     } else {
       setSelectedUsers([...selectedUsers, profile]);
     }
@@ -72,7 +95,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose, onGroupCre
     setIsSubmitting(true);
     setError(null);
     try {
-      const participant_ids = selectedUsers.map(u => u.user_id);
+      const participant_ids = selectedUsers.map(u => u.id);
       const { data, error: rpcError } = await supabase.rpc('create_group_chat', { group_name: groupName, participant_ids });
       if (rpcError) throw rpcError;
       onGroupCreated(data);
@@ -84,86 +107,99 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose, onGroupCre
   };
 
   const filteredUsers = availableUsers.filter(p =>
-    p.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.username.toLowerCase().includes(searchTerm.toLowerCase())
+    p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.username!.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <div
-      className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fadeIn"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn"
       onClick={onClose}
     >
       <div
-        className="bg-gradient-to-br from-secondary-light to-tertiary-light dark:from-secondary dark:to-gray-900 rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col border border-tertiary-light/50 dark:border-tertiary/50 animate-slideUp overflow-hidden"
+        className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-slideUp"
         onClick={e => e.stopPropagation()}
       >
-        {/* Header with gradient accent */}
-        <header className="relative flex items-center justify-between p-6 border-b border-tertiary-light/30 dark:border-tertiary/30 bg-gradient-to-r from-brand-green/5 to-transparent">
-          <div className="flex items-center gap-3 flex-1">
-            <div className="p-2 bg-brand-green/10 rounded-xl">
-              <UserGroupIcon className="w-6 h-6 text-brand-green" />
+        {/* Header */}
+        <div className="relative px-8 pt-8 pb-6">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-transparent to-teal-500/10" />
+          <div className="relative flex items-start justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                  <UserGroupIcon className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    Create Group
+                  </h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                    Bring your team together
+                  </p>
+                </div>
+              </div>
             </div>
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-brand-green to-emerald-400 bg-clip-text text-transparent">
-              Create a Group
-            </h2>
+            <button
+              onClick={onClose}
+              className="w-10 h-10 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center transition-all duration-200 group"
+            >
+              <XCircleIcon className="w-5 h-5 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="text-text-tertiary-light dark:text-text-tertiary hover:text-red-400 hover:rotate-90 transition-all duration-300"
-          >
-            <XCircleIcon className="w-6 h-6" />
-          </button>
-        </header>
+        </div>
 
         {/* Body */}
-        <main className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Group name input with icon */}
+        <div className="flex-1 overflow-y-auto px-8 pb-6 space-y-6">
+          {/* Group Name */}
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-text-secondary dark:text-text-tertiary flex items-center gap-2">
-              <span className="w-1 h-4 bg-brand-green rounded-full"></span>
+            <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
               Group Name
             </label>
-            <div className="relative">
-              <input
-                type="text"
-                value={groupName}
-                onChange={e => setGroupName(e.target.value)}
-                className="w-full p-4 bg-white/50 dark:bg-tertiary/50 rounded-xl border border-tertiary-light/50 dark:border-gray-600/50 focus:ring-2 focus:ring-brand-green focus:border-transparent outline-none transition-all duration-200 backdrop-blur-sm"
-                placeholder="Enter a catchy group name..."
-              />
-            </div>
+            <input
+              type="text"
+              value={groupName}
+              onChange={e => setGroupName(e.target.value)}
+              className="w-full px-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-emerald-500 dark:focus:border-emerald-500 focus:bg-white dark:focus:bg-gray-800 outline-none transition-all duration-200 text-gray-900 dark:text-white placeholder-gray-400"
+              placeholder="e.g., Marketing Team, Book Club..."
+            />
           </div>
 
-          {/* Selected members chips */}
+          {/* Selected Members */}
           {selectedUsers.length > 0 && (
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-text-secondary dark:text-text-tertiary flex items-center gap-2">
-                <span className="w-1 h-4 bg-brand-green rounded-full"></span>
-                Selected Members ({selectedUsers.length})
-              </label>
-              <div className="flex flex-wrap gap-2 p-3 bg-brand-green/5 dark:bg-brand-green/10 rounded-xl border border-brand-green/20">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  Selected Members
+                </label>
+                <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
+                  {selectedUsers.length} {selectedUsers.length === 1 ? 'member' : 'members'}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
                 {selectedUsers.map(user => (
                   <div
-                    key={user.user_id}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-tertiary rounded-full border border-brand-green/30 shadow-sm"
+                    key={user.id}
+                    className="group flex items-center gap-2.5 pl-1 pr-3 py-1 bg-white dark:bg-gray-800 rounded-full border-2 border-emerald-200 dark:border-emerald-800 hover:border-emerald-400 dark:hover:border-emerald-600 transition-all duration-200 shadow-sm hover:shadow-md"
                   >
                     {user.avatar_url ? (
                       <img
                         src={user.avatar_url}
-                        alt={user.username}
-                        className="w-5 h-5 rounded-full object-cover"
+                        alt={user.username!}
+                        className="w-7 h-7 rounded-full object-cover"
                       />
                     ) : (
-                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold ${getAvatarColor(user.user_id)}`}>
-                        {getInitials(user.full_name, user.username)}
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-md ${getAvatarColor(user.id)}`}>
+                        {getInitials(user.name, user.username!)}
                       </div>
                     )}
-                    <span className="text-sm font-medium">{user.full_name || user.username}</span>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                      {user.name || user.username}
+                    </span>
                     <button
                       onClick={() => handleToggleUser(user)}
-                      className="text-text-tertiary hover:text-red-400 transition"
+                      className="w-5 h-5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 flex items-center justify-center transition-colors ml-1"
                     >
-                      <XCircleIcon className="w-4 h-4" />
+                      <XCircleIcon className="w-4 h-4 text-gray-400 group-hover:text-red-500 transition-colors" />
                     </button>
                   </div>
                 ))}
@@ -171,129 +207,132 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose, onGroupCre
             </div>
           )}
 
-          {/* Search input with icon */}
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-text-secondary dark:text-text-tertiary flex items-center gap-2">
-              <span className="w-1 h-4 bg-brand-green rounded-full"></span>
+          {/* Search */}
+          <div className="space-y-3">
+            <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
               Add Members
             </label>
             <div className="relative">
+              <svg className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
               <input
                 type="text"
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="w-full p-4 pl-10 bg-white/50 dark:bg-tertiary/50 rounded-xl border border-tertiary-light/50 dark:border-gray-600/50 focus:ring-2 focus:ring-brand-green focus:border-transparent outline-none transition-all duration-200 backdrop-blur-sm"
-                placeholder="Search for people..."
+                className="w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-emerald-500 dark:focus:border-emerald-500 focus:bg-white dark:focus:bg-gray-800 outline-none transition-all duration-200 text-gray-900 dark:text-white placeholder-gray-400"
+                placeholder="Search people..."
               />
-              <svg className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary-light dark:text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
             </div>
           </div>
 
-          {/* User list with enhanced styling */}
-          <div className="rounded-xl border border-tertiary-light/50 dark:border-tertiary/50 overflow-hidden bg-white/30 dark:bg-tertiary/30 backdrop-blur-sm">
-            <div className="max-h-72 overflow-y-auto divide-y divide-tertiary-light/30 dark:divide-tertiary/30">
-              {loading ? (
-                <div className="flex justify-center p-8">
-                  <Spinner />
+          {/* User List */}
+          <div className="space-y-2">
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <Spinner />
+              </div>
+            ) : filteredUsers.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
+                  <UserGroupIcon className="w-8 h-8 text-gray-400" />
                 </div>
-              ) : filteredUsers.length === 0 ? (
-                <div className="flex flex-col items-center justify-center p-8 text-center">
-                  <div className="w-16 h-16 rounded-full bg-tertiary-light/50 dark:bg-tertiary/50 flex items-center justify-center mb-3">
-                    <UserGroupIcon className="w-8 h-8 text-text-tertiary-light dark:text-text-tertiary" />
-                  </div>
-                  <p className="text-text-tertiary-light dark:text-text-tertiary font-medium">No users found</p>
-                  <p className="text-sm text-text-tertiary-light/70 dark:text-text-tertiary/70 mt-1">Try a different search term</p>
-                </div>
-              ) : (
-                filteredUsers.map(profile => {
-                  const isSelected = selectedUsers.some(u => u.user_id === profile.user_id);
+                <p className="text-gray-600 dark:text-gray-400 font-medium">No users found</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Try a different search term</p>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {filteredUsers.map(profile => {
+                  const isSelected = selectedUsers.some(u => u.id === profile.id);
                   return (
                     <button
-                      key={profile.user_id}
+                      key={profile.id}
                       onClick={() => handleToggleUser(profile)}
-                      className={`flex items-center space-x-3 p-4 w-full text-left transition-all duration-200 hover:bg-white/50 dark:hover:bg-tertiary/50 ${
+                      className={`group flex items-center gap-4 p-3.5 w-full rounded-xl transition-all duration-200 ${
                         isSelected
-                          ? 'bg-brand-green/10 dark:bg-brand-green/20 border-l-4 border-brand-green'
-                          : 'border-l-4 border-transparent'
+                          ? 'bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/30'
+                          : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
                       }`}
                     >
                       <div className="relative">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          readOnly
-                          className="h-5 w-5 accent-brand-green cursor-pointer rounded"
-                        />
+                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200 ${
+                          isSelected
+                            ? 'bg-emerald-500 border-emerald-500'
+                            : 'border-gray-300 dark:border-gray-600 group-hover:border-emerald-400'
+                        }`}>
+                          {isSelected && <CheckIcon className="w-3.5 h-3.5 text-white" />}
+                        </div>
                       </div>
+                      
                       {profile.avatar_url ? (
                         <img
                           src={profile.avatar_url}
-                          alt={profile.username}
-                          className={`w-12 h-12 rounded-full object-cover border-2 transition-all ${
-                            isSelected
-                              ? 'border-brand-green shadow-lg shadow-brand-green/20'
-                              : 'border-tertiary-light dark:border-tertiary'
+                          alt={profile.username!}
+                          className={`w-11 h-11 rounded-xl object-cover shadow-sm transition-all duration-200 ${
+                            isSelected ? 'ring-2 ring-emerald-400 shadow-emerald-200 dark:shadow-emerald-900/50' : ''
                           }`}
                         />
                       ) : (
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white text-xl font-bold border-2 transition-all ${getAvatarColor(profile.user_id)} ${
-                          isSelected
-                            ? 'border-brand-green shadow-lg shadow-brand-green/20'
-                            : 'border-tertiary-light dark:border-tertiary'
+                        <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-white text-sm font-bold shadow-md transition-all duration-200 ${getAvatarColor(profile.id)} ${
+                          isSelected ? 'ring-2 ring-emerald-400 shadow-emerald-200 dark:shadow-emerald-900/50 scale-105' : ''
                         }`}>
-                          {getInitials(profile.full_name, profile.username)}
+                          {getInitials(profile.name, profile.username!)}
                         </div>
                       )}
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold truncate">{profile.full_name}</p>
-                        <p className="text-sm text-text-tertiary-light dark:text-text-tertiary truncate">@{profile.username}</p>
+                      
+                      <div className="flex-1 text-left min-w-0">
+                        <p className={`font-semibold truncate transition-colors ${
+                          isSelected ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-900 dark:text-white'
+                        }`}>
+                          {profile.name}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                          @{profile.username}
+                        </p>
                       </div>
-                      {isSelected && (
-                        <div className="w-2 h-2 bg-brand-green rounded-full animate-pulse"></div>
-                      )}
                     </button>
                   );
-                })
-              )}
-            </div>
+                })}
+              </div>
+            )}
           </div>
-        </main>
+        </div>
 
-        {/* Error Message with better styling */}
+        {/* Error */}
         {error && (
-          <div className="mx-6 mb-4 p-3 bg-red-500/10 border border-red-400/30 rounded-xl backdrop-blur-sm">
-            <p className="text-sm text-red-400 text-center font-medium">{error}</p>
+          <div className="mx-8 mb-4 p-4 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 rounded-lg">
+            <p className="text-sm text-red-700 dark:text-red-400 font-medium">{error}</p>
           </div>
         )}
 
-        {/* Footer with enhanced buttons */}
-        <footer className="flex justify-end space-x-3 p-6 border-t border-tertiary-light/30 dark:border-tertiary/30 bg-gradient-to-r from-transparent to-brand-green/5">
-          <button
-            onClick={onClose}
-            className="py-3 px-6 rounded-xl font-medium hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50 transition-all duration-200 border border-transparent hover:border-tertiary-light dark:hover:border-tertiary"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={isSubmitting || !groupName.trim() || selectedUsers.length === 0}
-            className="py-3 px-6 rounded-xl bg-gradient-to-r from-brand-green to-emerald-400 text-black font-bold shadow-lg shadow-brand-green/30 hover:shadow-xl hover:shadow-brand-green/40 hover:scale-105 transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-          >
-            {isSubmitting ? (
-              <>
-                <Spinner />
-                <span>Creating...</span>
-              </>
-            ) : (
-              <>
-                <UserGroupIcon className="w-5 h-5" />
-                <span>Create Group</span>
-              </>
-            )}
-          </button>
-        </footer>
+        {/* Footer */}
+        <div className="px-8 py-6 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-end gap-3">
+            <button
+              onClick={onClose}
+              className="px-6 py-2.5 rounded-xl font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting || !groupName.trim() || selectedUsers.length === 0}
+              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:shadow-lg"
+            >
+              {isSubmitting ? (
+                <>
+                  <Spinner />
+                  <span>Creating...</span>
+                </>
+              ) : (
+                <>
+                  <UserGroupIcon className="w-5 h-5" />
+                  <span>Create Group</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

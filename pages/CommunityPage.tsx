@@ -9,6 +9,7 @@ import Spinner from '../components/Spinner';
 import PostComponent from '../components/Post';
 import CreatePost from '../components/CreatePost';
 import ImageCropper from '../components/ImageCropper';
+import LightBox from '../components/lightbox';
 import { UserGroupIcon, ChatBubbleLeftRightIcon, ArrowLeftIcon, CameraIcon } from '../components/icons';
 
 interface CommunityDetails {
@@ -21,7 +22,7 @@ interface CommunityDetails {
     created_by: string;
     member_count: number;
     is_member: boolean;
-    conversation_id: string;
+    conversation_id: string | null;
 }
 
 
@@ -36,6 +37,8 @@ const CommunityPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'private' | 'public'>('private');
     
+    const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+
     const [cropperState, setCropperState] = useState<{
         isOpen: boolean;
         type: 'avatar' | 'banner' | null;
@@ -124,34 +127,21 @@ const CommunityPage: React.FC = () => {
         if (!community || !user) return;
         const isCurrentlyMember = community.is_member;
         
-        // Optimistic update (this is correct, no changes needed here)
+        // Optimistic update
         setCommunity({ ...community, is_member: !isCurrentlyMember, member_count: community.member_count + (!isCurrentlyMember ? 1 : -1) });
 
         try {
             if (isCurrentlyMember) {
                 // --- LEAVING the community ---
-                // 1. Remove from community members (this was already here)
                 await supabase.from('community_members').delete().match({ community_id: community.id, user_id: user.id });
-
-                // 2. ALSO remove from the associated group chat
-                if (community.conversation_id) {
-                    await supabase.from('conversation_participants').delete().match({ conversation_id: community.conversation_id, user_id: user.id });
-                }
-
             } else {
                 // --- JOINING the community ---
-                // 1. Add to community members (this was already here)
                 await supabase.from('community_members').insert({ community_id: community.id, user_id: user.id });
-
-                // 2. ALSO add to the associated group chat
-                if (community.conversation_id) {
-                    await supabase.from('conversation_participants').insert({ conversation_id: community.conversation_id, user_id: user.id });
-                }
             }
         } catch (err) {
             // Revert on failure
              setCommunity({ ...community, is_member: isCurrentlyMember, member_count: community.member_count });
-            console.error("Failed to toggle community/chat membership:", err);
+            console.error("Failed to toggle community membership:", err);
         }
     };
 
@@ -205,6 +195,8 @@ const CommunityPage: React.FC = () => {
                     isSaving={isSaving}
                 />
             )}
+            
+            {lightboxUrl && <LightBox imageUrl={lightboxUrl} onClose={() => setLightboxUrl(null)} />}
 
             <div className="max-w-5xl mx-auto px-4 py-6">
                 <Link 
@@ -240,7 +232,7 @@ const CommunityPage: React.FC = () => {
                     </div>
 
                     <div className="p-6 md:p-8">
-                        <div className="flex flex-col sm:flex-row sm:items-end -mt-28 md:-mt-32">
+                        <div className="flex justify-between items-end -mt-28 md:-mt-32">
                             <div className="relative group">
                                 <div className="absolute inset-0 bg-brand-green/30 blur-2xl rounded-full"></div>
                                 <img 
@@ -261,53 +253,44 @@ const CommunityPage: React.FC = () => {
                                     </>
                                 )}
                             </div>
-
-                            <div className="sm:ml-6 mt-4 sm:mt-0 flex-grow flex flex-col sm:flex-row justify-between sm:items-end gap-4">
-                                <div>
-                                    <h1 className="text-3xl md:text-4xl font-black text-text-main-light dark:text-text-main mb-2">
-                                        {community.name}
-                                    </h1>
-                                    <div className="inline-flex items-center gap-2 bg-brand-green/10 rounded-full px-4 py-2 border border-brand-green/20">
-                                        <UserGroupIcon className="w-5 h-5 text-brand-green" />
-                                        <span className="text-sm font-bold text-text-main-light dark:text-text-main">
-                                            {community.member_count}
-                                        </span>
-                                        <span className="text-sm text-text-secondary-light dark:text-text-secondary">
-                                            {community.member_count === 1 ? 'member' : 'members'}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-3">
-                                    {community.is_member && community.conversation_id && (
-                                        <Link 
-                                            to={`/chat`} 
-                                            state={{ selectedConversationId: community.conversation_id }} 
-                                            className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border-2 border-blue-500/30 hover:border-blue-500/50 font-bold py-3 px-5 rounded-xl text-sm flex items-center gap-2 transition-all shadow-lg group"
-                                        >
-                                            <ChatBubbleLeftRightIcon className="w-5 h-5 group-hover:scale-110 transition-transform"/> 
-                                            <span>Group Chat</span>
-                                        </Link>
-                                    )}
-                                    <button 
-                                        onClick={handleJoinToggle} 
-                                        className={`font-bold py-3 px-6 rounded-xl text-sm transition-all shadow-lg ${
-                                            community.is_member 
-                                                ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border-2 border-red-500/30 hover:border-red-500/50' 
-                                                : 'bg-brand-green text-black hover:bg-brand-green/90 border-2 border-brand-green/30 hover:shadow-xl hover:shadow-brand-green/30'
-                                        }`}
-                                    >
-                                        {community.is_member ? 'Leave Community' : 'Join Community'}
-                                    </button>
-                                </div>
+                            <div className="flex items-center gap-3">
+                                <button 
+                                    onClick={handleJoinToggle} 
+                                    className={`font-bold py-3 px-6 rounded-xl text-sm transition-all shadow-lg ${
+                                        community.is_member 
+                                            ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border-2 border-red-500/30 hover:border-red-500/50' 
+                                            : 'bg-brand-green text-black hover:bg-brand-green/90 border-2 border-brand-green/30 hover:shadow-xl hover:shadow-brand-green/30'
+                                    }`}
+                                >
+                                    {community.is_member ? 'Leave Community' : 'Join Community'}
+                                </button>
                             </div>
                         </div>
 
-                        {community.description && (
-                            <p className="mt-6 text-text-secondary-light dark:text-text-secondary text-base leading-relaxed max-w-3xl">
-                                {community.description}
-                            </p>
-                        )}
+                        <div className="mt-6">
+                            <h1 className="text-3xl md:text-4xl font-black text-text-main-light dark:text-text-main mb-2">
+                                {community.name}
+                            </h1>
+                            {/* --- THIS IS THE FIX --- */}
+                            <Link 
+                                to={`/communities/${community.id}/members`}
+                                className="inline-flex items-center gap-2 bg-brand-green/10 rounded-full px-4 py-2 border border-brand-green/20 hover:bg-brand-green/20 hover:border-brand-green/30 transition-colors cursor-pointer"
+                            >
+                                <UserGroupIcon className="w-5 h-5 text-brand-green" />
+                                <span className="text-sm font-bold text-text-main-light dark:text-text-main">
+                                    {community.member_count}
+                                </span>
+                                <span className="text-sm text-text-secondary-light dark:text-text-secondary">
+                                    {community.member_count === 1 ? 'member' : 'members'}
+                                </span>
+                            </Link>
+                            {/* --- END OF FIX --- */}
+                            {community.description && (
+                                <p className="mt-4 text-text-secondary-light dark:text-text-secondary text-base leading-relaxed max-w-3xl">
+                                    {community.description}
+                                </p>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -373,7 +356,7 @@ const CommunityPage: React.FC = () => {
                                                 className="animate-in fade-in slide-in-from-bottom-4 duration-500"
                                                 style={{ animationDelay: `${index * 60}ms`, animationFillMode: 'backwards' }}
                                             >
-                                                <PostComponent post={postToRender} />
+                                                <PostComponent post={postToRender} onImageClick={setLightboxUrl}/>
                                             </div>
                                         );
                                     })}

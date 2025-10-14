@@ -8,6 +8,8 @@ import { DirectoryProfile, Profile } from '../types';
 import Spinner from '../components/Spinner';
 import UserCard from '../components/UserCard';
 
+type TabType = 'users' | 'communities';
+
 const DirectoryPage: React.FC = () => {
   const { user: currentUser } = useAuth();
   const navigate = useNavigate();
@@ -16,6 +18,7 @@ const DirectoryPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [togglingFollowId, setTogglingFollowId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<TabType>('users');
   const [followStats, setFollowStats] = useState({ following: 0, followers: 0 });
 
   useEffect(() => {
@@ -123,6 +126,11 @@ const DirectoryPage: React.FC = () => {
   
   const filteredProfiles = useMemo(() => {
     let filtered = profiles;
+    
+    // Filter by tab type
+    filtered = filtered.filter(p => 
+      activeTab === 'users' ? p.type === 'user' : p.type === 'community'
+    );
         
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
@@ -134,7 +142,10 @@ const DirectoryPage: React.FC = () => {
     }
     
     return filtered;
-  }, [profiles, searchQuery]);
+  }, [profiles, searchQuery, activeTab]);
+
+  const userCount = useMemo(() => profiles.filter(p => p.type === 'user').length, [profiles]);
+  const communityCount = useMemo(() => profiles.filter(p => p.type === 'community').length, [profiles]);
 
   if (loading) { 
     return (
@@ -175,11 +186,7 @@ const DirectoryPage: React.FC = () => {
             Community Directory
           </h1>
           <p className="text-text-secondary-light dark:text-text-secondary text-lg md:text-xl">
-            Discover{' '}
-            <span className="inline-flex items-center justify-center min-w-[3rem] h-8 px-3 rounded-full bg-brand-green/20 text-brand-green font-bold border border-brand-green/30">
-              {profiles.length}
-            </span>
-            {' '}amazing people and communities
+            Discover amazing people and communities
           </p>
         </div>
 
@@ -208,6 +215,56 @@ const DirectoryPage: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Tabs */}
+        <div className="mb-8 flex justify-center">
+          <div className="inline-flex bg-white/60 dark:bg-secondary/60 backdrop-blur-sm border-2 border-tertiary-light/50 dark:border-tertiary/50 rounded-2xl p-2 shadow-lg shadow-black/5 dark:shadow-black/20">
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`relative px-8 py-3 rounded-xl font-semibold transition-all duration-300 ${
+                activeTab === 'users'
+                  ? 'bg-brand-green text-white shadow-lg shadow-brand-green/30'
+                  : 'text-text-secondary-light dark:text-text-secondary hover:text-text-main-light dark:hover:text-text-main'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                <span>Users</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                  activeTab === 'users'
+                    ? 'bg-white/20'
+                    : 'bg-brand-green/20 text-brand-green'
+                }`}>
+                  {userCount}
+                </span>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('communities')}
+              className={`relative px-8 py-3 rounded-xl font-semibold transition-all duration-300 ${
+                activeTab === 'communities'
+                  ? 'bg-brand-green text-white shadow-lg shadow-brand-green/30'
+                  : 'text-text-secondary-light dark:text-text-secondary hover:text-text-main-light dark:hover:text-text-main'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <span>Communities</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                  activeTab === 'communities'
+                    ? 'bg-white/20'
+                    : 'bg-brand-green/20 text-brand-green'
+                }`}>
+                  {communityCount}
+                </span>
+              </div>
+            </button>
+          </div>
+        </div>
         
         {/* Search Bar */}
         <div className="mb-10 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
@@ -219,7 +276,7 @@ const DirectoryPage: React.FC = () => {
               </svg>
               <input
                 type="text"
-                placeholder="Search by name, @username, or bio..."
+                placeholder={`Search ${activeTab === 'users' ? 'users' : 'communities'} by name, @username, or bio...`}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-14 pr-5 py-4 bg-white/80 dark:bg-secondary/80 backdrop-blur-sm border-2 border-tertiary-light/50 dark:border-tertiary/50 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-green/50 focus:border-brand-green/50 transition-all shadow-lg shadow-black/5 dark:shadow-black/20 placeholder:text-text-tertiary-light/60 dark:placeholder:text-text-tertiary/60"
@@ -281,15 +338,23 @@ const DirectoryPage: React.FC = () => {
                 No matches found
               </p>
               <p className="text-text-secondary-light dark:text-text-secondary max-w-md mx-auto">
-                We couldn't find anyone or any community matching{' '}
-                <span className="font-semibold text-text-main-light dark:text-text-main">"{searchQuery}"</span>
+                {searchQuery ? (
+                  <>
+                    We couldn't find any {activeTab === 'users' ? 'users' : 'communities'} matching{' '}
+                    <span className="font-semibold text-text-main-light dark:text-text-main">"{searchQuery}"</span>
+                  </>
+                ) : (
+                  <>No {activeTab === 'users' ? 'users' : 'communities'} found in this category</>
+                )}
               </p>
-              <button
-                onClick={() => setSearchQuery('')}
-                className="mt-6 px-6 py-3 bg-brand-green hover:bg-brand-green/90 text-white font-semibold rounded-xl transition-colors shadow-lg shadow-brand-green/20"
-              >
-                Clear search
-              </button>
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="mt-6 px-6 py-3 bg-brand-green hover:bg-brand-green/90 text-white font-semibold rounded-xl transition-colors shadow-lg shadow-brand-green/20"
+                >
+                  Clear search
+                </button>
+              )}
             </div>
           )}
         </div>

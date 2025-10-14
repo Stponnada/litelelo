@@ -7,6 +7,8 @@ import PostComponent from '../components/Post';
 import CreatePost from '../components/CreatePost';
 import { Profile } from '../types';
 import Spinner from '../components/Spinner';
+// --- 1. IMPORT LIGHTBOX ---
+import LightBox from '../components/lightbox';
 
 export const HomePage: React.FC = () => {
     // The usePosts hook will now use the new RPC function internally
@@ -15,6 +17,9 @@ export const HomePage: React.FC = () => {
     const [profile, setProfile] = useState<Profile | null>(null);
     const [profileLoading, setProfileLoading] = useState(true);
     const [isVisible, setIsVisible] = useState(false);
+
+    // --- 2. ADD LIGHTBOX STATE ---
+    const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -60,6 +65,9 @@ export const HomePage: React.FC = () => {
 
     return (
         <div className="max-w-[52rem] mx-auto relative">
+            {/* --- 3. RENDER LIGHTBOX COMPONENT --- */}
+            {lightboxUrl && <LightBox imageUrl={lightboxUrl} onClose={() => setLightboxUrl(null)} />}
+
             {/* Decorative background elements */}
             <div className="fixed top-20 right-10 w-72 h-72 bg-brand-green/5 rounded-full blur-3xl pointer-events-none -z-10"></div>
             <div className="fixed bottom-20 left-10 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl pointer-events-none -z-10"></div>
@@ -99,7 +107,8 @@ export const HomePage: React.FC = () => {
                             className={`transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
                             style={{ transitionDelay: `${200 + index * 50}ms` }}
                         >
-                            <PostComponent post={post} />
+                            {/* --- 4. PASS THE HANDLER TO THE COMPONENT --- */}
+                            <PostComponent post={post} onImageClick={setLightboxUrl} />
                         </div>
                     ))}
                 </div>

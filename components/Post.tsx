@@ -11,7 +11,13 @@ import { renderContentWithEmbeds } from '../utils/renderEmbeds';
 import { ChatBubbleOvalLeftEllipsisIcon, HeartIcon as HeartOutline, ArrowPathRoundedSquareIcon, ArrowDownCircleIcon } from './icons';
 import { HeartIcon as HeartSolid } from '@heroicons/react/24/solid';
 
-const PostComponent: React.FC<{ post: PostType }> = ({ post }) => {
+// --- 1. UPDATE THE PROPS INTERFACE ---
+interface PostComponentProps {
+    post: PostType;
+    onImageClick?: (imageUrl: string) => void;
+}
+
+const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => {
     const navigate = useNavigate();
     const { user } = useAuth();
     const { updatePostInContext } = usePosts();
@@ -101,9 +107,20 @@ const PostComponent: React.FC<{ post: PostType }> = ({ post }) => {
                         {renderContentWithEmbeds(post.content)}
                     </div>
 
+                    {/* --- 2. ADD ONCLICK HANDLER TO THE IMAGE --- */}
                     {post.image_url && (
                         <div className="mt-3 rounded-lg overflow-hidden border border-tertiary-light dark:border-tertiary">
-                            <img src={post.image_url} alt="Post content" className="w-full h-auto max-h-[500px] object-cover" />
+                           <button
+                                onClick={(e) => {
+                                    e.stopPropagation(); // Prevents navigating to the post page
+                                    if (onImageClick) {
+                                        onImageClick(post.image_url!);
+                                    }
+                                }}
+                                className="w-full h-auto block"
+                            >
+                                <img src={post.image_url} alt="Post content" className="w-full h-auto max-h-[500px] object-cover" />
+                            </button>
                         </div>
                     )}
 
