@@ -22,6 +22,7 @@ interface CommunityDetails {
     created_by: string;
     member_count: number;
     is_member: boolean;
+    is_admin: boolean; // Using 'is_admin' to match the SQL function
     conversation_id: string | null;
 }
 
@@ -127,19 +128,15 @@ const CommunityPage: React.FC = () => {
         if (!community || !user) return;
         const isCurrentlyMember = community.is_member;
         
-        // Optimistic update
         setCommunity({ ...community, is_member: !isCurrentlyMember, member_count: community.member_count + (!isCurrentlyMember ? 1 : -1) });
 
         try {
             if (isCurrentlyMember) {
-                // --- LEAVING the community ---
                 await supabase.from('community_members').delete().match({ community_id: community.id, user_id: user.id });
             } else {
-                // --- JOINING the community ---
                 await supabase.from('community_members').insert({ community_id: community.id, user_id: user.id });
             }
         } catch (err) {
-            // Revert on failure
              setCommunity({ ...community, is_member: isCurrentlyMember, member_count: community.member_count });
             console.error("Failed to toggle community membership:", err);
         }
@@ -175,7 +172,8 @@ const CommunityPage: React.FC = () => {
         );
     }
     
-    const isOwner = user?.id === community.created_by;
+    // Use the is_admin flag to determine edit permissions
+    const canEdit = community.is_admin;
     const privatePosts = posts.filter(p => !p.is_public);
     const publicPosts = posts.filter(p => p.is_public);
     const canPost = community.is_member;
@@ -217,7 +215,7 @@ const CommunityPage: React.FC = () => {
                             />
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
-                        {isOwner && (
+                        {canEdit && (
                             <>
                                 <button
                                     type="button"
@@ -240,7 +238,7 @@ const CommunityPage: React.FC = () => {
                                     alt={community.name} 
                                     className="relative w-32 h-32 md:w-36 md:h-36 rounded-3xl border-4 border-white dark:border-secondary object-cover shadow-2xl"
                                 />
-                                 {isOwner && (
+                                 {canEdit && (
                                     <>
                                         <button
                                             type="button"
@@ -271,7 +269,6 @@ const CommunityPage: React.FC = () => {
                             <h1 className="text-3xl md:text-4xl font-black text-text-main-light dark:text-text-main mb-2">
                                 {community.name}
                             </h1>
-                            {/* --- THIS IS THE FIX --- */}
                             <Link 
                                 to={`/communities/${community.id}/members`}
                                 className="inline-flex items-center gap-2 bg-brand-green/10 rounded-full px-4 py-2 border border-brand-green/20 hover:bg-brand-green/20 hover:border-brand-green/30 transition-colors cursor-pointer"
@@ -284,7 +281,6 @@ const CommunityPage: React.FC = () => {
                                     {community.member_count === 1 ? 'member' : 'members'}
                                 </span>
                             </Link>
-                            {/* --- END OF FIX --- */}
                             {community.description && (
                                 <p className="mt-4 text-text-secondary-light dark:text-text-secondary text-base leading-relaxed max-w-3xl">
                                     {community.description}

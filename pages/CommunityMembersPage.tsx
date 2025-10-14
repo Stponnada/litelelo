@@ -1,11 +1,16 @@
 // src/pages/CommunityMembersPage.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabase';
+import { useAuth } from '../hooks/useAuth';
 import { Profile } from '../types';
 import Spinner from '../components/Spinner';
-import { UserGroupIcon } from '../components/icons';
+import { UserGroupIcon, StarIcon } from '../components/icons';
+
+interface CommunityMember extends Profile {
+    role: 'member' | 'admin';
+}
 
 const BackIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" }) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
@@ -13,73 +18,112 @@ const BackIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" }) =
   </svg>
 );
 
-const MemberCard: React.FC<{ profile: Profile }> = ({ profile }) => (
-    <Link 
-      to={`/profile/${profile.username}`} 
-      className="bg-secondary-light dark:bg-secondary p-4 rounded-lg flex items-center space-x-4 hover:bg-tertiary-light/60 dark:hover:bg-tertiary transition-colors border border-tertiary-light dark:border-tertiary"
-    >
-        <img 
-            src={profile.avatar_url || `https://ui-avatars.com/api/?name=${profile.full_name || profile.username}`} 
-            alt={profile.username}
-            className="w-12 h-12 rounded-full object-cover"
-        />
-        <div className="flex-grow overflow-hidden">
-            <h3 className="font-bold text-text-main-light dark:text-text-main text-md truncate">{profile.full_name || profile.username}</h3>
-            <p className="text-sm text-text-secondary-light dark:text-text-secondary truncate">@{profile.username}</p>
+const MemberCard: React.FC<{ 
+    member: CommunityMember; 
+    isViewingUserConsul: boolean;
+    onRoleChange: (targetUserId: string, newRole: 'member' | 'admin') => void;
+}> = ({ member, isViewingUserConsul, onRoleChange }) => {
+    const { user } = useAuth();
+    const [menuOpen, setMenuOpen] = useState(false);
+    const isSelf = user?.id === member.user_id;
+
+    return (
+        <div className="bg-secondary-light dark:bg-secondary p-4 rounded-lg flex items-center space-x-4 hover:bg-tertiary-light/60 dark:hover:bg-tertiary transition-colors border border-tertiary-light dark:border-tertiary relative">
+            <Link to={`/profile/${member.username}`}>
+                <img 
+                    src={member.avatar_url || `https://ui-avatars.com/api/?name=${member.full_name || member.username}`} 
+                    alt={member.username}
+                    className="w-12 h-12 rounded-full object-cover"
+                />
+            </Link>
+            <div className="flex-grow overflow-hidden">
+                <div className="flex items-center gap-2">
+                    <Link to={`/profile/${member.username}`} className="font-bold text-text-main-light dark:text-text-main text-md truncate hover:underline">{member.full_name || member.username}</Link>
+                    {member.role === 'admin' && (
+                        <div className="flex-shrink-0 flex items-center gap-1 bg-yellow-400/20 text-yellow-400 px-2 py-0.5 rounded-full text-xs font-semibold" title="Consul">
+                           <StarIcon className="w-3 h-3"/> Consul
+                        </div>
+                    )}
+                </div>
+                <p className="text-sm text-text-secondary-light dark:text-text-secondary truncate">@{member.username}</p>
+            </div>
+            
+            {isViewingUserConsul && !isSelf && (
+                 <div className="relative">
+                    <button onClick={() => setMenuOpen(!menuOpen)} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01" /></svg>
+                    </button>
+                    {menuOpen && (
+                        <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-tertiary-light dark:border-gray-700 rounded-md shadow-lg z-10">
+                            {member.role === 'member' ? (
+                                <button onClick={() => { onRoleChange(member.user_id, 'admin'); setMenuOpen(false); }} className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">Make Consul</button>
+                            ) : (
+                                <button onClick={() => { onRoleChange(member.user_id, 'member'); setMenuOpen(false); }} className="block w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-100 dark:hover:bg-gray-700">Remove as Consul</button>
+                            )}
+                        </div>
+                    )}
+                 </div>
+            )}
         </div>
-    </Link>
-);
+    );
+};
 
 const CommunityMembersPage: React.FC = () => {
     const { communityId } = useParams<{ communityId: string }>();
+    const { user } = useAuth();
     const navigate = useNavigate();
     const [communityInfo, setCommunityInfo] = useState<{ name: string } | null>(null);
-    const [members, setMembers] = useState<Profile[]>([]);
+    const [members, setMembers] = useState<CommunityMember[]>([]);
+    const [isViewingUserConsul, setIsViewingUserConsul] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    const fetchCommunityMembers = useCallback(async () => {
+        if (!communityId) return;
+        setLoading(true);
+        setError(null);
+        try {
+            const { data: communityData, error: commError } = await supabase.from('communities').select('name').eq('id', communityId).single();
+            if (commError || !communityData) throw new Error("Community not found.");
+            setCommunityInfo(communityData);
+
+            const { data: membersData, error: membersError } = await supabase.from('community_members').select('role, profiles(*)').eq('community_id', communityId);
+            if (membersError) throw membersError;
+            
+            const memberProfiles = membersData.map((m: any) => ({ ...m.profiles, role: m.role })).filter(Boolean);
+            setMembers(memberProfiles as CommunityMember[]);
+
+            const viewingUser = memberProfiles.find(m => m.user_id === user?.id);
+            setIsViewingUserConsul(viewingUser?.role === 'admin');
+
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    }, [communityId, user?.id]);
+
     useEffect(() => {
-        const fetchCommunityMembers = async () => {
-            if (!communityId) return;
-            setLoading(true);
-            setError(null);
-            try {
-                // Fetch community name
-                const { data: communityData, error: commError } = await supabase
-                    .from('communities')
-                    .select('name')
-                    .eq('id', communityId)
-                    .single();
-                if (commError || !communityData) throw new Error("Community not found.");
-                setCommunityInfo(communityData);
-
-                // Fetch members
-                const { data: membersData, error: membersError } = await supabase
-                    .from('community_members')
-                    .select('profiles(*)')
-                    .eq('community_id', communityId);
-                
-                if (membersError) throw membersError;
-                
-                const memberProfiles = membersData.map((m: any) => m.profiles).filter(Boolean);
-                setMembers(memberProfiles as Profile[]);
-
-            } catch (err: any) {
-                setError(err.message);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchCommunityMembers();
-    }, [communityId]);
+    }, [fetchCommunityMembers]);
 
-    if (loading) {
-        return <div className="flex justify-center items-center min-h-[60vh]"><Spinner /></div>;
-    }
+    const handleRoleChange = async (targetUserId: string, newRole: 'member' | 'admin') => {
+        setMembers(prev => prev.map(m => m.user_id === targetUserId ? { ...m, role: newRole } : m));
+        try {
+            const { error } = await supabase.rpc('set_community_member_role', {
+                p_community_id: communityId!,
+                p_target_user_id: targetUserId,
+                p_new_role: newRole
+            });
+            if (error) throw error;
+        } catch (err) {
+            console.error("Failed to change role:", err);
+            await fetchCommunityMembers(); // Refetch to revert state on error
+        }
+    };
 
-    if (error) {
-        return <div className="text-center p-8 text-red-400">Error: {error}</div>;
-    }
+    if (loading) return <div className="flex justify-center items-center min-h-[60vh]"><Spinner /></div>;
+    if (error) return <div className="text-center p-8 text-red-400">Error: {error}</div>;
 
     return (
         <div className="max-w-4xl mx-auto">
@@ -104,8 +148,13 @@ const CommunityMembersPage: React.FC = () => {
 
             <h3 className="text-xl font-bold mb-4 text-text-main-light dark:text-text-main">Members</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {members.map(member => (
-                    <MemberCard key={member.user_id} profile={member} />
+                {members.sort((a, b) => a.role === 'admin' ? -1 : 1).map(member => (
+                    <MemberCard 
+                        key={member.user_id} 
+                        member={member} 
+                        isViewingUserConsul={isViewingUserConsul}
+                        onRoleChange={handleRoleChange}
+                    />
                 ))}
             </div>
         </div>

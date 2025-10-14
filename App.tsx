@@ -68,6 +68,7 @@ const AppRoutes = () => {
         {/* --- ADD THESE ROUTES FOR COMMUNITIES --- */}
         <Route path="/communities" element={<CommunitiesListPage />} />
         <Route path="/communities/:communityId" element={<CommunityPage />} />
+        {/* --- THIS IS THE NEW ROUTE --- */}
         <Route path="/communities/:communityId/members" element={<CommunityMembersPage />} />
         <Route path="/campus" element={<CampusPage />} />
         <Route path="/campus/reviews" element={<CampusDirectoryPage />} />

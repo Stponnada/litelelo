@@ -8,17 +8,17 @@ import PostComponent from '../components/Post';
 import CreatePost from '../components/CreatePost';
 import { Post as PostType, Profile, Friend } from '../types';
 import Spinner from '../components/Spinner';
-import { CameraIcon, LogoutIcon, ChatIcon, UserGroupIcon } from '../components/icons';
+import { CameraIcon, LogoutIcon, ChatIcon, UserGroupIcon, StarIcon } from '../components/icons';
 import { isMscBranch, BITS_BRANCHES } from '../data/bitsBranches.ts';
 import ImageCropper from '../components/ImageCropper';
 import FollowListModal from '../components/FollowListModal';
 import LightBox from '../components/lightbox';
 
-// --- NEW TYPE FOR THE COMMUNITY LIST ---
 interface CommunityLink {
     id: string;
     name: string;
     avatar_url: string | null;
+    role: 'member' | 'admin'; // Update type to include role
 }
 
 const TabButton: React.FC<{ label: string, isActive: boolean, onClick: () => void }> = ({ label, isActive, onClick }) => (
@@ -53,7 +53,6 @@ const ProfilePage: React.FC = () => {
     const [friends, setFriends] = useState<Friend[]>([]);
     const [friendsLoading, setFriendsLoading] = useState(true);
 
-    // --- NEW STATE FOR COMMUNITIES ---
     const [communities, setCommunities] = useState<CommunityLink[]>([]);
     const [communitiesLoading, setCommunitiesLoading] = useState(true);
 
@@ -162,7 +161,6 @@ const ProfilePage: React.FC = () => {
         }
     }, [profile]);
     
-    // --- NEW FUNCTION TO FETCH COMMUNITIES ---
     const fetchCommunities = useCallback(async () => {
         if (!profile) return;
         setCommunitiesLoading(true);
@@ -186,7 +184,6 @@ const ProfilePage: React.FC = () => {
         if (profile) {
             fetchPostsAndMentions();
             fetchFriends();
-            // --- CALL THE NEW FUNCTION ---
             fetchCommunities();
         }
     }, [profile, fetchPostsAndMentions, fetchFriends, fetchCommunities]);
@@ -304,9 +301,21 @@ const ProfilePage: React.FC = () => {
                                 <><hr className="border-tertiary-light dark:border-tertiary !my-6" /><div><h3 className="text-lg font-bold mb-3">Friends</h3><div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-3">{friends.slice(0, 9).map(friend => (<Link to={`/profile/${friend.username}`} key={friend.user_id} className="flex flex-col items-center space-y-1 group" title={friend.full_name || friend.username}><img src={friend.avatar_url || `https://ui-avatars.com/api/?name=${friend.full_name || friend.username}`} alt={friend.username} className="w-16 h-16 rounded-full object-cover" /><p className="text-xs text-center text-text-tertiary-light dark:text-text-tertiary group-hover:underline truncate w-full">{friend.full_name || friend.username}</p></Link>))}</div></div></>
                             )}
 
-                            {/* --- NEW COMMUNITIES SECTION --- */}
+                            {/* --- THIS IS THE FIX --- */}
                             {!communitiesLoading && communities.length > 0 && (
-                                <><hr className="border-tertiary-light dark:border-tertiary !my-6" /><div><h3 className="text-lg font-bold mb-3">Communities</h3><div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-3">{communities.slice(0, 9).map(community => (<Link to={`/communities/${community.id}`} key={community.id} className="flex flex-col items-center space-y-1 group" title={community.name}><img src={community.avatar_url || `https://ui-avatars.com/api/?name=${community.name}&background=3cfba2&color=000`} alt={community.name} className="w-16 h-16 rounded-2xl object-cover" /><p className="text-xs text-center text-text-tertiary-light dark:text-text-tertiary group-hover:underline truncate w-full">{community.name}</p></Link>))}</div></div></>
+                                <><hr className="border-tertiary-light dark:border-tertiary !my-6" /><div><h3 className="text-lg font-bold mb-3">Communities</h3><div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-3">{communities.slice(0, 9).map(community => (
+                                    <Link to={`/communities/${community.id}`} key={community.id} className="flex flex-col items-center space-y-1 group" title={community.name}>
+                                        <img src={community.avatar_url || `https://ui-avatars.com/api/?name=${community.name}&background=3cfba2&color=000`} alt={community.name} className="w-16 h-16 rounded-2xl object-cover" />
+                                        <div className="flex items-center gap-1.5 w-full justify-center">
+                                            <p className="text-xs text-center text-text-tertiary-light dark:text-text-tertiary group-hover:underline truncate">
+                                                {community.name}
+                                            </p>
+                                            {community.role === 'admin' && (
+                                                <StarIcon className="w-3 h-3 text-yellow-400 flex-shrink-0" title="Consul" />
+                                            )}
+                                        </div>
+                                    </Link>
+                                ))}</div></div></>
                             )}
                         </div>
 
