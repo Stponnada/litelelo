@@ -76,21 +76,24 @@ unread_count: number;
 }
 
 export interface Post {
-id: string;
-content: string;
-image_url: string | null;
-created_at: string;
-like_count: number;
-dislike_count: number;
-comment_count: number;
-user_vote: 'like' | 'dislike' | null;
-community_id: string | null;
-is_public: boolean;
-// --- REPLACE profiles WITH THE NEW AUTHOR TYPE ---
-author: AuthorProfile;
-original_poster_username: string | null;
-// REMOVE: profiles: Profile | null;
+    id: string;
+    content: string;
+    image_url: string | null;
+    created_at: string;
+    like_count: number;
+    dislike_count: number;
+    comment_count: number;
+    user_vote: 'like' | 'dislike' | null;
+    is_bookmarked: boolean;
+    community_id: string | null;
+    is_public: boolean;
+    author: AuthorProfile;
+    original_poster_username: string | null;
+    poll: Poll | null; // <-- ADD THIS
+    is_edited: boolean; // <-- ADD THIS
+    is_deleted: boolean; // <-- ADD THIS
 }
+
 export interface Comment {
 id: number;
 content: string;
@@ -197,4 +200,18 @@ is_edited: boolean;
 is_deleted: boolean;
 reactions: MessageReaction[];
 status?: 'sending' | 'failed';
+}
+
+export interface PollOption {
+    id: string;
+    option_text: string;
+    vote_count: number;
+}
+
+export interface Poll {
+    id: string;
+    allow_multiple_answers: boolean;
+    options: PollOption[];
+    total_votes: number;
+    user_votes: string[] | null; // Array of option IDs the user has voted for
 }

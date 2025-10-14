@@ -2,7 +2,7 @@
 
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../services/supabase';
-import { Post as PostType, Profile } from '../types';
+import { Post as PostType } from '../types';
 import { useAuth } from '../hooks/useAuth';
 
 interface PostsContextType {
@@ -33,6 +33,7 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const { data, error: fetchError } = await supabase.rpc('get_feed_posts');
       if (fetchError) throw fetchError;
       
+      // This is the transformation logic we need to replicate
       const formattedPosts = (data as any[]).map(p => ({
         ...p,
         author: {
@@ -57,26 +58,21 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     fetchPosts();
   }, [fetchPosts]);
 
-  const addPostToContext = (newPost: PostType) => {
-    // The incoming newPost from CreatePost.tsx still has a `profiles` property.
-    // We need to reshape it into the new `author` structure for consistency.
-    const authorProfile = newPost.profiles as Profile | null;
+  // --- THIS IS THE FINAL FIX ---
+  // The 'newPost' coming from the RPC is flat, but our state requires a nested 'author' object.
+  // We must perform the same formatting here as we do in fetchPosts.
+  const addPostToContext = (newPost: any) => {
     const formattedNewPost: PostType = {
       ...newPost,
       author: {
-        author_id: authorProfile?.user_id || '',
-        author_type: 'user', // A new post via CreatePost is always from a user
-        author_name: authorProfile?.full_name || '',
-        author_username: authorProfile?.username || '',
-        author_avatar_url: authorProfile?.avatar_url || '',
-      },
-      original_poster_username: null,
-      profiles: null, // We can nullify the old property
+        author_id: newPost.author_id,
+        author_type: newPost.author_type,
+        author_name: newPost.author_name,
+        author_username: newPost.author_username,
+        author_avatar_url: newPost.author_avatar_url,
+      }
     };
     
-    // This is a bit of a trick to satisfy TypeScript since `profiles` is no longer on the final type
-    delete (formattedNewPost as any).profiles;
-
     setPosts(currentPosts => [formattedNewPost, ...currentPosts]);
   };
 

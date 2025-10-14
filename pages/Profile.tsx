@@ -8,7 +8,7 @@ import PostComponent from '../components/Post';
 import CreatePost from '../components/CreatePost';
 import { Post as PostType, Profile, Friend } from '../types';
 import Spinner from '../components/Spinner';
-import { CameraIcon, LogoutIcon, ChatIcon, UserGroupIcon, StarIcon } from '../components/icons';
+import { CameraIcon, LogoutIcon, ChatIcon, UserGroupIcon, StarIcon, BookmarkIcon } from '../components/icons';
 import { isMscBranch, BITS_BRANCHES } from '../data/bitsBranches.ts';
 import ImageCropper from '../components/ImageCropper';
 import FollowListModal from '../components/FollowListModal';
@@ -18,7 +18,7 @@ interface CommunityLink {
     id: string;
     name: string;
     avatar_url: string | null;
-    role: 'member' | 'admin'; // Update type to include role
+    role: 'member' | 'admin';
 }
 
 const TabButton: React.FC<{ label: string, isActive: boolean, onClick: () => void }> = ({ label, isActive, onClick }) => (
@@ -108,14 +108,16 @@ const ProfilePage: React.FC = () => {
         if (mentionsResult.error) {
             console.error("Error fetching mentions:", mentionsResult.error)
         } else {
+             // --- THIS IS THE FIX ---
+             // The data from the RPC now contains all the author details we need.
              const fetchedMentions = (mentionsResult.data as any[] || []).map(p => ({
                 ...p,
                 author: {
-                    author_id: p.user_id,
-                    author_type: 'user',
-                    author_name: p.full_name,
-                    author_username: p.username,
-                    author_avatar_url: p.avatar_url,
+                    author_id: p.author_id,
+                    author_type: p.author_type,
+                    author_name: p.author_name,
+                    author_username: p.author_username,
+                    author_avatar_url: p.author_avatar_url,
                 }
             }));
             setMentions(fetchedMentions);
@@ -253,6 +255,10 @@ const ProfilePage: React.FC = () => {
                         <div className="flex items-center space-x-2">
                             {isOwnProfile ? (
                                 <>
+                                    <Link to="/bookmarks" className="font-bold py-2 px-4 rounded-full border-2 border-white/80 text-white hover:bg-white/10 transition-colors flex items-center space-x-2">
+                                        <BookmarkIcon className="w-5 h-5"/>
+                                        <span className="hidden sm:inline">Bookmarks</span>
+                                    </Link>
                                     <button onClick={() => setIsEditModalOpen(true)} className="font-bold py-2 px-4 rounded-full border-2 border-white/80 text-white hover:bg-white/10 transition-colors">Edit Profile</button>
                                     <button onClick={handleSignOut} className="p-2 text-red-400 rounded-full hover:bg-white/10 transition-colors md:hidden"><LogoutIcon className="w-6 h-6" /></button>
                                 </>
@@ -300,8 +306,6 @@ const ProfilePage: React.FC = () => {
                             {!friendsLoading && friends.length > 0 && (
                                 <><hr className="border-tertiary-light dark:border-tertiary !my-6" /><div><h3 className="text-lg font-bold mb-3">Friends</h3><div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-3">{friends.slice(0, 9).map(friend => (<Link to={`/profile/${friend.username}`} key={friend.user_id} className="flex flex-col items-center space-y-1 group" title={friend.full_name || friend.username}><img src={friend.avatar_url || `https://ui-avatars.com/api/?name=${friend.full_name || friend.username}`} alt={friend.username} className="w-16 h-16 rounded-full object-cover" /><p className="text-xs text-center text-text-tertiary-light dark:text-text-tertiary group-hover:underline truncate w-full">{friend.full_name || friend.username}</p></Link>))}</div></div></>
                             )}
-
-                            {/* --- THIS IS THE FIX --- */}
                             {!communitiesLoading && communities.length > 0 && (
                                 <><hr className="border-tertiary-light dark:border-tertiary !my-6" /><div><h3 className="text-lg font-bold mb-3">Communities</h3><div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-3">{communities.slice(0, 9).map(community => (
                                     <Link to={`/communities/${community.id}`} key={community.id} className="flex flex-col items-center space-y-1 group" title={community.name}>
@@ -341,7 +345,7 @@ const ProfilePage: React.FC = () => {
                                                     {mediaPosts.map(post => (
                                                         <Link to={`/post/${post.id}`} key={post.id} className="group relative aspect-square">
                                                             <img src={post.image_url!} alt="Post media" className="w-full h-full object-cover rounded-sm" />
-                                                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" onClick={(e) => { e.preventDefault(); setLightboxUrl(post.image_url); }}></div>
+                                                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" onClick={(e) => { e.preventDefault(); setLightboxUrl(post.image_url!); }}></div>
                                                         </Link>
                                                     ))}
                                                 </div>
@@ -359,6 +363,7 @@ const ProfilePage: React.FC = () => {
 };
 
 const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, onSave: () => void }> = ({ userProfile, onClose, onSave }) => {
+    // ... (This component remains unchanged)
     const { user, updateProfileContext } = useAuth();
     const [profileData, setProfileData] = useState(userProfile);
     const [avatarFile, setAvatarFile] = useState<File | null>(null);

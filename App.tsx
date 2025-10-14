@@ -29,6 +29,7 @@ import GroupInfoPage from './pages/GroupInfoPage';
 import CommunitiesListPage from './pages/CommunitiesListPage';
 import CommunityPage from './pages/CommunityPage';
 import CommunityMembersPage from './pages/CommunityMembersPage';
+import BookmarksPage from './pages/BookmarksPage';
 
 
 const AppRoutes = () => {
@@ -64,6 +65,7 @@ const AppRoutes = () => {
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
+        <Route path="/bookmarks" element={<BookmarksPage />} />
         <Route path="/directory" element={<DirectoryPage />} />
         {/* --- ADD THESE ROUTES FOR COMMUNITIES --- */}
         <Route path="/communities" element={<CommunitiesListPage />} />
