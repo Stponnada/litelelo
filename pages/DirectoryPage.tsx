@@ -13,13 +13,19 @@ type TabType = 'users' | 'communities';
 const DirectoryPage: React.FC = () => {
   const { user: currentUser } = useAuth();
   const navigate = useNavigate();
-  const [profiles, setProfiles] = useState<DirectoryProfile[]>([]);
+  // State to hold the original, complete list of profiles from the database
+  const [allProfiles, setAllProfiles] = useState<DirectoryProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [togglingFollowId, setTogglingFollowId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('users');
   const [followStats, setFollowStats] = useState({ following: 0, followers: 0 });
+
+  // States for new filters
+  const [selectedYear, setSelectedYear] = useState<string>('all');
+  const [selectedBranch, setSelectedBranch] = useState<string>('all');
+  const [selectedDorm, setSelectedDorm] = useState<string>('all');
 
   useEffect(() => {
     const fetchProfiles = async () => {
@@ -28,7 +34,7 @@ const DirectoryPage: React.FC = () => {
       try {
         const { data, error: fetchError } = await supabase.rpc('get_unified_directory');
         if (fetchError) throw fetchError;
-        setProfiles(data as DirectoryProfile[] || []);
+        setAllProfiles(data as DirectoryProfile[] || []);
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -43,13 +49,11 @@ const DirectoryPage: React.FC = () => {
       if (!currentUser) return;
       
       try {
-        // Get following count
         const { count: followingCount } = await supabase
           .from('followers')
           .select('*', { count: 'exact', head: true })
           .eq('follower_id', currentUser.id);
         
-        // Get followers count
         const { count: followersCount } = await supabase
           .from('followers')
           .select('*', { count: 'exact', head: true })
@@ -66,6 +70,15 @@ const DirectoryPage: React.FC = () => {
     
     fetchFollowStats();
   }, [currentUser]);
+
+  // Reset filters when switching away from the users tab
+  useEffect(() => {
+    if (activeTab !== 'users') {
+      setSelectedYear('all');
+      setSelectedBranch('all');
+      setSelectedDorm('all');
+    }
+  }, [activeTab]);
   
   const handleFollowToggle = async (profileToToggle: DirectoryProfile) => {
     if (!currentUser || profileToToggle.type !== 'user') return;
@@ -73,7 +86,7 @@ const DirectoryPage: React.FC = () => {
     const isCurrentlyFollowing = profileToToggle.is_following;
     const currentFollowerCount = profileToToggle.follower_count || 0;
 
-    setProfiles(currentProfiles => 
+    setAllProfiles(currentProfiles => 
       currentProfiles.map(p => 
         p.id === profileToToggle.id
           ? {
@@ -85,7 +98,6 @@ const DirectoryPage: React.FC = () => {
       )
     );
 
-    // Update follow stats optimistically
     setFollowStats(prev => ({
       ...prev,
       following: isCurrentlyFollowing ? prev.following - 1 : prev.following + 1
@@ -105,12 +117,11 @@ const DirectoryPage: React.FC = () => {
       }
     } catch (err) {
       console.error("Failed to toggle follow:", err);
-      setProfiles(currentProfiles => 
+      setAllProfiles(currentProfiles => 
         currentProfiles.map(p => 
           p.id === profileToToggle.id ? profileToToggle : p
         )
       );
-      // Revert follow stats on error
       setFollowStats(prev => ({
         ...prev,
         following: isCurrentlyFollowing ? prev.following + 1 : prev.following - 1
@@ -124,13 +135,33 @@ const DirectoryPage: React.FC = () => {
     navigate('/chat', { state: { recipient: profile } });
   };
   
+  // This memoization is key: it calculates the filter options ONCE from the complete data
+  const filterOptions = useMemo(() => {
+    const userProfiles = allProfiles.filter(p => p.type === 'user');
+    const years = [...new Set(userProfiles.map(p => p.admission_year).filter(Boolean) as number[])].sort((a, b) => b - a);
+    const branches = [...new Set(userProfiles.flatMap(p => [p.branch, p.dual_degree_branch]).filter(Boolean) as string[])].sort();
+    const dorms = [...new Set(userProfiles.map(p => p.dorm_building).filter(Boolean) as string[])].sort();
+    return { years, branches, dorms };
+  }, [allProfiles]);
+
   const filteredProfiles = useMemo(() => {
-    let filtered = profiles;
+    let filtered = allProfiles;
     
-    // Filter by tab type
     filtered = filtered.filter(p => 
       activeTab === 'users' ? p.type === 'user' : p.type === 'community'
     );
+
+    if (activeTab === 'users') {
+      if (selectedYear !== 'all') {
+        filtered = filtered.filter(p => p.admission_year === parseInt(selectedYear));
+      }
+      if (selectedBranch !== 'all') {
+        filtered = filtered.filter(p => p.branch === selectedBranch || p.dual_degree_branch === selectedBranch);
+      }
+      if (selectedDorm !== 'all') {
+        filtered = filtered.filter(p => p.dorm_building === selectedDorm);
+      }
+    }
         
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
@@ -142,16 +173,16 @@ const DirectoryPage: React.FC = () => {
     }
     
     return filtered;
-  }, [profiles, searchQuery, activeTab]);
+  }, [allProfiles, searchQuery, activeTab, selectedYear, selectedBranch, selectedDorm]);
 
-  const userCount = useMemo(() => profiles.filter(p => p.type === 'user').length, [profiles]);
-  const communityCount = useMemo(() => profiles.filter(p => p.type === 'community').length, [profiles]);
+  const userCount = useMemo(() => allProfiles.filter(p => p.type === 'user').length, [allProfiles]);
+  const communityCount = useMemo(() => allProfiles.filter(p => p.type === 'community').length, [allProfiles]);
 
   if (loading) { 
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4">
         <Spinner />
-        <p className="text-text-secondary-light dark:text-text-secondary animate-pulse">Loading community...</p>
+        <p className="text-text-secondary-light dark:text-text-secondary animate-pulse">Loading directory...</p>
       </div>
     ); 
   }
@@ -190,7 +221,7 @@ const DirectoryPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Follow Stats - Only show if user is logged in */}
+        {/* Follow Stats */}
         {currentUser && (
           <div className="mb-8 flex justify-center">
             <div className="inline-flex gap-3 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm border-2 border-tertiary-light/50 dark:border-tertiary/50 rounded-2xl p-4 shadow-lg shadow-black/5 dark:shadow-black/20">
@@ -223,7 +254,7 @@ const DirectoryPage: React.FC = () => {
               onClick={() => setActiveTab('users')}
               className={`relative px-8 py-3 rounded-xl font-semibold transition-all duration-300 ${
                 activeTab === 'users'
-                  ? 'bg-brand-green text-white shadow-lg shadow-brand-green/30'
+                  ? 'bg-brand-green text-black shadow-lg shadow-brand-green/30'
                   : 'text-text-secondary-light dark:text-text-secondary hover:text-text-main-light dark:hover:text-text-main'
               }`}
             >
@@ -234,7 +265,7 @@ const DirectoryPage: React.FC = () => {
                 <span>Users</span>
                 <span className={`text-xs px-2 py-0.5 rounded-full ${
                   activeTab === 'users'
-                    ? 'bg-white/20'
+                    ? 'bg-black/20 text-white'
                     : 'bg-brand-green/20 text-brand-green'
                 }`}>
                   {userCount}
@@ -245,7 +276,7 @@ const DirectoryPage: React.FC = () => {
               onClick={() => setActiveTab('communities')}
               className={`relative px-8 py-3 rounded-xl font-semibold transition-all duration-300 ${
                 activeTab === 'communities'
-                  ? 'bg-brand-green text-white shadow-lg shadow-brand-green/30'
+                  ? 'bg-brand-green text-black shadow-lg shadow-brand-green/30'
                   : 'text-text-secondary-light dark:text-text-secondary hover:text-text-main-light dark:hover:text-text-main'
               }`}
             >
@@ -256,7 +287,7 @@ const DirectoryPage: React.FC = () => {
                 <span>Communities</span>
                 <span className={`text-xs px-2 py-0.5 rounded-full ${
                   activeTab === 'communities'
-                    ? 'bg-white/20'
+                    ? 'bg-black/20 text-white'
                     : 'bg-brand-green/20 text-brand-green'
                 }`}>
                   {communityCount}
@@ -267,7 +298,7 @@ const DirectoryPage: React.FC = () => {
         </div>
         
         {/* Search Bar */}
-        <div className="mb-10 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
+        <div className="mb-8 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
           <div className="relative flex-1 max-w-2xl mx-auto w-full">
             <div className="absolute inset-0 bg-gradient-to-r from-brand-green/10 to-brand-green/5 rounded-2xl blur-xl"></div>
             <div className="relative">
@@ -295,35 +326,56 @@ const DirectoryPage: React.FC = () => {
           </div>
         </div>
         
+        {/* Filter Controls - Only for Users tab */}
+        {activeTab === 'users' && (
+          <div className="mb-10 grid grid-cols-1 md:grid-cols-3 gap-4 animate-in fade-in duration-300">
+              <select 
+                  value={selectedYear} 
+                  onChange={e => setSelectedYear(e.target.value)}
+                  className="w-full p-3 bg-white/80 dark:bg-secondary/80 backdrop-blur-sm border-2 border-tertiary-light/50 dark:border-tertiary/50 rounded-xl text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green/50 transition-all"
+              >
+                  <option value="all">All Batches</option>
+                  {filterOptions.years.map(year => <option key={year} value={year}>{year}</option>)}
+              </select>
+              <select 
+                  value={selectedBranch} 
+                  onChange={e => setSelectedBranch(e.target.value)}
+                  className="w-full p-3 bg-white/80 dark:bg-secondary/80 backdrop-blur-sm border-2 border-tertiary-light/50 dark:border-tertiary/50 rounded-xl text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green/50 transition-all"
+              >
+                  <option value="all">All Branches</option>
+                  {filterOptions.branches.map(branch => <option key={branch} value={branch}>{branch}</option>)}
+              </select>
+              <select 
+                  value={selectedDorm} 
+                  onChange={e => setSelectedDorm(e.target.value)}
+                  className="w-full p-3 bg-white/80 dark:bg-secondary/80 backdrop-blur-sm border-2 border-tertiary-light/50 dark:border-tertiary/50 rounded-xl text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green/50 transition-all"
+              >
+                  <option value="all">All Dorms</option>
+                  {filterOptions.dorms.map(dorm => <option key={dorm} value={dorm}>{dorm}</option>)}
+              </select>
+          </div>
+        )}
+        
         {/* Results Section */}
         <div className="relative">
           {filteredProfiles.length > 0 ? (
-            <>
-              {searchQuery && (
-                <div className="mb-6 px-1">
-                  <p className="text-text-secondary-light dark:text-text-secondary text-sm">
-                    Found <span className="font-semibold text-text-main-light dark:text-text-main">{filteredProfiles.length}</span> result{filteredProfiles.length !== 1 ? 's' : ''}
-                  </p>
+            <div className="grid gap-5">
+              {filteredProfiles.map((profile, index) => (
+                <div
+                  key={profile.id}
+                  className="animate-in fade-in slide-in-from-bottom-4 duration-500 hover:scale-[1.01] transition-transform"
+                  style={{ animationDelay: `${index * 60}ms`, animationFillMode: 'backwards' }}
+                >
+                  <UserCard
+                    profile={profile}
+                    isCurrentUser={currentUser?.id === profile.id}
+                    isToggling={togglingFollowId === profile.id}
+                    onFollowToggle={handleFollowToggle}
+                    onMessage={() => handleMessageUser(profile as any)}
+                  />
                 </div>
-              )}
-              <div className="grid gap-5">
-                {filteredProfiles.map((profile, index) => (
-                  <div 
-                    key={profile.id}
-                    className="animate-in fade-in slide-in-from-bottom-4 duration-500 hover:scale-[1.01] transition-transform"
-                    style={{ animationDelay: `${index * 60}ms`, animationFillMode: 'backwards' }}
-                  >
-                    <UserCard 
-                      profile={profile} 
-                      isCurrentUser={currentUser?.id === profile.id}
-                      isToggling={togglingFollowId === profile.id}
-                      onFollowToggle={handleFollowToggle}
-                      onMessage={() => handleMessageUser(profile as any)}
-                    />
-                  </div>
-                ))}
-              </div>
-            </>
+              ))}
+            </div>
           ) : (
             <div className="text-center py-32 px-6">
               <div className="relative inline-block mb-6">
@@ -338,21 +390,25 @@ const DirectoryPage: React.FC = () => {
                 No matches found
               </p>
               <p className="text-text-secondary-light dark:text-text-secondary max-w-md mx-auto">
-                {searchQuery ? (
+                {searchQuery || selectedYear !== 'all' || selectedBranch !== 'all' || selectedDorm !== 'all' ? (
                   <>
-                    We couldn't find any {activeTab === 'users' ? 'users' : 'communities'} matching{' '}
-                    <span className="font-semibold text-text-main-light dark:text-text-main">"{searchQuery}"</span>
+                    We couldn't find any results matching your search and filter criteria.
                   </>
                 ) : (
-                  <>No {activeTab === 'users' ? 'users' : 'communities'} found in this category</>
+                  <>No {activeTab === 'users' ? 'users' : 'communities'} to display.</>
                 )}
               </p>
-              {searchQuery && (
+              {(searchQuery || selectedYear !== 'all' || selectedBranch !== 'all' || selectedDorm !== 'all') && (
                 <button
-                  onClick={() => setSearchQuery('')}
-                  className="mt-6 px-6 py-3 bg-brand-green hover:bg-brand-green/90 text-white font-semibold rounded-xl transition-colors shadow-lg shadow-brand-green/20"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSelectedYear('all');
+                    setSelectedBranch('all');
+                    setSelectedDorm('all');
+                  }}
+                  className="mt-6 px-6 py-3 bg-brand-green hover:bg-brand-green/90 text-black font-semibold rounded-xl transition-colors shadow-lg shadow-brand-green/20"
                 >
-                  Clear search
+                  Clear Filters
                 </button>
               )}
             </div>

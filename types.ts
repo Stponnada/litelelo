@@ -17,15 +17,20 @@ author_avatar_url: string | null;
 }
 // --- NEW: A polymorphic "Directory" entry ---
 export interface DirectoryProfile {
-id: string;
-type: 'user' | 'community';
-name: string | null;
-username: string | null;
-avatar_url: string | null;
-bio: string | null;
-is_following: boolean | null;
-follower_count: number | null;
-member_count: number | null;
+  id: string;
+  type: 'user' | 'community';
+  name: string | null;
+  username: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+  is_following: boolean | null;
+  follower_count: number | null;
+  member_count: number | null;
+  // Make sure these fields are here and optional
+  admission_year?: number | null;
+  branch?: string | null;
+  dual_degree_branch?: string | null;
+  dorm_building?: string | null;
 }
 
 export interface Friend {

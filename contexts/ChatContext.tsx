@@ -3,7 +3,7 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
-import { ConversationSummary, Profile, DirectoryProfile } from '../types';
+import { ConversationSummary, Profile, DirectoryProfile, Message } from '../types';
 
 interface ChatContextType {
   conversations: ConversationSummary[];
@@ -57,7 +57,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         finalSummaries = conversationsFromRpc.map(convo => {
           const participants = participantsMap.get(convo.conversation_id) || [];
-          // For DMs, the `otherParticipants` array should contain exactly one profile
           const otherParticipants = participants.filter(p => p.user_id !== user.id);
           
           let name = convo.name;
@@ -69,21 +68,17 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
 
-      // --- THIS IS THE FIX ---
-      // Call the new RPC and filter for only users
       const { data: directoryData, error: directoryError } = await supabase.rpc('get_unified_directory');
       if (directoryError) throw directoryError;
       
       const allProfiles = (directoryData as DirectoryProfile[] || []).filter(item => item.type === 'user');
       
-      const contacts = allProfiles.filter(p => p.is_following); // Or whatever your logic for "contacts" is
-      // --- END OF FIX ---
+      const contacts = allProfiles.filter(p => p.is_following);
 
       const existingParticipantIds = new Set(
         (finalSummaries || []).flatMap(c => (c.participants || []).map(p => p.user_id))
       );
       
-      // Convert DirectoryProfile to the shape needed for placeholder conversations
       const placeholderConversations = contacts
         .filter(contact => !existingParticipantIds.has(contact.id))
         .map(contact => ({
@@ -117,28 +112,62 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
     }
   }, [user]);
-  
-  // ... (rest of the file is unchanged) ...
 
   useEffect(() => { if (user) fetchConversations() }, [user, fetchConversations]);
 
+  // --- THIS IS THE FIX ---
+  // This useEffect now performs a smart client-side update instead of a full re-fetch.
+  // It also has a corrected dependency array to prevent the re-subscription loop.
   useEffect(() => {
     if (!user) return;
 
-    const channel = supabase.channel('public:messages')
+    const channel = supabase
+      .channel('public:messages')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, 
-      (payload) => {
-        const newMessage = payload.new as { conversation_id: string };
-        const isParticipant = conversations.some(c => c.conversation_id === newMessage.conversation_id);
-        if (isParticipant) {
-          fetchConversations();
+        (payload) => {
+          const newMessage = payload.new as Message;
+
+          setConversations(prev => {
+            const convoIndex = prev.findIndex(c => c.conversation_id === newMessage.conversation_id);
+
+            // If the conversation isn't in our list yet (e.g., a new group chat),
+            // trigger a full refetch. This is a rare but important edge case.
+            if (convoIndex === -1) {
+              fetchConversations();
+              return prev;
+            }
+
+            // Create a mutable copy to avoid direct state mutation
+            const conversationsCopy = [...prev];
+            const updatedConvo = { ...conversationsCopy[convoIndex] };
+
+            // Update the conversation with the new message's details
+            updatedConvo.last_message_content = newMessage.content;
+            updatedConvo.last_message_at = newMessage.created_at;
+            updatedConvo.last_message_sender_id = newMessage.sender_id;
+
+            // Only increment unread count if the message is from someone else
+            if (newMessage.sender_id !== user.id) {
+              updatedConvo.unread_count = (updatedConvo.unread_count || 0) + 1;
+            }
+
+            // Remove the old version of the conversation from the array
+            conversationsCopy.splice(convoIndex, 1);
+            
+            // Add the updated version to the top of the list and return the new state
+            return [updatedConvo, ...conversationsCopy];
+          });
         }
-      })
+      )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
-  }, [user, conversations, fetchConversations]);
-  
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  // The dependency array is now corrected to prevent the cycle.
+  }, [user, fetchConversations]);
+  // --- END OF FIX ---
+
   const markConversationAsRead = useCallback(async (conversationId: string) => {
     if (!user?.id || conversationId.startsWith('placeholder_')) return;
 
