@@ -13,6 +13,7 @@ import { isMscBranch, BITS_BRANCHES } from '../data/bitsBranches.ts';
 import ImageCropper from '../components/ImageCropper';
 import FollowListModal from '../components/FollowListModal';
 import LightBox from '../components/lightbox';
+import { format } from 'date-fns';
 
 interface CommunityLink {
     id: string;
@@ -230,6 +231,10 @@ const ProfilePage: React.FC = () => {
     const isOwnProfile = currentUser?.id === profile.user_id;
     const dormInfo = profile.dorm_building ? `${profile.dorm_building}${profile.dorm_room ? `, Room ${profile.dorm_room}` : ''}` : null;
 
+    const formattedBirthday = profile.birthday 
+        ? format(new Date(profile.birthday), 'MMMM d') 
+        : null;
+
     return (
         <>
             {isEditModalOpen && profile && <EditProfileModal userProfile={profile} onClose={() => setIsEditModalOpen(false)} onSave={fetchProfileData} />}
@@ -302,7 +307,12 @@ const ProfilePage: React.FC = () => {
                             {profile.bio && <p className="text-text-secondary-light dark:text-text-secondary whitespace-pre-wrap">{profile.bio}</p>}
                             <hr className="border-tertiary-light dark:border-tertiary !my-6" />
                             <div className="space-y-4 text-sm">
-                                <ProfileDetail label="Primary Degree" value={profile.branch} /><ProfileDetail label="B.E. Degree" value={profile.dual_degree_branch} /><ProfileDetail label="Relationship Status" value={profile.relationship_status} /><ProfileDetail label="Dorm" value={dormInfo} /><ProfileDetail label="Dining Hall" value={profile.dining_hall} />
+                                <ProfileDetail label="Birthday" value={formattedBirthday} />
+                                <ProfileDetail label="Primary Degree" value={profile.branch} />
+                                <ProfileDetail label="B.E. Degree" value={profile.dual_degree_branch} />
+                                <ProfileDetail label="Relationship Status" value={profile.relationship_status} />
+                                <ProfileDetail label="Dorm" value={dormInfo} />
+                                <ProfileDetail label="Dining Hall" value={profile.dining_hall} />
                             </div>
                             {!friendsLoading && friends.length > 0 && (
                                 <><hr className="border-tertiary-light dark:border-tertiary !my-6" /><div><h3 className="text-lg font-bold mb-3">Friends</h3><div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-3">{friends.slice(0, 9).map(friend => (<Link to={`/profile/${friend.username}`} key={friend.user_id} className="flex flex-col items-center space-y-1 group" title={friend.full_name || friend.username}><img src={friend.avatar_url || `https://ui-avatars.com/api/?name=${friend.full_name || friend.username}`} alt={friend.username} className="w-16 h-16 rounded-full object-cover" /><p className="text-xs text-center text-text-tertiary-light dark:text-text-tertiary group-hover:underline truncate w-full">{friend.full_name || friend.username}</p></Link>))}</div></div></>

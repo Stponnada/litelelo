@@ -6,13 +6,14 @@ import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../services/supabase';
 import Header from './Header';
 import LeftSidebar from './LeftSidebar';
-import BottomNavBar from './BottomNavBar'; // Import the new bottom nav
+import BottomNavBar from './BottomNavBar';
+import AboutModal from './AboutModal';
 
 const Layout = () => {
   const { user } = useAuth();
-  // State for desktop sidebar
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchUsername = async () => {
@@ -26,32 +27,33 @@ const Layout = () => {
 
   return (
     <div className="md:flex">
-      {/* Renders the full sidebar on medium screens and up */}
+      {isAboutModalOpen && <AboutModal onClose={() => setIsAboutModalOpen(false)} />}
+      
       <div className="hidden md:block">
         <LeftSidebar 
           isExpanded={isSidebarExpanded} 
           setIsExpanded={setIsSidebarExpanded} 
           username={username}
+          onOpenAboutModal={() => setIsAboutModalOpen(true)}
         />
       </div>
 
       <div className="flex-1">
-        <Header isSidebarExpanded={isSidebarExpanded} />
+        <Header />
         
-        {/* Responsive main content area */}
         <main 
-          className={`pt-20 transition-all duration-300 ease-in-out 
-                      pb-20 md:pb-0  /* Padding for bottom bar on mobile */
-                      md:pl-20       /* Padding for collapsed sidebar on desktop */
-                      ${isSidebarExpanded ? 'md:pl-60' : 'md:pl-20'}`}
+          // --- CHANGE IS HERE ---
+          className={`pt-24 transition-all duration-300 ease-in-out 
+                      pb-20 md:pb-0
+                      md:pl-20
+                      ${isSidebarExpanded ? 'md:pl-48' : 'md:pl-20'}`}
         >
-          <div className="p-4 md:p-6"> {/* Reduced padding on mobile */}
+          <div className="p-4 md:p-6">
             <Outlet />
           </div>
         </main>
       </div>
 
-      {/* Renders the bottom navigation bar on mobile */}
       <BottomNavBar />
     </div>
   );

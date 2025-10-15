@@ -236,7 +236,6 @@ CREATE TABLE public.profiles (
   dorm_building text,
   dorm_room text,
   dining_hall text,
-  clubs text,
   profile_complete boolean DEFAULT false,
   updated_at timestamp with time zone,
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,

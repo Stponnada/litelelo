@@ -164,39 +164,59 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, profile, communi
             )}
 
             {isCreatingPoll && (
-                <div className="mt-4 space-y-3 border-t border-tertiary-light dark:border-tertiary pt-4">
-                    {pollOptions.map((option, index) => (
-                        <div key={index} className="flex items-center gap-2">
-                            <input
-                                type="text"
-                                placeholder={`Option ${index + 1}`}
-                                value={option}
-                                onChange={(e) => handlePollOptionChange(index, e.target.value)}
-                                className="w-full bg-tertiary-light dark:bg-tertiary rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green"
-                            />
-                            {pollOptions.length > 2 && (
-                                <button type="button" onClick={() => removePollOption(index)} className="p-1 text-red-400 hover:bg-red-500/10 rounded-full">
-                                    <XCircleIcon className="w-5 h-5"/>
-                                </button>
-                            )}
+                <div className="mt-4 bg-tertiary-light/30 dark:bg-tertiary/30 rounded-xl p-4 border border-tertiary-light/50 dark:border-tertiary/50">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                            <PollIcon className="w-5 h-5 text-brand-green"/>
+                            <h3 className="text-sm font-bold text-text-main-light dark:text-text-main">Create a Poll</h3>
                         </div>
-                    ))}
+                        <button type="button" onClick={resetPoll} className="text-xs font-semibold text-red-500 hover:bg-red-500/10 px-2.5 py-1 rounded-md transition-colors flex items-center gap-1">
+                            <XCircleIcon className="w-4 h-4"/>
+                            Remove
+                        </button>
+                    </div>
+
+                    <div className="space-y-2.5">
+                        {pollOptions.map((option, index) => (
+                            <div key={index} className="flex items-center gap-2.5 group">
+                                <div className="flex-shrink-0 w-7 h-7 rounded-full bg-brand-green/10 flex items-center justify-center">
+                                    <span className="text-sm font-bold text-brand-green">{index + 1}</span>
+                                </div>
+                                <input
+                                    type="text"
+                                    placeholder={`Choice ${index + 1}`}
+                                    value={option}
+                                    onChange={(e) => handlePollOptionChange(index, e.target.value)}
+                                    className="flex-1 bg-white dark:bg-secondary rounded-lg px-3.5 py-2.5 text-sm border border-tertiary-light/50 dark:border-tertiary/50 focus:outline-none focus:ring-2 focus:ring-brand-green focus:border-transparent transition-all placeholder-text-tertiary-light/60 dark:placeholder-text-tertiary/60"
+                                    maxLength={100}
+                                />
+                                {pollOptions.length > 2 && (
+                                    <button type="button" onClick={() => removePollOption(index)} className="flex-shrink-0 p-1.5 text-text-tertiary-light dark:text-text-tertiary hover:text-red-500 hover:bg-red-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all">
+                                        <XCircleIcon className="w-4 h-4"/>
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+
                     {pollOptions.length < 5 && (
-                        <button type="button" onClick={addPollOption} className="text-sm font-semibold text-brand-green hover:underline">
-                            + Add Option
+                        <button type="button" onClick={addPollOption} className="mt-3 w-full text-sm font-semibold text-brand-green hover:bg-brand-green/10 py-2.5 rounded-lg transition-colors border border-dashed border-brand-green/30 hover:border-brand-green/50">
+                            + Add Choice
                         </button>
                     )}
-                    <div className="flex items-center justify-between mt-2">
-                        <label className="flex items-center gap-2 text-sm cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={allowMultipleAnswers}
-                                onChange={(e) => setAllowMultipleAnswers(e.target.checked)}
-                                className="rounded text-brand-green focus:ring-brand-green"
-                            />
-                            Allow multiple answers
+
+                    <div className="mt-4 pt-4 border-t border-tertiary-light/50 dark:border-tertiary/50">
+                        <label className="flex items-center gap-2.5 text-sm cursor-pointer text-text-secondary-light dark:text-text-secondary hover:text-text-main-light dark:hover:text-text-main transition-colors group">
+                            <div className="relative">
+                                <input
+                                    type="checkbox"
+                                    checked={allowMultipleAnswers}
+                                    onChange={(e) => setAllowMultipleAnswers(e.target.checked)}
+                                    className="peer h-4 w-4 rounded accent-brand-green bg-white dark:bg-secondary border-2 border-tertiary-light dark:border-tertiary focus:ring-2 focus:ring-brand-green/20 cursor-pointer transition-all"
+                                />
+                            </div>
+                            <span className="font-medium">Allow multiple answers</span>
                         </label>
-                        <button type="button" onClick={resetPoll} className="text-sm text-red-400 hover:underline">Remove Poll</button>
                     </div>
                 </div>
             )}

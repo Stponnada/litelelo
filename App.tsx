@@ -25,7 +25,6 @@ import LostAndFoundPage from './pages/LostAndFoundPage';
 import MarketplacePage from './pages/MarketplacePage';
 import SellerProfilePage from './pages/SellerProfilePage';
 import GroupInfoPage from './pages/GroupInfoPage';
-// --- ADD THESE IMPORTS ---
 import CommunitiesListPage from './pages/CommunitiesListPage';
 import CommunityPage from './pages/CommunityPage';
 import CommunityMembersPage from './pages/CommunityMembersPage';
@@ -67,10 +66,8 @@ const AppRoutes = () => {
         <Route path="/" element={<Home />} />
         <Route path="/bookmarks" element={<BookmarksPage />} />
         <Route path="/directory" element={<DirectoryPage />} />
-        {/* --- ADD THESE ROUTES FOR COMMUNITIES --- */}
         <Route path="/communities" element={<CommunitiesListPage />} />
         <Route path="/communities/:communityId" element={<CommunityPage />} />
-        {/* --- THIS IS THE NEW ROUTE --- */}
         <Route path="/communities/:communityId/members" element={<CommunityMembersPage />} />
         <Route path="/campus" element={<CampusPage />} />
         <Route path="/campus/reviews" element={<CampusDirectoryPage />} />
@@ -83,9 +80,11 @@ const AppRoutes = () => {
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/chat/:username" element={<ChatPage />} />
         <Route path="/chat/group/:conversationId" element={<GroupInfoPage />} />
+        {/* --- ROUTE MOVED HERE --- */}
+        <Route path="/search" element={<SearchPage />} />
       </Route>
 
-      <Route path="/search" element={<SearchPage />} />
+      {/* --- ROUTE REMOVED FROM HERE --- */}
       <Route path="/login" element={<Navigate to="/" replace />} />
       <Route path="/setup" element={<Navigate to="/" replace />} />
       <Route path="*" element={<NotFound />} />

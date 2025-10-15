@@ -215,3 +215,36 @@ export interface Poll {
     total_votes: number;
     user_votes: string[] | null; // Array of option IDs the user has voted for
 }
+
+export interface FollowSuggestion {
+    user_id: string;
+    username: string;
+    full_name: string | null;
+    avatar_url: string | null;
+    bio: string | null;
+}
+
+export interface TrendingPost {
+    id: string;
+    content: string;
+    like_count: number;
+    comment_count: number;
+    author_name: string | null;
+    author_username: string | null;
+    author_avatar_url: string | null;
+}
+
+export interface TrendingPoll {
+    id: string;
+    content: string;
+    total_votes: number;
+    author_name: string | null;
+    author_username: string | null;
+    author_avatar_url: string | null;
+}
+
+export interface RecommendedContent {
+    follow_suggestions: FollowSuggestion[];
+    trending_posts: TrendingPost[];
+    trending_polls: TrendingPoll[];
+}

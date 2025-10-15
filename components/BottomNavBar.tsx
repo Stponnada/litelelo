@@ -5,8 +5,8 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useChat } from '../hooks/useChat.ts';
 import { supabase } from '../services/supabase';
-// --- STEP 1: Import the BookOpenIcon ---
-import { HomeIcon, BuildingLibraryIcon, ChatIcon, UserIcon, BookOpenIcon } from './icons';
+// --- STEP 1: Import the SearchIcon ---
+import { HomeIcon, BuildingLibraryIcon, ChatIcon, UserIcon, BookOpenIcon, SearchIcon } from './icons';
 
 const BottomNavBar: React.FC = () => {
   const { user } = useAuth();
@@ -45,6 +45,13 @@ const BottomNavBar: React.FC = () => {
       >
         <BuildingLibraryIcon className="w-7 h-7" />
       </NavLink>
+      {/* --- STEP 2: Add the NavLink for Search --- */}
+      <NavLink 
+        to="/search" 
+        className={({ isActive }) => `flex-1 flex flex-col items-center justify-center ${isActive ? activeLinkStyle : inactiveLinkStyle}`}
+      >
+        <SearchIcon className="w-7 h-7" />
+      </NavLink>
       <NavLink 
         to="/chat" 
         className={({ isActive }) => `flex-1 flex flex-col items-center justify-center ${isActive ? activeLinkStyle : inactiveLinkStyle}`}
@@ -54,8 +61,6 @@ const BottomNavBar: React.FC = () => {
           {totalUnreadCount > 0 && <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-brand-green ring-2 ring-secondary-light dark:ring-secondary" />}
         </div>
       </NavLink>
-
-      {/* --- STEP 2: Add the NavLink for the Directory --- */}
       <NavLink 
         to="/directory" 
         className={({ isActive }) => `flex-1 flex flex-col items-center justify-center ${isActive ? activeLinkStyle : inactiveLinkStyle}`}
