@@ -76,14 +76,13 @@ Deno.serve(async (req) => {
     if (botError || !botProfile) throw new Error("Birthday bot profile not found.");
 
     // 5. Create the post as the bot
-    const { error: postError } = await supabaseAdmin
-      .from('posts')
-      .insert({
-        user_id: botProfile.user_id,
-        //is_public: true, // Make it a public post for everyone to see
+    const { error: rpcError } = await supabaseAdmin
+      .rpc('create_bot_post', {
+        post_content: postContent
       });
 
-    if (postError) throw postError;
+    if (rpcError) throw rpcError;
+
     
     console.log('Successfully posted birthday announcement.');
 
