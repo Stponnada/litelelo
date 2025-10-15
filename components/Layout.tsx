@@ -8,6 +8,7 @@ import Header from './Header';
 import LeftSidebar from './LeftSidebar';
 import BottomNavBar from './BottomNavBar';
 import AboutModal from './AboutModal';
+import FloatingFooter from './FloatingFooter'; // <-- 1. Import the new component
 
 const Layout = () => {
   const { user } = useAuth();
@@ -26,10 +27,11 @@ const Layout = () => {
   }, [user]);
 
   return (
-    <div className="md:flex">
+    <div>
       {isAboutModalOpen && <AboutModal onClose={() => setIsAboutModalOpen(false)} />}
       
       <div className="hidden md:block">
+        <Header isSidebarExpanded={isSidebarExpanded} />
         <LeftSidebar 
           isExpanded={isSidebarExpanded} 
           setIsExpanded={setIsSidebarExpanded} 
@@ -37,24 +39,24 @@ const Layout = () => {
           onOpenAboutModal={() => setIsAboutModalOpen(true)}
         />
       </div>
-
-      <div className="flex-1">
-        <Header />
-        
-        <main 
-          // --- CHANGE IS HERE ---
-          className={`pt-24 transition-all duration-300 ease-in-out 
-                      pb-20 md:pb-0
-                      md:pl-20
-                      ${isSidebarExpanded ? 'md:pl-48' : 'md:pl-20'}`}
-        >
-          <div className="p-4 md:p-6">
-            <Outlet />
-          </div>
-        </main>
+      
+      <div className="md:hidden">
+        <Header isSidebarExpanded={false} />
       </div>
 
+      <main 
+        className={`pt-24 transition-all duration-300 ease-in-out 
+                    pb-20 md:pb-0
+                    ${isSidebarExpanded ? 'md:pl-48' : 'md:pl-20'}`}
+      >
+        <div className="p-4 md:p-6">
+          <Outlet />
+        </div>
+      </main>
+
       <BottomNavBar />
+      {/* --- 2. Render the new footer here --- */}
+      <FloatingFooter onOpenAboutModal={() => setIsAboutModalOpen(true)} />
     </div>
   );
 };

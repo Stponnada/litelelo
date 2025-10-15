@@ -169,7 +169,7 @@ export const HomePage: React.FC = () => {
 
             {/* Floating scroll indicator for long feeds */}
             {posts.length > 3 && (
-                <div className="fixed bottom-8 right-8 opacity-50 hover:opacity-100 transition-opacity duration-300">
+                <div className="fixed bottom-5 right-[18rem] opacity-90 hover:opacity-100 transition-opacity duration-300">
                     <button 
                         onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                         className="w-12 h-12 bg-brand-green rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform duration-300"
