@@ -6,7 +6,7 @@ import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { DirectoryProfile, Profile } from '../types';
 import Spinner from '../components/Spinner';
-import UserCard from '../components/UserCard';
+import UserCard from '../components/UserCard'; // Ensure this import path is correct
 import { GlobeIcon } from '@/components/icons';
 
 type TabType = 'users' | 'communities';

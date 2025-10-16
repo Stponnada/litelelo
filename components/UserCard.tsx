@@ -22,8 +22,8 @@ const UserCard: React.FC<UserCardProps> = ({ profile, isCurrentUser, isToggling,
     : `/profile/${profile.username}`;
 
   return (
-    // --- Main layout is now always horizontal with less padding ---
-    <div className="relative bg-secondary-light dark:bg-secondary rounded-2xl shadow-lg border border-tertiary-light dark:border-tertiary p-3 sm:p-5 flex flex-row items-center gap-4 transition-all duration-300 hover:border-brand-green/50">
+    // --- Card has adjusted padding and gap for a wider feel ---
+    <div className="relative bg-secondary-light dark:bg-secondary rounded-2xl shadow-lg border border-tertiary-light dark:border-tertiary p-4 flex flex-row items-center gap-3 transition-all duration-300 hover:border-brand-green/50">
       
       {isCommunity && (
           <div className="absolute top-2 right-2 bg-brand-green/10 text-brand-green text-[10px] font-bold uppercase px-2 py-0.5 rounded-full flex items-center gap-1">
@@ -32,19 +32,20 @@ const UserCard: React.FC<UserCardProps> = ({ profile, isCurrentUser, isToggling,
           </div>
       )}
 
-      {/* --- Smaller avatar --- */}
+      {/* --- Avatar is smaller to save horizontal space --- */}
       <Link to={linkTo} className="flex-shrink-0">
         <img
           src={profile.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name || ' ')}&background=random`}
           alt={profile.name || 'avatar'}
-          className="w-16 h-16 rounded-full object-cover border-4 border-tertiary-light dark:border-tertiary"
+          className="w-12 h-12 rounded-full object-cover border-2 border-tertiary-light dark:border-tertiary"
         />
       </Link>
 
-      {/* --- Text content is now always left-aligned --- */}
+      {/* --- Text content benefits from the extra space. min-w-0 is crucial for truncation. --- */}
       <div className="flex-1 text-left min-w-0">
         <Link to={linkTo}>
-          <h3 className="text-lg font-bold text-text-main-light dark:text-text-main hover:text-brand-green truncate">{profile.name}</h3>
+          {/* --- Name font is smaller on mobile to improve visibility --- */}
+          <h3 className="text-base sm:text-lg font-bold text-text-main-light dark:text-text-main hover:text-brand-green truncate">{profile.name}</h3>
         </Link>
         
         {!isCommunity && profile.username && (
@@ -71,18 +72,18 @@ const UserCard: React.FC<UserCardProps> = ({ profile, isCurrentUser, isToggling,
       </div>
 
       {!isCurrentUser && !isCommunity && (
-        // --- Buttons are stacked vertically, smaller, and pushed to the right ---
+        // --- Buttons are more compact with reduced padding ---
         <div className="flex flex-col gap-2 ml-auto flex-shrink-0">
           <button
             onClick={() => onMessage(profile as any)}
-            className="px-4 py-2 text-xs font-semibold rounded-lg bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
+            className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
           >
             Message
           </button>
           <button
             onClick={() => onFollowToggle(profile)}
             disabled={isToggling}
-            className={`px-4 py-2 text-xs font-bold rounded-lg transition-all min-w-[80px] ${
+            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
               profile.is_following
                 ? 'bg-transparent border-2 border-brand-green text-brand-green hover:bg-brand-green/10'
                 : 'bg-brand-green text-black hover:bg-brand-green-darker'
