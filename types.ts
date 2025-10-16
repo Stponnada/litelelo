@@ -265,3 +265,8 @@ export interface PinnedMessage {
   message: Message;
   pinner: Profile;
 }
+
+export interface ReadTimestamp {
+  user_id: string;
+  last_read_at: string;
+}

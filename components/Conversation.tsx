@@ -1,6 +1,7 @@
 // src/components/Conversation.tsx
+//1000 lines of code!
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
@@ -102,6 +103,8 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
     const [typingUsers, setTypingUsers] = useState<Array<{ userId: string; fullName: string | null }>>([]);
     const typingTimeoutRefs = useRef<Map<string, NodeJS.Timeout>>(new Map());
     const throttleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    const [readTimestamps, setReadTimestamps] = useState<Map<string, string>>(new Map());
     
     const otherParticipant = conversation.type === 'dm'
       ? conversation.participants.find(p => p.user_id !== user?.id)
@@ -116,6 +119,23 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
           const { data, error } = await supabase.rpc('get_pinned_message_for_conversation', { p_conversation_id: currentConversationId });
           if (error) console.error("Error fetching pinned message:", error);
           else setPinnedMessage(data);
+        };
+
+        const fetchReadTimestamps = async () => {
+            const allParticipantIds = [user.id, ...conversation.participants.map(p => p.user_id)];
+            const { data, error } = await supabase
+                .from('conversation_read_timestamps')
+                .select('user_id, last_read_at')
+                .in('user_id', allParticipantIds)
+                .eq('conversation_id', currentConversationId);
+            
+            if (error) {
+                console.error("Error fetching read timestamps:", error);
+            } else {
+                const timestampsMap = new Map<string, string>();
+                data.forEach(ts => timestampsMap.set(ts.user_id, ts.last_read_at));
+                setReadTimestamps(timestampsMap);
+            }
         };
 
         const fetchMessages = async () => {
@@ -145,12 +165,11 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
         };
         fetchMessages();
         fetchPinnedMessage();
-    }, [currentConversationId, user]);
+        fetchReadTimestamps();
+    }, [currentConversationId, user, conversation.participants]);
     
-    // --- FIX: This new useEffect handles incoming messages from the context ---
     useEffect(() => {
         if (latestMessage && latestMessage.conversation_id === currentConversationId && latestMessage.sender_id !== user?.id) {
-            // We need to fetch the sender's profile for the new message
             const fetchProfileAndSetMessage = async () => {
                 const { data: senderProfile } = await supabase
                     .from('profiles')
@@ -160,7 +179,6 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                 
                 if (senderProfile) {
                     setMessages(prev => {
-                        // Avoid adding duplicate messages that might already be there from an initial load
                         if (prev.some(msg => msg.id === latestMessage.id)) {
                             return prev;
                         }
@@ -180,7 +198,6 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
             const { eventType, new: newRecord, old: oldRecord, table } = payload;
             
             if (table === 'messages') {
-                 // --- FIX: This block is now only for updates (edits/deletes), not inserts ---
                  if (eventType === 'UPDATE') {
                     setMessages(prev => prev.map(msg => msg.id === newRecord.id ? { ...msg, ...newRecord } : msg));
                 }
@@ -206,13 +223,16 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
         };
 
         const channel = supabase.channel(`conversation-realtime:${currentConversationId}`)
-            // --- FIX: The listener for 'messages' now only handles updates, not inserts ---
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages', filter: `conversation_id=eq.${currentConversationId}` }, handleDbChange)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'message_reactions' }, handleDbChange)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'pinned_messages', filter: `conversation_id=eq.${currentConversationId}` }, async () => {
                 const { data, error } = await supabase.rpc('get_pinned_message_for_conversation', { p_conversation_id: currentConversationId });
                 if (error) console.error("Error refetching pinned message:", error);
                 else setPinnedMessage(data);
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'conversation_read_timestamps', filter: `conversation_id=eq.${currentConversationId}` }, (payload) => {
+                const newTimestamp = payload.new as { user_id: string, last_read_at: string };
+                setReadTimestamps(prev => new Map(prev).set(newTimestamp.user_id, newTimestamp.last_read_at));
             })
             .on('broadcast', { event: 'typing' }, (payload) => {
                 const { user: typingUser } = payload.payload;
@@ -468,6 +488,19 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
             }, 1500);
         }
     };
+
+    const readersOfLastMessage = useMemo(() => {
+        if (!user) return [];
+
+        const lastOwnMessage = [...messages].reverse().find(msg => msg.sender_id === user.id && msg.status !== 'sending');
+        if (!lastOwnMessage) return [];
+
+        return conversation.participants.filter(participant => {
+            const lastReadTime = readTimestamps.get(participant.user_id);
+            if (!lastReadTime) return false;
+            return new Date(lastReadTime) >= new Date(lastOwnMessage.created_at);
+        });
+    }, [messages, readTimestamps, user, conversation.participants]);
 
     const groupedReactions = (reactions: MessageReaction[]) => {
         return reactions.reduce((acc, reaction) => {
@@ -840,6 +873,34 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                     )}
                     <div ref={messagesEndRef} />
                     <TypingIndicator users={typingUsers} />
+                    
+                    <div className="flex justify-end pr-2 pt-1">
+                        {conversation.type === 'dm' && readersOfLastMessage.length > 0 && (
+                            <div className="text-xs text-text-tertiary-light dark:text-text-tertiary flex items-center gap-1">
+                                <CheckIcon className="w-4 h-4" />
+                                <span>Seen</span>
+                            </div>
+                        )}
+                        {conversation.type === 'group' && readersOfLastMessage.length > 0 && (
+                            <div className="flex items-center space-x-2">
+                                <span className="text-xs text-text-tertiary-light dark:text-text-tertiary">Seen by</span>
+                                <div className="flex -space-x-2">
+                                    {readersOfLastMessage.slice(0, 3).map(reader => (
+                                        <img
+                                            key={reader.user_id}
+                                            src={reader.avatar_url || `https://ui-avatars.com/api/?name=${reader.full_name}`}
+                                            alt={reader.full_name || ''}
+                                            title={reader.full_name || ''}
+                                            className="w-5 h-5 rounded-full object-cover ring-2 ring-secondary-light dark:ring-secondary"
+                                        />
+                                    ))}
+                                </div>
+                                {readersOfLastMessage.length > 3 && (
+                                     <span className="text-xs text-text-tertiary-light dark:text-text-tertiary">+{readersOfLastMessage.length - 3} more</span>
+                                )}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
             
