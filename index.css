@@ -74,3 +74,53 @@ img::selection, img::-moz-selection {
     opacity: 0.6;
   }
 }
+
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap');
+
+.font-orbitron {
+  font-family: 'Orbitron', sans-serif;
+}
+
+.text-neon-green {
+  color: #00ff96;
+}
+
+.drop-shadow-neon {
+  text-shadow:
+    0 0 5px #00ff96,
+    0 0 10px #00ff96,
+    0 0 25px rgba(0,255,150,0.6);
+}
+
+/* Smooth Morph Transition */
+.logo-transform {
+  transition: 
+    font-family 0.8s ease-in-out,
+    color 0.6s ease,
+    text-shadow 0.6s ease,
+    transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* Pulse Animation for Glow */
+@keyframes neonPulse {
+  0%, 100% {
+    text-shadow:
+      0 0 5px #00ff96,
+      0 0 10px #00ff96,
+      0 0 25px rgba(0,255,150,0.5),
+      0 0 50px rgba(0,255,150,0.3);
+    transform: scale(1);
+  }
+  50% {
+    text-shadow:
+      0 0 10px #00ff96,
+      0 0 20px #00ff96,
+      0 0 50px rgba(0,255,150,0.8),
+      0 0 100px rgba(0,255,150,0.4);
+    transform: scale(1.06) skewX(-2deg);
+  }
+}
+
+.animate-neon {
+  animation: neonPulse 2s infinite alternate;
+}

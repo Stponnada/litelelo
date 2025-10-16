@@ -15,6 +15,8 @@ export default {
       fontFamily: {
         sans: ['Poppins', 'sans-serif'],
         raleway: ['Raleway', 'sans-serif'], 
+        // --- ADDED RUBIK GLITCH FONT UTILITY ---
+        'rubik-glitch': ['"Rubik Glitch"', 'cursive'],
       },
       colors: {
         'brand-green': '#3cfba2',
