@@ -121,19 +121,21 @@ const Login: React.FC = () => {
     ctx.save();
 
     // --- THIS IS THE NEW DRAWING LOGIC ---
-    const centerX = width / 2;
-    const centerY = height * 1.75; // Center the arc's origin below the screen
-    const radius = height; // Set a large radius based on screen height
+    const centerX = width / 1.75;
+    const centerY = height * 1.75; // Center the arc's origin well below the screen
+    const radius = height * 1.55;    // Use a large radius based on screen height
     
     analyser.getByteFrequencyData(dataArray);
     
     const bufferLength = analyser.frequencyBinCount;
-    const angleStep = Math.PI / bufferLength; // Cover a 180-degree semi-circle
+    // Spread the visualizer across a wide, flat arc (approx 120 degrees)
+    const totalArc = Math.PI * 0.76; 
+    // Start angle is offset to center this arc at the top of its circle
+    const startAngle = -Math.PI / 2 - totalArc / 2 + 0.52;
 
     dataArray.forEach((val, i) => {
-        // Start from the left (-PI) and move to the right (0)
-        const angle = -Math.PI + (i * angleStep);
-        const length = (val / 255) * (height * 0.6);
+        const angle = startAngle + (i / bufferLength) * totalArc;
+        const length = (val / 255) * (height * 0.4); // Max length is 40% of screen height
 
         const startX = centerX + radius * Math.cos(angle);
         const startY = centerY + radius * Math.sin(angle);
@@ -145,7 +147,7 @@ const Login: React.FC = () => {
         ctx.lineTo(endX, endY);
         
         ctx.strokeStyle = `rgba(60, 251, 162, ${Math.max(0.2, val / 255)})`;
-        ctx.lineWidth = 4;
+        ctx.lineWidth = 3; // Make lines a bit thicker to match reference
         ctx.stroke();
     });
 
