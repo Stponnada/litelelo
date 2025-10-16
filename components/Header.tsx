@@ -1,37 +1,45 @@
-// src/components/Header.tsx
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import AboutModal from './AboutModal';
-// Re-add isSidebarExpanded to the interface
+
 interface HeaderProps {
-isSidebarExpanded: boolean;
+    isSidebarExpanded: boolean;
 }
+
 const Header: React.FC<HeaderProps> = ({ isSidebarExpanded }) => {
-const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
-return (
-    <>
-        {isAboutModalOpen && <AboutModal onClose={() => setIsAboutModalOpen(false)} />}
-        <header 
-            // Set height to h-24 (6rem)
-            className="fixed top-0 left-0 right-0 bg-secondary-light dark:bg-secondary border-b border-tertiary-light dark:border-tertiary h-24 flex items-center z-20"
-        >
-            {/* This div now controls the logo's position */}
-            <div 
-                className={`transition-all duration-300 ease-in-out px-4 md:px-6 ${
-                    isSidebarExpanded ? 'md:pl-48' : 'md:pl-20'
-                }`}
+    const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
+
+    return (
+        <>
+            {isAboutModalOpen && <AboutModal onClose={() => setIsAboutModalOpen(false)} />}
+            <header
+                // 1. REMOVED `relative`. The `fixed` class is all that's needed.
+                // This makes the header stay at the top of the screen when you scroll.
+                className="overflow-hidden fixed top-0 left-0 right-0 bg-secondary-light dark:bg-secondary border-b border-tertiary-light dark:border-tertiary h-24 flex items-center z-20"
             >
-                <Link 
-                    // Increase logo size to text-6xl
-                    to="/" 
-                    className="text-5xl font-raleway font-black text-brand-green [text-shadow:-1px_-1px_0_rgba(0,0,0,0.7),_1px_1px_0_rgba(255,255,255,0.05)]"
+                {/* Subtle DARK GREEN Circuit Pattern Overlay */}
+                <div
+                    // 2. CHANGED color to a dark green (`text-green-950`) and adjusted opacity.
+                    // This creates the subtle, on-brand watermark effect from your image.
+                    className="absolute inset-0 bg-repeat bg-[url('/patterns/tech-circuit.svg')] text-green-950 opacity-5 dark:opacity-25 pointer-events-none"
+                />
+
+                {/* This div now controls the logo's position and sits ON TOP of the pattern */}
+                <div
+                    className={`transition-all duration-300 ease-in-out px-4 md:px-6 z-10 ${
+                        isSidebarExpanded ? 'md:pl-48' : 'md-pl-20'
+                    }`}
                 >
-                    litelelo.
-                </Link>
-            </div>
-        </header>
-    </>
-);
+                    <Link
+                        to="/"
+                        className="text-5xl font-raleway font-black text-brand-green [text-shadow:-1px_-1px_0_rgba(0,0,0,0.7),_1px_1px_0_rgba(255,255,255,0.05)]"
+                    >
+                        litelelo.
+                    </Link>
+                </div>
+            </header>
+        </>
+    );
 };
 
 export default Header;
