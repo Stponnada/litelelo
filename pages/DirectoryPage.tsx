@@ -197,7 +197,7 @@ const DirectoryPage: React.FC = () => {
   return (
     // keep top-level guard to prevent page-wide horizontal scroll
     <div className="w-full max-w-full overflow-x-hidden">
-      <div className="max-w-6xl mx-auto px-4 py-6">
+      <div className="max-w-6xl mx-auto px-2 sm:px-4 py-6">
         {/* Header */}
         <div className="mb-6 flex flex-col lg:flex-row flex-wrap items-start lg:items-center justify-between gap-4">
           <div>
