@@ -75,22 +75,36 @@ img::selection, img::-moz-selection {
   }
 }
 
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap');
-
-.font-orbitron {
-  font-family: 'Orbitron', sans-serif;
-}
-
+/* --- UPDATED ANIMATION STYLES --- */
 .text-neon-green {
   color: #00ff96;
 }
 
-.drop-shadow-neon {
-  text-shadow:
-    0 0 5px #00ff96,
-    0 0 10px #00ff96,
-    0 0 25px rgba(0,255,150,0.6);
+@keyframes neon-glitch-pulse {
+  0%, 100% {
+    text-shadow:
+      -1.5px -1.5px 0px rgba(255, 0, 193, 0.3), 
+      1.5px 1.5px 0px rgba(0, 255, 249, 0.3),
+      0 0 5px #00ff96,
+      0 0 10px #00ff96,
+      0 0 15px #00ff96;
+    transform: scale(1) skew(0);
+  }
+  50% {
+    text-shadow:
+      -2.5px -2.5px 0px rgba(255, 0, 193, 0.5), 
+      2.5px 2.5px 0px rgba(0, 255, 249, 0.5),
+      0 0 10px #00ff96,
+      0 0 25px #00ff96,
+      0 0 50px rgba(0,255,150,0.8);
+    transform: scale(1.01) skew(-0.5deg, 0.25deg);
+  }
 }
+
+.animate-neon-glitch {
+  animation: neon-glitch-pulse 1.5s infinite alternate;
+}
+/* --- END OF CHANGES --- */
 
 /* Smooth Morph Transition */
 .logo-transform {
@@ -99,28 +113,4 @@ img::selection, img::-moz-selection {
     color 0.6s ease,
     text-shadow 0.6s ease,
     transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
-}
-
-/* Pulse Animation for Glow */
-@keyframes neonPulse {
-  0%, 100% {
-    text-shadow:
-      0 0 5px #00ff96,
-      0 0 10px #00ff96,
-      0 0 25px rgba(0,255,150,0.5),
-      0 0 50px rgba(0,255,150,0.3);
-    transform: scale(1);
-  }
-  50% {
-    text-shadow:
-      0 0 10px #00ff96,
-      0 0 20px #00ff96,
-      0 0 50px rgba(0,255,150,0.8),
-      0 0 100px rgba(0,255,150,0.4);
-    transform: scale(1.06) skewX(-2deg);
-  }
-}
-
-.animate-neon {
-  animation: neonPulse 2s infinite alternate;
 }

@@ -10,7 +10,7 @@ import Spinner from '../components/Spinner';
 // === Music & Pause Icons ===
 const MusicIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className={className}>
-    <path d="M9 19a3 3 0 1 1 0-6 3 3 0 0 1 0 6Zm7-11.5V17a1 1 0 1 1-2 0V8.91l-3.64.77A1 1 0 0 1 9 8.7V5a1 1 0 0 1 .79-.98l6-1.25A1 1 0 0 1 17 3.75Z" />
+    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
   </svg>
 );
 const PauseIcon: React.FC<{ className?: string }> = ({ className }) => (
@@ -120,7 +120,6 @@ const Login: React.FC = () => {
     ctx.clearRect(0, 0, width, height);
     ctx.save();
 
-    // --- THIS IS THE NEW DRAWING LOGIC ---
     const centerX = width / 1.75;
     const centerY = height * 1.75; // Center the arc's origin well below the screen
     const radius = height * 1.55;    // Use a large radius based on screen height
@@ -257,10 +256,7 @@ const Login: React.FC = () => {
             <button type="submit" disabled={loading} className="bg-brand-green text-black font-semibold rounded-md py-3 transition duration-300 ease-in-out hover:bg-brand-green-darker disabled:opacity-50">{loading ? <Spinner /> : isLogin ? 'Log In' : 'Sign Up'}</button>
           </form>
           {error && <p className="mt-4 text-red-400 text-center text-sm">{error}</p>}
-          <div className="mt-6 flex justify-between items-center">
-            <button onClick={toggleMusic} className="bg-brand-green text-black p-2 rounded-full hover:bg-brand-green-darker transition">
-              {isPlaying ? <PauseIcon className="w-6 h-6" /> : <MusicIcon className="w-6 h-6" />}
-            </button>
+          <div className="mt-6 text-center">
             <button onClick={() => { setIsLogin(!isLogin); setError(null); }} className="text-sm text-text-tertiary-light dark:text-text-tertiary hover:text-text-main-light dark:hover:text-text-main">
               {isLogin ? "Don't have an account? Sign Up" : 'Already have an account? Log In'}
             </button>
@@ -272,10 +268,10 @@ const Login: React.FC = () => {
       <div className="relative z-10 w-full max-w-md lg:w-1/2 flex items-center justify-center p-8 order-first lg:order-last">
         <div className="text-center lg:text-left">
           <h1
-            className={`logo-transform text-8xl lg:text-8xl font-black select-none
+            className={`logo-transform text-8xl lg:text-8xl select-none
               ${isPlaying
-                ? 'font-rubik-glitch text-neon-green animate-glitch'
-                : 'font-raleway text-brand-green drop-shadow-[0_0_20px_rgba(0,255,150,0.3)]'
+                ? 'font-rubik-glitch text-neon-green animate-neon-glitch'
+                : 'font-raleway font-black text-brand-green drop-shadow-[0_0_20px_rgba(0,255,150,0.3)]'
               }`}
           >
             litelelo.
@@ -286,10 +282,27 @@ const Login: React.FC = () => {
         </div>
       </div>
 
-      {/* Theme Toggle */}
-      <button onClick={toggleTheme} title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`} className="fixed bottom-6 right-6 w-12 h-12 rounded-full bg-secondary-light dark:bg-secondary border border-tertiary-light dark:border-tertiary shadow-lg flex items-center justify-center text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors">
-        {theme === 'light' ? <MoonIcon className="w-6 h-6" /> : <SunIcon className="w-6 h-6" />}
-      </button>
+      {/* Action Buttons */}
+      <div className="fixed bottom-6 right-6 flex items-center gap-4">
+        <button 
+          onClick={toggleMusic} 
+          title={isPlaying ? 'Pause Music' : 'Play Music'} 
+          className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 ${
+            isPlaying 
+              ? 'bg-brand-green/20 border border-brand-green/30 text-brand-green' 
+              : 'bg-secondary-light dark:bg-secondary border border-tertiary-light dark:border-tertiary text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary'
+          }`}
+        >
+            {isPlaying ? <PauseIcon className="w-6 h-6" /> : <MusicIcon className="w-6 h-6" />}
+        </button>
+        <button 
+          onClick={toggleTheme} 
+          title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`} 
+          className="w-12 h-12 rounded-full bg-secondary-light dark:bg-secondary border border-tertiary-light dark:border-tertiary shadow-lg flex items-center justify-center text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors"
+        >
+          {theme === 'light' ? <MoonIcon className="w-6 h-6" /> : <SunIcon className="w-6 h-6" />}
+        </button>
+      </div>
     </div>
   );
 };
