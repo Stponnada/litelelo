@@ -384,11 +384,12 @@ const ProfilePage: React.FC = () => {
                                     <>
                                         {profile.bio && <hr className="border-tertiary-light dark:border-tertiary" />}
                                         <div>
+                                            {/*<UserGroupIcon className="w-5 h-5 text-brand-green flex-shrink-0" />*/}
                                             <h3 className="text-lg font-bold text-text-main-light dark:text-white mb-3">
-                                                Roommates
+                                                Roomies with:
                                             </h3>
                                             <div className="flex items-center gap-2 flex-wrap">
-                                                <UserGroupIcon className="w-5 h-5 text-brand-green flex-shrink-0" />
+                                                
                                                 <div className="text-text-secondary-light dark:text-text-secondary">
                                                     {profile.roommates.map((roomie, index) => (
                                                         <React.Fragment key={roomie.user_id}>

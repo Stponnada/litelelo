@@ -26,7 +26,7 @@ const FloatingFooter: React.FC<FloatingFooterProps> = ({ onOpenAboutModal }) => 
     return (
         <div 
             ref={menuRef}
-            className="fixed bottom-2 md:bottom-1 left-4 md:left-auto md:right-1 z-40"
+            className="hidden md:block fixed bottom-2 md:bottom-1 left-4 md:left-auto md:right-1 z-40"
         >
             {/* The pop-up menu */}
             <div className={`
@@ -34,7 +34,6 @@ const FloatingFooter: React.FC<FloatingFooterProps> = ({ onOpenAboutModal }) => 
                 rounded-xl shadow-2xl border border-tertiary-light dark:border-tertiary 
                 transition-all duration-300 ease-in-out
                 ${isMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}
-                // --- CHANGE IS HERE ---
                 left-0 md:left-auto md:right-0 
             `}>
                 <div className="p-2">

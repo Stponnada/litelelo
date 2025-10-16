@@ -5,21 +5,21 @@ import { useAuth } from '../hooks/useAuth';
 import { usePosts } from '../hooks/usePosts';
 import PostComponent from '../components/Post';
 import CreatePost from '../components/CreatePost';
-import { Profile } from '../types';
+import { Profile, Post as PostType } from '../types';
 import Spinner from '../components/Spinner';
-// --- 1. IMPORT LIGHTBOX ---
 import LightBox from '../components/lightbox';
+// --- 1. Import PencilIcon for the new button ---
+import { XCircleIcon, PencilIcon } from '../components/icons';
 
 export const HomePage: React.FC = () => {
-    // The usePosts hook will now use the new RPC function internally
     const { posts, loading: postsLoading, error: postsError, addPostToContext } = usePosts();
     const { user } = useAuth();
     const [profile, setProfile] = useState<Profile | null>(null);
     const [profileLoading, setProfileLoading] = useState(true);
     const [isVisible, setIsVisible] = useState(false);
-
-    // --- 2. ADD LIGHTBOX STATE ---
     const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+    
+    const [isCreatePostModalOpen, setCreatePostModalOpen] = useState(false);
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -33,10 +33,14 @@ export const HomePage: React.FC = () => {
         fetchProfile();
     }, [user]);
 
-    // Fade-in animation effect
     useEffect(() => {
         setIsVisible(true);
     }, []);
+
+    const handlePostCreatedInModal = (post: PostType) => {
+        addPostToContext(post);
+        setCreatePostModalOpen(false);
+    };
 
     if (postsLoading || profileLoading) {
         return (
@@ -65,22 +69,35 @@ export const HomePage: React.FC = () => {
 
     return (
         <div className="max-w-[52rem] mx-auto relative">
-            {/* --- 3. RENDER LIGHTBOX COMPONENT --- */}
             {lightboxUrl && <LightBox imageUrl={lightboxUrl} onClose={() => setLightboxUrl(null)} />}
 
-            {/* Decorative background elements */}
+            {isCreatePostModalOpen && profile && (
+                <div 
+                    className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-start justify-center p-4 pt-16 md:items-center md:pt-4"
+                    onClick={() => setCreatePostModalOpen(false)}
+                >
+                    <div 
+                        className="w-full max-w-2xl relative"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button
+                            onClick={() => setCreatePostModalOpen(false)}
+                            className="absolute -top-10 -right-2 text-white/80 hover:text-white"
+                        >
+                            <XCircleIcon className="w-8 h-8"/>
+                        </button>
+                        <CreatePost onPostCreated={handlePostCreatedInModal} profile={profile} />
+                    </div>
+                </div>
+            )}
+
             <div className="fixed top-20 right-10 w-72 h-72 bg-brand-green/5 rounded-full blur-3xl pointer-events-none -z-10"></div>
             <div className="fixed bottom-20 left-10 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl pointer-events-none -z-10"></div>
 
-            {/* Welcome Header with animation */}
-            <div className={`mb-8 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}>
+            <div className={`mb-8 transition-all duration-700 hidden md:block ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}>
                 <div className="relative bg-gradient-to-br from-brand-green/10 via-secondary-light to-secondary-light dark:from-brand-green/5 dark:via-secondary dark:to-secondary rounded-2xl p-8 shadow-lg border border-tertiary-light dark:border-tertiary overflow-hidden">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-brand-green/10 rounded-full blur-2xl"></div>
                     <div className="relative">
-                        {/*<div className="flex items-center space-x-3 mb-2">
-                               <div className="w-2 h-2 bg-brand-green rounded-full animate-pulse"></div> 
-                            <span className="text-sm font-semibold text-brand-green uppercase tracking-wider">Life is Unfair</span>
-                        </div>*/}
                         <h1 className="text-3xl md:text-4xl font-bold text-text-main-light dark:text-text-main">
                             Welcome back{profile?.full_name ? `, ${profile.full_name.split(' ')[0]}` : ''}! 🔥 
                         </h1>
@@ -91,9 +108,9 @@ export const HomePage: React.FC = () => {
                 </div>
             </div>
 
-            {/* Create Post Section */}
+            {/* --- 2. Create Post Section - Now ONLY for desktop --- */}
             {profile && (
-                <div className={`mb-8 transition-all duration-700 delay-100 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}>
+                <div className={`mb-8 hidden md:block transition-all duration-700 delay-100 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}>
                     <CreatePost onPostCreated={addPostToContext} profile={profile} />
                 </div>
             )}
@@ -107,7 +124,6 @@ export const HomePage: React.FC = () => {
                             className={`transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
                             style={{ transitionDelay: `${200 + index * 50}ms` }}
                         >
-                            {/* --- 4. PASS THE HANDLER TO THE COMPONENT --- */}
                             <PostComponent post={post} onImageClick={setLightboxUrl} />
                         </div>
                     ))}
@@ -115,27 +131,21 @@ export const HomePage: React.FC = () => {
             ) : (
                 <div className={`transition-all duration-700 delay-200 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
                     <div className="relative bg-gradient-to-br from-secondary-light to-tertiary-light dark:from-secondary dark:to-tertiary rounded-2xl p-12 text-center border-2 border-dashed border-tertiary-light dark:border-tertiary overflow-hidden">
-                        {/* Animated background circles */}
                         <div className="absolute top-0 left-1/4 w-32 h-32 bg-brand-green/5 rounded-full blur-2xl animate-pulse"></div>
                         <div className="absolute bottom-0 right-1/4 w-40 h-40 bg-blue-500/5 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }}></div>
                         
                         <div className="relative">
-                            {/* Icon */}
                             <div className="w-24 h-24 bg-gradient-to-br from-brand-green/20 to-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce">
                                 <svg className="w-12 h-12 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
                                 </svg>
                             </div>
-
-                            {/* Content */}
                             <h3 className="text-2xl md:text-3xl font-bold text-text-main-light dark:text-text-main mb-3">
                                 Welcome to <span className="text-brand-green">litelelo</span>! 🎉
                             </h3>
                             <p className="text-lg text-text-secondary-light dark:text-text-secondary max-w-md mx-auto mb-6">
                                 It's quiet in here. Be the first to share something amazing with the community!
                             </p>
-
-                            {/* Call to action */}
                             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
                                 <div className="flex items-center space-x-2 text-sm text-text-tertiary-light dark:text-text-tertiary">
                                     <div className="w-8 h-8 bg-brand-green/10 rounded-full flex items-center justify-center">
@@ -167,19 +177,14 @@ export const HomePage: React.FC = () => {
                 </div>
             )}
 
-            {/* Floating scroll indicator for long feeds */}
-            {posts.length > 3 && (
-                <div className="fixed bottom-5 right-[18rem] opacity-90 hover:opacity-100 transition-opacity duration-300">
-                    <button 
-                        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                        className="w-12 h-12 bg-brand-green rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform duration-300"
-                    >
-                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                        </svg>
-                    </button>
-                </div>
-            )}
+            {/* --- 3. Floating Action Button for Mobile --- */}
+            <button
+                onClick={() => setCreatePostModalOpen(true)}
+                className="md:hidden fixed bottom-20 right-4 bg-brand-green text-black w-14 h-14 rounded-full flex items-center justify-center shadow-lg z-40 hover:scale-105 active:scale-95 transition-transform"
+                aria-label="Create Post"
+            >
+                <PencilIcon className="w-7 h-7" />
+            </button>
         </div>
     );
 };

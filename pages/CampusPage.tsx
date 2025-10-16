@@ -37,19 +37,19 @@ const CampusPlacesIcon: React.FC<{ className?: string }> = ({ className }) => (
 
 // Enhanced navigation card with gradient border effect
 const FeatureCard: React.FC<{ to: string; icon: React.ReactNode; title: string; description: string; gradient: string }> = ({ to, icon, title, description, gradient }) => (
-    <Link to={to} className="group relative block bg-secondary-light dark:bg-secondary rounded-xl p-6 shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden">
+    <Link to={to} className="group relative block bg-secondary-light dark:bg-secondary rounded-xl p-4 md:p-6 shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden">
         <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-500`}></div>
         <div className="relative">
-            <div className="flex items-start space-x-4">
-                <div className={`bg-gradient-to-br ${gradient} p-3 rounded-xl shadow-md group-hover:scale-110 transition-transform duration-300`}>
+            <div className="flex flex-col items-center text-center md:flex-row md:items-start md:space-x-4 md:text-left">
+                <div className={`bg-gradient-to-br ${gradient} p-3 rounded-xl shadow-md group-hover:scale-110 transition-transform duration-300 mb-2 md:mb-0`}>
                     {icon}
                 </div>
                 <div className="flex-1">
-                    <h3 className="text-xl font-bold text-text-main-light dark:text-text-main group-hover:text-brand-green transition-colors duration-300">{title}</h3>
-                    <p className="mt-2 text-sm text-text-secondary-light dark:text-text-secondary leading-relaxed">{description}</p>
+                    <h3 className="text-sm md:text-xl font-bold text-text-main-light dark:text-text-main group-hover:text-brand-green transition-colors duration-300">{title}</h3>
+                    <p className="mt-2 text-sm text-text-secondary-light dark:text-text-secondary leading-relaxed hidden md:block">{description}</p>
                 </div>
             </div>
-            <div className="mt-4 flex items-center text-brand-green font-semibold text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <div className="mt-4 hidden md:flex items-center text-brand-green font-semibold text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                 <span>Explore</span>
                 <svg className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -64,7 +64,7 @@ const MiniPlaceCard: React.FC<{ place: CampusPlace }> = ({ place }) => (
     <Link to={`/campus/reviews/${place.id}`} className="group block bg-secondary-light dark:bg-secondary rounded-xl p-4 shadow-md hover:shadow-xl transition-all duration-300 border border-tertiary-light dark:border-tertiary hover:border-brand-green/50">
         <div className="flex items-center space-x-4">
             <div className="relative overflow-hidden rounded-lg">
-                <img src={place.image_url || 'https://placehold.co/100x100'} alt={place.name} className="w-20 h-20 object-cover group-hover:scale-110 transition-transform duration-300" />
+                <img src={place.primary_image_url || 'https://placehold.co/100x100'} alt={place.name} className="w-20 h-20 object-cover group-hover:scale-110 transition-transform duration-300" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </div>
             <div className="flex-1 min-w-0">
@@ -168,7 +168,7 @@ const CampusPage: React.FC = () => {
     return (
         <div className="max-w-7xl mx-auto">
             {/* Enhanced Hero Section with gradient background */}
-            <div className="relative bg-gradient-to-br from-brand-green/10 via-secondary-light to-secondary-light dark:from-brand-green/5 dark:via-secondary dark:to-secondary p-12 rounded-2xl shadow-2xl border border-tertiary-light dark:border-tertiary mb-12 overflow-hidden">
+            <div className="relative bg-gradient-to-br from-brand-green/10 via-secondary-light to-secondary-light dark:from-brand-green/5 dark:via-secondary dark:to-secondary p-8 md:p-12 rounded-2xl shadow-2xl border border-tertiary-light dark:border-tertiary mb-12 overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-brand-green/5 rounded-full blur-3xl"></div>
                 <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl"></div>
                 <div className="relative text-center">
@@ -178,31 +178,31 @@ const CampusPage: React.FC = () => {
                     <h1 className="text-4xl md:text-6xl font-bold text-text-main-light dark:text-text-main mb-4">
                        Today at BITS <span className="text-brand-green">{displayedText}</span><span className={`text-brand-green ${isTyping ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}>|</span>
                     </h1>
-                    <p className="text-lg md:text-xl text-text-secondary-light dark:text-text-secondary max-w-2xl mx-auto">
+                    <p className="text-lg md:text-xl text-text-secondary-light dark:text-text-secondary max-w-2xl mx-auto hidden md:block">
                         Your one-stop destination for campus services, reviews, and community connections
                     </p>
                 </div>
             </div>
 
             {/* Enhanced Main Navigation Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+            <div className="grid grid-cols-3 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-12">
                 <FeatureCard 
                     to="/campus/reviews" 
-                    icon={<CampusPlacesIcon className="w-8 h-8 text-white" />} 
+                    icon={<CampusPlacesIcon className="w-6 h-6 md:w-8 md:h-8 text-white" />} 
                     title="Campus Places" 
                     description="Discover and review the best eateries, shops, and hangout spots on campus"
                     gradient="from-blue-500 to-purple-600"
                 />
                 <FeatureCard 
                     to="/campus/lost-and-found" 
-                    icon={<ArchiveBoxIcon className="w-8 h-8 text-white" />} 
+                    icon={<ArchiveBoxIcon className="w-6 h-6 md:w-8 md:h-8 text-white" />} 
                     title="Lost & Found" 
                     description="Report lost items or help reunite found items with their owners"
                     gradient="from-orange-500 to-red-600"
                 />
                 <FeatureCard 
                     to="/campus/marketplace" 
-                    icon={<ShoppingCartIcon className="w-8 h-8 text-white" />} 
+                    icon={<ShoppingCartIcon className="w-6 h-6 md:w-8 md:h-8 text-white" />} 
                     title="Marketplace" 
                     description="Buy, sell, and trade items with fellow students safely and easily"
                     gradient="from-green-500 to-teal-600"

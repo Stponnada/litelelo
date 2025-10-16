@@ -8,7 +8,7 @@ import Header from './Header';
 import LeftSidebar from './LeftSidebar';
 import BottomNavBar from './BottomNavBar';
 import AboutModal from './AboutModal';
-import FloatingFooter from './FloatingFooter'; // <-- 1. Import the new component
+import FloatingFooter from './FloatingFooter';
 
 const Layout = () => {
   const { user } = useAuth();
@@ -54,8 +54,7 @@ const Layout = () => {
         </div>
       </main>
 
-      <BottomNavBar />
-      {/* --- 2. Render the new footer here --- */}
+      <BottomNavBar onOpenAboutModal={() => setIsAboutModalOpen(true)} />
       <FloatingFooter onOpenAboutModal={() => setIsAboutModalOpen(true)} />
     </div>
   );

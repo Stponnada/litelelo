@@ -7,6 +7,7 @@ import { useAuth } from '../hooks/useAuth';
 import { DirectoryProfile, Profile } from '../types';
 import Spinner from '../components/Spinner';
 import UserCard from '../components/UserCard';
+import { GlobeIcon } from '@/components/icons';
 
 type TabType = 'users' | 'communities';
 
@@ -122,16 +123,13 @@ const DirectoryPage: React.FC = () => {
     navigate('/chat', { state: { recipient: profile } });
   };
   
-  // Apply filters
   const filteredProfiles = useMemo(() => {
     let filtered = [...allProfiles];
     
-    // Filter by tab type
     filtered = filtered.filter(p => 
       activeTab === 'users' ? p.type === 'user' : p.type === 'community'
     );
         
-    // Apply search query
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(p => 
@@ -179,21 +177,18 @@ const DirectoryPage: React.FC = () => {
   return (
     <div className="w-full min-h-screen">
       <div className="max-w-6xl mx-auto px-4 py-6">
-        {/* Compact Header with Tabs and Stats in One Row */}
         <div className="mb-6 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-          {/* Title */}
           <div>
-            <h1 className="text-5xl md:text-6xl font-bold text-text-main-light dark:text-text-main mb-1">
-              Directory
+            <h1 className="text-4xl md:text-5xl font-bold text-text-main-light dark:text-text-main mb-1 flex items-center gap-3">
+              <GlobeIcon className="w-10 h-10 md:w-12 md:h-12 text-brand-green" />
+              <span>Directory</span>
             </h1>
             <p className="text-text-secondary-light dark:text-text-secondary text-sm">
               Discover people and communities
             </p>
           </div>
 
-          {/* Tabs and Stats */}
           <div className="flex flex-wrap items-center gap-3">
-            {/* Follow Stats */}
             {currentUser && (
               <div className="flex gap-2 bg-secondary-light dark:bg-secondary rounded-xl p-2 border border-tertiary-light/50 dark:border-tertiary/50">
                 <div className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-green/10 rounded-lg">
@@ -217,7 +212,6 @@ const DirectoryPage: React.FC = () => {
               </div>
             )}
 
-            {/* Tabs */}
             <div className="inline-flex bg-secondary-light dark:bg-secondary rounded-xl p-1.5 border border-tertiary-light/50 dark:border-tertiary/50">
               <button
                 onClick={() => setActiveTab('users')}
@@ -267,7 +261,6 @@ const DirectoryPage: React.FC = () => {
           </div>
         </div>
         
-        {/* Search Bar */}
         <div className="mb-6">
           <div className="relative">
             <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-tertiary-light dark:text-text-tertiary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -293,7 +286,6 @@ const DirectoryPage: React.FC = () => {
           </div>
         </div>
         
-        {/* Results Section */}
         <div className="relative">
           {filteredProfiles.length > 0 ? (
             <div className="grid gap-4">
