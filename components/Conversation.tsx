@@ -4,9 +4,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
-import { ConversationSummary, Message, MessageReaction, Profile } from '../types';
+import { ConversationSummary, Message, MessageReaction, Profile, PinnedMessage } from '../types';
 import Spinner from './Spinner';
-import { SendIcon, UserGroupIcon, PlusIcon, ImageIcon, XCircleIcon, PencilIcon, TrashIcon, CheckIcon, XMarkIcon, ReplyIcon, FaceSmileIcon } from './icons';
+import { SendIcon, UserGroupIcon, PlusIcon, ImageIcon, XCircleIcon, PencilIcon, TrashIcon, CheckIcon, XMarkIcon, ReplyIcon, FaceSmileIcon, PinIcon } from './icons';
 import { formatMessageTime } from '../utils/timeUtils';
 
 // Re-add GifIcon for the input menu
@@ -26,6 +26,32 @@ const ErrorIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) 
     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
   </svg>
 );
+
+// --- NEW: Typing Indicator Component ---
+const TypingIndicator: React.FC<{ users: { fullName: string | null }[] }> = ({ users }) => {
+    if (users.length === 0) return null;
+
+    let text;
+    if (users.length === 1) {
+        text = `${users[0].fullName || 'Someone'} is typing...`;
+    } else if (users.length === 2) {
+        text = `${users[0].fullName || 'Someone'} and ${users[1].fullName || 'Someone'} are typing...`;
+    } else {
+        text = 'Several people are typing...';
+    }
+
+    return (
+        <div className="flex items-center space-x-2 px-4 py-2 text-sm text-text-tertiary-light dark:text-text-tertiary">
+            <span>{text}</span>
+            <div className="flex space-x-1">
+                <span className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: '0s' }}></span>
+                <span className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
+                <span className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></span>
+            </div>
+        </div>
+    );
+};
+
 
 // Fixed emoji encoding
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
@@ -67,6 +93,15 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
     const [editingMessage, setEditingMessage] = useState<Message | null>(null);
     const [editingContent, setEditingContent] = useState('');
     const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+
+    const [pinnedMessage, setPinnedMessage] = useState<PinnedMessage | null>(null);
+    const [pinningOptions, setPinningOptions] = useState<{ messageId: number | null; x: number; y: number }>({ messageId: null, x: 0, y: 0 });
+    const messageRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
+
+    // --- NEW: State for typing indicators ---
+    const [typingUsers, setTypingUsers] = useState<Array<{ userId: string; fullName: string | null }>>([]);
+    const typingTimeoutRefs = useRef<Map<string, NodeJS.Timeout>>(new Map());
+    const throttleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     
     const otherParticipant = conversation.type === 'dm'
       ? conversation.participants.find(p => p.user_id !== user?.id)
@@ -76,6 +111,13 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
         if (!user || currentConversationId.startsWith('placeholder_')) {
             setMessages([]); setLoading(false); return;
         }
+
+        const fetchPinnedMessage = async () => {
+          const { data, error } = await supabase.rpc('get_pinned_message_for_conversation', { p_conversation_id: currentConversationId });
+          if (error) console.error("Error fetching pinned message:", error);
+          else setPinnedMessage(data);
+        };
+
         const fetchMessages = async () => {
             setLoading(true);
             const { data, error } = await supabase.from('messages').select('*, profiles:sender_id (*)').eq('conversation_id', currentConversationId).order('created_at', { ascending: true });
@@ -102,6 +144,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
             setLoading(false);
         };
         fetchMessages();
+        fetchPinnedMessage();
     }, [currentConversationId, user]);
     
     useEffect(() => {
@@ -141,9 +184,40 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
         const channel = supabase.channel(`conversation-realtime:${currentConversationId}`)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `conversation_id=eq.${currentConversationId}` }, handleDbChange)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'message_reactions' }, handleDbChange)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'pinned_messages', filter: `conversation_id=eq.${currentConversationId}` }, async () => {
+                const { data, error } = await supabase.rpc('get_pinned_message_for_conversation', { p_conversation_id: currentConversationId });
+                if (error) console.error("Error refetching pinned message:", error);
+                else setPinnedMessage(data);
+            })
+            // --- NEW: Listen for typing indicator broadcasts ---
+            .on('broadcast', { event: 'typing' }, (payload) => {
+                const { user: typingUser } = payload.payload;
+                if (typingUser.userId === user.id) return;
+
+                setTypingUsers(prev => {
+                    const userExists = prev.some(u => u.userId === typingUser.userId);
+                    if (userExists) return prev;
+                    return [...prev, typingUser];
+                });
+
+                if (typingTimeoutRefs.current.has(typingUser.userId)) {
+                    clearTimeout(typingTimeoutRefs.current.get(typingUser.userId));
+                }
+
+                const timeoutId = setTimeout(() => {
+                    setTypingUsers(prev => prev.filter(u => u.userId !== typingUser.userId));
+                    typingTimeoutRefs.current.delete(typingUser.userId);
+                }, 3000);
+
+                typingTimeoutRefs.current.set(typingUser.userId, timeoutId);
+            })
             .subscribe();
 
-        return () => { supabase.removeChannel(channel); };
+        return () => { 
+            supabase.removeChannel(channel); 
+            // --- NEW: Clear all timeouts on unmount ---
+            typingTimeoutRefs.current.forEach(timeoutId => clearTimeout(timeoutId));
+        };
     }, [currentConversationId, user]);
     
     useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
@@ -314,6 +388,64 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
         setEmojiPickerMessageId(null);
     };
 
+    const handlePinMessage = async (messageId: number, durationHours: number | null) => {
+      if (!user) return;
+  
+      let expires_at = null;
+      if (durationHours) {
+        expires_at = new Date(Date.now() + durationHours * 60 * 60 * 1000).toISOString();
+      }
+  
+      const { error } = await supabase.from('pinned_messages').upsert({
+        conversation_id: currentConversationId,
+        message_id: messageId,
+        pinned_by_user_id: user.id,
+        expires_at: expires_at,
+      }, { onConflict: 'conversation_id' });
+  
+      if (error) {
+        console.error("Failed to pin message:", error);
+      } else {
+        const { data: newPinnedMessage, error: rpcError } = await supabase.rpc('get_pinned_message_for_conversation', { p_conversation_id: currentConversationId });
+        if (rpcError) {
+          console.error("Error fetching newly pinned message:", rpcError);
+        } else {
+          setPinnedMessage(newPinnedMessage);
+        }
+      }
+      setPinningOptions({ messageId: null, x: 0, y: 0 });
+    };
+  
+    const handleUnpinMessage = async () => {
+      if (!pinnedMessage) return;
+      const { error } = await supabase.from('pinned_messages').delete().eq('id', pinnedMessage.id);
+      if (error) {
+        console.error("Failed to unpin message:", error);
+      } else {
+        setPinnedMessage(null);
+      }
+    };
+
+    const handleTyping = () => {
+        if (!user || !profile || !throttleTimeoutRef.current) {
+            const channel = supabase.channel(`conversation-realtime:${currentConversationId}`);
+            channel.send({
+                type: 'broadcast',
+                event: 'typing',
+                payload: {
+                    user: {
+                        userId: user.id,
+                        fullName: profile?.full_name || 'Someone'
+                    }
+                },
+            });
+
+            throttleTimeoutRef.current = setTimeout(() => {
+                throttleTimeoutRef.current = null;
+            }, 1500);
+        }
+    };
+
     const groupedReactions = (reactions: MessageReaction[]) => {
         return reactions.reduce((acc, reaction) => {
             acc[reaction.emoji] = (acc[reaction.emoji] || 0) + 1;
@@ -372,6 +504,24 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
             {isGifPickerOpen && <GifPickerModal onClose={() => setGifPickerOpen(false)} onGifSelect={handleGifSelect} />}
             {lightboxUrl && <LightBox imageUrl={lightboxUrl} onClose={() => setLightboxUrl(null)} />}
 
+            {pinningOptions.messageId !== null && (
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setPinningOptions({ messageId: null, x: 0, y: 0 })}
+              >
+                <div
+                  className="absolute bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden text-sm animate-fadeIn"
+                  style={{ top: pinningOptions.y, left: pinningOptions.x }}
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div className="p-2 font-semibold border-b border-gray-200 dark:border-gray-700">Pin message for...</div>
+                  <button onClick={() => handlePinMessage(pinningOptions.messageId!, 24)} className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">24 hours</button>
+                  <button onClick={() => handlePinMessage(pinningOptions.messageId!, 24 * 7)} className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">7 days</button>
+                  <button onClick={() => handlePinMessage(pinningOptions.messageId!, null)} className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">Forever</button>
+                </div>
+              </div>
+            )}
+
             {/* Global Emoji Picker Modal */}
             {emojiPickerMessageId !== null && (
                 <div 
@@ -428,6 +578,26 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                 {renderHeader()}
             </div>
 
+            {pinnedMessage && (
+              <div className="px-4 md:px-6 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-between gap-4 animate-fadeIn">
+                <div 
+                    className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer"
+                    onClick={() => messageRefs.current.get(pinnedMessage.message_id)?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                >
+                    <PinIcon className="w-4 h-4 text-brand-green flex-shrink-0" />
+                    <div className="min-w-0">
+                        <p className="text-xs font-semibold text-brand-green">Pinned Message</p>
+                        <p className="text-sm truncate text-text-secondary-light dark:text-text-secondary">
+                            {pinnedMessage.message.content || 'Media'}
+                        </p>
+                    </div>
+                </div>
+                <button onClick={handleUnpinMessage} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full flex-shrink-0">
+                    <XCircleIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary" />
+                </button>
+              </div>
+            )}
+
             {/* Messages Area - Constrained width with proper overflow */}
             <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 md:px-6 py-4 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950">
                 <div className="max-w-full space-y-3">
@@ -457,7 +627,11 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                             const hasFailed = isOwn && msg.status === 'failed';
                             
                             return (
-                                <div key={msg.id} className={`group flex items-end gap-2 w-full ${isOwn ? 'justify-end' : 'justify-start'} ${isSending ? 'opacity-60' : ''}`}>
+                                <div 
+                                    key={msg.id} 
+                                    ref={el => messageRefs.current.set(msg.id, el)}
+                                    className={`group flex items-end gap-2 w-full ${isOwn ? 'justify-end' : 'justify-start'} ${isSending ? 'opacity-60' : ''}`}
+                                >
                                     {!isOwn && msg.profiles && ( 
                                         <img 
                                             src={msg.profiles.avatar_url || `https://ui-avatars.com/api/?name=${msg.profiles.username}`} 
@@ -615,6 +789,15 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                                                         <PencilIcon className="w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" />
                                                     </button>
                                                 )}
+                                                <button
+                                                    className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                                                    onClick={(e) => {
+                                                        const rect = e.currentTarget.getBoundingClientRect();
+                                                        setPinningOptions({ messageId: msg.id, x: rect.left - 150, y: rect.top - 120 });
+                                                    }}
+                                                >
+                                                    <PinIcon className="w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" />
+                                                </button>
                                                 {isOwn && (
                                                     <button 
                                                         className="p-1.5 rounded-full text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" 
@@ -636,6 +819,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                         })
                     )}
                     <div ref={messagesEndRef} />
+                    <TypingIndicator users={typingUsers} />
                 </div>
             </div>
             
@@ -711,7 +895,10 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                     <input
                         type="text"
                         value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
+                        onChange={(e) => {
+                            setNewMessage(e.target.value);
+                            handleTyping();
+                        }}
                         placeholder="Type a message..."
                         disabled={!!imagePreview}
                         className="flex-1 py-3 px-4 bg-gray-100 dark:bg-gray-800 border-2 border-transparent focus:border-brand-green rounded-full text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"

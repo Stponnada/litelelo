@@ -31,6 +31,9 @@ import CommunitiesListPage from './pages/CommunitiesListPage';
 import CommunityPage from './pages/CommunityPage';
 import CommunityMembersPage from './pages/CommunityMembersPage';
 import BookmarksPage from './pages/BookmarksPage';
+import HelpCenterPage from './pages/HelpCenterPage';
+import TermsPage from './pages/TermsPage'; 
+import PrivacyPage from './pages/PrivacyPage';
 
 const AppRoutes = () => {
   const { user, profile, isLoading } = useAuth();
@@ -95,6 +98,9 @@ const AppRoutes = () => {
         <Route path="/chat/:username" element={<ChatPage />} />
         <Route path="/chat/group/:conversationId" element={<GroupInfoPage />} />
         <Route path="/search" element={<SearchPage />} />
+        <Route path="/help" element={<HelpCenterPage />} />
+        <Route path="/terms" element={<TermsPage />} /> 
+        <Route path="/privacy" element={<PrivacyPage />} />
       </Route>
 
       <Route path="/login" element={<Navigate to="/" replace />} />

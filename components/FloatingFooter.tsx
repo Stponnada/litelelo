@@ -26,7 +26,7 @@ const FloatingFooter: React.FC<FloatingFooterProps> = ({ onOpenAboutModal }) => 
     return (
         <div 
             ref={menuRef}
-            className="fixed bottom-20 md:bottom-4 left-4 md:left-auto md:right-4 z-40"
+            className="fixed bottom-2 md:bottom-1 left-4 md:left-auto md:right-1 z-40"
         >
             {/* The pop-up menu */}
             <div className={`

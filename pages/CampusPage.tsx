@@ -7,7 +7,33 @@ import { supabase } from '../services/supabase';
 import { CampusPlace, MarketplaceListing, LostAndFoundItem } from '../types';
 import ListingCard from '../components/ListingCard';
 import Spinner from '../components/Spinner';
-import { BuildingStorefrontIcon, ArchiveBoxIcon, ShoppingCartIcon, StarIcon } from '../components/icons';
+import { ArchiveBoxIcon, ShoppingCartIcon, StarIcon } from '../components/icons';
+
+// New custom icon to match the image
+const CampusPlacesIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg 
+        xmlns="http://www.w3.org/2000/svg" 
+        className={className} 
+        fill="none" 
+        viewBox="0 0 24 24" 
+        stroke="currentColor" 
+        strokeWidth={2}
+    >
+        <path 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            // This path creates the folder shape
+            d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" 
+        />
+        <path 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            // This path creates the inner "door" shape
+            d="M10 12h4v5h-4v-5z" 
+        />
+    </svg>
+);
+
 
 // Enhanced navigation card with gradient border effect
 const FeatureCard: React.FC<{ to: string; icon: React.ReactNode; title: string; description: string; gradient: string }> = ({ to, icon, title, description, gradient }) => (
@@ -162,7 +188,7 @@ const CampusPage: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
                 <FeatureCard 
                     to="/campus/reviews" 
-                    icon={<BuildingStorefrontIcon className="w-8 h-8 text-white" />} 
+                    icon={<CampusPlacesIcon className="w-8 h-8 text-white" />} 
                     title="Campus Places" 
                     description="Discover and review the best eateries, shops, and hangout spots on campus"
                     gradient="from-blue-500 to-purple-600"

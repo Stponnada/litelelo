@@ -123,14 +123,15 @@ users: UserSearchResult[];
 posts: PostSearchResult[];
 }
 export interface CampusPlace {
-id: string;
-name: string;
-category: string;
-location: string | null;
-image_url: string | null;
-campus: string;
-avg_rating: number;
-review_count: number;
+  id: string;
+  name: string;
+  category: string;
+  location: string | null;
+  // image_url: string | null; <-- REMOVE THIS LINE
+  primary_image_url: string | null; // <-- ADD THIS LINE
+  campus: string;
+  avg_rating: number;
+  review_count: number;
 }
 export interface Review {
 id: string;
@@ -252,4 +253,15 @@ export interface RecommendedContent {
     follow_suggestions: FollowSuggestion[];
     trending_posts: TrendingPost[];
     trending_polls: TrendingPoll[];
+}
+
+export interface PinnedMessage {
+  id: number;
+  conversation_id: string;
+  message_id: number;
+  pinned_by_user_id: string;
+  created_at: string;
+  expires_at: string | null;
+  message: Message;
+  pinner: Profile;
 }

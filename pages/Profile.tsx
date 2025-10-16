@@ -25,10 +25,10 @@ interface CommunityLink {
 const TabButton: React.FC<{ label: string, isActive: boolean, onClick: () => void }> = ({ label, isActive, onClick }) => (
     <button
         onClick={onClick}
-        className={`flex-1 p-4 font-bold text-center transition-colors ${
+        className={`flex-1 py-4 px-6 font-semibold text-center transition-all ${
             isActive 
-            ? 'border-b-2 border-brand-green text-text-main-light dark:text-text-main' 
-            : 'text-text-tertiary-light dark:text-text-tertiary hover:bg-tertiary-light/60 dark:hover:bg-tertiary'
+            ? 'border-b-2 border-brand-green text-brand-green' 
+            : 'text-text-tertiary-light dark:text-text-tertiary hover:text-text-main-light dark:hover:text-text-main'
         }`}
     >
         {label}
@@ -109,8 +109,6 @@ const ProfilePage: React.FC = () => {
         if (mentionsResult.error) {
             console.error("Error fetching mentions:", mentionsResult.error)
         } else {
-             // --- THIS IS THE FIX ---
-             // The data from the RPC now contains all the author details we need.
              const fetchedMentions = (mentionsResult.data as any[] || []).map(p => ({
                 ...p,
                 author: {
@@ -241,129 +239,351 @@ const ProfilePage: React.FC = () => {
             {followModalState.isOpen && profile && followModalState.listType && <FollowListModal profile={profile} listType={followModalState.listType} onClose={() => setFollowModalState({ isOpen: false, listType: null })} />}
             {lightboxUrl && <LightBox imageUrl={lightboxUrl} onClose={() => setLightboxUrl(null)} />}
 
-            <div className="w-full max-w-7xl mx-auto">
-                <div className="relative">
-                    <div className="h-48 sm:h-80 bg-tertiary-light dark:bg-tertiary">
-                        {profile.banner_url && <img src={profile.banner_url} alt="Banner" className="w-full h-full object-cover" />}
+            <div className="w-full max-w-7xl mx-auto pb-8">
+                {/* Header Section */}
+                <div className="relative mb-6">
+                    {/* Banner */}
+                    <div className="h-56 sm:h-72 bg-gradient-to-br from-tertiary-light to-tertiary-light/50 dark:from-tertiary dark:to-tertiary/50 relative overflow-hidden">
+                        {profile.banner_url && (
+                            <img 
+                                src={profile.banner_url} 
+                                alt="Banner" 
+                                className="w-full h-full object-cover"
+                            />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
                     </div>
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
-                    <div className="absolute left-4 sm:left-6 -bottom-16 sm:-bottom-20">
-                        <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-primary-light dark:border-primary bg-gray-700">
-                           {profile.avatar_url && <img src={profile.avatar_url} alt={profile.full_name || ''} className="w-full h-full rounded-full object-cover" />}
-                        </div>
-                    </div>
-                    <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 flex justify-between items-end">
-                        <div className="pt-16 sm:pt-20 pl-[calc(8rem+1rem)] sm:pl-[calc(10rem+1.5rem)] text-white">
-                            <h1 className="text-4xl sm:text-5xl font-bold drop-shadow-lg">{profile.full_name}</h1>
-                            <p className="text-gray-300 drop-shadow-lg">@{profile.username}</p>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            {isOwnProfile ? (
-                                <>
-                                    <Link to="/bookmarks" className="font-bold py-2 px-4 rounded-full border-2 border-white/80 text-white hover:bg-white/10 transition-colors flex items-center space-x-2">
-                                        <BookmarkIcon className="w-5 h-5"/>
-                                        <span className="hidden sm:inline">Bookmarks</span>
-                                    </Link>
-                                    <button onClick={() => setIsEditModalOpen(true)} className="font-bold py-2 px-4 rounded-full border-2 border-white/80 text-white hover:bg-white/10 transition-colors">Edit Profile</button>
-                                    <button onClick={handleSignOut} className="p-2 text-red-400 rounded-full hover:bg-white/10 transition-colors md:hidden"><LogoutIcon className="w-6 h-6" /></button>
-                                </>
-                            ) : (
-                                <>
-                                    <button onClick={handleMessageUser} className="font-bold py-2 px-4 rounded-full border-2 border-white/80 text-white hover:bg-white/10 transition-colors flex items-center space-x-2"><ChatIcon className="w-5 h-5" /><span>Message</span></button>
-                                    <button onClick={handleFollowToggle} disabled={isTogglingFollow} className={`font-bold py-2 px-6 rounded-full transition-colors disabled:opacity-50 min-w-[120px] ${profile.is_following ? 'bg-transparent border-2 border-white/80 text-white hover:border-red-500 hover:text-red-500' : 'bg-white text-black hover:bg-gray-200'}`}>{isTogglingFollow ? <Spinner /> : (profile.is_following ? 'Following' : 'Follow')}</button>
-                                </>
-                            )}
+
+                    {/* Profile Info Container */}
+                    <div className="px-4 sm:px-6">
+                        <div className="relative -mt-20 sm:-mt-24">
+                            {/* Avatar */}
+                            <div className="relative inline-block">
+                                <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-full border-4 border-primary-light dark:border-primary bg-gradient-to-br from-gray-600 to-gray-700 overflow-hidden shadow-xl">
+                                    {profile.avatar_url && (
+                                        <img 
+                                            src={profile.avatar_url} 
+                                            alt={profile.full_name || ''} 
+                                            className="w-full h-full object-cover"
+                                        />
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Name and Actions Row */}
+                            <div className="mt-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                                {/* Name and Username */}
+                                <div>
+                                    <h1 className="text-3xl sm:text-4xl font-bold text-text-main-light dark:text-white">
+                                        {profile.full_name}
+                                    </h1>
+                                    <p className="text-lg text-text-tertiary-light dark:text-text-tertiary mt-1">
+                                        @{profile.username}
+                                    </p>
+                                    
+                                    {/* Follow Stats */}
+                                    <div className="flex items-center gap-6 mt-4 text-sm">
+                                        <button 
+                                            onClick={() => setFollowModalState({ isOpen: true, listType: 'following' })} 
+                                            className="hover:underline transition-all"
+                                        >
+                                            <span className="font-bold text-text-main-light dark:text-white text-base">
+                                                {profile.following_count}
+                                            </span>
+                                            <span className="text-text-tertiary-light dark:text-text-tertiary ml-1">
+                                                Following
+                                            </span>
+                                        </button>
+                                        <button 
+                                            onClick={() => setFollowModalState({ isOpen: true, listType: 'followers' })} 
+                                            className="hover:underline transition-all"
+                                        >
+                                            <span className="font-bold text-text-main-light dark:text-white text-base">
+                                                {profile.follower_count}
+                                            </span>
+                                            <span className="text-text-tertiary-light dark:text-text-tertiary ml-1">
+                                                Followers
+                                            </span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                    {isOwnProfile ? (
+                                        <>
+                                            <Link 
+                                                to="/bookmarks" 
+                                                className="p-3 rounded-full bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main hover:bg-tertiary-light/80 dark:hover:bg-tertiary/80 transition-colors"
+                                                title="Bookmarks"
+                                            >
+                                                <BookmarkIcon className="w-5 h-5"/>
+                                            </Link>
+                                            <button 
+                                                onClick={() => setIsEditModalOpen(true)} 
+                                                className="font-semibold py-2.5 px-6 rounded-full bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main hover:bg-tertiary-light/80 dark:hover:bg-tertiary/80 transition-colors"
+                                            >
+                                                Edit Profile
+                                            </button>
+                                            <button 
+                                                onClick={handleSignOut} 
+                                                className="p-3 text-red-400 rounded-full hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors"
+                                                title="Sign Out"
+                                            >
+                                                <LogoutIcon className="w-5 h-5" />
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <button 
+                                                onClick={handleMessageUser} 
+                                                className="p-3 rounded-full bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main hover:bg-tertiary-light/80 dark:hover:bg-tertiary/80 transition-colors"
+                                                title="Message"
+                                            >
+                                                <ChatIcon className="w-5 h-5" />
+                                            </button>
+                                            <button 
+                                                onClick={handleFollowToggle} 
+                                                disabled={isTogglingFollow} 
+                                                className={`font-bold py-2.5 px-8 rounded-full transition-all disabled:opacity-50 min-w-[120px] ${
+                                                    profile.is_following 
+                                                    ? 'bg-transparent border-2 border-tertiary-light dark:border-tertiary text-text-main-light dark:text-text-main hover:border-red-500 hover:text-red-500 hover:bg-red-500/5' 
+                                                    : 'bg-brand-green text-black hover:bg-brand-green-darker shadow-lg shadow-brand-green/20'
+                                                }`}
+                                            >
+                                                {isTogglingFollow ? <Spinner /> : (profile.is_following ? 'Following' : 'Follow')}
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="pt-24 px-4 sm:px-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-8">
-                        <div className="lg:col-span-1 space-y-4"> 
-                            <h2 className="text-xl font-bold">About {profile.full_name?.split(' ')[0] || profile.username}</h2>
-                            
-                            {profile.roommates && profile.roommates.length > 0 && (
-                                <div className="flex items-start space-x-2">
-                                    <UserGroupIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary mt-1 flex-shrink-0" />
-                                    <div className="text-text-secondary-light dark:text-text-secondary">
-                                        <span className="font-semibold">Roomies with: </span>
-                                        {profile.roommates.map((roomie, index) => (
-                                            <React.Fragment key={roomie.user_id}>
-                                                <Link to={`/profile/${roomie.username}`} className="font-semibold text-text-main-light dark:text-text-main hover:underline hover:text-brand-green">
-                                                    {roomie.full_name || roomie.username}
-                                                </Link>
-                                                {index < profile.roommates.length - 2 && ', '}
-                                                {index === profile.roommates.length - 2 && ' and '}
-                                            </React.Fragment>
-                                        ))}
+                {/* Main Content */}
+                <div className="px-4 sm:px-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Left Sidebar - About */}
+                        <div className="lg:col-span-1">
+                            <div className="bg-secondary-light dark:bg-secondary rounded-2xl p-6 space-y-6 shadow-sm">
+                                {/* Bio */}
+                                {profile.bio && (
+                                    <div>
+                                        <h3 className="text-lg font-bold text-text-main-light dark:text-white mb-3">
+                                            Bio
+                                        </h3>
+                                        <p className="text-text-secondary-light dark:text-text-secondary whitespace-pre-wrap leading-relaxed">
+                                            {profile.bio}
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Roommates */}
+                                {profile.roommates && profile.roommates.length > 0 && (
+                                    <>
+                                        {profile.bio && <hr className="border-tertiary-light dark:border-tertiary" />}
+                                        <div>
+                                            <h3 className="text-lg font-bold text-text-main-light dark:text-white mb-3">
+                                                Roommates
+                                            </h3>
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <UserGroupIcon className="w-5 h-5 text-brand-green flex-shrink-0" />
+                                                <div className="text-text-secondary-light dark:text-text-secondary">
+                                                    {profile.roommates.map((roomie, index) => (
+                                                        <React.Fragment key={roomie.user_id}>
+                                                            <Link 
+                                                                to={`/profile/${roomie.username}`} 
+                                                                className="font-semibold text-brand-green hover:underline"
+                                                            >
+                                                                {roomie.full_name || roomie.username}
+                                                            </Link>
+                                                            {index < profile.roommates.length - 2 && ', '}
+                                                            {index === profile.roommates.length - 2 && ' and '}
+                                                        </React.Fragment>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* Details */}
+                                <hr className="border-tertiary-light dark:border-tertiary" />
+                                <div>
+                                    <h3 className="text-lg font-bold text-text-main-light dark:text-white mb-4">
+                                        Details
+                                    </h3>
+                                    <div className="space-y-3 text-sm">
+                                        <ProfileDetail label="Birthday" value={formattedBirthday} />
+                                        <ProfileDetail label="Primary Degree" value={profile.branch} />
+                                        <ProfileDetail label="B.E. Degree" value={profile.dual_degree_branch} />
+                                        <ProfileDetail label="Relationship" value={profile.relationship_status} />
+                                        <ProfileDetail label="Dorm" value={dormInfo} />
+                                        <ProfileDetail label="Dining Hall" value={profile.dining_hall} />
                                     </div>
                                 </div>
-                            )}
 
-                            <div className="flex items-center space-x-4 text-sm">
-                                <button onClick={() => setFollowModalState({ isOpen: true, listType: 'following' })} className="hover:underline"><span className="font-bold text-text-main-light dark:text-white">{profile.following_count}</span><span className="text-text-tertiary-light dark:text-text-tertiary"> Following</span></button>
-                                <button onClick={() => setFollowModalState({ isOpen: true, listType: 'followers' })} className="hover:underline"><span className="font-bold text-text-main-light dark:text-white">{profile.follower_count}</span><span className="text-text-tertiary-light dark:text-text-tertiary"> Followers</span></button>
-                            </div>
-                            {profile.bio && <p className="text-text-secondary-light dark:text-text-secondary whitespace-pre-wrap">{profile.bio}</p>}
-                            <hr className="border-tertiary-light dark:border-tertiary !my-6" />
-                            <div className="space-y-4 text-sm">
-                                <ProfileDetail label="Birthday" value={formattedBirthday} />
-                                <ProfileDetail label="Primary Degree" value={profile.branch} />
-                                <ProfileDetail label="B.E. Degree" value={profile.dual_degree_branch} />
-                                <ProfileDetail label="Relationship Status" value={profile.relationship_status} />
-                                <ProfileDetail label="Dorm" value={dormInfo} />
-                                <ProfileDetail label="Dining Hall" value={profile.dining_hall} />
-                            </div>
-                            {!friendsLoading && friends.length > 0 && (
-                                <><hr className="border-tertiary-light dark:border-tertiary !my-6" /><div><h3 className="text-lg font-bold mb-3">Friends</h3><div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-3">{friends.slice(0, 9).map(friend => (<Link to={`/profile/${friend.username}`} key={friend.user_id} className="flex flex-col items-center space-y-1 group" title={friend.full_name || friend.username}><img src={friend.avatar_url || `https://ui-avatars.com/api/?name=${friend.full_name || friend.username}`} alt={friend.username} className="w-16 h-16 rounded-full object-cover" /><p className="text-xs text-center text-text-tertiary-light dark:text-text-tertiary group-hover:underline truncate w-full">{friend.full_name || friend.username}</p></Link>))}</div></div></>
-                            )}
-                            {!communitiesLoading && communities.length > 0 && (
-                                <><hr className="border-tertiary-light dark:border-tertiary !my-6" /><div><h3 className="text-lg font-bold mb-3">Communities</h3><div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-3">{communities.slice(0, 9).map(community => (
-                                    <Link to={`/communities/${community.id}`} key={community.id} className="flex flex-col items-center space-y-1 group" title={community.name}>
-                                        <img src={community.avatar_url || `https://ui-avatars.com/api/?name=${community.name}&background=3cfba2&color=000`} alt={community.name} className="w-16 h-16 rounded-2xl object-cover" />
-                                        <div className="flex items-center gap-1.5 w-full justify-center">
-                                            <p className="text-xs text-center text-text-tertiary-light dark:text-text-tertiary group-hover:underline truncate">
-                                                {community.name}
-                                            </p>
-                                            {community.role === 'admin' && (
-                                                <StarIcon className="w-3 h-3 text-yellow-400 flex-shrink-0" title="Consul" />
-                                            )}
+                                {/* Friends */}
+                                {!friendsLoading && friends.length > 0 && (
+                                    <>
+                                        <hr className="border-tertiary-light dark:border-tertiary" />
+                                        <div>
+                                            <h3 className="text-lg font-bold text-text-main-light dark:text-white mb-4">
+                                                Friends
+                                            </h3>
+                                            <div className="grid grid-cols-3 gap-3">
+                                                {friends.slice(0, 9).map(friend => (
+                                                    <Link 
+                                                        to={`/profile/${friend.username}`} 
+                                                        key={friend.user_id} 
+                                                        className="flex flex-col items-center space-y-2 group" 
+                                                        title={friend.full_name || friend.username}
+                                                    >
+                                                        <img 
+                                                            src={friend.avatar_url || `https://ui-avatars.com/api/?name=${friend.full_name || friend.username}`} 
+                                                            alt={friend.username} 
+                                                            className="w-16 h-16 rounded-full object-cover ring-2 ring-transparent group-hover:ring-brand-green transition-all"
+                                                        />
+                                                        <p className="text-xs text-center text-text-tertiary-light dark:text-text-tertiary group-hover:text-brand-green transition-colors truncate w-full">
+                                                            {friend.full_name?.split(' ')[0] || friend.username}
+                                                        </p>
+                                                    </Link>
+                                                ))}
+                                            </div>
                                         </div>
-                                    </Link>
-                                ))}</div></div></>
-                            )}
+                                    </>
+                                )}
+
+                                {/* Communities */}
+                                {!communitiesLoading && communities.length > 0 && (
+                                    <>
+                                        <hr className="border-tertiary-light dark:border-tertiary" />
+                                        <div>
+                                            <h3 className="text-lg font-bold text-text-main-light dark:text-white mb-4">
+                                                Communities
+                                            </h3>
+                                            <div className="grid grid-cols-3 gap-3">
+                                                {communities.slice(0, 9).map(community => (
+                                                    <Link 
+                                                        to={`/communities/${community.id}`} 
+                                                        key={community.id} 
+                                                        className="flex flex-col items-center space-y-2 group" 
+                                                        title={community.name}
+                                                    >
+                                                        <div className="relative">
+                                                            <img 
+                                                                src={community.avatar_url || `https://ui-avatars.com/api/?name=${community.name}&background=3cfba2&color=000`} 
+                                                                alt={community.name} 
+                                                                className="w-16 h-16 rounded-xl object-cover ring-2 ring-transparent group-hover:ring-brand-green transition-all"
+                                                            />
+                                                            {community.role === 'admin' && (
+                                                                <div className="absolute -top-1 -right-1 bg-yellow-400 rounded-full p-1">
+                                                                    <StarIcon className="w-3 h-3 text-black" />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-xs text-center text-text-tertiary-light dark:text-text-tertiary group-hover:text-brand-green transition-colors truncate w-full">
+                                                            {community.name}
+                                                        </p>
+                                                    </Link>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
                         </div>
 
-                        <div className="lg:col-span-2 mt-8 lg:mt-0"> 
+                        {/* Right Content - Posts */}
+                        <div className="lg:col-span-2 space-y-6">
+                            {/* Create Post */}
                             {isOwnProfile && currentUserProfile && (
-                                <div className="mb-6">
+                                <div className="bg-secondary-light dark:bg-secondary rounded-2xl shadow-sm overflow-hidden">
                                     <CreatePost onPostCreated={handlePostCreated} profile={currentUserProfile} />
                                 </div>
                             )}
-                            <div className="flex border-b border-tertiary-light dark:border-tertiary">
-                                <TabButton label="Posts" isActive={activeTab === 'posts'} onClick={() => setActiveTab('posts')} />
-                                <TabButton label="Mentions" isActive={activeTab === 'mentions'} onClick={() => setActiveTab('mentions')} />
-                                <TabButton label="Media" isActive={activeTab === 'media'} onClick={() => setActiveTab('media')} />
-                            </div>
-                            <div className="mt-4">
-                                {postsLoading ? (<div className="text-center py-8"><Spinner/></div>) : (
-                                    <>
-                                        {activeTab === 'posts' && (<div className="space-y-4">{posts.length > 0 ? posts.map(post => <PostComponent key={post.id} post={post} onImageClick={setLightboxUrl} />) : <p className="text-center text-text-tertiary-light dark:text-text-tertiary py-8">No posts yet.</p>}</div>)}
-                                        {activeTab === 'mentions' && (<div className="space-y-4">{mentions.length > 0 ? mentions.map(post => <PostComponent key={post.id} post={post} onImageClick={setLightboxUrl} />) : <p className="text-center text-text-tertiary-light dark:text-text-tertiary py-8">No mentions yet.</p>}</div>)}
-                                        {activeTab === 'media' && (
-                                            mediaPosts.length > 0 ? (
-                                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
-                                                    {mediaPosts.map(post => (
-                                                        <Link to={`/post/${post.id}`} key={post.id} className="group relative aspect-square">
-                                                            <img src={post.image_url!} alt="Post media" className="w-full h-full object-cover rounded-sm" />
-                                                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" onClick={(e) => { e.preventDefault(); setLightboxUrl(post.image_url!); }}></div>
-                                                        </Link>
-                                                    ))}
+
+                            {/* Tabs and Content */}
+                            <div className="bg-secondary-light dark:bg-secondary rounded-2xl shadow-sm overflow-hidden">
+                                {/* Tabs */}
+                                <div className="flex border-b border-tertiary-light dark:border-tertiary">
+                                    <TabButton label="Posts" isActive={activeTab === 'posts'} onClick={() => setActiveTab('posts')} />
+                                    <TabButton label="Mentions" isActive={activeTab === 'mentions'} onClick={() => setActiveTab('mentions')} />
+                                    <TabButton label="Media" isActive={activeTab === 'media'} onClick={() => setActiveTab('media')} />
+                                </div>
+
+                                {/* Tab Content */}
+                                <div className="p-4">
+                                    {postsLoading ? (
+                                        <div className="text-center py-12">
+                                            <Spinner/>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            {activeTab === 'posts' && (
+                                                <div className="space-y-4">
+                                                    {posts.length > 0 ? (
+                                                        posts.map(post => <PostComponent key={post.id} post={post} onImageClick={setLightboxUrl} />)
+                                                    ) : (
+                                                        <div className="text-center py-16">
+                                                            <p className="text-text-tertiary-light dark:text-text-tertiary text-lg">
+                                                                No posts yet
+                                                            </p>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            ) : <p className="text-center text-text-tertiary-light dark:text-text-tertiary py-8">No media posted yet.</p>
-                                        )}
-                                    </>
-                                )}
+                                            )}
+                                            {activeTab === 'mentions' && (
+                                                <div className="space-y-4">
+                                                    {mentions.length > 0 ? (
+                                                        mentions.map(post => <PostComponent key={post.id} post={post} onImageClick={setLightboxUrl} />)
+                                                    ) : (
+                                                        <div className="text-center py-16">
+                                                            <p className="text-text-tertiary-light dark:text-text-tertiary text-lg">
+                                                                No mentions yet
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                            {activeTab === 'media' && (
+                                                mediaPosts.length > 0 ? (
+                                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                                        {mediaPosts.map(post => (
+                                                            <Link 
+                                                                to={`/post/${post.id}`} 
+                                                                key={post.id} 
+                                                                className="group relative aspect-square rounded-lg overflow-hidden"
+                                                            >
+                                                                <img 
+                                                                    src={post.image_url!} 
+                                                                    alt="Post media" 
+                                                                    className="w-full h-full object-cover"
+                                                                />
+                                                                <div 
+                                                                    className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" 
+                                                                    onClick={(e) => { 
+                                                                        e.preventDefault(); 
+                                                                        setLightboxUrl(post.image_url!); 
+                                                                    }}
+                                                                >
+                                                                    <span className="text-white text-sm font-medium">View</span>
+                                                                </div>
+                                                            </Link>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-center py-16">
+                                                        <p className="text-text-tertiary-light dark:text-text-tertiary text-lg">
+                                                            No media posted yet
+                                                        </p>
+                                                    </div>
+                                                )
+                                            )}
+                                        </>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -374,7 +594,6 @@ const ProfilePage: React.FC = () => {
 };
 
 const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, onSave: () => void }> = ({ userProfile, onClose, onSave }) => {
-    // ... (This component remains unchanged)
     const { user, updateProfileContext } = useAuth();
     const [profileData, setProfileData] = useState(userProfile);
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -490,48 +709,196 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
     }
     
     return (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-            <div className="bg-secondary-light dark:bg-secondary rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                <form onSubmit={handleSubmit} className="p-6">
-                    <h2 className="text-2xl font-bold text-brand-green mb-6">Edit Profile</h2>
-                    <div className="relative h-48 bg-tertiary-light dark:bg-tertiary rounded-t-lg mb-16">
-                        {bannerPreview && <img src={bannerPreview} className="w-full h-full object-cover rounded-t-lg" alt="Banner Preview"/>}
-                        <button type="button" onClick={() => bannerInputRef.current?.click()} className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"><CameraIcon className="w-8 h-8 text-white" /></button>
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+            <div className="bg-secondary-light dark:bg-secondary rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                <form onSubmit={handleSubmit} className="p-6 sm:p-8">
+                    <h2 className="text-3xl font-bold text-brand-green mb-8">Edit Profile</h2>
+                    
+                    {/* Banner and Avatar Upload */}
+                    <div className="relative h-48 bg-gradient-to-br from-tertiary-light to-tertiary-light/50 dark:from-tertiary dark:to-tertiary/50 rounded-xl mb-20 overflow-hidden">
+                        {bannerPreview && <img src={bannerPreview} className="w-full h-full object-cover" alt="Banner Preview"/>}
+                        <button 
+                            type="button" 
+                            onClick={() => bannerInputRef.current?.click()} 
+                            className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+                        >
+                            <div className="flex flex-col items-center gap-2 text-white">
+                                <CameraIcon className="w-8 h-8" />
+                                <span className="text-sm font-medium">Change Banner</span>
+                            </div>
+                        </button>
                         <input type="file" ref={bannerInputRef} onChange={(e) => handleFileChange(e, 'banner')} accept="image/*" hidden />
-                        <div className="absolute -bottom-16 left-6 w-32 h-32 rounded-full border-4 border-secondary-light dark:border-secondary bg-gray-600">
-                            {avatarPreview && <img src={avatarPreview} className="w-full h-full rounded-full object-cover" alt="Avatar Preview"/>}
-                            <button type="button" onClick={() => avatarInputRef.current?.click()} className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 rounded-full transition-opacity"><CameraIcon className="w-8 h-8 text-white" /></button>
+                        
+                        <div className="absolute -bottom-16 left-6 w-32 h-32 rounded-full border-4 border-secondary-light dark:border-secondary bg-gradient-to-br from-gray-600 to-gray-700 overflow-hidden shadow-xl">
+                            {avatarPreview && <img src={avatarPreview} className="w-full h-full object-cover" alt="Avatar Preview"/>}
+                            <button 
+                                type="button" 
+                                onClick={() => avatarInputRef.current?.click()} 
+                                className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 rounded-full transition-opacity"
+                            >
+                                <div className="flex flex-col items-center gap-1 text-white">
+                                    <CameraIcon className="w-6 h-6" />
+                                    <span className="text-xs font-medium">Change</span>
+                                </div>
+                            </button>
                             <input type="file" ref={avatarInputRef} onChange={(e) => handleFileChange(e, 'avatar')} accept="image/*" hidden />
                         </div>
                     </div>
-                    {error && <p className="text-red-400 mb-4">{error}</p>}
-                    <div className="space-y-4 pt-4">
-                        <div><label className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary">Full Name</label><input type="text" name="full_name" value={profileData.full_name || ''} onChange={handleChange} className="mt-1 block w-full bg-tertiary-light dark:bg-tertiary rounded p-2 text-text-main-light dark:text-text-main border border-tertiary-light dark:border-gray-600 focus:ring-brand-green focus:border-brand-green" /></div>
-                        <div><label className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary">Bio</label><textarea name="bio" value={profileData.bio || ''} onChange={handleChange} rows={3} className="mt-1 block w-full bg-tertiary-light dark:bg-tertiary rounded p-2 text-text-main-light dark:text-text-main border border-tertiary-light dark:border-gray-600 focus:ring-brand-green focus:border-brand-green" /></div>
+                    
+                    {error && (
+                        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+                            <p className="text-red-400 text-sm">{error}</p>
+                        </div>
+                    )}
+                    
+                    <div className="space-y-6">
+                        {/* Full Name */}
+                        <div>
+                            <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                Full Name
+                            </label>
+                            <input 
+                                type="text" 
+                                name="full_name" 
+                                value={profileData.full_name || ''} 
+                                onChange={handleChange} 
+                                className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none" 
+                            />
+                        </div>
+                        
+                        {/* Bio */}
+                        <div>
+                            <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                Bio
+                            </label>
+                            <textarea 
+                                name="bio" 
+                                value={profileData.bio || ''} 
+                                onChange={handleChange} 
+                                rows={4} 
+                                className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none resize-none" 
+                                placeholder="Tell us about yourself..."
+                            />
+                        </div>
+                        
+                        {/* Degrees */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                             <div>
-                                <label className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary">Primary Degree</label>
-                                <select name="branch" value={profileData.branch || ''} onChange={handleChange} className="mt-1 block w-full bg-tertiary-light dark:bg-tertiary rounded p-2 text-text-main-light dark:text-text-main border border-tertiary-light dark:border-gray-600 focus:ring-brand-green focus:border-brand-green">
+                            <div>
+                                <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                    Primary Degree
+                                </label>
+                                <select 
+                                    name="branch" 
+                                    value={profileData.branch || ''} 
+                                    onChange={handleChange} 
+                                    className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none"
+                                >
                                     <option value="">Select Branch</option>
                                     {availableBranches.map(b => <option key={b} value={b}>{b}</option>)}
                                 </select>
                             </div>
+                            
                             {isDualDegreeStudent && (
                                 <div>
-                                    <label className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary">B.E. Degree</label>
-                                    <select name="dual_degree_branch" value={profileData.dual_degree_branch || ''} onChange={handleChange} className="mt-1 block w-full bg-tertiary-light dark:bg-tertiary rounded p-2 text-text-main-light dark:text-text-main border border-tertiary-light dark:border-gray-600 focus:ring-brand-green focus:border-brand-green">
+                                    <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                        B.E. Degree
+                                    </label>
+                                    <select 
+                                        name="dual_degree_branch" 
+                                        value={profileData.dual_degree_branch || ''} 
+                                        onChange={handleChange} 
+                                        className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none"
+                                    >
                                         <option value="">Select B.E. Branch</option>
                                         {profileData.campus && BITS_BRANCHES[profileData.campus]['B.E.'].map(b => <option key={b} value={b}>{b}</option>)}
                                     </select>
                                 </div>
                             )}
-                            <div><label className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary">Relationship Status</label><select name="relationship_status" value={profileData.relationship_status || ''} onChange={handleChange} className="mt-1 block w-full bg-tertiary-light dark:bg-tertiary rounded p-2 text-text-main-light dark:text-text-main border border-tertiary-light dark:border-gray-600 focus:ring-brand-green focus:border-brand-green"><option value="">Select Status</option><option value="Single">Single</option><option value="In a relationship">In a relationship</option><option value="It's complicated">It's complicated</option><option value="Married">Married</option></select></div>
-                            <div><label className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary">Dorm Building</label><input type="text" name="dorm_building" placeholder="e.g., Valmiki" value={profileData.dorm_building || ''} onChange={handleChange} className="mt-1 block w-full bg-tertiary-light dark:bg-tertiary rounded p-2 text-text-main-light dark:text-text-main border border-tertiary-light dark:border-gray-600 focus:ring-brand-green focus:border-brand-green" /></div>
-                            <div><label className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary">Dorm Room</label><input type="text" name="dorm_room" placeholder="e.g., 469" value={profileData.dorm_room || ''} onChange={handleChange} className="mt-1 block w-full bg-tertiary-light dark:bg-tertiary rounded p-2 text-text-main-light dark:text-text-main border border-tertiary-light dark:border-gray-600 focus:ring-brand-green focus:border-brand-green" /></div>
-                            <div className="md:col-span-2"><label className="block text-sm font-medium text-text-secondary-light dark:text-text-secondary">Dining Hall</label><select name="dining_hall" value={profileData.dining_hall || ''} onChange={handleChange} className="mt-1 block w-full bg-tertiary-light dark:bg-tertiary rounded p-2 text-text-main-light dark:text-text-main border border-tertiary-light dark:border-gray-600 focus:ring-brand-green focus:border-brand-green"><option value="">Select Mess</option><option value="Mess 1">Mess 1</option><option value="Mess 2">Mess 2</option></select></div>
+                        </div>
+                        
+                        {/* Other Details */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                    Relationship Status
+                                </label>
+                                <select 
+                                    name="relationship_status" 
+                                    value={profileData.relationship_status || ''} 
+                                    onChange={handleChange} 
+                                    className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none"
+                                >
+                                    <option value="">Select Status</option>
+                                    <option value="Single">Single</option>
+                                    <option value="In a relationship">In a relationship</option>
+                                    <option value="It's complicated">It's complicated</option>
+                                    <option value="Married">Married</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                    Dorm Building
+                                </label>
+                                <input 
+                                    type="text" 
+                                    name="dorm_building" 
+                                    placeholder="e.g., Valmiki" 
+                                    value={profileData.dorm_building || ''} 
+                                    onChange={handleChange} 
+                                    className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none" 
+                                />
+                            </div>
+                            
+                            <div>
+                                <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                    Dorm Room
+                                </label>
+                                <input 
+                                    type="text" 
+                                    name="dorm_room" 
+                                    placeholder="e.g., 469" 
+                                    value={profileData.dorm_room || ''} 
+                                    onChange={handleChange} 
+                                    className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none" 
+                                />
+                            </div>
+                            
+                            <div>
+                                <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                    Dining Hall
+                                </label>
+                                <select 
+                                    name="dining_hall" 
+                                    value={profileData.dining_hall || ''} 
+                                    onChange={handleChange} 
+                                    className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none"
+                                >
+                                    <option value="">Select Mess</option>
+                                    <option value="Mess 1">Mess 1</option>
+                                    <option value="Mess 2">Mess 2</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
-                    <div className="flex justify-end space-x-4 pt-6"><button type="button" onClick={onClose} className="py-2 px-6 rounded-full text-text-main-light dark:text-text-main hover:bg-tertiary-light/60 dark:hover:bg-tertiary">Cancel</button><button type="submit" disabled={isSaving} className="py-2 px-6 rounded-full text-black bg-brand-green hover:bg-brand-green-darker disabled:opacity-50">{isSaving ? <Spinner /> : 'Save Changes'}</button></div>
+                    
+                    {/* Action Buttons */}
+                    <div className="flex justify-end gap-3 pt-8">
+                        <button 
+                            type="button" 
+                            onClick={onClose} 
+                            className="py-2.5 px-6 rounded-full text-text-main-light dark:text-text-main hover:bg-tertiary-light/60 dark:hover:bg-tertiary transition-colors font-medium"
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            type="submit" 
+                            disabled={isSaving} 
+                            className="py-2.5 px-8 rounded-full text-black bg-brand-green hover:bg-brand-green-darker disabled:opacity-50 transition-all font-bold shadow-lg shadow-brand-green/20"
+                        >
+                            {isSaving ? <Spinner /> : 'Save Changes'}
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>
@@ -540,7 +907,16 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
 
 const ProfileDetail: React.FC<{ label: string; value?: string | number | null }> = ({ label, value }) => {
     if (!value) return null;
-    return (<div><span className="font-semibold text-text-secondary-light dark:text-text-main">{label}: </span><span className="text-text-tertiary-light dark:text-text-tertiary">{value}</span></div>);
+    return (
+        <div className="flex items-start gap-2">
+            <span className="font-semibold text-text-main-light dark:text-text-main min-w-fit">
+                {label}:
+            </span>
+            <span className="text-text-secondary-light dark:text-text-secondary">
+                {value}
+            </span>
+        </div>
+    );
 };
 
 export default ProfilePage;

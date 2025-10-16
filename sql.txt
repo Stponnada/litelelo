@@ -195,58 +195,6 @@ $$;
 ALTER FUNCTION "public"."create_community"("p_name" "text", "p_description" "text", "p_campus" "text") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."create_dm_conversation"("participant_ids" "uuid"[]) RETURNS "uuid"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    AS $$
-DECLARE
-    -- An array containing the current user and the other participants
-    all_participants_sorted uuid[];
-    existing_conversation_id uuid;
-    new_conversation_id uuid;
-    participant_id uuid;
-BEGIN
-    -- Create a sorted array of all participants for canonical comparison
-    SELECT array_agg(p ORDER BY p)
-    INTO all_participants_sorted
-    FROM unnest(array_cat(participant_ids, ARRAY[auth.uid()])) p;
-
-    -- Check if a DM with these exact participants already exists
-    SELECT c.id INTO existing_conversation_id
-    FROM conversations c
-    WHERE c.type = 'dm' AND c.id IN (
-        SELECT cp.conversation_id
-        FROM conversation_participants cp
-        GROUP BY cp.conversation_id
-        HAVING array_agg(cp.user_id ORDER BY cp.user_id) = all_participants_sorted
-    )
-    LIMIT 1;
-
-    -- If a conversation is found, return its ID
-    IF existing_conversation_id IS NOT NULL THEN
-        RETURN existing_conversation_id;
-    END IF;
-
-    -- If no existing conversation, create a new one
-    INSERT INTO conversations (type, created_by)
-    VALUES ('dm', auth.uid())
-    RETURNING id INTO new_conversation_id;
-
-    -- Add all participants (including the creator) to the new conversation
-    FOREACH participant_id IN ARRAY all_participants_sorted
-    LOOP
-        INSERT INTO conversation_participants (conversation_id, user_id)
-        VALUES (new_conversation_id, participant_id);
-    END LOOP;
-
-    -- Return the new conversation ID
-    RETURN new_conversation_id;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."create_dm_conversation"("participant_ids" "uuid"[]) OWNER TO "postgres";
-
-
 CREATE OR REPLACE FUNCTION "public"."create_dm_conversation"("recipient_id" "uuid") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
@@ -552,7 +500,7 @@ $$;
 ALTER FUNCTION "public"."get_bookmarked_posts"() OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."get_campus_places_with_ratings"("p_campus" "text") RETURNS TABLE("id" "uuid", "name" "text", "category" "text", "location" "text", "image_url" "text", "campus" "text", "avg_rating" numeric, "review_count" bigint)
+CREATE OR REPLACE FUNCTION "public"."get_campus_places_with_ratings"("p_campus" "text") RETURNS TABLE("id" "uuid", "name" "text", "category" "text", "location" "text", "campus" "text", "avg_rating" numeric, "review_count" bigint, "primary_image_url" "text")
     LANGUAGE "plpgsql"
     AS $$
 BEGIN
@@ -561,11 +509,17 @@ BEGIN
         cp.id,
         cp.name,
         cp.category,
-        cp.location, -- <-- The new column
-        cp.image_url,
+        cp.location,
         cp.campus,
         COALESCE(AVG(r.rating), 0) AS avg_rating,
-        COUNT(r.id) AS review_count
+        COUNT(r.id) AS review_count,
+        (
+            SELECT cpi.image_url 
+            FROM public.campus_place_images cpi 
+            WHERE cpi.place_id = cp.id 
+            ORDER BY cpi.created_at 
+            LIMIT 1
+        ) AS primary_image_url
     FROM
         public.campus_places cp
     LEFT JOIN
@@ -582,60 +536,6 @@ $$;
 
 
 ALTER FUNCTION "public"."get_campus_places_with_ratings"("p_campus" "text") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."get_chat_list_with_participants"() RETURNS TABLE("conversation_id" "uuid", "type" "text", "name" "text", "last_message_content" "text", "last_message_at" timestamp with time zone, "last_message_sender_id" "uuid", "unread_count" bigint, "participants" "jsonb")
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    AS $$
-BEGIN
-    RETURN QUERY
-    WITH user_conversations AS (
-        SELECT
-            c.id, c.type, c.name,
-            m.content AS last_message_content,
-            m.created_at AS last_message_at,
-            m.sender_id AS last_message_sender_id,
-            (
-                SELECT COUNT(*)
-                FROM public.messages msg
-                WHERE msg.conversation_id = c.id
-                  AND msg.created_at > COALESCE(crt.last_read_at, '1970-01-01'::timestamptz)
-                  AND msg.sender_id <> auth.uid()
-            ) AS unread_count
-        FROM public.conversations c
-        JOIN public.conversation_participants cp ON c.id = cp.conversation_id
-        LEFT JOIN public.messages m ON c.id = m.conversation_id AND m.id = (
-            SELECT id FROM public.messages WHERE public.messages.conversation_id = c.id ORDER BY created_at DESC LIMIT 1
-        )
-        LEFT JOIN public.conversation_read_timestamps crt ON c.id = crt.conversation_id AND crt.user_id = auth.uid()
-        WHERE cp.user_id = auth.uid()
-    ),
-    participants_agg AS (
-        SELECT
-            cp.conversation_id,
-            jsonb_agg(
-                jsonb_build_object(
-                    'user_id', p.user_id, 'username', p.username,
-                    'full_name', p.full_name, 'avatar_url', p.avatar_url
-                )
-            ) AS participants_json
-        FROM public.conversation_participants cp
-        JOIN public.profiles p ON cp.user_id = p.user_id
-        WHERE cp.conversation_id IN (SELECT id FROM user_conversations)
-        GROUP BY cp.conversation_id
-    )
-    SELECT
-        uc.id, uc.type, uc.name, uc.last_message_content, uc.last_message_at,
-        uc.last_message_sender_id, uc.unread_count,
-        pa.participants_json
-    FROM user_conversations uc
-    LEFT JOIN participants_agg pa ON uc.id = pa.conversation_id
-    ORDER BY uc.last_message_at DESC NULLS LAST;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."get_chat_list_with_participants"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."get_communities_for_user"("p_user_id" "uuid") RETURNS TABLE("id" "uuid", "name" "text", "avatar_url" "text", "role" "text")
@@ -886,6 +786,22 @@ $$;
 
 
 ALTER FUNCTION "public"."get_follow_list"("profile_user_id" "uuid", "list_type" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."get_images_for_place"("p_place_id" "uuid") RETURNS TABLE("image_url" "text")
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+    RETURN QUERY
+    SELECT cpi.image_url
+    FROM public.campus_place_images cpi
+    WHERE cpi.place_id = p_place_id
+    ORDER BY cpi.created_at;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."get_images_for_place"("p_place_id" "uuid") OWNER TO "postgres";
 
 SET default_tablespace = '';
 
@@ -1399,77 +1315,6 @@ $$;
 ALTER FUNCTION "public"."get_unified_directory"() OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."get_user_conversations_with_unread"() RETURNS TABLE("participant" json, "last_message_sender_id" "uuid", "last_message_content" "text", "last_message_at" timestamp with time zone, "unread_count" bigint)
-    LANGUAGE "sql" SECURITY DEFINER
-    SET "search_path" TO 'public'
-    AS $$
-WITH message_participants AS (
-    -- Get all distinct people the current user has messaged or been messaged by
-    SELECT DISTINCT receiver_id AS user_id FROM messages WHERE sender_id = auth.uid()
-    UNION
-    SELECT DISTINCT sender_id AS user_id FROM messages WHERE receiver_id = auth.uid()
-),
-contacts AS (
-    -- Also include people the user is following or is followed by, even without messages
-    SELECT following_id as user_id FROM followers WHERE follower_id = auth.uid()
-    UNION
-    SELECT follower_id as user_id FROM followers WHERE following_id = auth.uid()
-),
-all_participants AS (
-    -- Combine messaged participants and contacts
-    SELECT user_id FROM message_participants
-    UNION
-    SELECT user_id FROM contacts
-),
-latest_message AS (
-    -- Get the latest message for each conversation partner
-    SELECT DISTINCT ON (
-        CASE
-            WHEN sender_id = auth.uid() THEN receiver_id
-            ELSE sender_id
-        END
-    )
-    id,
-    sender_id,
-    receiver_id,
-    content, -- <-- THE FIX IS HERE: Reading from the 'content' column
-    created_at
-    FROM messages
-    WHERE sender_id = auth.uid() OR receiver_id = auth.uid()
-    ORDER BY
-        CASE
-            WHEN sender_id = auth.uid() THEN receiver_id
-            ELSE sender_id
-        END,
-        created_at DESC
-),
-unread_counts AS (
-    -- Count unread messages from each sender
-    SELECT sender_id, count(*) AS unread
-    FROM messages
-    WHERE receiver_id = auth.uid() AND is_read = false
-    GROUP BY sender_id
-)
-SELECT
-    row_to_json(p.*) AS participant,
-    lm.sender_id AS last_message_sender_id,
-    lm.content AS last_message_content, -- <-- THE FIX IS HERE: Selecting the 'content'
-    COALESCE(lm.created_at, p.created_at) AS last_message_at,
-    COALESCE(uc.unread, 0) AS unread_count
-FROM all_participants ap
-JOIN profiles p ON ap.user_id = p.user_id
-LEFT JOIN latest_message lm ON
-    (lm.sender_id = auth.uid() AND lm.receiver_id = p.user_id) OR
-    (lm.sender_id = p.user_id AND lm.receiver_id = auth.uid())
-LEFT JOIN unread_counts uc ON uc.sender_id = p.user_id
-WHERE p.user_id != auth.uid()
-ORDER BY last_message_at DESC;
-$$;
-
-
-ALTER FUNCTION "public"."get_user_conversations_with_unread"() OWNER TO "postgres";
-
-
 CREATE OR REPLACE FUNCTION "public"."increment_post_comment_count"("post_id_to_update" "uuid") RETURNS "void"
     LANGUAGE "sql"
     AS $$
@@ -1567,47 +1412,6 @@ $$;
 
 
 ALTER FUNCTION "public"."mark_conversation_as_read"("p_conversation_id" "uuid") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."mark_messages_as_read"("p_sender_id" "uuid") RETURNS "void"
-    LANGUAGE "sql" SECURITY DEFINER
-    AS $$
-  UPDATE public.messages
-  SET is_read = TRUE
-  WHERE
-    receiver_id = auth.uid() AND
-    sender_id = p_sender_id AND
-    is_read = FALSE;
-$$;
-
-
-ALTER FUNCTION "public"."mark_messages_as_read"("p_sender_id" "uuid") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."mark_messages_as_read_for_convo"("p_conversation_id" "uuid") RETURNS "void"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    AS $$
-BEGIN
-  -- Security check: Ensure the current user is actually a member of the conversation
-  -- before allowing any updates. This is crucial for a SECURITY DEFINER function.
-  IF EXISTS (
-    SELECT 1
-    FROM public.conversation_participants
-    WHERE conversation_id = p_conversation_id AND user_id = auth.uid()
-  ) THEN
-    -- If the user is a member, update the messages they haven't sent.
-    UPDATE public.messages
-    SET is_read = TRUE
-    WHERE
-      conversation_id = p_conversation_id
-      AND sender_id <> auth.uid()
-      AND is_read = FALSE;
-  END IF;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."mark_messages_as_read_for_convo"("p_conversation_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."search_all"("search_term" "text") RETURNS json
@@ -1840,11 +1644,21 @@ CREATE TABLE IF NOT EXISTS "public"."bookmarks" (
 ALTER TABLE "public"."bookmarks" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."campus_place_images" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "place_id" "uuid" NOT NULL,
+    "image_url" "text" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+ALTER TABLE "public"."campus_place_images" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."campus_places" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "name" "text" NOT NULL,
     "category" "text" NOT NULL,
-    "image_url" "text",
     "campus" "text" NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"(),
     "location" "text"
@@ -2230,6 +2044,11 @@ ALTER TABLE ONLY "public"."bookmarks"
 
 
 
+ALTER TABLE ONLY "public"."campus_place_images"
+    ADD CONSTRAINT "campus_place_images_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."campus_places"
     ADD CONSTRAINT "campus_places_pkey" PRIMARY KEY ("id");
 
@@ -2428,6 +2247,11 @@ ALTER TABLE ONLY "public"."bookmarks"
 
 ALTER TABLE ONLY "public"."bookmarks"
     ADD CONSTRAINT "bookmarks_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("user_id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."campus_place_images"
+    ADD CONSTRAINT "campus_place_images_place_id_fkey" FOREIGN KEY ("place_id") REFERENCES "public"."campus_places"("id") ON DELETE CASCADE;
 
 
 
@@ -2758,6 +2582,10 @@ CREATE POLICY "Allow creator to add participants" ON "public"."conversation_part
 
 
 
+CREATE POLICY "Allow dev to manage images table" ON "public"."campus_place_images" USING (("auth"."uid"() = '70941ce5-121b-47e3-b6c7-fef1aa069316'::"uuid")) WITH CHECK (("auth"."uid"() = '70941ce5-121b-47e3-b6c7-fef1aa069316'::"uuid"));
+
+
+
 CREATE POLICY "Allow insert for authenticated users" ON "public"."posts" FOR INSERT WITH CHECK (("auth"."uid"() IS NOT NULL));
 
 
@@ -2801,6 +2629,10 @@ CREATE POLICY "Allow participants to view other participants in their chats" ON 
 
 
 CREATE POLICY "Allow participants to view their conversations" ON "public"."conversations" FOR SELECT USING (("id" IN ( SELECT "public"."get_my_conversation_ids"() AS "get_my_conversation_ids")));
+
+
+
+CREATE POLICY "Allow public read on images table" ON "public"."campus_place_images" FOR SELECT USING (true);
 
 
 
@@ -3072,6 +2904,9 @@ CREATE POLICY "Users can view their own mentions" ON "public"."mentions" FOR SEL
 
 
 
+ALTER TABLE "public"."campus_place_images" ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE "public"."campus_places" ENABLE ROW LEVEL SECURITY;
 
 
@@ -3335,12 +3170,6 @@ GRANT ALL ON FUNCTION "public"."create_community"("p_name" "text", "p_descriptio
 
 
 
-GRANT ALL ON FUNCTION "public"."create_dm_conversation"("participant_ids" "uuid"[]) TO "anon";
-GRANT ALL ON FUNCTION "public"."create_dm_conversation"("participant_ids" "uuid"[]) TO "authenticated";
-GRANT ALL ON FUNCTION "public"."create_dm_conversation"("participant_ids" "uuid"[]) TO "service_role";
-
-
-
 GRANT ALL ON FUNCTION "public"."create_dm_conversation"("recipient_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."create_dm_conversation"("recipient_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."create_dm_conversation"("recipient_id" "uuid") TO "service_role";
@@ -3401,12 +3230,6 @@ GRANT ALL ON FUNCTION "public"."get_campus_places_with_ratings"("p_campus" "text
 
 
 
-GRANT ALL ON FUNCTION "public"."get_chat_list_with_participants"() TO "anon";
-GRANT ALL ON FUNCTION "public"."get_chat_list_with_participants"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."get_chat_list_with_participants"() TO "service_role";
-
-
-
 GRANT ALL ON FUNCTION "public"."get_communities_for_user"("p_user_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."get_communities_for_user"("p_user_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_communities_for_user"("p_user_id" "uuid") TO "service_role";
@@ -3440,6 +3263,12 @@ GRANT ALL ON FUNCTION "public"."get_feed_posts"() TO "service_role";
 GRANT ALL ON FUNCTION "public"."get_follow_list"("profile_user_id" "uuid", "list_type" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."get_follow_list"("profile_user_id" "uuid", "list_type" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_follow_list"("profile_user_id" "uuid", "list_type" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."get_images_for_place"("p_place_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_images_for_place"("p_place_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_images_for_place"("p_place_id" "uuid") TO "service_role";
 
 
 
@@ -3527,12 +3356,6 @@ GRANT ALL ON FUNCTION "public"."get_unified_directory"() TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."get_user_conversations_with_unread"() TO "anon";
-GRANT ALL ON FUNCTION "public"."get_user_conversations_with_unread"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."get_user_conversations_with_unread"() TO "service_role";
-
-
-
 GRANT ALL ON FUNCTION "public"."increment_post_comment_count"("post_id_to_update" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."increment_post_comment_count"("post_id_to_update" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."increment_post_comment_count"("post_id_to_update" "uuid") TO "service_role";
@@ -3566,18 +3389,6 @@ GRANT ALL ON FUNCTION "public"."is_participant"("convo_id" "uuid") TO "service_r
 GRANT ALL ON FUNCTION "public"."mark_conversation_as_read"("p_conversation_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."mark_conversation_as_read"("p_conversation_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."mark_conversation_as_read"("p_conversation_id" "uuid") TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."mark_messages_as_read"("p_sender_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."mark_messages_as_read"("p_sender_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."mark_messages_as_read"("p_sender_id" "uuid") TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."mark_messages_as_read_for_convo"("p_conversation_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."mark_messages_as_read_for_convo"("p_conversation_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."mark_messages_as_read_for_convo"("p_conversation_id" "uuid") TO "service_role";
 
 
 
@@ -3647,6 +3458,12 @@ GRANT ALL ON FUNCTION "public"."update_seller_rating_on_profile"() TO "service_r
 GRANT ALL ON TABLE "public"."bookmarks" TO "anon";
 GRANT ALL ON TABLE "public"."bookmarks" TO "authenticated";
 GRANT ALL ON TABLE "public"."bookmarks" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."campus_place_images" TO "anon";
+GRANT ALL ON TABLE "public"."campus_place_images" TO "authenticated";
+GRANT ALL ON TABLE "public"."campus_place_images" TO "service_role";
 
 
 
@@ -3819,18 +3636,10 @@ GRANT ALL ON TABLE "public"."seller_ratings" TO "service_role";
 
 
 
-
-
-
-
-
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "postgres";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "service_role";
-
-
-
 
 
 
@@ -3840,42 +3649,10 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUN
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "service_role";
 
 
-
-
-
-
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "postgres";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
