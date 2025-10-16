@@ -115,9 +115,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => { if (user) fetchConversations() }, [user, fetchConversations]);
 
-  // --- THIS IS THE FIX ---
-  // This useEffect now performs a smart client-side update instead of a full re-fetch.
-  // It also has a corrected dependency array to prevent the re-subscription loop.
   useEffect(() => {
     if (!user) return;
 
@@ -164,8 +161,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       supabase.removeChannel(channel);
     };
-  // The dependency array is now corrected to prevent the cycle.
-  }, [user, fetchConversations]);
+  // --- THIS IS THE FIX ---
+  // The dependency on `fetchConversations` was redundant and causing interference.
+  // The hook will now only re-subscribe when the user changes.
+  }, [user]);
   // --- END OF FIX ---
 
   const markConversationAsRead = useCallback(async (conversationId: string) => {
