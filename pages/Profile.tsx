@@ -214,7 +214,8 @@ const ProfilePage: React.FC = () => {
     };
 
     const handleSignOut = async () => {
-        await supabase.auth.signOut();
+        // --- FIX IS HERE: Specify 'local' scope for logout ---
+        await supabase.auth.signOut({ scope: 'local' });
         navigate('/login');
     };
 
@@ -386,7 +387,7 @@ const ProfilePage: React.FC = () => {
                                         <div>
                                             {/*<UserGroupIcon className="w-5 h-5 text-brand-green flex-shrink-0" />*/}
                                             <h3 className="text-lg font-bold text-text-main-light dark:text-white mb-3">
-                                                Roomies with:
+                                                Roommies with:
                                             </h3>
                                             <div className="flex items-center gap-2 flex-wrap">
                                                 

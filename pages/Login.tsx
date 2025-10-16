@@ -222,14 +222,15 @@ const Login: React.FC = () => {
         fadeOutAudio(() => { setLoading(false); navigate('/'); });
       }
     } catch (err: any) {
-      setError(err.message); setLoading(false);
+      setError(err.message); 
+      setLoading(false);
     }
   };
 
   if (authLoading || session) return <div className="flex items-center justify-center h-screen bg-primary-light dark:bg-primary"><Spinner /></div>;
 
   return (
-    <div className="relative flex flex-col lg:flex-row items-center justify-center min-h-screen bg-primary-light dark:bg-primary p-4 overflow-hidden">
+    <div className="relative flex flex-col lg:flex-row items-center justify-center min-h-screen bg-primary-light dark:bg-primary overflow-hidden">
       {/* Background waves */}
       <div className={`absolute inset-0 z-0 transition-all duration-[3s] ${isPlaying ? 'opacity-0' : 'opacity-50'}`}>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_25%,rgba(0,255,100,0.7)_0%,transparent_70%),radial-gradient(circle_at_85%_75%,rgba(0,255,150,0.15)_0%,transparent_70%)]"></div>
@@ -242,9 +243,66 @@ const Login: React.FC = () => {
         className={`absolute inset-0 w-full h-full z-0 pointer-events-none transition-opacity duration-2000 ${isPlaying ? 'opacity-100' : 'opacity-0'}`}
       />
 
-      {/* Login Card */}
-      <div className="relative z-10 w-full max-w-md lg:w-1/2 flex flex-col items-center justify-center p-8">
-        <div className="w-full bg-secondary-light dark:bg-secondary p-8 rounded-lg shadow-lg relative backdrop-blur-sm bg-opacity-90 dark:bg-opacity-80">
+      {/* Mobile: Combined container for branding and login, Desktop: separate sections */}
+      <div className="relative z-10 w-full lg:w-1/2 flex flex-col items-center justify-center gap-8 px-4 py-8 lg:hidden">
+        {/* Branding */}
+        <div className="text-center">
+          <h1
+            className={`logo-transform text-7xl sm:text-8xl select-none
+              ${isPlaying
+                ? 'font-rubik-glitch text-neon-green animate-neon-glitch'
+                : 'font-raleway font-black text-brand-green drop-shadow-[0_0_20px_rgba(0,255,150,0.3)]'
+              }`}
+          >
+            litelelo.
+          </h1>
+          <p className="text-text-tertiary-light dark:text-text-tertiary mt-3 text-base sm:text-lg min-h-[24px]">
+            {typedText}{typedText.length < 45 && <span className="animate-pulse">|</span>}
+          </p>
+        </div>
+
+        {/* Login Card */}
+        <div className="w-full max-w-md bg-secondary-light dark:bg-secondary p-6 sm:p-8 rounded-lg shadow-lg relative backdrop-blur-sm bg-opacity-90 dark:bg-opacity-80">
+          <h2 className="text-xl sm:text-2xl font-bold text-center text-text-main-light dark:text-text-main mb-5 sm:mb-6">
+            {isLogin ? 'Welcome Back!' : 'Create Account'}
+          </h2>
+          <form onSubmit={handleAuth} className="flex flex-col gap-3 sm:gap-4">
+            <input type="email" placeholder={isLogin ? 'Email' : 'BITS Email'} value={email} onChange={e => setEmail(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />
+            {!isLogin && <input type="text" placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />}
+            <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />
+            {!isLogin && <input type="password" placeholder="Confirm Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />}
+            <button type="submit" disabled={loading} className="bg-brand-green text-black font-semibold rounded-md py-3 transition duration-300 ease-in-out hover:bg-brand-green-darker disabled:opacity-50">{loading ? <Spinner /> : isLogin ? 'Log In' : 'Sign Up'}</button>
+          </form>
+          {error && <p className="mt-3 sm:mt-4 text-red-400 text-center text-sm">{error}</p>}
+          <div className="mt-5 sm:mt-6 text-center">
+            <button onClick={() => { setIsLogin(!isLogin); setError(null); }} className="text-sm text-text-tertiary-light dark:text-text-tertiary hover:text-text-main-light dark:hover:text-text-main">
+              {isLogin ? "Don't have an account? Sign Up" : 'Already have an account? Log In'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop: Branding on left */}
+      <div className="relative z-10 hidden lg:flex w-1/2 items-center justify-end p-8 pr-12">
+        <div className="text-left">
+          <h1
+            className={`logo-transform text-8xl select-none
+              ${isPlaying
+                ? 'font-rubik-glitch text-neon-green animate-neon-glitch'
+                : 'font-raleway font-black text-brand-green drop-shadow-[0_0_20px_rgba(0,255,150,0.3)]'
+              }`}
+          >
+            litelelo.
+          </h1>
+          <p className="text-text-tertiary-light dark:text-text-tertiary mt-3 text-lg min-h-[24px]">
+            {typedText}{typedText.length < 45 && <span className="animate-pulse">|</span>}
+          </p>
+        </div>
+      </div>
+
+      {/* Desktop: Login Card on right */}
+      <div className="relative z-10 hidden lg:flex w-1/2 flex-col items-start justify-center p-8 pl-12">
+        <div className="w-full max-w-md bg-secondary-light dark:bg-secondary p-8 rounded-lg shadow-lg relative backdrop-blur-sm bg-opacity-90 dark:bg-opacity-80">
           <h2 className="text-2xl font-bold text-center text-text-main-light dark:text-text-main mb-6">
             {isLogin ? 'Welcome Back!' : 'Create Account'}
           </h2>
@@ -264,43 +322,25 @@ const Login: React.FC = () => {
         </div>
       </div>
 
-      {/* Branding */}
-      <div className="relative z-10 w-full max-w-md lg:w-1/2 flex items-center justify-center p-8 order-first lg:order-last">
-        <div className="text-center lg:text-left">
-          <h1
-            className={`logo-transform text-8xl lg:text-8xl select-none
-              ${isPlaying
-                ? 'font-rubik-glitch text-neon-green animate-neon-glitch'
-                : 'font-raleway font-black text-brand-green drop-shadow-[0_0_20px_rgba(0,255,150,0.3)]'
-              }`}
-          >
-            litelelo.
-          </h1>
-          <p className="text-text-tertiary-light dark:text-text-tertiary mt-4 text-lg min-h-[28px]">
-            {typedText}{typedText.length < 45 && <span className="animate-pulse">|</span>}
-          </p>
-        </div>
-      </div>
-
       {/* Action Buttons */}
-      <div className="fixed bottom-6 right-6 flex items-center gap-4">
+      <div className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 flex items-center gap-3 sm:gap-4 z-20">
         <button 
           onClick={toggleMusic} 
           title={isPlaying ? 'Pause Music' : 'Play Music'} 
-          className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 ${
+          className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 ${
             isPlaying 
               ? 'bg-brand-green/20 border border-brand-green/30 text-brand-green' 
               : 'bg-secondary-light dark:bg-secondary border border-tertiary-light dark:border-tertiary text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary'
           }`}
         >
-            {isPlaying ? <PauseIcon className="w-6 h-6" /> : <MusicIcon className="w-6 h-6" />}
+            {isPlaying ? <PauseIcon className="w-5 h-5 sm:w-6 sm:h-6" /> : <MusicIcon className="w-5 h-5 sm:w-6 sm:h-6" />}
         </button>
         <button 
           onClick={toggleTheme} 
           title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`} 
-          className="w-12 h-12 rounded-full bg-secondary-light dark:bg-secondary border border-tertiary-light dark:border-tertiary shadow-lg flex items-center justify-center text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors"
+          className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-secondary-light dark:bg-secondary border border-tertiary-light dark:border-tertiary shadow-lg flex items-center justify-center text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors"
         >
-          {theme === 'light' ? <MoonIcon className="w-6 h-6" /> : <SunIcon className="w-6 h-6" />}
+          {theme === 'light' ? <MoonIcon className="w-5 h-5 sm:w-6 sm:h-6" /> : <SunIcon className="w-5 h-5 sm:w-6 sm:h-6" />}
         </button>
       </div>
     </div>

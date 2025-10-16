@@ -760,7 +760,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                                                         </p>
                                                     ) : msg.message_type === 'text' ? (
                                                         <div className="flex items-end px-4 py-2.5">
-                                                            <p className="text-[15px] leading-relaxed break-words">{msg.content}</p>
+                                                            <p className="text-[15px] leading-relaxed break-words whitespace-pre-wrap">{msg.content}</p>
                                                             {msg.is_edited && (
                                                                 <span className="text-[10px] text-gray-600 dark:text-gray-400 ml-2 select-none self-end flex-shrink-0 opacity-70">
                                                                     edited
@@ -982,7 +982,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                         }}
                         placeholder="Type a message..."
                         disabled={!!imagePreview}
-                        className="flex-1 py-3 px-4 bg-gray-100 dark:bg-gray-800 border-2 border-transparent focus:border-brand-green rounded-full text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 min-w-0 py-3 px-4 bg-gray-100 dark:bg-gray-800 border-2 border-transparent focus:border-brand-green rounded-full text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                     <button 
                         type="submit" 

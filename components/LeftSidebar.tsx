@@ -39,7 +39,8 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const { theme, toggleTheme } = useTheme();
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    // --- FIX IS HERE: Specify 'local' scope for logout ---
+    await supabase.auth.signOut({ scope: 'local' });
     navigate('/login');
   };
 
