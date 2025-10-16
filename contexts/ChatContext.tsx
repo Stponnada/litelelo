@@ -12,6 +12,7 @@ interface ChatContextType {
   markConversationAsRead: (conversationId: string) => Promise<void>;
   updateConversationId: (placeholderId: string, newId: string) => void;
   fetchConversations: () => void;
+  latestMessage: Message | null; // <-- ADD THIS
 }
 
 export const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -20,6 +21,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { user } = useAuth();
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [latestMessage, setLatestMessage] = useState<Message | null>(null); // <-- ADD THIS STATE
 
   const fetchConversations = useCallback(async () => {
     if (!user) {
@@ -123,35 +125,31 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, 
         (payload) => {
           const newMessage = payload.new as Message;
+          
+          // --- FIX: Update the latestMessage state for the active component to consume ---
+          setLatestMessage(newMessage);
 
           setConversations(prev => {
             const convoIndex = prev.findIndex(c => c.conversation_id === newMessage.conversation_id);
 
-            // If the conversation isn't in our list yet (e.g., a new group chat),
-            // trigger a full refetch. This is a rare but important edge case.
             if (convoIndex === -1) {
               fetchConversations();
               return prev;
             }
 
-            // Create a mutable copy to avoid direct state mutation
             const conversationsCopy = [...prev];
             const updatedConvo = { ...conversationsCopy[convoIndex] };
 
-            // Update the conversation with the new message's details
             updatedConvo.last_message_content = newMessage.content;
             updatedConvo.last_message_at = newMessage.created_at;
             updatedConvo.last_message_sender_id = newMessage.sender_id;
 
-            // Only increment unread count if the message is from someone else
             if (newMessage.sender_id !== user.id) {
               updatedConvo.unread_count = (updatedConvo.unread_count || 0) + 1;
             }
 
-            // Remove the old version of the conversation from the array
             conversationsCopy.splice(convoIndex, 1);
             
-            // Add the updated version to the top of the list and return the new state
             return [updatedConvo, ...conversationsCopy];
           });
         }
@@ -161,11 +159,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       supabase.removeChannel(channel);
     };
-  // --- THIS IS THE FIX ---
-  // The dependency on `fetchConversations` was redundant and causing interference.
-  // The hook will now only re-subscribe when the user changes.
-  }, [user]);
-  // --- END OF FIX ---
+  }, [user, fetchConversations]);
 
   const markConversationAsRead = useCallback(async (conversationId: string) => {
     if (!user?.id || conversationId.startsWith('placeholder_')) return;
@@ -194,7 +188,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setConversations(prev => prev.map(c => c.conversation_id === placeholderId ? { ...c, conversation_id: newId } : c));
   };
 
-  const value = { conversations, totalUnreadCount, loading, markConversationAsRead, fetchConversations, updateConversationId };
+  const value = { conversations, totalUnreadCount, loading, markConversationAsRead, fetchConversations, updateConversationId, latestMessage };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
 };

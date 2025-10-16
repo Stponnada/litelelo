@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
+import { useChat } from '../hooks/useChat';
 import { ConversationSummary, Message, MessageReaction, Profile, PinnedMessage } from '../types';
 import Spinner from './Spinner';
 import { SendIcon, UserGroupIcon, PlusIcon, ImageIcon, XCircleIcon, PencilIcon, TrashIcon, CheckIcon, XMarkIcon, ReplyIcon, FaceSmileIcon, PinIcon } from './icons';
@@ -27,7 +28,6 @@ const ErrorIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) 
   </svg>
 );
 
-// --- NEW: Typing Indicator Component ---
 const TypingIndicator: React.FC<{ users: { fullName: string | null }[] }> = ({ users }) => {
     if (users.length === 0) return null;
 
@@ -76,6 +76,7 @@ interface ConversationProps {
 
 const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onConversationCreated }) => {
     const { user, profile } = useAuth();
+    const { latestMessage } = useChat();
     const [messages, setMessages] = useState<Message[]>([]);
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
@@ -98,7 +99,6 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
     const [pinningOptions, setPinningOptions] = useState<{ messageId: number | null; x: number; y: number }>({ messageId: null, x: 0, y: 0 });
     const messageRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
 
-    // --- NEW: State for typing indicators ---
     const [typingUsers, setTypingUsers] = useState<Array<{ userId: string; fullName: string | null }>>([]);
     const typingTimeoutRefs = useRef<Map<string, NodeJS.Timeout>>(new Map());
     const throttleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -147,6 +147,32 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
         fetchPinnedMessage();
     }, [currentConversationId, user]);
     
+    // --- FIX: This new useEffect handles incoming messages from the context ---
+    useEffect(() => {
+        if (latestMessage && latestMessage.conversation_id === currentConversationId && latestMessage.sender_id !== user?.id) {
+            // We need to fetch the sender's profile for the new message
+            const fetchProfileAndSetMessage = async () => {
+                const { data: senderProfile } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('user_id', latestMessage.sender_id)
+                    .single();
+                
+                if (senderProfile) {
+                    setMessages(prev => {
+                        // Avoid adding duplicate messages that might already be there from an initial load
+                        if (prev.some(msg => msg.id === latestMessage.id)) {
+                            return prev;
+                        }
+                        return [...prev, { ...latestMessage, profiles: senderProfile, reactions: [] }];
+                    });
+                }
+            };
+            fetchProfileAndSetMessage();
+        }
+    }, [latestMessage, currentConversationId, user?.id]);
+
+
     useEffect(() => {
         if (!user || currentConversationId.startsWith('placeholder_')) return;
         
@@ -154,10 +180,8 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
             const { eventType, new: newRecord, old: oldRecord, table } = payload;
             
             if (table === 'messages') {
-                 if (eventType === 'INSERT' && newRecord.sender_id !== user.id) {
-                    const { data: profile } = await supabase.from('profiles').select('*').eq('user_id', newRecord.sender_id).single();
-                    setMessages(prev => [...prev, { ...newRecord, profiles: profile as Profile, reactions: [] }]);
-                } else if (eventType === 'UPDATE') {
+                 // --- FIX: This block is now only for updates (edits/deletes), not inserts ---
+                 if (eventType === 'UPDATE') {
                     setMessages(prev => prev.map(msg => msg.id === newRecord.id ? { ...msg, ...newRecord } : msg));
                 }
             } else if (table === 'message_reactions') {
@@ -182,14 +206,14 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
         };
 
         const channel = supabase.channel(`conversation-realtime:${currentConversationId}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `conversation_id=eq.${currentConversationId}` }, handleDbChange)
+            // --- FIX: The listener for 'messages' now only handles updates, not inserts ---
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages', filter: `conversation_id=eq.${currentConversationId}` }, handleDbChange)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'message_reactions' }, handleDbChange)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'pinned_messages', filter: `conversation_id=eq.${currentConversationId}` }, async () => {
                 const { data, error } = await supabase.rpc('get_pinned_message_for_conversation', { p_conversation_id: currentConversationId });
                 if (error) console.error("Error refetching pinned message:", error);
                 else setPinnedMessage(data);
             })
-            // --- NEW: Listen for typing indicator broadcasts ---
             .on('broadcast', { event: 'typing' }, (payload) => {
                 const { user: typingUser } = payload.payload;
                 if (typingUser.userId === user.id) return;
@@ -215,7 +239,6 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
 
         return () => { 
             supabase.removeChannel(channel); 
-            // --- NEW: Clear all timeouts on unmount ---
             typingTimeoutRefs.current.forEach(timeoutId => clearTimeout(timeoutId));
         };
     }, [currentConversationId, user]);
@@ -485,12 +508,9 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                         <h3 className="font-bold text-lg text-text-main-light dark:text-text-main group-hover:text-brand-green dark:group-hover:text-brand-green transition-colors truncate">
                             {conversation.name}
                         </h3>
-                        {/* --- THIS IS THE FIX --- */}
-                        {/* We add 1 to the participants length because the current user is not in that array */}
                         <p className="text-xs text-text-tertiary-light dark:text-text-tertiary">
                             {conversation.participants.length + 1} members
                         </p>
-                        {/* --- END OF FIX --- */}
                     </div>
                 </Link>
             );
