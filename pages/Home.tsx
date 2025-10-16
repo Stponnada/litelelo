@@ -117,7 +117,8 @@ export const HomePage: React.FC = () => {
 
             {/* Posts Feed */}
             {posts.length > 0 ? (
-                <div className="space-y-6">
+                // --- MODIFIED: Changed space-y-6 to space-y-4 to reduce spacing ---
+                <div className="space-y-4">
                     {posts.map((post, index) => (
                         <div 
                             key={post.id}
