@@ -3,7 +3,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { useAuth } from './hooks/useAuth';
-import { useOnlineStatus } from './hooks/useOnlineStatus'; // <-- 1. Import the new hook
+import { useOnlineStatus } from './hooks/useOnlineStatus';
 import { PostsProvider } from './contexts/PostsContext';
 import { ChatProvider } from './contexts/ChatContext';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -15,7 +15,7 @@ import PostPage from './pages/PostPage';
 import ProfileSetup from './pages/ProfileSetup';
 import DirectoryPage from './pages/DirectoryPage';
 import NotFound from './pages/NotFound';
-import NoInternetPage from './pages/NoInternetPage'; // <-- 2. Import the new page
+import NoInternetPage from './pages/NoInternetPage';
 import Layout from './components/Layout';
 import SearchPage from './pages/SearchPage';
 import ChatPage from './pages/ChatPage';
@@ -37,10 +37,8 @@ import PrivacyPage from './pages/PrivacyPage';
 
 const AppRoutes = () => {
   const { user, profile, isLoading } = useAuth();
-  const isOnline = useOnlineStatus(); // <-- 3. Use the hook to get connection status
+  const isOnline = useOnlineStatus();
 
-  // --- 4. ADD THE GLOBAL OFFLINE CHECK ---
-  // If offline, render only the NoInternetPage, regardless of auth status.
   if (!isOnline) {
     return (
       <Routes>
@@ -48,7 +46,6 @@ const AppRoutes = () => {
       </Routes>
     );
   }
-  // ----------------------------------------
 
   if (isLoading) {
     return (
@@ -67,7 +64,6 @@ const AppRoutes = () => {
     );
   }
 
-  // This check now only runs when the app is online.
   if (user && !profile?.profile_complete) {
      return (
         <Routes>
@@ -109,8 +105,6 @@ const AppRoutes = () => {
     </Routes>
   );
 };
-
-// ... (rest of App component is unchanged)
 
 const App = () => {
   return (

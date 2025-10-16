@@ -9,7 +9,7 @@ interface PostsContextType {
   posts: PostType[];
   loading: boolean;
   error: string | null;
-  addPostToContext: (newPost: PostType) => void;
+  addPostToContext: (newPost: any) => void;
   updatePostInContext: (updatedPost: Partial<PostType> & { id: string }) => void;
 }
 
@@ -58,7 +58,7 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     fetchPosts();
   }, [fetchPosts]);
 
-  // --- THIS IS THE FINAL FIX ---
+  // --- THIS IS THE FIX ---
   // The 'newPost' coming from the RPC is flat, but our state requires a nested 'author' object.
   // We must perform the same formatting here as we do in fetchPosts.
   const addPostToContext = (newPost: any) => {

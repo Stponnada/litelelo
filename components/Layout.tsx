@@ -31,7 +31,7 @@ const Layout = () => {
       {isAboutModalOpen && <AboutModal onClose={() => setIsAboutModalOpen(false)} />}
       
       <div className="hidden md:block">
-        <Header isSidebarExpanded={isSidebarExpanded} />
+        <Header isSidebarExpanded={isSidebarExpanded} onOpenAboutModal={() => setIsAboutModalOpen(true)} />
         <LeftSidebar 
           isExpanded={isSidebarExpanded} 
           setIsExpanded={setIsSidebarExpanded} 
@@ -41,20 +41,20 @@ const Layout = () => {
       </div>
       
       <div className="md:hidden">
-        <Header isSidebarExpanded={false} />
+        <Header isSidebarExpanded={false} onOpenAboutModal={() => setIsAboutModalOpen(true)} />
       </div>
 
       <main 
-        className={`pt-24 transition-all duration-300 ease-in-out 
+        className={`pt-16 md:pt-24 transition-all duration-300 ease-in-out 
                     pb-20 md:pb-0
                     ${isSidebarExpanded ? 'md:pl-48' : 'md:pl-20'}`}
       >
-        <div className="p-4 md:p-6">
+        <div className="p-6 md:p-6">
           <Outlet />
         </div>
       </main>
 
-      <BottomNavBar onOpenAboutModal={() => setIsAboutModalOpen(true)} />
+      <BottomNavBar />
       <FloatingFooter onOpenAboutModal={() => setIsAboutModalOpen(true)} />
     </div>
   );

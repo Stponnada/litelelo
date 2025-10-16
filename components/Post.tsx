@@ -138,7 +138,7 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => 
             onClick={() => !post.is_deleted && navigate(`/post/${post.id}`)}
         >
             <div className="flex items-start space-x-3">
-                <Link to={authorLink} onClick={e => e.stopPropagation()}>
+                <Link to={authorLink} onClick={e => e.stopPropagation()} className="flex-shrink-0">
                     <img 
                         src={author.author_avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(author.author_name || ' ')}&background=3cfba2&color=000`} 
                         alt={author.author_name || ''} 
@@ -150,12 +150,12 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => 
                         <div>
                             <div className="flex items-baseline space-x-2">
                                 <Link to={authorLink} onClick={e => e.stopPropagation()} className="font-bold hover:underline text-text-main-light dark:text-text-main leading-tight">{author.author_name}</Link>
-                                {author.author_type === 'user' && (
-                                    <span className="text-sm text-text-tertiary-light dark:text-text-tertiary">@{author.author_username}</span>
-                                )}
                                 <span className="text-sm text-text-tertiary-light dark:text-text-tertiary">&middot;</span>
                                 <span className="text-sm text-text-tertiary-light dark:text-text-tertiary hover:underline">{formatTimestamp(post.created_at)}</span>
                             </div>
+                            {author.author_type === 'user' && (
+                                <p className="text-sm text-text-tertiary-light dark:text-text-tertiary -mt-1">@{author.author_username}</p>
+                            )}
                             {author.author_type === 'community' && post.original_poster_username && (
                                 <p className="text-xs text-text-tertiary-light dark:text-text-tertiary">
                                     Posted by <Link to={`/profile/${post.original_poster_username}`} onClick={e => e.stopPropagation()} className="hover:underline">@{post.original_poster_username}</Link>

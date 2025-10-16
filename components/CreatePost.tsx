@@ -122,7 +122,20 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, profile, communi
       
       if (rpcError) throw rpcError;
       
-      onPostCreated(data as any);
+      let finalData = data;
+      // --- THIS IS THE FIX ---
+      // For user posts (not community posts), we manually enrich the returned data
+      // with the author's profile info that we already have on the client.
+      // This guarantees the avatar appears instantly for the optimistic UI update.
+      if (!communityId) {
+        finalData = {
+          ...data,
+          author_name: profile.full_name,
+          author_username: profile.username,
+          author_avatar_url: profile.avatar_url,
+        };
+      }
+      onPostCreated(finalData as any);
 
       setContent('');
       handleRemoveImage();
