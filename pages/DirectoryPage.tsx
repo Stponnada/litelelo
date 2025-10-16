@@ -153,7 +153,7 @@ const DirectoryPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4 overflow-x-hidden">
+      <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4">
         <Spinner />
         <p className="text-text-secondary-light dark:text-text-secondary animate-pulse">
           Loading directory...
@@ -164,7 +164,7 @@ const DirectoryPage: React.FC = () => {
 
   if (error) {
     return (
-      <div className="max-w-4xl mx-auto mt-12 px-4 overflow-x-hidden">
+      <div className="max-w-4xl mx-auto mt-12 px-4">
         <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-8 backdrop-blur-sm">
           <div className="flex items-start gap-4 flex-wrap">
             <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
@@ -195,7 +195,7 @@ const DirectoryPage: React.FC = () => {
   }
 
   return (
-    // ✅ Top-level overflow fix
+    // keep top-level guard to prevent page-wide horizontal scroll
     <div className="w-full max-w-full overflow-x-hidden">
       <div className="max-w-6xl mx-auto px-4 py-6">
         {/* Header */}
@@ -355,9 +355,7 @@ const DirectoryPage: React.FC = () => {
             </svg>
             <input
               type="text"
-              placeholder={`Search ${
-                activeTab === 'users' ? 'users' : 'communities'
-              }...`}
+              placeholder={`Search ${activeTab === 'users' ? 'users' : 'communities'}...`}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full max-w-full pl-12 pr-4 py-3 bg-secondary-light dark:bg-secondary border border-tertiary-light/50 dark:border-tertiary/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-green/50 focus:border-brand-green/50 transition-all"
@@ -367,18 +365,8 @@ const DirectoryPage: React.FC = () => {
                 onClick={() => setSearchQuery('')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-tertiary-light/50 dark:bg-tertiary/50 hover:bg-tertiary-light dark:hover:bg-tertiary flex items-center justify-center transition-colors"
               >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             )}
@@ -386,13 +374,16 @@ const DirectoryPage: React.FC = () => {
         </div>
 
         {/* Directory List */}
-        <div className="relative w-full max-w-full overflow-x-hidden">
+        {/* Make this parent overflow-x-visible so inner cards + shadows/buttons aren't clipped */}
+        <div className="relative w-full max-w-full overflow-x-visible">
           {filteredProfiles.length > 0 ? (
-            <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 max-w-full overflow-x-hidden">
+            // grid container: ensure children can shrink with min-w-0
+            <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 max-w-full">
               {filteredProfiles.map((profile, index) => (
+                // Per-item wrapper: allow shrink and full width to avoid clipping
                 <div
                   key={profile.id}
-                  className="animate-in fade-in slide-in-from-bottom-2 duration-300"
+                  className="animate-in fade-in slide-in-from-bottom-2 duration-300 min-w-0 w-full"
                   style={{
                     animationDelay: `${index * 30}ms`,
                     animationFillMode: 'backwards',
@@ -409,28 +400,32 @@ const DirectoryPage: React.FC = () => {
               ))}
             </div>
           ) : (
-            <div className="text-center py-20 px-6 overflow-x-hidden">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-secondary-light dark:bg-secondary flex items-center justify-center">
-                <svg
-                  className="w-8 h-8 text-text-secondary-light dark:text-text-secondary"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
+            <div className="text-center py-20 px-6">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-secondary-light dark:bg-secondary border-2 border-tertiary-light dark:border-tertiary flex items-center justify-center">
+                <svg className="w-8 h-8 text-text-tertiary-light dark:text-text-tertiary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </div>
-              <p className="text-lg text-text-secondary-light dark:text-text-secondary font-medium mb-2">
-                No results found
+              <p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">
+                No matches found
               </p>
-              <p className="text-sm text-text-tertiary-light dark:text-text-tertiary">
-                Try adjusting your search or changing tabs.
+              <p className="text-text-secondary-light dark:text-text-secondary text-sm max-w-md mx-auto mb-4">
+                {searchQuery ? (
+                  <>We couldn't find any results matching your criteria.</>
+                ) : (
+                  <>No {activeTab === 'users' ? 'users' : 'communities'} to display.</>
+                )}
               </p>
+              {searchQuery && (
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                  }}
+                  className="px-5 py-2.5 bg-brand-green hover:bg-brand-green/90 text-black font-semibold rounded-lg transition-colors text-sm"
+                >
+                  Clear Search
+                </button>
+              )}
             </div>
           )}
         </div>
