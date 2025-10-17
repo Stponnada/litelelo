@@ -1,6 +1,7 @@
 // src/components/AboutModal.tsx
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { XCircleIcon } from './icons';
 
 interface AboutModalProps {
@@ -8,6 +9,31 @@ interface AboutModalProps {
 }
 
 const AboutModal: React.FC<AboutModalProps> = ({ onClose }) => {
+  const [clickCount, setClickCount] = useState(0);
+  const navigate = useNavigate();
+
+  const handleLogoClick = () => {
+    // This function will be called on each click of the logo
+    setClickCount(prevCount => prevCount + 1);
+  };
+
+  useEffect(() => {
+    // This effect runs whenever the click count changes
+    if (clickCount === 0) return; // Do nothing if count is 0
+
+    // If 5 clicks are reached, navigate to the easter egg page
+    if (clickCount >= 5) {
+      onClose(); // Close the modal
+      navigate('/easter-egg'); // Navigate to the secret page
+    }
+
+    // Set a timer to reset the click count if the user stops clicking
+    const timer = setTimeout(() => setClickCount(0), 1500);
+
+    // Clean up the timer if the component unmounts or clickCount changes
+    return () => clearTimeout(timer);
+  }, [clickCount, navigate, onClose]);
+
   return (
     <div
       className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn"
@@ -24,7 +50,11 @@ const AboutModal: React.FC<AboutModalProps> = ({ onClose }) => {
               <p className="text-sm text-text-tertiary-light dark:text-text-tertiary">
                 [Life is unfair.]
               </p>
-              <h1 className="text-4xl font-raleway font-black text-brand-green mb-1">
+              <h1 
+                className="text-4xl font-raleway font-black text-brand-green mb-1 cursor-pointer select-none"
+                onClick={handleLogoClick}
+                title="What are you clicking at?"
+              >
                 litelelo.
               </h1>
 

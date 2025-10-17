@@ -34,6 +34,7 @@ import BookmarksPage from './pages/BookmarksPage';
 import HelpCenterPage from './pages/HelpCenterPage';
 import TermsPage from './pages/TermsPage'; 
 import PrivacyPage from './pages/PrivacyPage';
+import EasterEggPage from './pages/EasterEggPage';
 
 const AppRoutes = () => {
   const { user, profile, isLoading } = useAuth();
@@ -99,6 +100,8 @@ const AppRoutes = () => {
         <Route path="/privacy" element={<PrivacyPage />} />
       </Route>
 
+      {/* Routes outside the main layout */}
+      <Route path="/easter-egg" element={<EasterEggPage />} />
       <Route path="/login" element={<Navigate to="/" replace />} />
       <Route path="/setup" element={<Navigate to="/" replace />} />
       <Route path="*" element={<NotFound />} />
