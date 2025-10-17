@@ -26,11 +26,13 @@ export interface DirectoryProfile {
   is_following: boolean | null;
   follower_count: number | null;
   member_count: number | null;
-  // Make sure these fields are here and optional
-  admission_year?: number | null;
-  branch?: string | null;
-  dual_degree_branch?: string | null;
-  dorm_building?: string | null;
+  admission_year: number | null;
+  branch: string | null;
+  dual_degree_branch: string | null;
+  gender: string | null;
+  dorm_building: string | null;
+  relationship_status: string | null;
+  dining_hall: string | null;
 }
 
 export interface Friend {
