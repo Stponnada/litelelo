@@ -9,30 +9,36 @@ interface AboutModalProps {
 }
 
 const AboutModal: React.FC<AboutModalProps> = ({ onClose }) => {
+  // --- Logic for Snake Game Easter Egg ---
   const [clickCount, setClickCount] = useState(0);
   const navigate = useNavigate();
 
   const handleLogoClick = () => {
-    // This function will be called on each click of the logo
     setClickCount(prevCount => prevCount + 1);
   };
 
   useEffect(() => {
-    // This effect runs whenever the click count changes
-    if (clickCount === 0) return; // Do nothing if count is 0
-
-    // If 5 clicks are reached, navigate to the easter egg page
+    if (clickCount === 0) return;
     if (clickCount >= 5) {
-      onClose(); // Close the modal
-      navigate('/easter-egg'); // Navigate to the secret page
+      onClose();
+      navigate('/easter-egg');
     }
-
-    // Set a timer to reset the click count if the user stops clicking
     const timer = setTimeout(() => setClickCount(0), 1500);
-
-    // Clean up the timer if the component unmounts or clickCount changes
     return () => clearTimeout(timer);
   }, [clickCount, navigate, onClose]);
+
+  // --- Logic for Console Log Easter Egg ---
+  const handleCynicalClick = () => {
+    // --- THIS IS THE CHANGE ---
+    // Increased font-size from 1.1em to 1.3em and added one to the first part.
+    const style1 = 'color: #94a3b8; font-style: italic; font-size: 2em;'; // Muted grey
+    const style2 = 'color: #3cfba2; font-weight: bold; font-size: 3em;'; // Brand green
+    console.log(
+      '%cSome queries return no results. Some efforts bear no fruit. %c[life is unfair.]',
+      style1,
+      style2
+    );
+  };
 
   return (
     <div
@@ -47,17 +53,20 @@ const AboutModal: React.FC<AboutModalProps> = ({ onClose }) => {
         <div className="relative bg-gradient-to-r from-brand-green/5 to-transparent p-6 border-b border-tertiary-light dark:border-tertiary">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-sm text-text-tertiary-light dark:text-text-tertiary">
+              <p
+                className="text-sm text-text-tertiary-light dark:text-text-tertiary cursor-pointer hover:text-brand-green transition-colors select-none"
+                onClick={handleCynicalClick}
+                title="Inspect this closer."
+              >
                 [Life is unfair.]
               </p>
-              <h1 
+              <h1
                 className="text-4xl font-raleway font-black text-brand-green mb-1 cursor-pointer select-none"
                 onClick={handleLogoClick}
                 title="What are you clicking at?"
               >
                 litelelo.
               </h1>
-
             </div>
             <button
               onClick={onClose}

@@ -43,6 +43,8 @@ const EasterEggPage: React.FC = () => {
   const [gameOver, setGameOver] = useState(false);
   const [score, setScore] = useState(0);
 
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+
   const generateFood = (snakeBody: { x: number; y: number }[]) => {
     let newFoodPosition;
     do {
@@ -54,27 +56,57 @@ const EasterEggPage: React.FC = () => {
     return newFoodPosition;
   };
 
-  const handleKeyDown = (e: KeyboardEvent) => {
-    switch (e.key) {
-      case 'ArrowUp':
-        if (direction.y === 0) setDirection(DIRECTIONS.ArrowUp);
-        break;
-      case 'ArrowDown':
-        if (direction.y === 0) setDirection(DIRECTIONS.ArrowDown);
-        break;
-      case 'ArrowLeft':
-        if (direction.x === 0) setDirection(DIRECTIONS.ArrowLeft);
-        break;
-      case 'ArrowRight':
-        if (direction.x === 0) setDirection(DIRECTIONS.ArrowRight);
-        break;
+  const changeDirection = useCallback((newDirection: { x: number, y: number }) => {
+    if (newDirection.x !== 0 && direction.x === 0) {
+      setDirection(newDirection);
     }
-  };
+    if (newDirection.y !== 0 && direction.y === 0) {
+      setDirection(newDirection);
+    }
+  }, [direction]);
+
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    switch (e.key) {
+      case 'ArrowUp': changeDirection(DIRECTIONS.ArrowUp); break;
+      case 'ArrowDown': changeDirection(DIRECTIONS.ArrowDown); break;
+      case 'ArrowLeft': changeDirection(DIRECTIONS.ArrowLeft); break;
+      case 'ArrowRight': changeDirection(DIRECTIONS.ArrowRight); break;
+    }
+  }, [changeDirection]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [direction]);
+  }, [handleKeyDown]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault();
+    touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    e.preventDefault();
+    if (!touchStartRef.current) return;
+
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+
+    const deltaX = touchEndX - touchStartRef.current.x;
+    const deltaY = touchEndY - touchStartRef.current.y;
+    const swipeThreshold = 50;
+
+    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+      if (Math.abs(deltaX) > swipeThreshold) {
+        changeDirection(deltaX > 0 ? DIRECTIONS.ArrowRight : DIRECTIONS.ArrowLeft);
+      }
+    } else {
+      if (Math.abs(deltaY) > swipeThreshold) {
+        changeDirection(deltaY > 0 ? DIRECTIONS.ArrowDown : DIRECTIONS.ArrowUp);
+      }
+    }
+
+    touchStartRef.current = null;
+  };
 
   const startGame = () => {
     setSnake(INITIAL_SNAKE);
@@ -91,14 +123,12 @@ const EasterEggPage: React.FC = () => {
     head.x += direction.x;
     head.y += direction.y;
 
-    // Wall collision
     if (head.x < 0 || head.x >= BOARD_SIZE || head.y < 0 || head.y >= BOARD_SIZE) {
       setGameOver(true);
       setSpeed(null);
       return;
     }
 
-    // Self collision
     for (let i = 1; i < newSnake.length; i++) {
       if (head.x === newSnake[i].x && head.y === newSnake[i].y) {
         setGameOver(true);
@@ -109,11 +139,9 @@ const EasterEggPage: React.FC = () => {
 
     newSnake.unshift(head);
 
-    // Food collision
     if (head.x === food.x && head.y === food.y) {
       setScore(s => s + 10);
       setFood(generateFood(newSnake));
-      // Increase speed slightly
       setSpeed(s => Math.max(50, s! - 2));
     } else {
       newSnake.pop();
@@ -131,15 +159,19 @@ const EasterEggPage: React.FC = () => {
           &larr; Back to litelelo.
         </Link>
       </div>
-      <h1 className="text-4xl font-raleway font-black text-brand-green mb-2">SNAKE</h1>
-      <p className="text-text-secondary mb-4">Use arrow keys to move</p>
+      <h1 className="text-3xl sm:text-4xl font-raleway font-black text-brand-green mb-1">SNAKE</h1>
+      <p className="text-text-secondary mb-3 text-sm sm:text-base">Use arrow keys or swipe to move</p>
       
-      <div className="relative bg-secondary p-2 rounded-lg shadow-2xl border-2 border-tertiary">
+      <div 
+        className="relative bg-secondary p-2 rounded-lg shadow-2xl border-2 border-tertiary"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         <div 
           className="grid gap-px bg-tertiary"
           style={{ 
             gridTemplateColumns: `repeat(${BOARD_SIZE}, 1fr)`,
-            width: 'clamp(300px, 80vw, 600px)',
+            width: 'clamp(300px, 90vw, 600px)',
             aspectRatio: '1 / 1',
           }}
         >
@@ -163,7 +195,11 @@ const EasterEggPage: React.FC = () => {
             <h2 className="text-5xl font-bold text-red-500">Game Over</h2>
             <p className="text-xl text-white mt-2">Your Score: {score}</p>
             <button
-              onClick={startGame}
+              onClick={startGame} // Keep onClick for desktop & keyboard users
+              onTouchEnd={(e) => {
+                e.stopPropagation(); // Stop the event from bubbling to the parent div
+                startGame();
+              }}
               className="mt-6 bg-brand-green text-black font-bold py-3 px-8 rounded-full hover:bg-brand-green-darker transition-colors"
             >
               Play Again
