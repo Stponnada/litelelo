@@ -4,12 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../services/supabase';
-import { CampusPlace, MarketplaceListing, LostAndFoundItem } from '../types';
+import { CampusPlace, MarketplaceListing, LostAndFoundItem, CampusNotice } from '../types';
 import ListingCard from '../components/ListingCard';
 import Spinner from '../components/Spinner';
-import { ArchiveBoxIcon, ShoppingCartIcon, StarIcon } from '../components/icons';
+import { ArchiveBoxIcon, ShoppingCartIcon, StarIcon, ClipboardDocumentListIcon } from '../components/icons';
 
-// New custom icon to match the image
 const CampusPlacesIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg 
         xmlns="http://www.w3.org/2000/svg" 
@@ -22,20 +21,17 @@ const CampusPlacesIcon: React.FC<{ className?: string }> = ({ className }) => (
         <path 
             strokeLinecap="round" 
             strokeLinejoin="round" 
-            // This path creates the folder shape
             d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" 
         />
         <path 
             strokeLinecap="round" 
             strokeLinejoin="round" 
-            // This path creates the inner "door" shape
             d="M10 12h4v5h-4v-5z" 
         />
     </svg>
 );
 
 
-// Enhanced navigation card with gradient border effect
 const FeatureCard: React.FC<{ to: string; icon: React.ReactNode; title: string; description: string; gradient: string }> = ({ to, icon, title, description, gradient }) => (
     <Link to={to} className="group relative block bg-secondary-light dark:bg-secondary rounded-xl p-4 md:p-6 shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden">
         <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-500`}></div>
@@ -59,7 +55,6 @@ const FeatureCard: React.FC<{ to: string; icon: React.ReactNode; title: string; 
     </Link>
 );
 
-// Enhanced place card with hover effects
 const MiniPlaceCard: React.FC<{ place: CampusPlace }> = ({ place }) => (
     <Link to={`/campus/reviews/${place.id}`} className="group block bg-secondary-light dark:bg-secondary rounded-xl p-4 shadow-md hover:shadow-xl transition-all duration-300 border border-tertiary-light dark:border-tertiary hover:border-brand-green/50">
         <div className="flex items-center space-x-4">
@@ -81,7 +76,6 @@ const MiniPlaceCard: React.FC<{ place: CampusPlace }> = ({ place }) => (
     </Link>
 );
 
-// Enhanced lost & found card with status indicator
 const MiniLostItemCard: React.FC<{ item: LostAndFoundItem }> = ({ item }) => {
     const isLost = item.item_type === 'lost';
     return (
@@ -106,6 +100,23 @@ const MiniLostItemCard: React.FC<{ item: LostAndFoundItem }> = ({ item }) => {
     );
 };
 
+// New preview card for Noticeboard
+const MiniNoticeCard: React.FC<{ notice: CampusNotice }> = ({ notice }) => (
+    <Link to="/campus/noticeboard" className="group block bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-4 shadow-md hover:shadow-xl transition-all duration-300 border border-yellow-200/50 dark:border-yellow-800/50 hover:border-yellow-400/50">
+        <div className="flex items-center space-x-4">
+            <div className="relative overflow-hidden rounded-lg">
+                <img src={notice.files[0]?.file_type === 'image' ? notice.files[0].file_url : 'https://placehold.co/100x100/fde68a/422006?text=PDF'} alt={notice.title} className="w-20 h-20 object-cover group-hover:scale-110 transition-transform duration-300" />
+            </div>
+            <div className="flex-1 min-w-0">
+                <h4 className="font-bold text-gray-800 dark:text-yellow-100 truncate group-hover:text-yellow-600 dark:group-hover:text-yellow-300 transition-colors duration-300">{notice.title}</h4>
+                <p className="text-xs text-gray-500 dark:text-yellow-200/70 mt-1 truncate">
+                    Posted by @{notice.profiles?.username}
+                </p>
+            </div>
+        </div>
+    </Link>
+);
+
 const CampusPage: React.FC = () => {
     const { profile } = useAuth();
     const campusName = profile?.campus || 'Campus';
@@ -113,12 +124,12 @@ const CampusPage: React.FC = () => {
     const [topPlaces, setTopPlaces] = useState<CampusPlace[]>([]);
     const [newestListings, setNewestListings] = useState<MarketplaceListing[]>([]);
     const [latestLostItem, setLatestLostItem] = useState<LostAndFoundItem | null>(null);
+    const [latestNotices, setLatestNotices] = useState<CampusNotice[]>([]);
     const [loadingPreviews, setLoadingPreviews] = useState(true);
     const [selectedListing, setSelectedListing] = useState<MarketplaceListing | null>(null);
     const [displayedText, setDisplayedText] = useState('');
     const [isTyping, setIsTyping] = useState(true);
 
-    // Typewriter effect for campus name
     useEffect(() => {
         if (!campusName) return;
         
@@ -147,13 +158,15 @@ const CampusPage: React.FC = () => {
             try {
                 const placesPromise = supabase.rpc('get_campus_places_with_ratings', { p_campus: profile.campus }).order('avg_rating', { ascending: false }).limit(2);
                 const listingsPromise = supabase.rpc('get_marketplace_listings', { p_campus: profile.campus }).order('created_at', { ascending: false }).limit(3);
-                const lostFoundPromise = supabase.from('lost_and_found_items').select('*').eq('campus', profile.campus).order('created_at', { ascending: false }).limit(1).single();
+                const lostFoundPromise = supabase.from('lost_and_found_items').select('*, profiles(*)').eq('campus', profile.campus).order('created_at', { ascending: false }).limit(1).single();
+                const noticesPromise = supabase.rpc('get_campus_notices_with_files', { p_campus: profile.campus }).limit(2);
 
-                const [placesResult, listingsResult, lostFoundResult] = await Promise.all([placesPromise, listingsPromise, lostFoundPromise]);
+                const [placesResult, listingsResult, lostFoundResult, noticesResult] = await Promise.all([placesPromise, listingsPromise, lostFoundPromise, noticesPromise]);
 
                 if (placesResult.data) setTopPlaces(placesResult.data as CampusPlace[]);
                 if (listingsResult.data) setNewestListings(listingsResult.data as MarketplaceListing[]);
                 if (lostFoundResult.data) setLatestLostItem(lostFoundResult.data as LostAndFoundItem);
+                if (noticesResult.data) setLatestNotices(noticesResult.data as any[]);
 
             } catch (error) {
                 console.error("Error fetching campus previews:", error);
@@ -167,7 +180,6 @@ const CampusPage: React.FC = () => {
 
     return (
         <div className="max-w-7xl mx-auto">
-            {/* Enhanced Hero Section with gradient background */}
             <div className="relative bg-gradient-to-br from-brand-green/10 via-secondary-light to-secondary-light dark:from-brand-green/5 dark:via-secondary dark:to-secondary p-8 md:p-12 rounded-2xl shadow-2xl border border-tertiary-light dark:border-tertiary mb-12 overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-brand-green/5 rounded-full blur-3xl"></div>
                 <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl"></div>
@@ -184,32 +196,37 @@ const CampusPage: React.FC = () => {
                 </div>
             </div>
 
-            {/* Enhanced Main Navigation Grid */}
-            <div className="grid grid-cols-3 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-12">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-12">
                 <FeatureCard 
                     to="/campus/reviews" 
                     icon={<CampusPlacesIcon className="w-6 h-6 md:w-8 md:h-8 text-white" />} 
                     title="Campus Places" 
-                    description="Discover and review the best eateries, shops, and hangout spots on campus"
+                    description="Review eateries, shops, and hangout spots"
                     gradient="from-blue-500 to-purple-600"
+                />
+                 <FeatureCard 
+                    to="/campus/noticeboard" 
+                    icon={<ClipboardDocumentListIcon className="w-6 h-6 md:w-8 md:h-8 text-white" />} 
+                    title="Noticeboard" 
+                    description="View and post campus announcements and posters"
+                    gradient="from-yellow-500 to-amber-600"
                 />
                 <FeatureCard 
                     to="/campus/lost-and-found" 
                     icon={<ArchiveBoxIcon className="w-6 h-6 md:w-8 md:h-8 text-white" />} 
                     title="Lost & Found" 
-                    description="Report lost items or help reunite found items with their owners"
+                    description="Report or find lost items on campus"
                     gradient="from-orange-500 to-red-600"
                 />
                 <FeatureCard 
                     to="/campus/marketplace" 
                     icon={<ShoppingCartIcon className="w-6 h-6 md:w-8 md:h-8 text-white" />} 
                     title="Marketplace" 
-                    description="Buy, sell, and trade items with fellow students safely and easily"
+                    description="Buy, sell, and trade items with students"
                     gradient="from-green-500 to-teal-600"
                 />
             </div>
 
-            {/* Enhanced Dynamic Previews Section */}
             <div className="mt-16">
                 <div className="flex items-center justify-between mb-8">
                     <div>
@@ -224,11 +241,10 @@ const CampusPage: React.FC = () => {
                         <Spinner />
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        {/* Top Places Preview */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-8">
                         <div className="space-y-4">
                             <div className="flex items-center space-x-2 mb-4">
-                                <div className="w-1 h-6 bg-brand-green rounded-full"></div>
+                                <div className="w-1 h-6 bg-blue-500 rounded-full"></div>
                                 <h3 className="text-xl font-bold text-text-main-light dark:text-text-main">Top Rated Places</h3>
                             </div>
                             {topPlaces.length > 0 ? (
@@ -236,14 +252,30 @@ const CampusPage: React.FC = () => {
                                     {topPlaces.map(place => <MiniPlaceCard key={place.id} place={place} />)}
                                 </div>
                             ) : (
-                                <div className="bg-secondary-light dark:bg-secondary rounded-xl p-8 text-center border-2 border-dashed border-tertiary-light dark:border-tertiary">
+                                <div className="bg-secondary-light dark:bg-secondary rounded-xl p-8 text-center border-2 border-dashed border-tertiary-light dark:border-tertiary h-full flex flex-col justify-center">
                                     <StarIcon className="w-12 h-12 text-text-tertiary-light dark:text-text-tertiary mx-auto mb-3 opacity-50" />
                                     <p className="text-sm text-text-tertiary-light dark:text-text-tertiary">No places reviewed yet. Be the first!</p>
                                 </div>
                             )}
                         </div>
 
-                        {/* Recent Marketplace Preview */}
+                        <div className="space-y-4">
+                             <div className="flex items-center space-x-2 mb-4">
+                                <div className="w-1 h-6 bg-yellow-500 rounded-full"></div>
+                                <h3 className="text-xl font-bold text-text-main-light dark:text-text-main">Latest Notices</h3>
+                            </div>
+                            {latestNotices.length > 0 ? (
+                                <div className="space-y-3">
+                                    {latestNotices.map(notice => <MiniNoticeCard key={notice.id} notice={notice} />)}
+                                </div>
+                            ) : (
+                                <div className="bg-secondary-light dark:bg-secondary rounded-xl p-8 text-center border-2 border-dashed border-tertiary-light dark:border-tertiary h-full flex flex-col justify-center">
+                                    <ClipboardDocumentListIcon className="w-12 h-12 text-text-tertiary-light dark:text-text-tertiary mx-auto mb-3 opacity-50" />
+                                    <p className="text-sm text-text-tertiary-light dark:text-text-tertiary">Noticeboard is clear!</p>
+                                </div>
+                            )}
+                        </div>
+
                         <div className="space-y-4">
                             <div className="flex items-center space-x-2 mb-4">
                                 <div className="w-1 h-6 bg-green-500 rounded-full"></div>
@@ -252,14 +284,13 @@ const CampusPage: React.FC = () => {
                             {newestListings.length > 0 ? (
                                 <ListingCard listing={newestListings[0]} onClick={() => {}} />
                             ) : (
-                                <div className="bg-secondary-light dark:bg-secondary rounded-xl p-8 text-center border-2 border-dashed border-tertiary-light dark:border-tertiary">
+                                <div className="bg-secondary-light dark:bg-secondary rounded-xl p-8 text-center border-2 border-dashed border-tertiary-light dark:border-tertiary h-full flex flex-col justify-center">
                                     <ShoppingCartIcon className="w-12 h-12 text-text-tertiary-light dark:text-text-tertiary mx-auto mb-3 opacity-50" />
                                     <p className="text-sm text-text-tertiary-light dark:text-text-tertiary">Marketplace is empty. List something!</p>
                                 </div>
                             )}
                         </div>
 
-                        {/* Latest Lost & Found Preview */}
                         <div className="space-y-4">
                             <div className="flex items-center space-x-2 mb-4">
                                 <div className="w-1 h-6 bg-orange-500 rounded-full"></div>
@@ -268,7 +299,7 @@ const CampusPage: React.FC = () => {
                             {latestLostItem ? (
                                 <MiniLostItemCard item={latestLostItem} />
                             ) : (
-                                <div className="bg-secondary-light dark:bg-secondary rounded-xl p-8 text-center border-2 border-dashed border-tertiary-light dark:border-tertiary">
+                                <div className="bg-secondary-light dark:bg-secondary rounded-xl p-8 text-center border-2 border-dashed border-tertiary-light dark:border-tertiary h-full flex flex-col justify-center">
                                     <ArchiveBoxIcon className="w-12 h-12 text-text-tertiary-light dark:text-text-tertiary mx-auto mb-3 opacity-50" />
                                     <p className="text-sm text-text-tertiary-light dark:text-text-tertiary">Nothing reported recently. Stay vigilant!</p>
                                 </div>

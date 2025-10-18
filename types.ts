@@ -101,6 +101,22 @@ export interface Post {
     is_deleted: boolean; // <-- ADD THIS
 }
 
+export interface CampusNotice {
+    id: string;
+    user_id: string;
+    campus: string;
+    title: string;
+    description: string | null;
+    created_at: string;
+    profiles: Profile | null; // For author details
+    files: CampusNoticeFile[];
+}
+
+export interface CampusNoticeFile {
+    file_url: string;
+    file_type: 'image' | 'pdf';
+}
+
 export interface Comment {
 id: number;
 content: string;

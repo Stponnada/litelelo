@@ -29,6 +29,7 @@ import EventsPage from './pages/EventsPage';
 import EventDetailPage from './pages/EventDetailPage';
 import SellerProfilePage from './pages/SellerProfilePage';
 import GroupInfoPage from './pages/GroupInfoPage';
+import NoticeboardPage from './pages/NoticeboardPage'; // <-- Add this import
 import CommunitiesListPage from './pages/CommunitiesListPage';
 import CommunityPage from './pages/CommunityPage';
 import CommunityMembersPage from './pages/CommunityMembersPage';
@@ -88,6 +89,7 @@ const AppRoutes = () => {
         <Route path="/campus" element={<CampusPage />} />
         <Route path="/campus/reviews" element={<CampusDirectoryPage />} />
         <Route path="/campus/reviews/:placeId" element={<PlaceDetailPage />} />
+        <Route path="/campus/noticeboard" element={<NoticeboardPage />} /> {/* <-- Add this route */}
         <Route path="/campus/lost-and-found" element={<LostAndFoundPage />} />
         <Route path="/campus/marketplace" element={<MarketplacePage />} />
         <Route path="/campus/events" element={<EventsPage />} />
