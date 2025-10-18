@@ -25,6 +25,8 @@ import CampusDirectoryPage from './pages/CampusDirectoryPage';
 import PlaceDetailPage from './pages/PlaceDetailPage';
 import LostAndFoundPage from './pages/LostAndFoundPage';
 import MarketplacePage from './pages/MarketplacePage';
+import EventsPage from './pages/EventsPage';
+import EventDetailPage from './pages/EventDetailPage';
 import SellerProfilePage from './pages/SellerProfilePage';
 import GroupInfoPage from './pages/GroupInfoPage';
 import CommunitiesListPage from './pages/CommunitiesListPage';
@@ -88,6 +90,8 @@ const AppRoutes = () => {
         <Route path="/campus/reviews/:placeId" element={<PlaceDetailPage />} />
         <Route path="/campus/lost-and-found" element={<LostAndFoundPage />} />
         <Route path="/campus/marketplace" element={<MarketplacePage />} />
+        <Route path="/campus/events" element={<EventsPage />} />
+        <Route path="/campus/events/:eventId" element={<EventDetailPage />} />
         <Route path="/marketplace/seller/:username" element={<SellerProfilePage />} />
         <Route path="/profile/:username" element={<ProfilePage />} />
         <Route path="/post/:postId" element={<PostPage />} />

@@ -272,3 +272,38 @@ export interface ReadTimestamp {
   user_id: string;
   last_read_at: string;
 }
+
+export type RsvpStatus = 'going' | 'interested';
+
+export interface EventRsvp {
+  event_id: string;
+  user_id: string;
+  rsvp_status: RsvpStatus;
+  profiles: Profile; // Assuming a nested profile object
+}
+
+export interface CampusEvent {
+  id: string;
+  created_at: string;
+  name: string;
+  description: string | null;
+  start_time: string;
+  end_time: string | null;
+  location: string | null;
+  campus: string;
+  image_url: string | null;
+  created_by: {
+    user_id: string;
+    username: string;
+    full_name: string | null;
+    avatar_url: string | null;
+  };
+  community: {
+    id: string;
+    name: string;
+    avatar_url: string | null;
+  } | null;
+  going_count: number;
+  interested_count: number;
+  user_rsvp_status: RsvpStatus | null;
+}

@@ -1,5 +1,4 @@
 /* src/index.css */
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -58,6 +57,37 @@ img::selection, img::-moz-selection {
   text-shadow: none;
 }
 /* ------------------------------------- */
+
+
+/* --- NEW: FullCalendar Theming --- */
+:root {
+  --fc-border-color: theme('colors.tertiary-light');
+  --fc-daygrid-event-dot-width: 8px;
+  --fc-list-event-dot-width: 10px;
+  --fc-event-bg-color: theme('colors.brand-green');
+  --fc-event-border-color: theme('colors.brand-green');
+  --fc-event-text-color: theme('colors.primary');
+  --fc-button-bg-color: theme('colors.tertiary-light');
+  --fc-button-text-color: theme('colors.text-main-light');
+  --fc-button-border-color: theme('colors.tertiary-light');
+  --fc-button-hover-bg-color: #d1d5db;
+  --fc-button-active-bg-color: #9ca3af;
+  --fc-today-bg-color: rgba(60, 251, 162, 0.1);
+}
+
+.dark {
+  --fc-border-color: theme('colors.tertiary');
+  --fc-event-bg-color: theme('colors.brand-green');
+  --fc-event-border-color: theme('colors.brand-green');
+  --fc-event-text-color: theme('colors.primary');
+  --fc-button-bg-color: theme('colors.tertiary');
+  --fc-button-text-color: theme('colors.text-main');
+  --fc-button-border-color: theme('colors.tertiary');
+  --fc-button-hover-bg-color: #374151;
+  --fc-button-active-bg-color: #4b5563;
+  --fc-today-bg-color: rgba(60, 251, 162, 0.05);
+}
+/* --- END NEW --- */
 
 
 @keyframes circuitFlowSmooth {

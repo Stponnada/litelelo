@@ -59,6 +59,15 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
 
 
 
+CREATE TYPE "public"."event_rsvp_status" AS ENUM (
+    'going',
+    'interested'
+);
+
+
+ALTER TYPE "public"."event_rsvp_status" OWNER TO "postgres";
+
+
 CREATE TYPE "public"."marketplace_category" AS ENUM (
     'Books & Notes',
     'Electronics',
@@ -235,6 +244,28 @@ $$;
 
 
 ALTER FUNCTION "public"."create_dm_conversation"("recipient_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."create_event"("p_name" "text", "p_description" "text", "p_start_time" timestamp with time zone, "p_end_time" timestamp with time zone, "p_location" "text", "p_campus" "text", "p_image_url" "text", "p_community_id" "uuid" DEFAULT NULL::"uuid") RETURNS "uuid"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+    new_event_id uuid;
+BEGIN
+    INSERT INTO public.events (name, description, start_time, end_time, location, campus, image_url, created_by, community_id)
+    VALUES (p_name, p_description, p_start_time, p_end_time, p_location, p_campus, p_image_url, auth.uid(), p_community_id)
+    RETURNING id INTO new_event_id;
+
+    -- Automatically RSVP the creator as 'going'
+    INSERT INTO public.event_rsvps (event_id, user_id, rsvp_status)
+    VALUES (new_event_id, auth.uid(), 'going');
+
+    RETURN new_event_id;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."create_event"("p_name" "text", "p_description" "text", "p_start_time" timestamp with time zone, "p_end_time" timestamp with time zone, "p_location" "text", "p_campus" "text", "p_image_url" "text", "p_community_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."create_group_chat"("group_name" "text", "participant_ids" "uuid"[]) RETURNS "uuid"
@@ -498,6 +529,54 @@ $$;
 
 
 ALTER FUNCTION "public"."get_bookmarked_posts"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."get_campus_events"("p_campus" "text") RETURNS TABLE("id" "uuid", "name" "text", "description" "text", "start_time" timestamp with time zone, "end_time" timestamp with time zone, "location" "text", "image_url" "text", "campus" "text", "created_by" "jsonb", "community" "jsonb", "going_count" bigint, "interested_count" bigint, "user_rsvp_status" "public"."event_rsvp_status")
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        e.id,
+        e.name,
+        e.description,
+        e.start_time,
+        e.end_time,
+        e.location,
+        e.image_url,
+        e.campus,
+        jsonb_build_object(
+            'user_id', creator.user_id,
+            'username', creator.username,
+            'full_name', creator.full_name,
+            'avatar_url', creator.avatar_url
+        ) as created_by,
+        CASE
+            WHEN comm.id IS NOT NULL THEN jsonb_build_object(
+                'id', comm.id,
+                'name', comm.name,
+                'avatar_url', comm.avatar_url
+            )
+            ELSE NULL
+        END as community,
+        (SELECT count(*) FROM event_rsvps WHERE event_id = e.id AND rsvp_status = 'going') as going_count,
+        (SELECT count(*) FROM event_rsvps WHERE event_id = e.id AND rsvp_status = 'interested') as interested_count,
+        (SELECT rsvp_status FROM event_rsvps WHERE event_id = e.id AND user_id = auth.uid()) as user_rsvp_status
+    FROM
+        events e
+    JOIN
+        profiles creator ON e.created_by = creator.user_id
+    LEFT JOIN
+        communities comm ON e.community_id = comm.id
+    WHERE
+        e.campus = p_campus
+    ORDER BY
+        e.start_time ASC;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."get_campus_events"("p_campus" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."get_campus_places_with_ratings"("p_campus" "text") RETURNS TABLE("id" "uuid", "name" "text", "category" "text", "location" "text", "campus" "text", "avg_rating" numeric, "review_count" bigint, "primary_image_url" "text")
@@ -1318,14 +1397,14 @@ $$;
 ALTER FUNCTION "public"."get_search_recommendations"() OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."get_unified_directory"() RETURNS TABLE("id" "text", "type" "text", "name" "text", "username" "text", "avatar_url" "text", "bio" "text", "is_following" boolean, "follower_count" integer, "member_count" bigint)
+CREATE OR REPLACE FUNCTION "public"."get_unified_directory"() RETURNS TABLE("id" "text", "type" "text", "name" "text", "username" "text", "avatar_url" "text", "bio" "text", "is_following" boolean, "follower_count" integer, "member_count" bigint, "admission_year" integer, "branch" "text", "dual_degree_branch" "text", "gender" "text", "dorm_building" "text", "relationship_status" "text", "dining_hall" "text")
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
 BEGIN
     RETURN QUERY
     -- Select all user profiles
     SELECT
-        p.user_id::text,
+        p.user_id::text AS id,
         'user'::text AS type,
         p.full_name AS name,
         p.username,
@@ -1333,7 +1412,14 @@ BEGIN
         p.bio,
         EXISTS(SELECT 1 FROM followers WHERE follower_id = auth.uid() AND following_id = p.user_id) AS is_following,
         p.follower_count,
-        NULL::bigint AS member_count -- Null for users
+        NULL::bigint AS member_count, -- Null for users
+        p.admission_year,
+        p.branch,
+        p.dual_degree_branch,
+        p.gender,
+        p.dorm_building,
+        p.relationship_status,
+        p.dining_hall
     FROM
         profiles p
     WHERE
@@ -1341,9 +1427,9 @@ BEGIN
 
     UNION ALL
 
-    -- Select all communities
+    -- Select all communities, padding user-specific columns with NULL
     SELECT
-        c.id::text,
+        c.id::text AS id,
         'community'::text AS type,
         c.name,
         c.id::text AS username, -- Use ID as a unique key for routing
@@ -1351,7 +1437,14 @@ BEGIN
         c.description AS bio,
         NULL::boolean AS is_following, -- Communities can't be followed in the same way
         NULL::integer AS follower_count,
-        (SELECT count(*) FROM community_members cm WHERE cm.community_id = c.id) AS member_count
+        (SELECT count(*) FROM community_members cm WHERE cm.community_id = c.id) AS member_count,
+        NULL::integer AS admission_year,
+        NULL::text AS branch,
+        NULL::text AS dual_degree_branch,
+        NULL::text AS gender,
+        NULL::text AS dorm_building,
+        NULL::text AS relationship_status,
+        NULL::text AS dining_hall
     FROM
         communities c;
 END;
@@ -1538,6 +1631,33 @@ $$;
 
 
 ALTER FUNCTION "public"."set_community_member_role"("p_community_id" "uuid", "p_target_user_id" "uuid", "p_new_role" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."toggle_rsvp"("p_event_id" "uuid", "p_rsvp_status" "public"."event_rsvp_status") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+    current_status public.event_rsvp_status;
+BEGIN
+    SELECT rsvp_status INTO current_status
+    FROM public.event_rsvps
+    WHERE event_id = p_event_id AND user_id = auth.uid();
+
+    IF current_status IS NOT NULL AND current_status = p_rsvp_status THEN
+        -- If user clicks the same status again, they are removing their RSVP
+        DELETE FROM public.event_rsvps WHERE event_id = p_event_id AND user_id = auth.uid();
+    ELSE
+        -- Otherwise, insert or update their RSVP
+        INSERT INTO public.event_rsvps (event_id, user_id, rsvp_status)
+        VALUES (p_event_id, auth.uid(), p_rsvp_status)
+        ON CONFLICT (event_id, user_id)
+        DO UPDATE SET rsvp_status = p_rsvp_status;
+    END IF;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."toggle_rsvp"("p_event_id" "uuid", "p_rsvp_status" "public"."event_rsvp_status") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."update_community_details"("p_community_id" "uuid", "p_name" "text", "p_description" "text", "p_avatar_url" "text", "p_banner_url" "text") RETURNS "void"
@@ -1815,6 +1935,43 @@ ALTER TABLE "public"."device_keys" ALTER COLUMN "id" ADD GENERATED BY DEFAULT AS
     NO MAXVALUE
     CACHE 1
 );
+
+
+
+CREATE TABLE IF NOT EXISTS "public"."event_rsvps" (
+    "event_id" "uuid" NOT NULL,
+    "user_id" "uuid" NOT NULL,
+    "rsvp_status" "public"."event_rsvp_status" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+ALTER TABLE "public"."event_rsvps" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."event_rsvps" IS 'Tracks which users are going to or interested in an event.';
+
+
+
+CREATE TABLE IF NOT EXISTS "public"."events" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "name" "text" NOT NULL,
+    "description" "text",
+    "start_time" timestamp with time zone NOT NULL,
+    "end_time" timestamp with time zone,
+    "location" "text",
+    "campus" "text" NOT NULL,
+    "image_url" "text",
+    "created_by" "uuid" NOT NULL,
+    "community_id" "uuid"
+);
+
+
+ALTER TABLE "public"."events" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."events" IS 'Stores all campus event details.';
 
 
 
@@ -2169,6 +2326,16 @@ ALTER TABLE ONLY "public"."device_keys"
 
 
 
+ALTER TABLE ONLY "public"."event_rsvps"
+    ADD CONSTRAINT "event_rsvps_pkey" PRIMARY KEY ("event_id", "user_id");
+
+
+
+ALTER TABLE ONLY "public"."events"
+    ADD CONSTRAINT "events_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."followers"
     ADD CONSTRAINT "followers_pkey" PRIMARY KEY ("follower_id", "following_id");
 
@@ -2392,6 +2559,26 @@ ALTER TABLE ONLY "public"."conversations"
 
 ALTER TABLE ONLY "public"."device_keys"
     ADD CONSTRAINT "device_keys_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."event_rsvps"
+    ADD CONSTRAINT "event_rsvps_event_id_fkey" FOREIGN KEY ("event_id") REFERENCES "public"."events"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."event_rsvps"
+    ADD CONSTRAINT "event_rsvps_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("user_id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."events"
+    ADD CONSTRAINT "events_community_id_fkey" FOREIGN KEY ("community_id") REFERENCES "public"."communities"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."events"
+    ADD CONSTRAINT "events_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."profiles"("user_id") ON DELETE CASCADE;
 
 
 
@@ -2641,7 +2828,15 @@ CREATE POLICY "Allow authenticated users to leave a conversation" ON "public"."c
 
 
 
+CREATE POLICY "Allow authenticated users to read RSVPs" ON "public"."event_rsvps" FOR SELECT TO "authenticated" USING (true);
+
+
+
 CREATE POLICY "Allow authenticated users to read any public key" ON "public"."device_keys" FOR SELECT USING (("auth"."role"() = 'authenticated'::"text"));
+
+
+
+CREATE POLICY "Allow authenticated users to read events" ON "public"."events" FOR SELECT TO "authenticated" USING (true);
 
 
 
@@ -2678,6 +2873,14 @@ CREATE POLICY "Allow creator to add participants" ON "public"."conversation_part
 
 
 CREATE POLICY "Allow dev to manage images table" ON "public"."campus_place_images" USING (("auth"."uid"() = '70941ce5-121b-47e3-b6c7-fef1aa069316'::"uuid")) WITH CHECK (("auth"."uid"() = '70941ce5-121b-47e3-b6c7-fef1aa069316'::"uuid"));
+
+
+
+CREATE POLICY "Allow event creator to delete event" ON "public"."events" FOR DELETE TO "authenticated" USING (("auth"."uid"() = "created_by"));
+
+
+
+CREATE POLICY "Allow event creator to update event" ON "public"."events" FOR UPDATE TO "authenticated" USING (("auth"."uid"() = "created_by"));
 
 
 
@@ -2741,6 +2944,10 @@ CREATE POLICY "Allow select on messages for participants" ON "public"."messages"
 
 
 
+CREATE POLICY "Allow users to create events" ON "public"."events" FOR INSERT TO "authenticated" WITH CHECK (("auth"."uid"() = "created_by"));
+
+
+
 CREATE POLICY "Allow users to create mentions" ON "public"."mentions" FOR INSERT WITH CHECK (("auth"."uid"() = "mentioner_id"));
 
 
@@ -2798,6 +3005,10 @@ CREATE POLICY "Allow users to join conversations" ON "public"."conversation_part
 
 
 CREATE POLICY "Allow users to leave conversations" ON "public"."conversation_participants" FOR DELETE TO "authenticated" USING (("auth"."uid"() = "user_id"));
+
+
+
+CREATE POLICY "Allow users to manage their own RSVPs" ON "public"."event_rsvps" TO "authenticated" USING (("auth"."uid"() = "user_id"));
 
 
 
@@ -3029,6 +3240,12 @@ ALTER TABLE "public"."conversations" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."device_keys" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."event_rsvps" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."events" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."lost_and_found_items" ENABLE ROW LEVEL SECURITY;
@@ -3290,6 +3507,12 @@ GRANT ALL ON FUNCTION "public"."create_dm_conversation"("recipient_id" "uuid") T
 
 
 
+GRANT ALL ON FUNCTION "public"."create_event"("p_name" "text", "p_description" "text", "p_start_time" timestamp with time zone, "p_end_time" timestamp with time zone, "p_location" "text", "p_campus" "text", "p_image_url" "text", "p_community_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."create_event"("p_name" "text", "p_description" "text", "p_start_time" timestamp with time zone, "p_end_time" timestamp with time zone, "p_location" "text", "p_campus" "text", "p_image_url" "text", "p_community_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."create_event"("p_name" "text", "p_description" "text", "p_start_time" timestamp with time zone, "p_end_time" timestamp with time zone, "p_location" "text", "p_campus" "text", "p_image_url" "text", "p_community_id" "uuid") TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."create_group_chat"("group_name" "text", "participant_ids" "uuid"[]) TO "anon";
 GRANT ALL ON FUNCTION "public"."create_group_chat"("group_name" "text", "participant_ids" "uuid"[]) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."create_group_chat"("group_name" "text", "participant_ids" "uuid"[]) TO "service_role";
@@ -3335,6 +3558,12 @@ GRANT ALL ON FUNCTION "public"."get_birthday_users"("p_month" integer, "p_day" i
 GRANT ALL ON FUNCTION "public"."get_bookmarked_posts"() TO "anon";
 GRANT ALL ON FUNCTION "public"."get_bookmarked_posts"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_bookmarked_posts"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."get_campus_events"("p_campus" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_campus_events"("p_campus" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_campus_events"("p_campus" "text") TO "service_role";
 
 
 
@@ -3524,6 +3753,12 @@ GRANT ALL ON FUNCTION "public"."set_community_member_role"("p_community_id" "uui
 
 
 
+GRANT ALL ON FUNCTION "public"."toggle_rsvp"("p_event_id" "uuid", "p_rsvp_status" "public"."event_rsvp_status") TO "anon";
+GRANT ALL ON FUNCTION "public"."toggle_rsvp"("p_event_id" "uuid", "p_rsvp_status" "public"."event_rsvp_status") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."toggle_rsvp"("p_event_id" "uuid", "p_rsvp_status" "public"."event_rsvp_status") TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."update_community_details"("p_community_id" "uuid", "p_name" "text", "p_description" "text", "p_avatar_url" "text", "p_banner_url" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."update_community_details"("p_community_id" "uuid", "p_name" "text", "p_description" "text", "p_avatar_url" "text", "p_banner_url" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."update_community_details"("p_community_id" "uuid", "p_name" "text", "p_description" "text", "p_avatar_url" "text", "p_banner_url" "text") TO "service_role";
@@ -3644,6 +3879,18 @@ GRANT ALL ON TABLE "public"."device_keys" TO "service_role";
 GRANT ALL ON SEQUENCE "public"."device_keys_id_seq" TO "anon";
 GRANT ALL ON SEQUENCE "public"."device_keys_id_seq" TO "authenticated";
 GRANT ALL ON SEQUENCE "public"."device_keys_id_seq" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."event_rsvps" TO "anon";
+GRANT ALL ON TABLE "public"."event_rsvps" TO "authenticated";
+GRANT ALL ON TABLE "public"."event_rsvps" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."events" TO "anon";
+GRANT ALL ON TABLE "public"."events" TO "authenticated";
+GRANT ALL ON TABLE "public"."events" TO "service_role";
 
 
 

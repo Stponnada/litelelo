@@ -525,7 +525,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                         <h3 className="font-bold text-lg text-text-main-light dark:text-text-main group-hover:text-brand-green dark:group-hover:text-brand-green transition-colors truncate">
                             {otherParticipant.full_name || otherParticipant.username}
                         </h3>
-                        <p className="text-xs text-text-tertiary-light dark:text-text-tertiary">Active now</p>
+                        {/*<p className="text-xs text-text-tertiary-light dark:text-text-tertiary">Active now</p>*/}
                     </div>
                 </Link>
             );
