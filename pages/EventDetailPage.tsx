@@ -7,6 +7,7 @@ import { useAuth } from '../hooks/useAuth';
 import { CampusEvent, EventRsvp } from '../types';
 import Spinner from '../components/Spinner';
 import { format, isSameDay } from 'date-fns';
+import CreateEventModal from '../components/CreateEventModal';
 
 const EventDetailPage: React.FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
@@ -17,6 +18,8 @@ const EventDetailPage: React.FC = () => {
   const [rsvps, setRsvps] = useState<EventRsvp[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!eventId || !profile?.campus) return;
@@ -64,6 +67,25 @@ const EventDetailPage: React.FC = () => {
     // Refetch to be safe
     fetchData();
   };
+
+  const handleDelete = async () => {
+    if (!event || !window.confirm("Are you sure you want to delete this event? This action cannot be undone.")) return;
+    setIsDeleting(true);
+    try {
+        const { error } = await supabase.from('events').delete().eq('id', event.id);
+        if (error) throw error;
+        navigate('/campus/events');
+    } catch (err: any) {
+        alert(`Error deleting event: ${err.message}`);
+    } finally {
+        setIsDeleting(false);
+    }
+  };
+
+  const handleEventUpdated = (updatedEvent: CampusEvent) => {
+    setEvent(updatedEvent);
+    setIsEditModalOpen(false);
+  };
   
   if (loading) return <div className="text-center py-10"><Spinner /></div>;
   if (error || !event) return <div className="text-center py-10 text-red-400">{error || 'Event not found.'}</div>;
@@ -88,9 +110,19 @@ const EventDetailPage: React.FC = () => {
   }
 
   const goingRsvps = rsvps.filter(r => r.rsvp_status === 'going');
+  const isOwner = user?.id === event.created_by.user_id;
   
   return (
     <div className="max-w-4xl mx-auto">
+        {isEditModalOpen && (
+            <CreateEventModal 
+                onClose={() => setIsEditModalOpen(false)}
+                onEventCreated={() => {}} // Not used in edit mode
+                onEventUpdated={handleEventUpdated}
+                existingEvent={event}
+            />
+        )}
+
         <Link to="/campus/events" className="text-sm text-text-secondary-light dark:text-text-secondary hover:underline mb-4 inline-block">
             &larr; Back to all events
         </Link>
@@ -114,6 +146,14 @@ const EventDetailPage: React.FC = () => {
                 <div className="flex items-center gap-3 mt-6">
                     <button onClick={() => handleRsvp('going')} className={`font-bold py-2 px-6 rounded-full flex items-center gap-2 transition-all ${event.user_rsvp_status === 'going' ? 'bg-brand-green text-black' : 'bg-tertiary-light dark:bg-tertiary hover:bg-gray-300 dark:hover:bg-gray-700'}`}>✓ Going <span className="text-xs bg-black/10 px-1.5 rounded-full">{event.going_count}</span></button>
                     <button onClick={() => handleRsvp('interested')} className={`font-bold py-2 px-6 rounded-full flex items-center gap-2 transition-all ${event.user_rsvp_status === 'interested' ? 'bg-yellow-400 text-black' : 'bg-tertiary-light dark:bg-tertiary hover:bg-gray-300 dark:hover:bg-gray-700'}`}>? Interested <span className="text-xs bg-black/10 px-1.5 rounded-full">{event.interested_count}</span></button>
+                    {isOwner && (
+                        <div className="ml-auto flex items-center gap-2">
+                             <button onClick={() => setIsEditModalOpen(true)} className="font-semibold py-2 px-4 rounded-full border border-tertiary-light dark:border-tertiary hover:bg-tertiary-light dark:hover:bg-tertiary">Edit</button>
+                             <button onClick={handleDelete} disabled={isDeleting} className="font-semibold py-2 px-4 rounded-full border border-red-500/50 text-red-500 hover:bg-red-500 hover:text-white disabled:opacity-50">
+                                {isDeleting ? <Spinner isRed={true} /> : 'Delete'}
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
