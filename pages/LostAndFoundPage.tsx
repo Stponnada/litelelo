@@ -12,17 +12,17 @@ import { formatTimestamp } from '../utils/timeUtils';
 const TabButton: React.FC<{ label: string; count?: number; isActive: boolean; onClick: () => void }> = ({ label, count, isActive, onClick }) => (
     <button
       onClick={onClick}
-      className={`px-6 py-3 text-sm font-semibold rounded-lg transition-all duration-200 flex items-center gap-2 ${
+      className={`px-6 py-3 text-sm font-bold rounded-xl transition-all duration-200 flex items-center gap-2 ${
         isActive
-          ? 'bg-gradient-to-r from-brand-green to-brand-green/90 text-black shadow-lg shadow-brand-green/30'
-          : 'text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50'
+          ? 'bg-gradient-to-r from-orange-500 to-red-600 text-white shadow-lg shadow-orange-500/30'
+          : 'bg-secondary-light dark:bg-secondary text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/70 dark:hover:bg-tertiary/70 border border-tertiary-light dark:border-tertiary'
       }`}
     >
       {label}
       {count !== undefined && (
-        <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+        <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
           isActive 
-            ? 'bg-black/20 text-black' 
+            ? 'bg-white/20 text-white' 
             : 'bg-tertiary-light dark:bg-tertiary text-text-secondary-light dark:text-text-secondary'
         }`}>
           {count}
@@ -91,7 +91,7 @@ const LostAndFoundPage: React.FC = () => {
     const lostCount = items.filter(item => item.item_type === 'lost').length;
 
     return (
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {isCreateModalOpen && profile && (
                 <CreateItemModal 
                     campus={profile.campus!}
@@ -101,60 +101,89 @@ const LostAndFoundPage: React.FC = () => {
                 />
             )}
 
-            {/* Header Section */}
-            <div className="mb-8 bg-gradient-to-br from-secondary-light to-primary-light dark:from-secondary dark:to-primary rounded-2xl p-8 shadow-lg border border-tertiary-light/30 dark:border-tertiary/30">
-                <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-                    <div>
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-green to-brand-green/80 flex items-center justify-center shadow-lg">
-                                <svg className="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
+            {/* Enhanced Header Section */}
+            <header className="mb-10 relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500/20 via-red-500/10 to-transparent dark:from-orange-500/10 dark:via-red-500/5 p-8 border border-orange-500/20">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-red-500/10 rounded-full blur-3xl -ml-24 -mb-24"></div>
+                <div className="relative z-10">
+                    <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-6">
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-3">
+                                <div className="p-3 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl shadow-lg">
+                                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                </div>
+                                <h1 className="text-5xl font-extrabold text-text-main-light dark:text-text-main bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent">
+                                    Lost & Found
+                                </h1>
                             </div>
-                            <h1 className="text-4xl font-bold text-text-main-light dark:text-text-main">Lost & Found</h1>
+                            <p className="text-lg text-text-secondary-light dark:text-text-secondary max-w-xl">
+                                Help reunite lost items with their owners or report what you've found
+                            </p>
+                            <div className="flex items-center gap-4 text-sm">
+                                <div className="flex items-center gap-2 bg-green-500/10 text-green-400 px-3 py-1.5 rounded-full border border-green-500/30">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    <span className="font-semibold">{foundCount} Found Items</span>
+                                </div>
+                                <div className="flex items-center gap-2 bg-red-500/10 text-red-400 px-3 py-1.5 rounded-full border border-red-500/30">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                    <span className="font-semibold">{lostCount} Lost Items</span>
+                                </div>
+                            </div>
                         </div>
-                        <p className="text-lg text-text-secondary-light dark:text-text-secondary ml-15">
-                            Track down lost items or report something you've found on campus.
-                        </p>
+                        <button 
+                            onClick={() => setCreateModalOpen(true)}
+                            className="bg-gradient-to-r from-orange-500 to-red-600 text-white font-bold py-4 px-8 rounded-xl hover:shadow-xl hover:scale-105 transition-all duration-200 flex items-center gap-2 group whitespace-nowrap"
+                        >
+                            <span className="text-2xl group-hover:rotate-90 transition-transform duration-200">+</span>
+                            <span>Post {activeTab === 'found' ? 'Found' : 'Lost'} Item</span>
+                        </button>
                     </div>
-                    <button 
-                        onClick={() => setCreateModalOpen(true)}
-                        className="flex items-center gap-2 bg-gradient-to-r from-brand-green to-brand-green/90 text-black font-bold py-3 px-8 rounded-xl hover:shadow-lg hover:shadow-brand-green/30 transition-all duration-200 shadow-md whitespace-nowrap"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                        </svg>
-                        Post {activeTab === 'found' ? 'Found' : 'Lost'} Item
-                    </button>
                 </div>
-            </div>
+            </header>
 
-            {/* Tabs */}
-            <div className="flex gap-3 mb-8">
-                <TabButton 
-                    label="Found Items" 
-                    count={foundCount}
-                    isActive={activeTab === 'found'} 
-                    onClick={() => setActiveTab('found')} 
-                />
-                <TabButton 
-                    label="Lost Items" 
-                    count={lostCount}
-                    isActive={activeTab === 'lost'} 
-                    onClick={() => setActiveTab('lost')} 
-                />
+            {/* Enhanced Tabs */}
+            <div className="mb-8">
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="h-1 w-12 bg-orange-500 rounded-full"></div>
+                    <h2 className="text-sm font-bold text-text-secondary-light dark:text-text-secondary uppercase tracking-wider">Browse Items</h2>
+                </div>
+                <div className="inline-flex gap-3 p-1.5 bg-secondary-light dark:bg-secondary rounded-xl border border-tertiary-light dark:border-tertiary">
+                    <TabButton 
+                        label="✓ Found Items" 
+                        count={foundCount}
+                        isActive={activeTab === 'found'} 
+                        onClick={() => setActiveTab('found')} 
+                    />
+                    <TabButton 
+                        label="⚠ Lost Items" 
+                        count={lostCount}
+                        isActive={activeTab === 'lost'} 
+                        onClick={() => setActiveTab('lost')} 
+                    />
+                </div>
             </div>
 
             {/* Content */}
             {loading && (
-                <div className="flex justify-center items-center py-20">
+                <div className="flex justify-center items-center py-32 bg-gradient-to-br from-secondary-light to-tertiary-light/30 dark:from-secondary dark:to-tertiary/30 rounded-2xl border border-tertiary-light dark:border-tertiary">
                     <Spinner />
                 </div>
             )}
             
             {error && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30 rounded-xl p-6 text-center">
-                    <p className="text-red-600 dark:text-red-400">Error: {error}</p>
+                <div className="bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800/30 rounded-2xl p-8 text-center">
+                    <div className="inline-block p-4 bg-red-500/10 rounded-full mb-3">
+                        <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <p className="text-red-600 dark:text-red-400 font-semibold">Error: {error}</p>
                 </div>
             )}
             
@@ -163,17 +192,17 @@ const LostAndFoundPage: React.FC = () => {
                     {filteredItems.length > 0 ? (
                         filteredItems.map(item => <ItemCard key={item.id} item={item} onItemReclaimed={handleItemReclaimed} />)
                     ) : (
-                        <div className="col-span-full flex flex-col items-center justify-center py-20">
-                            <div className="w-20 h-20 rounded-full bg-tertiary-light/50 dark:bg-tertiary/50 flex items-center justify-center mb-4">
-                                <svg className="w-10 h-10 text-text-tertiary-light dark:text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="col-span-full flex flex-col items-center justify-center py-24 bg-gradient-to-br from-secondary-light to-tertiary-light/30 dark:from-secondary dark:to-tertiary/30 rounded-2xl border-2 border-dashed border-tertiary-light dark:border-tertiary">
+                            <div className="inline-block p-6 bg-orange-500/10 rounded-full mb-4">
+                                <svg className="w-16 h-16 text-orange-500 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                                 </svg>
                             </div>
-                            <p className="text-text-secondary-light dark:text-text-secondary text-lg font-medium">
-                                No {activeTab === 'found' ? 'found' : 'lost'} items posted yet
-                            </p>
-                            <p className="text-text-tertiary-light dark:text-text-tertiary text-sm mt-1">
-                                Be the first to post!
+                            <h3 className="text-2xl font-bold text-text-main-light dark:text-text-main mb-2">
+                                No {activeTab === 'found' ? 'found' : 'lost'} items yet
+                            </h3>
+                            <p className="text-text-secondary-light dark:text-text-secondary">
+                                Be the first to post an item!
                             </p>
                         </div>
                     )}
@@ -195,79 +224,92 @@ const ItemCard: React.FC<{ item: ItemType; onItemReclaimed: (itemId: string) => 
 
     const isOwner = user?.id === item.user_id;
     const locationLabel = item.item_type === 'found' ? 'Found near' : 'Last seen near';
+    const isFound = item.item_type === 'found';
 
     return (
-        <div className="group bg-gradient-to-br from-secondary-light to-primary-light dark:from-secondary dark:to-primary rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl border border-tertiary-light/30 dark:border-tertiary/30 flex flex-col transition-all duration-300 hover:-translate-y-1">
+        <div className="group bg-gradient-to-br from-secondary-light to-secondary-light dark:from-secondary dark:to-secondary rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl border border-tertiary-light dark:border-tertiary flex flex-col transition-all duration-300 hover:-translate-y-1 hover:border-orange-500 hover:shadow-orange-500/20 relative">
+            {/* Decorative gradient overlay */}
+            <div className={`absolute top-0 right-0 w-32 h-32 ${isFound ? 'bg-green-500/5' : 'bg-red-500/5'} rounded-full blur-2xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500`}></div>
+            
             {/* Image */}
             <div className="relative overflow-hidden">
                 <img 
-                    className="w-full h-56 object-cover transition-transform duration-300 group-hover:scale-105" 
+                    className="w-full h-56 object-cover transition-transform duration-500 group-hover:scale-110" 
                     src={item.image_url || `https://placehold.co/600x400/1e293b/3cfba2?text=${item.item_type === 'lost' ? 'Lost+Item' : 'Found+Item'}`} 
                     alt={item.title} 
                 />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <div className="absolute top-3 right-3">
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold shadow-lg ${
-                        item.item_type === 'found'
-                            ? 'bg-brand-green text-black'
-                            : 'bg-orange-500 text-white'
+                    <span className={`px-4 py-1.5 rounded-xl text-xs font-bold shadow-lg border backdrop-blur-sm ${
+                        isFound
+                            ? 'bg-green-500/90 text-white border-green-400/50'
+                            : 'bg-red-500/90 text-white border-red-400/50'
                     }`}>
-                        {item.item_type === 'found' ? '✓ Found' : '⚠ Lost'}
+                        {isFound ? '✓ Found' : '⚠ Lost'}
                     </span>
                 </div>
             </div>
 
             {/* Content */}
-            <div className="p-5 flex-grow flex flex-col">
-                <h3 className="text-xl font-bold text-text-main-light dark:text-text-main truncate mb-2">
+            <div className="relative z-10 p-5 flex-grow flex flex-col">
+                <h3 className="text-xl font-bold text-text-main-light dark:text-text-main truncate mb-3 group-hover:text-orange-500 transition-colors duration-200">
                     {item.title}
                 </h3>
                 
-                <div className="flex items-start gap-2 mb-3">
-                    <svg className="w-4 h-4 text-brand-green mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex items-start gap-2 mb-3 px-3 py-2 bg-tertiary-light/50 dark:bg-tertiary/50 rounded-lg border border-tertiary-light dark:border-tertiary">
+                    <svg className="w-4 h-4 text-orange-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    <p className="text-sm text-text-tertiary-light dark:text-text-tertiary">
-                        <span className="font-medium">{locationLabel}:</span> {item.location_found}
-                    </p>
+                    <div>
+                        <p className="text-xs font-bold text-text-secondary-light dark:text-text-secondary uppercase tracking-wide">
+                            {locationLabel}
+                        </p>
+                        <p className="text-sm font-semibold text-text-main-light dark:text-text-main">
+                            {item.location_found}
+                        </p>
+                    </div>
                 </div>
                 
-                <p className="text-sm text-text-secondary-light dark:text-text-secondary mb-4 flex-grow line-clamp-3">
+                <p className="text-sm text-text-secondary-light dark:text-text-secondary mb-4 flex-grow line-clamp-3 leading-relaxed">
                     {item.description || 'No description provided.'}
                 </p>
                 
                 {/* Footer */}
-                <div className="flex items-center justify-between mt-auto pt-4 border-t border-tertiary-light/40 dark:border-tertiary/40">
-                    <div className="min-w-0 flex items-center gap-2">
-                        <img 
-                            src={poster?.avatar_url || `https://ui-avatars.com/api/?name=${poster?.username}&background=10b981&color=fff`}
-                            alt={poster?.username}
-                            className="w-8 h-8 rounded-full ring-2 ring-white/50 dark:ring-gray-700/50"
-                        />
+                <div className="flex items-center justify-between mt-auto pt-4 border-t border-tertiary-light dark:border-tertiary">
+                    <Link 
+                        to={`/profile/${poster?.username}`}
+                        className="min-w-0 flex items-center gap-2 group/avatar"
+                    >
+                        <div className="relative">
+                            <img 
+                                src={poster?.avatar_url || `https://ui-avatars.com/api/?name=${poster?.username}&background=10b981&color=fff`}
+                                alt={poster?.username}
+                                className="w-9 h-9 rounded-full ring-2 ring-tertiary-light dark:ring-tertiary group-hover/avatar:ring-orange-500 transition-all duration-200"
+                            />
+                            <div className="absolute inset-0 rounded-full bg-orange-500 opacity-0 group-hover/avatar:opacity-20 transition-opacity duration-200"></div>
+                        </div>
                         <div className="min-w-0">
-                            <p className="text-[10px] font-semibold uppercase text-text-tertiary-light dark:text-text-tertiary tracking-wide">
+                            <p className="text-[10px] font-bold uppercase text-text-tertiary-light dark:text-text-tertiary tracking-wide">
                                 Posted by
                             </p>
-                            <Link 
-                                to={`/profile/${poster?.username}`} 
-                                className="text-sm font-semibold text-brand-green hover:underline truncate block"
-                            >
+                            <p className="text-sm font-bold text-text-main-light dark:text-text-main group-hover/avatar:text-orange-500 transition-colors duration-200 truncate">
                                 @{poster?.username || 'Unknown'}
-                            </Link>
+                            </p>
                         </div>
-                    </div>
+                    </Link>
                     
                     {isOwner ? (
                         <button 
                             onClick={() => onItemReclaimed(item.id)} 
-                            className="flex-shrink-0 font-semibold py-2 px-4 rounded-lg text-xs transition-all bg-white/60 dark:bg-gray-800/60 border border-gray-300 dark:border-gray-600 text-text-main-light dark:text-text-main hover:border-brand-green hover:bg-brand-green/10 hover:text-brand-green"
+                            className="flex-shrink-0 font-bold py-2 px-4 rounded-lg text-xs transition-all bg-gradient-to-r from-green-500/20 to-green-600/20 border-2 border-green-500/30 text-green-500 hover:from-green-500 hover:to-green-600 hover:text-white hover:border-transparent hover:scale-105"
                         >
-                            Mark {item.item_type === 'found' ? 'Reclaimed' : 'Found'}
+                            Mark {isFound ? 'Reclaimed' : 'Found'}
                         </button>
                     ) : (
                         <button 
                             onClick={handleContact} 
-                            className="flex-shrink-0 flex items-center gap-2 bg-brand-green/20 dark:bg-brand-green/30 font-semibold text-sm py-2 px-4 rounded-lg hover:bg-brand-green/30 dark:hover:bg-brand-green/40 text-brand-green transition-all"
+                            className="flex-shrink-0 flex items-center gap-2 bg-gradient-to-r from-orange-500/20 to-red-600/20 border-2 border-orange-500/30 font-bold text-sm py-2 px-4 rounded-lg hover:from-orange-500 hover:to-red-600 hover:border-transparent text-orange-500 hover:text-white transition-all hover:scale-105"
                         >
                             <ChatIcon className="w-4 h-4" />
                             <span>Contact</span>
@@ -344,62 +386,79 @@ const CreateItemModal: React.FC<{ campus: string; itemType: 'lost' | 'found'; on
     
     const locationLabel = itemType === 'found' ? 'Location Found' : 'Last Seen At';
     const imageLabel = itemType === 'found' ? 'Image' : 'Image (Optional)';
+    const isFound = itemType === 'found';
 
     return (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-            <div className="bg-gradient-to-br from-secondary-light to-primary-light dark:from-secondary dark:to-primary rounded-2xl shadow-2xl w-full max-w-2xl border border-tertiary-light/30 dark:border-tertiary/30" onClick={e => e.stopPropagation()}>
-                <form onSubmit={handleSubmit} className="p-8">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn" onClick={onClose}>
+            <div className="bg-gradient-to-br from-secondary-light to-tertiary-light/30 dark:from-secondary dark:to-tertiary/30 rounded-2xl shadow-2xl w-full max-w-2xl border border-tertiary-light dark:border-tertiary animate-slideUp" onClick={e => e.stopPropagation()}>
+                <form onSubmit={handleSubmit} className="p-6">
                     {/* Header */}
-                    <header className="flex items-center justify-between pb-6 border-b border-tertiary-light/40 dark:border-tertiary/40">
+                    <header className="flex items-center justify-between pb-5 border-b border-tertiary-light dark:border-tertiary">
                         <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                                itemType === 'found' 
-                                    ? 'bg-brand-green/20 text-brand-green' 
-                                    : 'bg-orange-500/20 text-orange-500'
+                            <div className={`p-3 rounded-xl flex items-center justify-center shadow-md ${
+                                isFound
+                                    ? 'bg-gradient-to-br from-green-500 to-green-600' 
+                                    : 'bg-gradient-to-br from-red-500 to-red-600'
                             }`}>
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    {isFound ? (
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    ) : (
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    )}
                                 </svg>
                             </div>
-                            <h2 className="text-2xl font-bold text-text-main-light dark:text-text-main">
-                                Post a {itemType === 'found' ? 'Found' : 'Lost'} Item
-                            </h2>
+                            <div>
+                                <h2 className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent">
+                                    Post a {isFound ? 'Found' : 'Lost'} Item
+                                </h2>
+                                <p className="text-sm text-text-secondary-light dark:text-text-secondary mt-1">
+                                    Help reunite items with their owners
+                                </p>
+                            </div>
                         </div>
-                        <button type="button" onClick={onClose} className="text-text-tertiary-light dark:text-text-tertiary hover:text-text-main-light dark:hover:text-text-main transition-colors">
-                            <XCircleIcon className="w-8 h-8" />
+                        <button 
+                            type="button" 
+                            onClick={onClose} 
+                            className="hover:bg-tertiary-light dark:hover:bg-tertiary rounded-lg p-1 transition-colors"
+                        >
+                            <XCircleIcon className="w-7 h-7 text-text-tertiary-light dark:text-text-tertiary" />
                         </button>
                     </header>
                     
                     {/* Form Fields */}
-                    <div className="mt-6 space-y-5">
+                    <div className="mt-6 space-y-5 max-h-[65vh] overflow-y-auto pr-2 custom-scrollbar">
                         <div>
-                            <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
-                                Item Name <span className="text-brand-green">*</span>
+                            <label className="block text-sm font-bold mb-2 text-text-main-light dark:text-text-main">
+                                Item Name <span className="text-orange-500">*</span>
                             </label>
                             <input 
                                 type="text" 
                                 value={title} 
                                 onChange={e => setTitle(e.target.value)} 
                                 placeholder="e.g., Blue Backpack, iPhone 13, Keys..."
-                                className="w-full px-4 py-3 bg-white/60 dark:bg-gray-800/60 rounded-xl border border-tertiary-light/50 dark:border-gray-600/50 text-text-main-light dark:text-text-main placeholder:text-text-tertiary-light dark:placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-brand-green/50 focus:border-brand-green transition-all"
+                                className="w-full px-4 py-3 bg-tertiary-light dark:bg-tertiary rounded-xl border-2 border-tertiary-light dark:border-gray-600 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all outline-none"
                             />
                         </div>
                         
                         <div>
-                            <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
-                                {locationLabel} <span className="text-brand-green">*</span>
+                            <label className="block text-sm font-bold mb-2 text-text-main-light dark:text-text-main">
+                                {locationLabel} <span className="text-orange-500">*</span>
                             </label>
-                            <input 
-                                type="text" 
-                                value={location} 
-                                onChange={e => setLocation(e.target.value)}
-                                placeholder="e.g., Library 2nd floor, Main cafeteria..."
-                                className="w-full px-4 py-3 bg-white/60 dark:bg-gray-800/60 rounded-xl border border-tertiary-light/50 dark:border-gray-600/50 text-text-main-light dark:text-text-main placeholder:text-text-tertiary-light dark:placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-brand-green/50 focus:border-brand-green transition-all"
-                            />
+                            <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg">📍</span>
+                                <input 
+                                    type="text" 
+                                    value={location} 
+                                    onChange={e => setLocation(e.target.value)}
+                                    placeholder="e.g., Library 2nd floor, Main cafeteria..."
+                                    className="w-full pl-10 pr-4 py-3 bg-tertiary-light dark:bg-tertiary rounded-xl border-2 border-tertiary-light dark:border-gray-600 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all outline-none"
+                                />
+                            </div>
                         </div>
                         
                         <div>
-                            <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                            <label className="block text-sm font-bold mb-2 text-text-main-light dark:text-text-main">
                                 Description
                             </label>
                             <textarea 
@@ -407,28 +466,28 @@ const CreateItemModal: React.FC<{ campus: string; itemType: 'lost' | 'found'; on
                                 onChange={e => setDescription(e.target.value)} 
                                 rows={4}
                                 placeholder="Provide any additional details that might help..."
-                                className="w-full px-4 py-3 bg-white/60 dark:bg-gray-800/60 rounded-xl border border-tertiary-light/50 dark:border-gray-600/50 text-text-main-light dark:text-text-main placeholder:text-text-tertiary-light dark:placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-brand-green/50 focus:border-brand-green transition-all resize-none"
+                                className="w-full px-4 py-3 bg-tertiary-light dark:bg-tertiary rounded-xl border-2 border-tertiary-light dark:border-gray-600 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all outline-none resize-none"
                             />
                         </div>
                         
                         <div>
-                            <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
-                                {imageLabel} {itemType === 'found' && <span className="text-brand-green">*</span>}
+                            <label className="block text-sm font-bold mb-2 text-text-main-light dark:text-text-main">
+                                {imageLabel} {isFound && <span className="text-orange-500">*</span>}
                             </label>
                             <input type="file" ref={imageInputRef} onChange={handleFileChange} accept="image/*" hidden />
                             
                             {imagePreview ? (
-                                <div className="relative">
-                                    <img src={imagePreview} alt="Preview" className="w-full h-48 object-cover rounded-xl" />
+                                <div className="relative rounded-xl overflow-hidden border-2 border-tertiary-light dark:border-tertiary">
+                                    <img src={imagePreview} alt="Preview" className="w-full h-56 object-cover" />
                                     <button 
                                         type="button"
                                         onClick={() => {
                                             setImageFile(null);
                                             setImagePreview(null);
                                         }}
-                                        className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                                        className="absolute top-3 right-3 p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all hover:scale-110 shadow-lg"
                                     >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                         </svg>
                                     </button>
@@ -437,36 +496,46 @@ const CreateItemModal: React.FC<{ campus: string; itemType: 'lost' | 'found'; on
                                 <button 
                                     type="button" 
                                     onClick={() => imageInputRef.current?.click()} 
-                                    className="w-full flex items-center justify-center gap-3 p-6 rounded-xl border-2 border-dashed border-tertiary-light/50 dark:border-gray-600/50 bg-white/30 dark:bg-gray-800/30 hover:bg-white/50 dark:hover:bg-gray-800/50 hover:border-brand-green/50 transition-all"
+                                    className="w-full flex flex-col items-center justify-center gap-3 p-8 rounded-xl border-2 border-dashed border-tertiary-light dark:border-tertiary bg-tertiary-light/30 dark:bg-tertiary/30 hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50 hover:border-orange-500/50 transition-all group"
                                 >
-                                    <ImageIcon className="w-6 h-6 text-text-tertiary-light dark:text-text-tertiary" />
-                                    <span className="text-sm font-medium text-text-secondary-light dark:text-text-secondary">
-                                        Click to upload image
-                                    </span>
+                                    <div className="p-4 bg-orange-500/10 rounded-full group-hover:bg-orange-500/20 transition-colors">
+                                        <ImageIcon className="w-8 h-8 text-orange-500" />
+                                    </div>
+                                    <div className="text-center">
+                                        <span className="block text-sm font-bold text-text-main-light dark:text-text-main mb-1">
+                                            Click to upload image
+                                        </span>
+                                        <span className="text-xs text-text-secondary-light dark:text-text-secondary">
+                                            PNG, JPG up to 10MB
+                                        </span>
+                                    </div>
                                 </button>
                             )}
                         </div>
                     </div>
 
                     {error && (
-                        <div className="mt-5 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30 rounded-xl">
-                            <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
+                        <div className="mt-5 p-4 bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800/30 rounded-xl flex items-start gap-3">
+                            <svg className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <p className="text-red-600 dark:text-red-400 text-sm font-medium">{error}</p>
                         </div>
                     )}
                     
                     {/* Footer */}
-                    <footer className="flex justify-end gap-3 pt-6 mt-6 border-t border-tertiary-light/40 dark:border-tertiary/40">
+                    <footer className="flex justify-end gap-3 pt-6 mt-6 border-t border-tertiary-light dark:border-tertiary">
                         <button 
                             type="button" 
                             onClick={onClose} 
-                            className="py-3 px-6 rounded-xl font-semibold text-text-main-light dark:text-text-main hover:bg-tertiary-light/60 dark:hover:bg-tertiary/60 transition-all"
+                            className="py-3 px-6 rounded-xl font-semibold text-text-main-light dark:text-text-main hover:bg-tertiary-light dark:hover:bg-tertiary transition-all"
                         >
                             Cancel
                         </button>
                         <button 
                             type="submit" 
                             disabled={isSubmitting} 
-                            className="py-3 px-8 rounded-xl font-bold text-black bg-gradient-to-r from-brand-green to-brand-green/90 hover:shadow-lg hover:shadow-brand-green/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                            className="py-3 px-8 rounded-xl font-bold text-white bg-gradient-to-r from-orange-500 to-red-600 hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
                         >
                             {isSubmitting ? (
                                 <>

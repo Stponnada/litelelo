@@ -41,36 +41,93 @@ const RideSharePage: React.FC = () => {
     if (error) return <div className="text-center p-8 text-red-400">Error: {error}</div>;
 
     return (
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {isCreateModalOpen && profile && (
                 <CreateRideModal campus={profile.campus!} onClose={() => setCreateModalOpen(false)} onRideCreated={fetchRides} />
             )}
 
-            <header className="mb-8">
-                <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-                    <div>
-                        <h1 className="text-4xl font-bold text-text-main-light dark:text-text-main">Ride Share</h1>
-                        <p className="text-lg text-text-secondary-light dark:text-text-secondary">Coordinate travel with other BITSians.</p>
+            {/* Enhanced Header with Gradient Background */}
+            <header className="mb-10 relative overflow-hidden rounded-2xl bg-gradient-to-br from-sky-500/20 via-indigo-500/10 to-transparent dark:from-sky-500/10 dark:via-indigo-500/5 p-8 border border-sky-500/20">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-sky-500/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl -ml-24 -mb-24"></div>
+                <div className="relative z-10">
+                    <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-6">
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-3">
+                                <div className="p-3 bg-gradient-to-br from-sky-500 to-indigo-600 rounded-2xl shadow-lg">
+                                    <CarIcon className="w-8 h-8 text-white" />
+                                </div>
+                                <h1 className="text-5xl font-extrabold text-text-main-light dark:text-text-main bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">
+                                    Ride Share
+                                </h1>
+                            </div>
+                            <p className="text-lg text-text-secondary-light dark:text-text-secondary max-w-xl">
+                                Coordinate travel to the airport, home, or anywhere with fellow BITSians
+                            </p>
+                            <div className="flex items-center gap-4 text-sm">
+                                <div className="flex items-center gap-2 bg-sky-500/10 text-sky-400 px-3 py-1.5 rounded-full border border-sky-500/30">
+                                    <div className="w-2 h-2 bg-sky-400 rounded-full"></div>
+                                    <span className="font-semibold">{rides.filter(r => r.type === 'offer').length} Rides Offered</span>
+                                </div>
+                                <div className="flex items-center gap-2 bg-indigo-500/10 text-indigo-400 px-3 py-1.5 rounded-full border border-indigo-500/30">
+                                    <div className="w-2 h-2 bg-indigo-400 rounded-full"></div>
+                                    <span className="font-semibold">{rides.filter(r => r.type === 'request').length} Rides Requested</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button 
+                            onClick={() => setCreateModalOpen(true)} 
+                            className="bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold py-4 px-8 rounded-xl hover:shadow-xl hover:scale-105 transition-all duration-200 flex items-center gap-2 group whitespace-nowrap"
+                        >
+                            <span className="text-2xl group-hover:rotate-90 transition-transform duration-200">+</span>
+                            <span>Post a Ride</span>
+                        </button>
                     </div>
-                    <button onClick={() => setCreateModalOpen(true)} className="bg-brand-green text-black font-bold py-3 px-6 rounded-lg hover:bg-brand-green-darker transition-colors">
-                        + Post a Ride
-                    </button>
                 </div>
             </header>
 
-            <div className="flex gap-3 mb-8">
-                <button onClick={() => setActiveTab('offer')} className={`px-6 py-3 text-sm font-semibold rounded-lg transition-all ${activeTab === 'offer' ? 'bg-brand-green text-black' : 'bg-secondary-light dark:bg-secondary'}`}>Offering a Ride</button>
-                <button onClick={() => setActiveTab('request')} className={`px-6 py-3 text-sm font-semibold rounded-lg transition-all ${activeTab === 'request' ? 'bg-brand-green text-black' : 'bg-secondary-light dark:bg-secondary'}`}>Looking for a Ride</button>
+            {/* Enhanced Tab Switcher */}
+            <div className="mb-8">
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="h-1 w-12 bg-sky-500 rounded-full"></div>
+                    <h2 className="text-sm font-bold text-text-secondary-light dark:text-text-secondary uppercase tracking-wider">Browse Rides</h2>
+                </div>
+                <div className="inline-flex gap-2 p-1.5 bg-secondary-light dark:bg-secondary rounded-xl border border-tertiary-light dark:border-tertiary">
+                    <button 
+                        onClick={() => setActiveTab('offer')} 
+                        className={`px-6 py-3 text-sm font-bold rounded-lg transition-all duration-200 ${
+                            activeTab === 'offer' 
+                                ? 'bg-gradient-to-r from-sky-500 to-indigo-600 text-white shadow-lg' 
+                                : 'text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50'
+                        }`}
+                    >
+                        🚗 Offering Rides
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('request')} 
+                        className={`px-6 py-3 text-sm font-bold rounded-lg transition-all duration-200 ${
+                            activeTab === 'request' 
+                                ? 'bg-gradient-to-r from-sky-500 to-indigo-600 text-white shadow-lg' 
+                                : 'text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50'
+                        }`}
+                    >
+                        🙋 Looking for Rides
+                    </button>
+                </div>
             </div>
 
+            {/* Enhanced Ride Cards */}
             {filteredRides.length > 0 ? (
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-5">
                     {filteredRides.map(ride => <RideCard key={ride.id} ride={ride} />)}
                 </div>
             ) : (
-                <div className="text-center py-20 bg-secondary-light dark:bg-secondary rounded-lg border-2 border-dashed border-tertiary-light dark:border-tertiary">
-                    <h3 className="text-xl font-bold">No {activeTab === 'offer' ? 'offers' : 'requests'} found!</h3>
-                    <p className="text-text-secondary-light dark:text-text-secondary mt-2">Be the first to post one.</p>
+                <div className="text-center py-24 bg-gradient-to-br from-secondary-light to-tertiary-light/30 dark:from-secondary dark:to-tertiary/30 rounded-2xl border-2 border-dashed border-tertiary-light dark:border-tertiary">
+                    <div className="inline-block p-6 bg-sky-500/10 rounded-full mb-4">
+                        <CarIcon className="w-16 h-16 text-sky-500 opacity-50" />
+                    </div>
+                    <h3 className="text-2xl font-bold mb-2">No {activeTab === 'offer' ? 'ride offers' : 'ride requests'} yet</h3>
+                    <p className="text-text-secondary-light dark:text-text-secondary">Be the first to post one!</p>
                 </div>
             )}
         </div>
@@ -81,32 +138,98 @@ const RideCard: React.FC<{ ride: RideShare }> = ({ ride }) => {
     const navigate = useNavigate();
     const handleContact = () => navigate('/chat', { state: { recipient: ride.user } });
     
+    const isOffer = ride.type === 'offer';
+    
     return (
-        <div className="bg-secondary-light dark:bg-secondary rounded-lg shadow-md border border-tertiary-light dark:border-tertiary p-4 flex flex-col sm:flex-row sm:items-center gap-4">
-            <div className="flex-1 space-y-2">
-                <div className="flex items-center gap-2 text-xl font-bold">
-                    <span>{ride.origin}</span>
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-                    <span>{ride.destination}</span>
+        <div className="group bg-gradient-to-br from-secondary-light to-secondary-light dark:from-secondary dark:to-secondary rounded-2xl shadow-lg border border-tertiary-light dark:border-tertiary p-6 hover:border-sky-500 hover:shadow-2xl hover:shadow-sky-500/20 hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
+            {/* Decorative gradient overlay */}
+            <div className={`absolute top-0 right-0 w-32 h-32 ${isOffer ? 'bg-sky-500/5' : 'bg-indigo-500/5'} rounded-full blur-2xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500`}></div>
+            
+            <div className="relative z-10 flex flex-col lg:flex-row lg:items-center gap-6">
+                {/* Main Info */}
+                <div className="flex-1 space-y-4">
+                    {/* Route Display */}
+                    <div className="flex items-center gap-3 text-2xl font-bold text-text-main-light dark:text-text-main">
+                        <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-sky-500/20 to-sky-500/10 rounded-xl border border-sky-500/30">
+                            <span className="text-xl">📍</span>
+                            <span>{ride.origin}</span>
+                        </div>
+                        <div className="flex-shrink-0">
+                            <svg className="w-8 h-8 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                            </svg>
+                        </div>
+                        <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500/20 to-indigo-500/10 rounded-xl border border-indigo-500/30">
+                            <span className="text-xl">🎯</span>
+                            <span>{ride.destination}</span>
+                        </div>
+                    </div>
+                    
+                    {/* Details */}
+                    <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center gap-2 px-3 py-2 bg-tertiary-light/60 dark:bg-tertiary/60 rounded-lg text-sm font-semibold text-text-secondary-light dark:text-text-secondary">
+                            <span>📅</span>
+                            <span>{format(new Date(ride.departure_time), 'MMM d, yyyy')}</span>
+                        </div>
+                        <div className="flex items-center gap-2 px-3 py-2 bg-tertiary-light/60 dark:bg-tertiary/60 rounded-lg text-sm font-semibold text-text-secondary-light dark:text-text-secondary">
+                            <span>🕒</span>
+                            <span>{format(new Date(ride.departure_time), 'p')}</span>
+                        </div>
+                        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold border ${
+                            isOffer 
+                                ? 'bg-green-500/10 text-green-400 border-green-500/30' 
+                                : 'bg-blue-500/10 text-blue-400 border-blue-500/30'
+                        }`}>
+                            <span>💺</span>
+                            <span>{ride.seats} {ride.seats === 1 ? 'Seat' : 'Seats'} {isOffer ? 'Available' : 'Needed'}</span>
+                        </div>
+                    </div>
+
+                    {/* Description */}
+                    {ride.description && (
+                        <p className="text-sm text-text-secondary-light dark:text-text-secondary bg-tertiary-light/30 dark:bg-tertiary/30 p-3 rounded-lg border border-tertiary-light dark:border-tertiary">
+                            {ride.description}
+                        </p>
+                    )}
+                    
+                    {/* User Info */}
+                    <Link 
+                        to={`/profile/${ride.user.username}`} 
+                        className="inline-flex items-center gap-3 pt-2 group/avatar"
+                    >
+                        <div className="relative">
+                            <img 
+                                src={ride.user.avatar_url || ''} 
+                                alt="user" 
+                                className="w-10 h-10 rounded-full object-cover ring-2 ring-tertiary-light dark:ring-tertiary group-hover/avatar:ring-sky-500 transition-all duration-200"
+                            />
+                            <div className="absolute inset-0 rounded-full bg-sky-500 opacity-0 group-hover/avatar:opacity-20 transition-opacity duration-200"></div>
+                        </div>
+                        <div>
+                            <span className="text-sm font-bold text-text-main-light dark:text-text-main group-hover/avatar:text-sky-500 transition-colors duration-200">
+                                @{ride.user.username}
+                            </span>
+                            <p className="text-xs text-text-tertiary-light dark:text-text-tertiary">
+                                {isOffer ? 'Offering ride' : 'Looking for ride'}
+                            </p>
+                        </div>
+                    </Link>
                 </div>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-text-secondary-light dark:text-text-secondary">
-                    <span>📅 {format(new Date(ride.departure_time), 'MMM d, yyyy')}</span>
-                    <span>🕒 {format(new Date(ride.departure_time), 'p')}</span>
-                    <span>
-                        {ride.type === 'offer' ? `Seats Available: ${ride.seats}` : `Seats Needed: ${ride.seats}`}
-                    </span>
+                
+                {/* Contact Button */}
+                <div className="lg:flex-shrink-0">
+                    <button 
+                        onClick={handleContact} 
+                        className="w-full lg:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold py-3 px-6 rounded-xl hover:shadow-lg hover:scale-105 transition-all duration-200"
+                    >
+                        <ChatIcon className="w-5 h-5" />
+                        <span>Contact</span>
+                    </button>
                 </div>
-                <Link to={`/profile/${ride.user.username}`} className="inline-flex items-center gap-2 pt-2 group">
-                    <img src={ride.user.avatar_url || ''} alt="user" className="w-6 h-6 rounded-full" />
-                    <span className="text-sm font-semibold group-hover:underline">@{ride.user.username}</span>
-                </Link>
             </div>
-            <button onClick={handleContact} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-brand-green text-black font-semibold py-2 px-4 rounded-lg">
-                <ChatIcon className="w-5 h-5" /> Contact
-            </button>
         </div>
     );
-}
+};
 
 const CreateRideModal: React.FC<{ campus: string; onClose: () => void; onRideCreated: () => void; }> = ({ campus, onClose, onRideCreated }) => {
     const { user } = useAuth();
@@ -136,32 +259,152 @@ const CreateRideModal: React.FC<{ campus: string; onClose: () => void; onRideCre
     };
 
     return (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
-            <div className="bg-secondary-light dark:bg-secondary rounded-xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn" onClick={onClose}>
+            <div className="bg-gradient-to-br from-secondary-light to-tertiary-light/30 dark:from-secondary dark:to-tertiary/30 rounded-2xl shadow-2xl w-full max-w-lg border border-tertiary-light dark:border-tertiary animate-slideUp" onClick={e => e.stopPropagation()}>
                 <form onSubmit={handleSubmit} className="p-6">
-                    <header className="flex items-center justify-between pb-4 border-b border-tertiary-light dark:border-tertiary">
-                        <h2 className="text-xl font-bold">Post a Ride</h2>
-                        <button type="button" onClick={onClose}><XCircleIcon className="w-8 h-8" /></button>
+                    <header className="flex items-center justify-between pb-5 border-b border-tertiary-light dark:border-tertiary">
+                        <div>
+                            <h2 className="text-2xl font-bold bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">
+                                Post a Ride
+                            </h2>
+                            <p className="text-sm text-text-secondary-light dark:text-text-secondary mt-1">
+                                Share your travel plans or find a ride
+                            </p>
+                        </div>
+                        <button 
+                            type="button" 
+                            onClick={onClose}
+                            className="hover:bg-tertiary-light dark:hover:bg-tertiary rounded-lg p-1 transition-colors"
+                        >
+                            <XCircleIcon className="w-7 h-7 text-text-tertiary-light dark:text-text-tertiary" />
+                        </button>
                     </header>
-                    <div className="mt-4 space-y-4 max-h-[70vh] overflow-y-auto pr-2">
-                        <div className="flex gap-2 p-1 bg-tertiary-light dark:bg-tertiary rounded-lg">
-                            <button type="button" onClick={() => setType('offer')} className={`flex-1 py-2 rounded ${type==='offer' ? 'bg-brand-green text-black' : ''}`}>Offering Ride</button>
-                            <button type="button" onClick={() => setType('request')} className={`flex-1 py-2 rounded ${type==='request' ? 'bg-brand-green text-black' : ''}`}>Requesting Ride</button>
+                    
+                    <div className="mt-6 space-y-5 max-h-[65vh] overflow-y-auto pr-2 custom-scrollbar">
+                        {/* Type Selector */}
+                        <div>
+                            <label className="block text-sm font-bold mb-2 text-text-main-light dark:text-text-main">I want to...</label>
+                            <div className="flex gap-2 p-1.5 bg-tertiary-light dark:bg-tertiary rounded-xl">
+                                <button 
+                                    type="button" 
+                                    onClick={() => setType('offer')} 
+                                    className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all duration-200 ${
+                                        type === 'offer' 
+                                            ? 'bg-gradient-to-r from-sky-500 to-indigo-600 text-white shadow-lg' 
+                                            : 'text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50'
+                                    }`}
+                                >
+                                    🚗 Offer a Ride
+                                </button>
+                                <button 
+                                    type="button" 
+                                    onClick={() => setType('request')} 
+                                    className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all duration-200 ${
+                                        type === 'request' 
+                                            ? 'bg-gradient-to-r from-sky-500 to-indigo-600 text-white shadow-lg' 
+                                            : 'text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50'
+                                    }`}
+                                >
+                                    🙋 Request a Ride
+                                </button>
+                            </div>
                         </div>
+
+                        {/* Route */}
                         <div className="grid grid-cols-2 gap-4">
-                            <div><label className="block text-sm">From</label><input type="text" value={campus} disabled className="mt-1 w-full p-2 bg-tertiary-light dark:bg-tertiary rounded opacity-70"/></div>
-                            <div><label className="block text-sm">To*</label><input type="text" value={destination} onChange={e => setDestination(e.target.value)} required className="mt-1 w-full p-2 bg-tertiary-light dark:bg-tertiary rounded" /></div>
+                            <div>
+                                <label className="block text-sm font-bold mb-2 text-text-main-light dark:text-text-main">From</label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg">📍</span>
+                                    <input 
+                                        type="text" 
+                                        value={campus} 
+                                        disabled 
+                                        className="w-full pl-10 pr-3 py-3 bg-tertiary-light dark:bg-tertiary rounded-xl opacity-70 font-semibold border-2 border-tertiary-light dark:border-gray-600"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold mb-2 text-text-main-light dark:text-text-main">To*</label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg">🎯</span>
+                                    <input 
+                                        type="text" 
+                                        value={destination} 
+                                        onChange={e => setDestination(e.target.value)} 
+                                        required 
+                                        placeholder="e.g., Hyderabad Airport"
+                                        className="w-full pl-10 pr-3 py-3 bg-tertiary-light dark:bg-tertiary rounded-xl border-2 border-tertiary-light dark:border-gray-600 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-all outline-none"
+                                    />
+                                </div>
+                            </div>
                         </div>
+                        
+                        {/* Date/Time and Seats */}
                         <div className="grid grid-cols-2 gap-4">
-                            <div><label className="block text-sm">Date & Time*</label><input type="datetime-local" value={departureTime} onChange={e => setDepartureTime(e.target.value)} required className="mt-1 w-full p-2 bg-tertiary-light dark:bg-tertiary rounded" /></div>
-                            <div><label className="block text-sm">{type === 'offer' ? 'Seats Available*' : 'Seats Needed*'}</label><input type="number" value={seats} onChange={e => setSeats(parseInt(e.target.value, 10))} required min="1" className="mt-1 w-full p-2 bg-tertiary-light dark:bg-tertiary rounded" /></div>
+                            <div>
+                                <label className="block text-sm font-bold mb-2 text-text-main-light dark:text-text-main">Departure*</label>
+                                <input 
+                                    type="datetime-local" 
+                                    value={departureTime} 
+                                    onChange={e => setDepartureTime(e.target.value)} 
+                                    required 
+                                    className="w-full p-3 bg-tertiary-light dark:bg-tertiary rounded-xl border-2 border-tertiary-light dark:border-gray-600 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-all outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold mb-2 text-text-main-light dark:text-text-main">
+                                    {type === 'offer' ? 'Seats Available*' : 'Seats Needed*'}
+                                </label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg">💺</span>
+                                    <input 
+                                        type="number" 
+                                        value={seats} 
+                                        onChange={e => setSeats(parseInt(e.target.value, 10))} 
+                                        required 
+                                        min="1" 
+                                        max="8"
+                                        className="w-full pl-10 pr-3 py-3 bg-tertiary-light dark:bg-tertiary rounded-xl border-2 border-tertiary-light dark:border-gray-600 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-all outline-none"
+                                    />
+                                </div>
+                            </div>
                         </div>
-                        <div><label className="block text-sm">Description</label><textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} placeholder="e.g., Only one small bag allowed, cost sharing details, etc." className="mt-1 w-full p-2 bg-tertiary-light dark:bg-tertiary rounded" /></div>
+                        
+                        {/* Description */}
+                        <div>
+                            <label className="block text-sm font-bold mb-2 text-text-main-light dark:text-text-main">Additional Details</label>
+                            <textarea 
+                                value={description} 
+                                onChange={e => setDescription(e.target.value)} 
+                                rows={4} 
+                                placeholder="e.g., Only one small bag allowed, cost sharing details, meeting point, etc."
+                                className="w-full p-3 bg-tertiary-light dark:bg-tertiary rounded-xl border-2 border-tertiary-light dark:border-gray-600 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-all outline-none resize-none"
+                            />
+                        </div>
                     </div>
-                    {error && <p className="text-red-400 text-sm mt-4">{error}</p>}
-                    <footer className="flex justify-end gap-4 pt-6 mt-4 border-t border-tertiary-light dark:border-tertiary">
-                        <button type="button" onClick={onClose} className="py-2 px-6 rounded-full hover:bg-tertiary-light/60 dark:hover:bg-tertiary">Cancel</button>
-                        <button type="submit" disabled={isSubmitting} className="py-2 px-6 rounded-full text-black bg-brand-green">{isSubmitting ? <Spinner/> : 'Post'}</button>
+                    
+                    {error && (
+                        <p className="text-red-400 text-sm mt-4 p-3 bg-red-500/10 rounded-lg border border-red-500/30">
+                            {error}
+                        </p>
+                    )}
+                    
+                    <footer className="flex justify-end space-x-3 pt-6 mt-6 border-t border-tertiary-light dark:border-tertiary">
+                        <button 
+                            type="button" 
+                            onClick={onClose} 
+                            className="py-2.5 px-6 rounded-xl font-semibold hover:bg-tertiary-light dark:hover:bg-tertiary transition-all"
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            type="submit" 
+                            disabled={isSubmitting} 
+                            className="py-2.5 px-8 rounded-xl font-bold text-white bg-gradient-to-r from-sky-500 to-indigo-600 hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                        >
+                            {isSubmitting ? <Spinner /> : 'Post Ride'}
+                        </button>
                     </footer>
                 </form>
             </div>

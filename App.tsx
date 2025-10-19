@@ -8,7 +8,6 @@ import { PostsProvider } from './contexts/PostsContext';
 import { ChatProvider } from './contexts/ChatContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { ThemeProvider } from './contexts/ThemeContext';
-
 import { HomePage as Home } from './pages/Home';
 import Login from './pages/Login';
 import ProfilePage from './pages/Profile';
@@ -41,6 +40,7 @@ import TermsPage from './pages/TermsPage';
 import PrivacyPage from './pages/PrivacyPage';
 import EasterEggPage from './pages/EasterEggPage';
 import RideSharePage from './pages/RideSharePage';
+import BlockchainPage from './pages/BlockchainPage';
 
 const AppRoutes = () => {
   const { user, profile, isLoading } = useAuth();
@@ -96,6 +96,7 @@ const AppRoutes = () => {
         <Route path="/campus/lost-and-found" element={<LostAndFoundPage />} />
         <Route path="/campus/marketplace" element={<MarketplacePage />} />
         <Route path="/campus/bits-coin" element={<BitsCoinPage />} />
+        <Route path="/easter-egg/blockchain" element={<BlockchainPage />} />
         <Route path="/campus/ride-share" element={<RideSharePage />} />
         <Route path="/campus/events" element={<EventsPage />} />
         <Route path="/campus/events/:eventId" element={<EventDetailPage />} />
