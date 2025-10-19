@@ -7,7 +7,7 @@ import Spinner from '../components/Spinner';
 import { CubeIcon } from '../components/icons';
 import Block from '../components/Block';
 import Transaction from '../components/Transaction';
-import BlockchainVisualizer from '../components/BlockchainVisualizer'; // <-- Import the new component
+import MiningPuzzle from '../components/MiningPuzzle'; // <-- Import the new puzzle
 
 const BlockchainPage: React.FC = () => {
     const { profile } = useAuth();
@@ -27,7 +27,7 @@ const BlockchainPage: React.FC = () => {
             const balancePromise = supabase.from('profiles').select('bits_coin_balance').eq('user_id', profile.user_id).single();
             const blocksPromise = supabase.from('blockchain_blocks').select('*').order('index', { ascending: false });
             const txPromise = supabase.from('blockchain_pending_transactions').select('*, sender:sender_id(*), recipient:recipient_id(*)').order('timestamp', { ascending: true });
-            const visualizerPromise = supabase.rpc('get_blockchain_with_miners'); // <-- Fetch data for visualizer
+            const visualizerPromise = supabase.rpc('get_blockchain_with_miners'); 
 
             const [balanceRes, blocksRes, txRes, visualizerRes] = await Promise.all([balancePromise, blocksPromise, txPromise, visualizerPromise]);
             
@@ -37,7 +37,7 @@ const BlockchainPage: React.FC = () => {
             if (blocksRes.error) throw blocksRes.error;
             setBlocks(blocksRes.data || []);
             
-            if (visualizerRes.error) throw visualizerRes.error; // <-- Handle visualizer data
+            if (visualizerRes.error) throw visualizerRes.error; 
             setVisualizerBlocks(visualizerRes.data || []);
 
             if (txRes.error) throw txRes.error;
@@ -71,41 +71,16 @@ const BlockchainPage: React.FC = () => {
         };
     }, [fetchChainData, profile]);
 
-    const handleMine = async () => {
+    // This function is now much simpler. It just submits the data the user found.
+    const handleMine = async (blockData: any, nonce: number, hash: string) => {
         setMiningStatus('mining');
         setMiningError('');
-
         try {
-            const lastBlock = blocks[0] || { index: -1, hash: "0" };
-            const newBlockData = {
-                index: lastBlock.index + 1,
-                timestamp: new Date().toISOString(),
-                transactions: pendingTransactions,
-                previous_hash: lastBlock.hash
-            };
-            
-            let nonce = 0;
-            let hash = '';
-            const difficulty = '000';
-
-            const sha256 = async (str: string) => {
-                const textAsBuffer = new TextEncoder().encode(str);
-                const hashBuffer = await crypto.subtle.digest('SHA-256', textAsBuffer);
-                const hashArray = Array.from(new Uint8Array(hashBuffer));
-                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-            };
-
-            while (!hash.startsWith(difficulty)) {
-                nonce++;
-                const blockString = `${newBlockData.index}${newBlockData.previous_hash}${newBlockData.timestamp}${JSON.stringify(newBlockData.transactions)}${nonce}`;
-                hash = await sha256(blockString);
-            }
-            
             const { error: rpcError } = await supabase.rpc('add_mined_block', {
-                new_block_index: newBlockData.index,
-                new_block_timestamp: newBlockData.timestamp,
-                transactions_in_block: newBlockData.transactions,
-                new_block_previous_hash: newBlockData.previous_hash,
+                new_block_index: blockData.index,
+                new_block_timestamp: blockData.timestamp,
+                transactions_in_block: blockData.transactions,
+                new_block_previous_hash: blockData.previous_hash,
                 new_block_hash: hash,
                 new_block_nonce: nonce,
             });
@@ -134,8 +109,8 @@ const BlockchainPage: React.FC = () => {
                 <p className="text-lg text-text-secondary-light dark:text-text-secondary mt-1">A fun, simulated campus cryptocurrency.</p>
             </header>
 
-            {/* <-- RENDER THE NEW VISUALIZER COMPONENT HERE --> */}
-            <BlockchainVisualizer blocks={visualizerBlocks} />
+            {/* The visualizer component is now separate but not implemented in this step */}
+            {/* <BlockchainVisualizer blocks={visualizerBlocks} /> */}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Left Column: Wallet & Actions */}
@@ -152,15 +127,14 @@ const BlockchainPage: React.FC = () => {
                         currentBalance={balance} 
                     />
                     
-                    <div className="bg-secondary-light dark:bg-secondary p-6 rounded-lg shadow-lg border border-tertiary-light dark:border-tertiary">
-                        <h2 className="font-bold text-lg mb-2">Mine a New Block</h2>
-                        <p className="text-sm text-text-secondary-light dark:text-text-secondary mb-4">Validate pending transactions and earn a 25 BITS Coin reward.</p>
-                        <button onClick={handleMine} disabled={miningStatus === 'mining'} className="w-full bg-brand-green text-black font-bold py-3 rounded-lg disabled:opacity-50">
-                            {miningStatus === 'mining' ? <Spinner /> : 'Start Mining'}
-                        </button>
-                        {miningStatus === 'success' && <p className="text-green-400 text-sm mt-2">Success! Block mined.</p>}
-                        {miningStatus === 'error' && <p className="text-red-400 text-sm mt-2">Error: {miningError}</p>}
-                    </div>
+                    {/* Replace the old mining card with the new puzzle component */}
+                    <MiningPuzzle
+                        lastBlock={blocks[0]}
+                        pendingTransactions={pendingTransactions}
+                        onMine={handleMine}
+                        miningStatus={miningStatus}
+                        miningError={miningError}
+                    />
                 </div>
 
                 {/* Right Column: Ledger */}
@@ -186,8 +160,8 @@ const BlockchainPage: React.FC = () => {
     );
 };
 
+// ... (SendCoins component remains unchanged)
 const SendCoins: React.FC<{ senderId?: string; onSend: () => void; currentBalance: number }> = ({ senderId, onSend, currentBalance }) => {
-    // ... (This component remains unchanged from the previous step)
     const [recipient, setRecipient] = useState('');
     const [amount, setAmount] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
