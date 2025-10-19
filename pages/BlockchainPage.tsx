@@ -5,14 +5,15 @@ import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
 import Spinner from '../components/Spinner';
 import { CubeIcon } from '../components/icons';
-import { useNavigate } from 'react-router-dom';
 import Block from '../components/Block';
 import Transaction from '../components/Transaction';
+import BlockchainVisualizer from '../components/BlockchainVisualizer'; // <-- Import the new component
 
 const BlockchainPage: React.FC = () => {
     const { profile } = useAuth();
     const [balance, setBalance] = useState<number>(0);
-    const [blocks, setBlocks] = useState<any[]>([]);
+    const [blocks, setBlocks] = useState<any[]>([]); // For the ledger view (desc)
+    const [visualizerBlocks, setVisualizerBlocks] = useState<any[]>([]); // For the visualizer (asc)
     const [pendingTransactions, setPendingTransactions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -20,20 +21,24 @@ const BlockchainPage: React.FC = () => {
     const [miningError, setMiningError] = useState('');
 
     const fetchChainData = useCallback(async () => {
-        if (!profile) return; // Guard against null profile
+        if (!profile) return;
         setLoading(true);
         try {
             const balancePromise = supabase.from('profiles').select('bits_coin_balance').eq('user_id', profile.user_id).single();
             const blocksPromise = supabase.from('blockchain_blocks').select('*').order('index', { ascending: false });
             const txPromise = supabase.from('blockchain_pending_transactions').select('*, sender:sender_id(*), recipient:recipient_id(*)').order('timestamp', { ascending: true });
+            const visualizerPromise = supabase.rpc('get_blockchain_with_miners'); // <-- Fetch data for visualizer
 
-            const [balanceRes, blocksRes, txRes] = await Promise.all([balancePromise, blocksPromise, txPromise]);
+            const [balanceRes, blocksRes, txRes, visualizerRes] = await Promise.all([balancePromise, blocksPromise, txPromise, visualizerPromise]);
             
             if (balanceRes.error) throw balanceRes.error;
             setBalance(balanceRes.data.bits_coin_balance || 0);
 
             if (blocksRes.error) throw blocksRes.error;
             setBlocks(blocksRes.data || []);
+            
+            if (visualizerRes.error) throw visualizerRes.error; // <-- Handle visualizer data
+            setVisualizerBlocks(visualizerRes.data || []);
 
             if (txRes.error) throw txRes.error;
             setPendingTransactions(txRes.data || []);
@@ -47,34 +52,31 @@ const BlockchainPage: React.FC = () => {
 
     useEffect(() => {
         if (profile) {
-          fetchChainData();
+            fetchChainData();
         }
     }, [fetchChainData, profile]);
     
-    // Realtime subscriptions
     useEffect(() => {
         if (!profile) return;
-        const blockChannel = supabase.channel('blockchain_blocks').on('postgres_changes', { event: '*', schema: 'public', table: 'blockchain_blocks' }, () => fetchChainData()).subscribe();
-        const txChannel = supabase.channel('blockchain_txs').on('postgres_changes', { event: '*', schema: 'public', table: 'blockchain_pending_transactions' }, () => fetchChainData()).subscribe();
-        const profileChannel = supabase.channel(`my_profile_balance:${profile.user_id}`).on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `user_id=eq.${profile.user_id}` }, (payload) => {
-            setBalance(payload.new.bits_coin_balance);
-        }).subscribe();
+        const channel = supabase.channel('blockchain-changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'blockchain_blocks' }, () => fetchChainData())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'blockchain_pending_transactions' }, () => fetchChainData())
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `user_id=eq.${profile.user_id}` }, (payload) => {
+                setBalance(payload.new.bits_coin_balance);
+            })
+            .subscribe();
         
         return () => {
-            supabase.removeChannel(blockChannel);
-            supabase.removeChannel(txChannel);
-            supabase.removeChannel(profileChannel);
+            supabase.removeChannel(channel);
         };
     }, [fetchChainData, profile]);
 
-    // Client-side Proof of Work
     const handleMine = async () => {
         setMiningStatus('mining');
         setMiningError('');
 
         try {
-            // 1. Prepare the new block data
-            const lastBlock = blocks[0] || { index: -1, hash: "0" }; // Genesis block case
+            const lastBlock = blocks[0] || { index: -1, hash: "0" };
             const newBlockData = {
                 index: lastBlock.index + 1,
                 timestamp: new Date().toISOString(),
@@ -82,10 +84,9 @@ const BlockchainPage: React.FC = () => {
                 previous_hash: lastBlock.hash
             };
             
-            // 2. Perform "mining" (find a nonce)
             let nonce = 0;
             let hash = '';
-            const difficulty = '000'; // Match the backend function
+            const difficulty = '000';
 
             const sha256 = async (str: string) => {
                 const textAsBuffer = new TextEncoder().encode(str);
@@ -100,7 +101,6 @@ const BlockchainPage: React.FC = () => {
                 hash = await sha256(blockString);
             }
             
-            // 3. Submit the mined block to the backend
             const { error: rpcError } = await supabase.rpc('add_mined_block', {
                 new_block_index: newBlockData.index,
                 new_block_timestamp: newBlockData.timestamp,
@@ -133,6 +133,9 @@ const BlockchainPage: React.FC = () => {
                 </h1>
                 <p className="text-lg text-text-secondary-light dark:text-text-secondary mt-1">A fun, simulated campus cryptocurrency.</p>
             </header>
+
+            {/* <-- RENDER THE NEW VISUALIZER COMPONENT HERE --> */}
+            <BlockchainVisualizer blocks={visualizerBlocks} />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Left Column: Wallet & Actions */}
@@ -184,6 +187,7 @@ const BlockchainPage: React.FC = () => {
 };
 
 const SendCoins: React.FC<{ senderId?: string; onSend: () => void; currentBalance: number }> = ({ senderId, onSend, currentBalance }) => {
+    // ... (This component remains unchanged from the previous step)
     const [recipient, setRecipient] = useState('');
     const [amount, setAmount] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
