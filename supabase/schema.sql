@@ -15,11 +15,6 @@ SET row_security = off;
 
 CREATE EXTENSION IF NOT EXISTS "pg_cron" WITH SCHEMA "pg_catalog";
 
-
-
-
-
-
 COMMENT ON SCHEMA "public" IS 'standard public schema';
 
 
@@ -4078,169 +4073,6 @@ GRANT USAGE ON SCHEMA "public" TO "service_role";
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 GRANT ALL ON FUNCTION "public"."add_mined_block"("new_block_index" bigint, "new_block_timestamp" timestamp with time zone, "transactions_in_block" "jsonb", "new_block_previous_hash" "text", "new_block_hash" "text", "new_block_nonce" integer) TO "anon";
 GRANT ALL ON FUNCTION "public"."add_mined_block"("new_block_index" bigint, "new_block_timestamp" timestamp with time zone, "transactions_in_block" "jsonb", "new_block_previous_hash" "text", "new_block_hash" "text", "new_block_nonce" integer) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."add_mined_block"("new_block_index" bigint, "new_block_timestamp" timestamp with time zone, "transactions_in_block" "jsonb", "new_block_previous_hash" "text", "new_block_hash" "text", "new_block_nonce" integer) TO "service_role";
@@ -4626,26 +4458,6 @@ GRANT ALL ON FUNCTION "public"."update_seller_rating_on_profile"() TO "service_r
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 GRANT ALL ON TABLE "public"."bits_coin_ratings" TO "anon";
 GRANT ALL ON TABLE "public"."bits_coin_ratings" TO "authenticated";
 GRANT ALL ON TABLE "public"."bits_coin_ratings" TO "service_role";
@@ -4928,33 +4740,6 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TAB
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

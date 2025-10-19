@@ -31,22 +31,7 @@ const BitsCoinPage: React.FC = () => {
     const [isCreateModalOpen, setCreateModalOpen] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState<BitsCoinRequest | null>(null);
     const [selectedCategory, setSelectedCategory] = useState('All');
-
-    const [clickCount, setClickCount] = useState(0);
     const navigate = useNavigate();
-
-    const handleIconClick = () => {
-        setClickCount(prev => prev + 1);
-    };
-
-    useEffect(() => {
-        if (clickCount === 0) return;
-        if (clickCount >= 7) {
-            navigate('/easter-egg/blockchain');
-        }
-        const timer = setTimeout(() => setClickCount(0), 1500);
-        return () => clearTimeout(timer);
-    }, [clickCount, navigate]);
 
     const fetchRequests = useCallback(async (isInitialLoad = false) => {
         if (!profile?.campus) return;
@@ -115,14 +100,13 @@ const BitsCoinPage: React.FC = () => {
                     <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-6">
                         <div className="space-y-3">
                             <div className="flex items-center gap-3">
-                                <h1 className="text-5xl font-extrabold text-text-main-light dark:text-text-main bg-gradient-to-r from-brand-green to-brand-green-darker bg-clip-text text-transparent">
-                                    Bits-coin Board
+                                <h1 
+                                    className="text-5xl font-extrabold text-text-main-light dark:text-text-main bg-gradient-to-r from-brand-green to-brand-green-darker bg-clip-text text-transparent cursor-pointer hover:scale-[1.02] active:scale-100 transition-transform duration-200"
+                                    onClick={() => navigate('/easter-egg/blockchain')}
+                                    title="Inspect the ledger..."
+                                >
+                                    Bits₹Coin Board
                                 </h1>
-                                <CurrencyRupeeIcon 
-                                    className="w-10 h-10 text-brand-green cursor-pointer hover:scale-110 transition-transform duration-200 drop-shadow-lg"
-                                    onClick={handleIconClick}
-                                    title="What are you clicking at?"
-                                />
                             </div>
                             <p className="text-lg text-text-secondary-light dark:text-text-secondary max-w-xl">
                                 Earn rewards by helping fellow BITSians. Post tasks or claim open requests.

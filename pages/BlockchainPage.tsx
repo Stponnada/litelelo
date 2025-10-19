@@ -1,14 +1,13 @@
 // src/pages/BlockchainPage.tsx
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
-import { Profile } from '../types';
 import Spinner from '../components/Spinner';
-import { CubeIcon, ChatIcon } from '../components/icons';
-import { formatTimestamp } from '../utils/timeUtils';
-import { Link, useNavigate } from 'react-router-dom';
-import Block from '../components/Block'; // We will create this
-import Transaction from '../components/Transaction'; // We will create this
+import { CubeIcon } from '../components/icons';
+import { useNavigate } from 'react-router-dom';
+import Block from '../components/Block';
+import Transaction from '../components/Transaction';
 
 const BlockchainPage: React.FC = () => {
     const { profile } = useAuth();
@@ -21,9 +20,10 @@ const BlockchainPage: React.FC = () => {
     const [miningError, setMiningError] = useState('');
 
     const fetchChainData = useCallback(async () => {
+        if (!profile) return; // Guard against null profile
         setLoading(true);
         try {
-            const balancePromise = supabase.from('profiles').select('bits_coin_balance').eq('user_id', profile!.user_id).single();
+            const balancePromise = supabase.from('profiles').select('bits_coin_balance').eq('user_id', profile.user_id).single();
             const blocksPromise = supabase.from('blockchain_blocks').select('*').order('index', { ascending: false });
             const txPromise = supabase.from('blockchain_pending_transactions').select('*, sender:sender_id(*), recipient:recipient_id(*)').order('timestamp', { ascending: true });
 
@@ -46,14 +46,17 @@ const BlockchainPage: React.FC = () => {
     }, [profile]);
 
     useEffect(() => {
-        fetchChainData();
-    }, [fetchChainData]);
+        if (profile) {
+          fetchChainData();
+        }
+    }, [fetchChainData, profile]);
     
     // Realtime subscriptions
     useEffect(() => {
-        const blockChannel = supabase.channel('blockchain_blocks').on('postgres_changes', { event: '*', schema: 'public', table: 'blockchain_blocks' }, fetchChainData).subscribe();
-        const txChannel = supabase.channel('blockchain_txs').on('postgres_changes', { event: '*', schema: 'public', table: 'blockchain_pending_transactions' }, fetchChainData).subscribe();
-        const profileChannel = supabase.channel('my_profile_balance').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `user_id=eq.${profile?.user_id}` }, (payload) => {
+        if (!profile) return;
+        const blockChannel = supabase.channel('blockchain_blocks').on('postgres_changes', { event: '*', schema: 'public', table: 'blockchain_blocks' }, () => fetchChainData()).subscribe();
+        const txChannel = supabase.channel('blockchain_txs').on('postgres_changes', { event: '*', schema: 'public', table: 'blockchain_pending_transactions' }, () => fetchChainData()).subscribe();
+        const profileChannel = supabase.channel(`my_profile_balance:${profile.user_id}`).on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `user_id=eq.${profile.user_id}` }, (payload) => {
             setBalance(payload.new.bits_coin_balance);
         }).subscribe();
         
@@ -140,7 +143,11 @@ const BlockchainPage: React.FC = () => {
                         <p className="text-sm text-text-tertiary-light dark:text-text-tertiary">BITS Coins</p>
                     </div>
                     
-                    <SendCoins onSend={fetchChainData} currentBalance={balance} />
+                    <SendCoins 
+                        senderId={profile?.user_id} 
+                        onSend={fetchChainData} 
+                        currentBalance={balance} 
+                    />
                     
                     <div className="bg-secondary-light dark:bg-secondary p-6 rounded-lg shadow-lg border border-tertiary-light dark:border-tertiary">
                         <h2 className="font-bold text-lg mb-2">Mine a New Block</h2>
@@ -176,7 +183,7 @@ const BlockchainPage: React.FC = () => {
     );
 };
 
-const SendCoins: React.FC<{onSend: () => void, currentBalance: number}> = ({ onSend, currentBalance }) => {
+const SendCoins: React.FC<{ senderId?: string; onSend: () => void; currentBalance: number }> = ({ senderId, onSend, currentBalance }) => {
     const [recipient, setRecipient] = useState('');
     const [amount, setAmount] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -186,7 +193,19 @@ const SendCoins: React.FC<{onSend: () => void, currentBalance: number}> = ({ onS
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(''); setSuccess(''); setIsSubmitting(true);
+        
+        if (!senderId) {
+            setError("Could not identify sender. Please refresh.");
+            setIsSubmitting(false);
+            return;
+        }
+
         const parsedAmount = parseFloat(amount);
+        if (isNaN(parsedAmount) || parsedAmount <= 0) {
+            setError("Invalid amount.");
+            setIsSubmitting(false);
+            return;
+        }
 
         if (parsedAmount > currentBalance) {
             setError("Insufficient balance.");
@@ -195,15 +214,16 @@ const SendCoins: React.FC<{onSend: () => void, currentBalance: number}> = ({ onS
         }
 
         try {
-            const { data: recipientProfile, error: profileError } = await supabase.from('profiles').select('user_id').eq('username', recipient).single();
-            if (profileError || !recipientProfile) throw new Error("Recipient not found.");
+            const { data: recipientProfile, error: profileError } = await supabase.from('profiles').select('user_id').eq('username', recipient.trim()).single();
+            if (profileError || !recipientProfile) throw new Error(`Recipient @${recipient.trim()} not found.`);
+            if (recipientProfile.user_id === senderId) throw new Error("You cannot send coins to yourself.");
 
-            const { error: txError } = await supabase.from('blockchain_pending_transactions').insert({ sender_id: supabase.auth.getUser()!.id, recipient_id: recipientProfile.user_id, amount: parsedAmount });
+            const { error: txError } = await supabase.from('blockchain_pending_transactions').insert({ sender_id: senderId, recipient_id: recipientProfile.user_id, amount: parsedAmount });
             if (txError) throw txError;
 
-            setSuccess(`Transaction of ${amount} sent to @${recipient}!`);
+            setSuccess(`Transaction of ${amount} sent to @${recipient.trim()}! It will be processed in the next block.`);
             setRecipient(''); setAmount('');
-            onSend();
+            onSend(); // Refresh parent data
         } catch (err: any) {
             setError(err.message);
         } finally {
