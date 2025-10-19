@@ -31,7 +31,24 @@ const BitsCoinPage: React.FC = () => {
     const [isCreateModalOpen, setCreateModalOpen] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState<BitsCoinRequest | null>(null);
     const [selectedCategory, setSelectedCategory] = useState('All');
+
+    // --- FIX: Logic for the 7-click easter egg ---
+    const [clickCount, setClickCount] = useState(0);
     const navigate = useNavigate();
+
+    const handleTitleClick = () => {
+        setClickCount(prev => prev + 1);
+    };
+
+    useEffect(() => {
+        if (clickCount === 0) return;
+        if (clickCount >= 7) {
+            navigate('/easter-egg/blockchain');
+        }
+        const timer = setTimeout(() => setClickCount(0), 1500);
+        return () => clearTimeout(timer);
+    }, [clickCount, navigate]);
+    // --- End of fix ---
 
     const fetchRequests = useCallback(async (isInitialLoad = false) => {
         if (!profile?.campus) return;
@@ -102,8 +119,8 @@ const BitsCoinPage: React.FC = () => {
                             <div className="flex items-center gap-3">
                                 <h1 
                                     className="text-5xl font-extrabold text-text-main-light dark:text-text-main bg-gradient-to-r from-brand-green to-brand-green-darker bg-clip-text text-transparent cursor-pointer hover:scale-[1.02] active:scale-100 transition-transform duration-200"
-                                    onClick={() => navigate('/easter-egg/blockchain')}
-                                    title="Inspect the ledger..."
+                                    onClick={handleTitleClick}
+                                    title="What are you clicking at?"
                                 >
                                     Bits₹Coin Board
                                 </h1>
