@@ -40,6 +40,7 @@ import HelpCenterPage from './pages/HelpCenterPage';
 import TermsPage from './pages/TermsPage'; 
 import PrivacyPage from './pages/PrivacyPage';
 import EasterEggPage from './pages/EasterEggPage';
+import RideSharePage from './pages/RideSharePage';
 
 const AppRoutes = () => {
   const { user, profile, isLoading } = useAuth();
@@ -95,6 +96,7 @@ const AppRoutes = () => {
         <Route path="/campus/lost-and-found" element={<LostAndFoundPage />} />
         <Route path="/campus/marketplace" element={<MarketplacePage />} />
         <Route path="/campus/bits-coin" element={<BitsCoinPage />} />
+        <Route path="/campus/ride-share" element={<RideSharePage />} />
         <Route path="/campus/events" element={<EventsPage />} />
         <Route path="/campus/events/:eventId" element={<EventDetailPage />} />
         <Route path="/reputation/:username" element={<ReputationPage />} />

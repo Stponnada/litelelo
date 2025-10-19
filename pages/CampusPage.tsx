@@ -7,7 +7,7 @@ import { supabase } from '../services/supabase';
 import { CampusPlace, MarketplaceListing, LostAndFoundItem, CampusNotice } from '../types';
 import ListingCard from '../components/ListingCard';
 import Spinner from '../components/Spinner';
-import { ArchiveBoxIcon, ShoppingCartIcon, StarIcon, ClipboardDocumentListIcon, CurrencyRupeeIcon } from '../components/icons';
+import { ArchiveBoxIcon, ShoppingCartIcon, StarIcon, ClipboardDocumentListIcon, CurrencyRupeeIcon, CarIcon } from '../components/icons';
 
 const CampusPlacesIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg 
@@ -218,6 +218,14 @@ const CampusPage: React.FC = () => {
                     title="Bits-coin" 
                     description="Post small tasks for others to complete for a reward"
                     gradient="from-emerald-500 to-green-600"
+                />
+
+                <FeatureCard 
+                    to="/campus/ride-share" // <-- ADDED THIS CARD
+                    icon={<CarIcon className="w-6 h-6 md:w-8 md:h-8 text-white" />} 
+                    title="Ride Share" 
+                    description="Coordinate travel to the airport or home"
+                    gradient="from-sky-500 to-indigo-600"
                 />
                 
                 <FeatureCard 

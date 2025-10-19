@@ -1,6 +1,6 @@
 // src/pages/MarketplacePage.tsx
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { MarketplaceListing } from '../types';
@@ -9,33 +9,41 @@ import ListingCard from '../components/ListingCard';
 import CreateListingModal from '../components/CreateListingModal';
 import ListingDetailModal from '../components/ListingDetailModal';
 
-const TabButton: React.FC<{ label: string; isActive: boolean; onClick: () => void }> = ({ label, isActive, onClick }) => (
-    <button
-      onClick={onClick}
-      className={`relative px-6 py-4 text-sm font-semibold transition-all duration-200 border-b-2 ${
-        isActive
-          ? 'border-brand-green text-brand-green'
-          : 'border-transparent text-text-secondary-light dark:text-text-secondary hover:border-tertiary-light dark:hover:border-tertiary hover:text-text-main-light'
-      }`}
-    >
-      {label}
-      {isActive && (
-        <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-brand-green rounded-t-full" />
-      )}
-    </button>
-);
+const CATEGORIES = ['Books & Notes', 'Electronics', 'Furniture', 'Apparel', 'Cycles & Vehicles', 'Other'];
+const SORT_OPTIONS = {
+    'created_at_desc': 'Newest',
+    'price_asc': 'Price: Low to High',
+    'price_desc': 'Price: High to Low',
+};
 
 const MarketplacePage: React.FC = () => {
     const { profile, user } = useAuth();
     const [listings, setListings] = useState<MarketplaceListing[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<'browse' | 'myListings'>('browse');
 
+    // --- NEW: State for filters ---
+    const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState('All');
+    const [sortBy, setSortBy] = useState('created_at_desc');
+    
     const [isCreateModalOpen, setCreateModalOpen] = useState(false);
     const [selectedListing, setSelectedListing] = useState<MarketplaceListing | null>(null);
     const [listingToEdit, setListingToEdit] = useState<MarketplaceListing | null>(null);
 
+    // Debounce search term
+    useEffect(() => {
+        const timerId = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+        }, 500); // 500ms delay
+
+        return () => {
+            clearTimeout(timerId);
+        };
+    }, [searchTerm]);
+
+    // Fetch listings whenever filters change
     useEffect(() => {
         if (!profile?.campus) return;
         
@@ -43,7 +51,13 @@ const MarketplacePage: React.FC = () => {
             setLoading(true);
             setError(null);
             try {
-                const { data, error: rpcError } = await supabase.rpc('get_marketplace_listings', { p_campus: profile.campus });
+                const { data, error: rpcError } = await supabase.rpc('get_marketplace_listings', { 
+                    p_campus: profile.campus,
+                    p_search_term: debouncedSearchTerm.trim() === '' ? null : debouncedSearchTerm.trim(),
+                    p_category: selectedCategory === 'All' ? null : selectedCategory,
+                    p_sort_by: sortBy
+                });
+
                 if (rpcError) throw rpcError;
                 setListings(data as MarketplaceListing[] || []);
             } catch (err: any) {
@@ -53,14 +67,7 @@ const MarketplacePage: React.FC = () => {
             }
         };
         fetchListings();
-    }, [profile?.campus]);
-
-    const { myListings, otherListings } = useMemo(() => {
-        if (!user) return { myListings: [], otherListings: listings };
-        const my = listings.filter(l => l.seller_id === user.id);
-        const other = listings.filter(l => l.seller_id !== user.id);
-        return { myListings: my, otherListings: other };
-    }, [listings, user]);
+    }, [profile?.campus, debouncedSearchTerm, selectedCategory, sortBy]);
 
     const handleListingCreated = (newListing: MarketplaceListing) => {
         setListings(prev => [newListing, ...prev]);
@@ -85,22 +92,8 @@ const MarketplacePage: React.FC = () => {
         setSelectedListing(null);
     };
 
-    if (loading) return (
-        <div className="flex justify-center items-center min-h-[60vh] p-8">
-            <Spinner />
-        </div>
-    );
-    if (error) return (
-        <div className="flex justify-center items-center min-h-[60vh] p-8">
-            <div className="text-center">
-                <div className="text-red-400 mb-4">Error loading listings</div>
-                <p className="text-text-secondary-light dark:text-text-secondary">{error}</p>
-            </div>
-        </div>
-    );
-
     const showFormModal = isCreateModalOpen || !!listingToEdit;
-    const listingsToShow = activeTab === 'browse' ? otherListings : myListings;
+    const isMyListingsTab = false; // We can add this logic back later if needed
 
     return (
         <div className="min-h-screen bg-background-light dark:bg-background-dark">
@@ -123,74 +116,59 @@ const MarketplacePage: React.FC = () => {
                     />
                 )}
 
-                {/* Header Section */}
                 <div className="mb-8">
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
                         <div className="flex-1">
-                            <h1 className="text-3xl sm:text-4xl font-bold text-text-main-light dark:text-text-main mb-2">
-                                Marketplace
-                            </h1>
-                            <p className="text-lg text-text-secondary-light dark:text-text-secondary">
-                                Buy & sell goods within the {profile?.campus} campus.
-                            </p>
+                            <h1 className="text-3xl sm:text-4xl font-bold text-text-main-light dark:text-text-main mb-2">Marketplace</h1>
+                            <p className="text-lg text-text-secondary-light dark:text-text-secondary">Buy & sell goods within the {profile?.campus} campus.</p>
                         </div>
-                        <button 
-                            onClick={() => setCreateModalOpen(true)}
-                            className="bg-brand-green text-black font-bold py-3 px-8 rounded-full hover:bg-brand-green-darker transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 whitespace-nowrap"
-                        >
+                        <button onClick={() => setCreateModalOpen(true)} className="bg-brand-green text-black font-bold py-3 px-8 rounded-full hover:bg-brand-green-darker transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 whitespace-nowrap">
                             + Sell Item
                         </button>
                     </div>
                 </div>
                 
-                {/* Tab Navigation */}
-                <div className="flex flex-col sm:flex-row border-b border-tertiary-light dark:border-tertiary mb-8 bg-surface-light dark:bg-surface-dark rounded-lg overflow-hidden shadow-sm">
-                    <div className="flex space-x-0 sm:space-x-0 border-b sm:border-b-0 sm:border-r border-tertiary-light dark:border-tertiary">
-                        <TabButton label="Browse All" isActive={activeTab === 'browse'} onClick={() => setActiveTab('browse')} />
-                        <TabButton label="My Listings" isActive={activeTab === 'myListings'} onClick={() => setActiveTab('myListings')} />
+                {/* --- NEW FILTER CONTROLS --- */}
+                <div className="mb-8 p-4 bg-secondary-light dark:bg-secondary rounded-lg border border-tertiary-light dark:border-tertiary shadow-sm flex flex-col md:flex-row gap-4">
+                    <div className="relative flex-grow">
+                        <input type="text" placeholder="Search for an item..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 bg-tertiary-light dark:bg-tertiary rounded-md border border-tertiary-light dark:border-gray-600"/>
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary-light dark:text-text-tertiary">
+                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                        </div>
+                    </div>
+                    <div className="flex gap-4">
+                        <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)} className="flex-1 p-2 bg-tertiary-light dark:bg-tertiary rounded-md border border-tertiary-light dark:border-gray-600">
+                            <option value="All">All Categories</option>
+                            {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                        </select>
+                         <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="flex-1 p-2 bg-tertiary-light dark:bg-tertiary rounded-md border border-tertiary-light dark:border-gray-600">
+                            {Object.entries(SORT_OPTIONS).map(([key, value]) => <option key={key} value={key}>{value}</option>)}
+                        </select>
                     </div>
                 </div>
 
-                {/* Listings Grid */}
-                <div className="space-y-6">
-                    {listingsToShow.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                            {listingsToShow.map(listing => (
-                                <ListingCard 
-                                    key={listing.id} 
-                                    listing={listing} 
-                                    onClick={() => setSelectedListing(listing)} 
-                                />
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="col-span-full flex flex-col items-center justify-center py-20 px-4 text-center bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-tertiary-light dark:border-tertiary">
-                            <div className="w-16 h-16 bg-tertiary-light dark:bg-tertiary rounded-full flex items-center justify-center mb-4">
-                                <svg className="w-8 h-8 text-text-tertiary-light dark:text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                                </svg>
-                            </div>
-                            <h3 className="text-xl font-semibold text-text-main-light dark:text-text-main mb-2">
-                                {activeTab === 'browse' ? 'No Items Available' : 'No Listings Yet'}
-                            </h3>
-                            <p className="text-text-tertiary-light dark:text-text-tertiary max-w-md">
-                                {activeTab === 'browse'
-                                    ? "There are no other items for sale right now. Check back later!"
-                                    : "You haven't listed any items for sale. Start by creating your first listing."
-                                }
-                            </p>
-                            {activeTab === 'myListings' && (
-                                <button 
-                                    onClick={() => setCreateModalOpen(true)}
-                                    className="mt-6 bg-brand-green text-black font-bold py-2 px-6 rounded-full hover:bg-brand-green-darker transition-all duration-200"
-                                >
-                                    Create Your First Listing
-                                </button>
-                            )}
-                        </div>
-                    )}
-                </div>
-
+                {loading ? (
+                    <div className="text-center py-20"><Spinner/></div>
+                ) : listings.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                        {listings.map(listing => (
+                            <ListingCard 
+                                key={listing.id} 
+                                listing={listing} 
+                                onClick={() => setSelectedListing(listing)} 
+                            />
+                        ))}
+                    </div>
+                ) : (
+                    <div className="col-span-full flex flex-col items-center justify-center py-20 px-4 text-center bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-tertiary-light dark:border-tertiary">
+                        <h3 className="text-xl font-semibold text-text-main-light dark:text-text-main mb-2">
+                            No Items Found
+                        </h3>
+                        <p className="text-text-tertiary-light dark:text-text-tertiary max-w-md">
+                            Try adjusting your search or filters. Or, be the first to list an item!
+                        </p>
+                    </div>
+                )}
             </div>
         </div>
     );

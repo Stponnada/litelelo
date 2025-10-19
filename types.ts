@@ -354,4 +354,29 @@ export interface Notification {
         full_name: string | null;
         avatar_url: string | null;
     };
+
+}
+
+// src/types.ts
+
+// ... (other types)
+
+export interface RideShare {
+    id: string;
+    created_at: string;
+    user_id: string;
+    campus: string;
+    type: 'offer' | 'request';
+    origin: string;
+    destination: string;
+    departure_time: string;
+    seats: number;
+    description: string | null;
+    status: 'active' | 'full' | 'completed' | 'cancelled';
+    user: {
+        user_id: string;
+        username: string;
+        full_name: string | null;
+        avatar_url: string | null;
+    };
 }
