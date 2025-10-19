@@ -7,7 +7,8 @@ import Spinner from '../components/Spinner';
 import { CubeIcon } from '../components/icons';
 import Block from '../components/Block';
 import Transaction from '../components/Transaction';
-import MiningPuzzle from '../components/MiningPuzzle'; // <-- Import the new puzzle
+import BlockchainVisualizer from '../components/BlockchainVisualizer'; // Already imported, just needs to be used
+import MiningPuzzle from '../components/MiningPuzzle'; // The new puzzle component
 
 const BlockchainPage: React.FC = () => {
     const { profile } = useAuth();
@@ -71,7 +72,6 @@ const BlockchainPage: React.FC = () => {
         };
     }, [fetchChainData, profile]);
 
-    // This function is now much simpler. It just submits the data the user found.
     const handleMine = async (blockData: any, nonce: number, hash: string) => {
         setMiningStatus('mining');
         setMiningError('');
@@ -109,8 +109,8 @@ const BlockchainPage: React.FC = () => {
                 <p className="text-lg text-text-secondary-light dark:text-text-secondary mt-1">A fun, simulated campus cryptocurrency.</p>
             </header>
 
-            {/* The visualizer component is now separate but not implemented in this step */}
-            {/* <BlockchainVisualizer blocks={visualizerBlocks} /> */}
+            {/* <-- FIX: The BlockchainVisualizer is now rendered here --> */}
+            <BlockchainVisualizer blocks={visualizerBlocks} />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Left Column: Wallet & Actions */}
@@ -127,7 +127,6 @@ const BlockchainPage: React.FC = () => {
                         currentBalance={balance} 
                     />
                     
-                    {/* Replace the old mining card with the new puzzle component */}
                     <MiningPuzzle
                         lastBlock={blocks[0]}
                         pendingTransactions={pendingTransactions}
@@ -160,7 +159,6 @@ const BlockchainPage: React.FC = () => {
     );
 };
 
-// ... (SendCoins component remains unchanged)
 const SendCoins: React.FC<{ senderId?: string; onSend: () => void; currentBalance: number }> = ({ senderId, onSend, currentBalance }) => {
     const [recipient, setRecipient] = useState('');
     const [amount, setAmount] = useState('');
