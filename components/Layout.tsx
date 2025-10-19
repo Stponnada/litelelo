@@ -30,26 +30,23 @@ const Layout = () => {
     <div>
       {isAboutModalOpen && <AboutModal onClose={() => setIsAboutModalOpen(false)} />}
       
-      <div className="hidden md:block">
-        <Header isSidebarExpanded={isSidebarExpanded} onOpenAboutModal={() => setIsAboutModalOpen(true)} />
-        <LeftSidebar 
-          isExpanded={isSidebarExpanded} 
-          setIsExpanded={setIsSidebarExpanded} 
-          username={username}
-          onOpenAboutModal={() => setIsAboutModalOpen(true)}
-        />
-      </div>
+      {/* A single Header component handles both mobile and desktop */}
+      <Header isSidebarExpanded={isSidebarExpanded} onOpenAboutModal={() => setIsAboutModalOpen(true)} />
       
-      <div className="md:hidden">
-        <Header isSidebarExpanded={false} onOpenAboutModal={() => setIsAboutModalOpen(true)} />
-      </div>
+      {/* Sidebar is hidden on mobile by default */}
+      <LeftSidebar 
+        isExpanded={isSidebarExpanded} 
+        setIsExpanded={setIsSidebarExpanded} 
+        username={username}
+        onOpenAboutModal={() => setIsAboutModalOpen(true)}
+      />
 
       <main 
         className={`pt-16 md:pt-24 transition-all duration-300 ease-in-out 
                     pb-20 md:pb-0
                     ${isSidebarExpanded ? 'md:pl-48' : 'md:pl-20'}`}
       >
-        <div className="p-6 md:p-6">
+        <div className="p-4 md:p-6"> {/* Adjusted padding for consistency */}
           <Outlet />
         </div>
       </main>

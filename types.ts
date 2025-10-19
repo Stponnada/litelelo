@@ -70,6 +70,8 @@ gender: string | null;
 birthday: string | null;
 avg_seller_rating?: number;
 total_seller_ratings?: number;
+avg_bits_coin_rating?: number;
+total_bits_coin_ratings?: number;
 }
 export interface ConversationSummary {
 conversation_id: string;
@@ -314,6 +316,7 @@ export interface CampusEvent {
     full_name: string | null;
     avatar_url: string | null;
   };
+
   community: {
     id: string;
     name: string;
@@ -322,4 +325,33 @@ export interface CampusEvent {
   going_count: number;
   interested_count: number;
   user_rsvp_status: RsvpStatus | null;
+}
+
+export interface BitsCoinRequest {
+    id: string;
+    created_at: string;
+    title: string;
+    description: string;
+    reward: number;
+    status: 'open' | 'claimed' | 'completed' | 'cancelled';
+    requester: { user_id: string; username: string; full_name: string; avatar_url: string; };
+    claimer: { user_id: string; username: string; full_name: string; avatar_url: string; } | null;
+}
+
+export type NotificationType = 'like' | 'comment' | 'follow' | 'mention' | 'bits_coin_claim';
+
+export interface Notification {
+    id: string;
+    user_id: string;
+    type: NotificationType;
+    entity_id: string | null;
+    entity_type: 'post' | 'user' | 'bits_coin_request' | null;
+    is_read: boolean;
+    created_at: string;
+    actor: {
+        user_id: string;
+        username: string;
+        full_name: string | null;
+        avatar_url: string | null;
+    };
 }

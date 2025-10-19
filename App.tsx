@@ -6,6 +6,7 @@ import { useAuth } from './hooks/useAuth';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
 import { PostsProvider } from './contexts/PostsContext';
 import { ChatProvider } from './contexts/ChatContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 
 import { HomePage as Home } from './pages/Home';
@@ -25,11 +26,12 @@ import CampusDirectoryPage from './pages/CampusDirectoryPage';
 import PlaceDetailPage from './pages/PlaceDetailPage';
 import LostAndFoundPage from './pages/LostAndFoundPage';
 import MarketplacePage from './pages/MarketplacePage';
+import BitsCoinPage from './pages/BitsCoinPage';
 import EventsPage from './pages/EventsPage';
 import EventDetailPage from './pages/EventDetailPage';
-import SellerProfilePage from './pages/SellerProfilePage';
+import ReputationPage from './pages/ReputationPage';
 import GroupInfoPage from './pages/GroupInfoPage';
-import NoticeboardPage from './pages/NoticeboardPage'; // <-- Add this import
+import NoticeboardPage from './pages/NoticeboardPage'; 
 import CommunitiesListPage from './pages/CommunitiesListPage';
 import CommunityPage from './pages/CommunityPage';
 import CommunityMembersPage from './pages/CommunityMembersPage';
@@ -92,9 +94,10 @@ const AppRoutes = () => {
         <Route path="/campus/noticeboard" element={<NoticeboardPage />} /> {/* <-- Add this route */}
         <Route path="/campus/lost-and-found" element={<LostAndFoundPage />} />
         <Route path="/campus/marketplace" element={<MarketplacePage />} />
+        <Route path="/campus/bits-coin" element={<BitsCoinPage />} />
         <Route path="/campus/events" element={<EventsPage />} />
         <Route path="/campus/events/:eventId" element={<EventDetailPage />} />
-        <Route path="/marketplace/seller/:username" element={<SellerProfilePage />} />
+        <Route path="/reputation/:username" element={<ReputationPage />} />
         <Route path="/profile/:username" element={<ProfilePage />} />
         <Route path="/post/:postId" element={<PostPage />} />
         <Route path="/chat" element={<ChatPage />} />
@@ -122,7 +125,9 @@ const App = () => {
         <AuthProvider>
           <PostsProvider>
             <ChatProvider>
-              <AppRoutes />
+              <NotificationProvider> {/* <-- WRAP HERE */}
+                <AppRoutes />
+              </NotificationProvider>
             </ChatProvider>
           </PostsProvider>
         </AuthProvider>

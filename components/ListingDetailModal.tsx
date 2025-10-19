@@ -90,7 +90,7 @@ const ListingDetailModal: React.FC<ListingDetailModalProps> = ({ listing, onClos
                     <div className="mt-auto pt-6">
                         <div className="bg-tertiary-light/50 dark:bg-tertiary/50 p-4 rounded-lg">
                             <p className="text-sm font-semibold text-text-secondary-light dark:text-text-secondary mb-2">SELLER INFORMATION</p>
-                            <Link to={`/marketplace/seller/${listing.seller_profile.username}`} className="flex items-center space-x-3 group">
+                            <Link to={`/reputation/${listing.seller_profile.username}`} className="flex items-center space-x-3 group">
                                 <img src={listing.seller_profile.avatar_url || ''} alt={listing.seller_profile.username} className="w-12 h-12 rounded-full object-cover" />
                                 <div>
                                     <p className="font-bold text-text-main-light dark:text-text-main group-hover:underline">{listing.seller_profile.full_name}</p>

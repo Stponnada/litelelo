@@ -493,6 +493,42 @@ $$;
 ALTER FUNCTION "public"."delete_listing"("p_listing_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."delete_notice"("p_notice_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+    file_paths text[];
+    notice_owner_id uuid;
+BEGIN
+    -- Check ownership
+    SELECT user_id INTO notice_owner_id FROM public.campus_notices WHERE id = p_notice_id;
+    IF notice_owner_id <> auth.uid() THEN
+        RAISE EXCEPTION 'Permission denied to delete this notice';
+    END IF;
+
+    -- Get all file paths from storage for this notice
+    SELECT array_agg(
+        -- Extracts path like 'public/noticeboard-files/user_id/noticeboard/file.jpg' -> 'user_id/noticeboard/file.jpg'
+        (string_to_array(cnf.file_url, '/'))[7:]
+    )
+    INTO file_paths
+    FROM public.campus_notice_files cnf
+    WHERE cnf.notice_id = p_notice_id;
+
+    -- Delete files from storage if any exist
+    IF array_length(file_paths, 1) > 0 THEN
+        PERFORM storage.delete_objects('noticeboard-files', file_paths);
+    END IF;
+
+    -- Delete the notice from the database (files will be deleted by CASCADE)
+    DELETE FROM public.campus_notices WHERE id = p_notice_id;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."delete_notice"("p_notice_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."get_birthday_users"("p_month" integer, "p_day" integer) RETURNS TABLE("full_name" "text")
     LANGUAGE "plpgsql"
     AS $$
@@ -577,6 +613,45 @@ $$;
 
 
 ALTER FUNCTION "public"."get_campus_events"("p_campus" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."get_campus_notices_with_files"("p_campus" "text") RETURNS TABLE("id" "uuid", "user_id" "uuid", "campus" "text", "title" "text", "description" "text", "created_at" timestamp with time zone, "profiles" "jsonb", "files" "jsonb")
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        cn.id,
+        cn.user_id,
+        cn.campus,
+        cn.title,
+        cn.description,
+        cn.created_at,
+        jsonb_build_object(
+            'user_id', p.user_id,
+            'username', p.username,
+            'full_name', p.full_name,
+            'avatar_url', p.avatar_url
+        ) as profiles,
+        (
+            SELECT COALESCE(jsonb_agg(
+                jsonb_build_object(
+                    'file_url', cnf.file_url,
+                    'file_type', cnf.file_type
+                ) ORDER BY cnf.created_at
+            ), '[]'::jsonb)
+            FROM campus_notice_files cnf
+            WHERE cnf.notice_id = cn.id
+        ) as files
+    FROM campus_notices cn
+    JOIN profiles p ON cn.user_id = p.user_id
+    WHERE cn.campus = p_campus
+    ORDER BY cn.created_at DESC;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."get_campus_notices_with_files"("p_campus" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."get_campus_places_with_ratings"("p_campus" "text") RETURNS TABLE("id" "uuid", "name" "text", "category" "text", "location" "text", "campus" "text", "avg_rating" numeric, "review_count" bigint, "primary_image_url" "text")
@@ -1810,6 +1885,31 @@ CREATE TABLE IF NOT EXISTS "public"."bookmarks" (
 ALTER TABLE "public"."bookmarks" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."campus_notice_files" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "notice_id" "uuid" NOT NULL,
+    "file_url" "text" NOT NULL,
+    "file_type" "text" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+ALTER TABLE "public"."campus_notice_files" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."campus_notices" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "user_id" "uuid" NOT NULL,
+    "campus" "text" NOT NULL,
+    "title" "text" NOT NULL,
+    "description" "text",
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+ALTER TABLE "public"."campus_notices" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."campus_place_images" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "place_id" "uuid" NOT NULL,
@@ -2271,6 +2371,16 @@ ALTER TABLE ONLY "public"."bookmarks"
 
 
 
+ALTER TABLE ONLY "public"."campus_notice_files"
+    ADD CONSTRAINT "campus_notice_files_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."campus_notices"
+    ADD CONSTRAINT "campus_notices_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."campus_place_images"
     ADD CONSTRAINT "campus_place_images_pkey" PRIMARY KEY ("id");
 
@@ -2494,6 +2604,16 @@ ALTER TABLE ONLY "public"."bookmarks"
 
 ALTER TABLE ONLY "public"."bookmarks"
     ADD CONSTRAINT "bookmarks_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("user_id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."campus_notice_files"
+    ADD CONSTRAINT "campus_notice_files_notice_id_fkey" FOREIGN KEY ("notice_id") REFERENCES "public"."campus_notices"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."campus_notices"
+    ADD CONSTRAINT "campus_notices_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("user_id") ON DELETE CASCADE;
 
 
 
@@ -2930,6 +3050,14 @@ CREATE POLICY "Allow participants to view their conversations" ON "public"."conv
 
 
 
+CREATE POLICY "Allow public read access to notice files" ON "public"."campus_notice_files" FOR SELECT USING (true);
+
+
+
+CREATE POLICY "Allow public read access to notices" ON "public"."campus_notices" FOR SELECT USING (true);
+
+
+
 CREATE POLICY "Allow public read on images table" ON "public"."campus_place_images" FOR SELECT USING (true);
 
 
@@ -2970,6 +3098,10 @@ CREATE POLICY "Allow users to delete their own listings" ON "public"."marketplac
 
 
 
+CREATE POLICY "Allow users to delete their own notices" ON "public"."campus_notices" FOR DELETE USING (("auth"."uid"() = "user_id"));
+
+
+
 CREATE POLICY "Allow users to delete their own posts" ON "public"."posts" FOR DELETE USING (("user_id" = "auth"."uid"()));
 
 
@@ -2996,6 +3128,10 @@ CREATE POLICY "Allow users to insert their own listings" ON "public"."marketplac
 
 
 
+CREATE POLICY "Allow users to insert their own notices" ON "public"."campus_notices" FOR INSERT WITH CHECK (("auth"."uid"() = "user_id"));
+
+
+
 CREATE POLICY "Allow users to insert their own reactions" ON "public"."message_reactions" FOR INSERT WITH CHECK (("auth"."uid"() = "user_id"));
 
 
@@ -3005,6 +3141,12 @@ CREATE POLICY "Allow users to join conversations" ON "public"."conversation_part
 
 
 CREATE POLICY "Allow users to leave conversations" ON "public"."conversation_participants" FOR DELETE TO "authenticated" USING (("auth"."uid"() = "user_id"));
+
+
+
+CREATE POLICY "Allow users to manage files for their own notices" ON "public"."campus_notice_files" USING (("auth"."uid"() = ( SELECT "campus_notices"."user_id"
+   FROM "public"."campus_notices"
+  WHERE ("campus_notices"."id" = "campus_notice_files"."notice_id"))));
 
 
 
@@ -3216,6 +3358,12 @@ CREATE POLICY "Users can view messages in conversations they are part of" ON "pu
 
 CREATE POLICY "Users can view their own mentions" ON "public"."mentions" FOR SELECT USING ((("auth"."uid"() = "user_id") OR ("auth"."uid"() = "mentioner_id")));
 
+
+
+ALTER TABLE "public"."campus_notice_files" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."campus_notices" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."campus_place_images" ENABLE ROW LEVEL SECURITY;
@@ -3549,6 +3697,12 @@ GRANT ALL ON FUNCTION "public"."delete_listing"("p_listing_id" "uuid") TO "servi
 
 
 
+GRANT ALL ON FUNCTION "public"."delete_notice"("p_notice_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."delete_notice"("p_notice_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."delete_notice"("p_notice_id" "uuid") TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."get_birthday_users"("p_month" integer, "p_day" integer) TO "anon";
 GRANT ALL ON FUNCTION "public"."get_birthday_users"("p_month" integer, "p_day" integer) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_birthday_users"("p_month" integer, "p_day" integer) TO "service_role";
@@ -3564,6 +3718,12 @@ GRANT ALL ON FUNCTION "public"."get_bookmarked_posts"() TO "service_role";
 GRANT ALL ON FUNCTION "public"."get_campus_events"("p_campus" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."get_campus_events"("p_campus" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_campus_events"("p_campus" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."get_campus_notices_with_files"("p_campus" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_campus_notices_with_files"("p_campus" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_campus_notices_with_files"("p_campus" "text") TO "service_role";
 
 
 
@@ -3813,6 +3973,18 @@ GRANT ALL ON FUNCTION "public"."update_seller_rating_on_profile"() TO "service_r
 GRANT ALL ON TABLE "public"."bookmarks" TO "anon";
 GRANT ALL ON TABLE "public"."bookmarks" TO "authenticated";
 GRANT ALL ON TABLE "public"."bookmarks" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."campus_notice_files" TO "anon";
+GRANT ALL ON TABLE "public"."campus_notice_files" TO "authenticated";
+GRANT ALL ON TABLE "public"."campus_notice_files" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."campus_notices" TO "anon";
+GRANT ALL ON TABLE "public"."campus_notices" TO "authenticated";
+GRANT ALL ON TABLE "public"."campus_notices" TO "service_role";
 
 
 

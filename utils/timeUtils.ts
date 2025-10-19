@@ -6,7 +6,11 @@ import {
     differenceInMinutes, 
     differenceInHours, 
     differenceInDays, 
-    differenceInMonths 
+    differenceInMonths,
+    isToday,
+    isTomorrow, 
+    isPast, 
+    formatRelative  
 } from 'date-fns';
 
 /**
@@ -14,6 +18,35 @@ import {
  * Examples: "5s", "10m", "3h", "2d", "4mo"
  * Falls back to "MMM d" for anything over a year.
  */
+
+export const formatDeadline = (deadline: string | null): string | null => {
+  if (!deadline) return null;
+  
+  const deadlineDate = new Date(deadline);
+  const now = new Date();
+
+  if (isPast(deadlineDate)) {
+    return `Was due ${formatRelative(deadlineDate, now)}`;
+  }
+
+  const hoursDiff = differenceInHours(deadlineDate, now);
+
+  if (isToday(deadlineDate)) {
+    if (hoursDiff < 1) {
+      const minutesDiff = differenceInMinutes(deadlineDate, now);
+      return `Due in ${minutesDiff} min`;
+    }
+    return `Due today at ${format(deadlineDate, 'p')}`;
+  }
+
+  if (isTomorrow(deadlineDate)) {
+    return `Due tomorrow at ${format(deadlineDate, 'p')}`;
+  }
+
+  return `Due by ${format(deadlineDate, 'MMM d, p')}`;
+};
+
+
 export const formatTimestamp = (timestamp: string): string => {
   const now = new Date();
   const date = new Date(timestamp);

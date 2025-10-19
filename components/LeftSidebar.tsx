@@ -40,7 +40,6 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const { theme, toggleTheme } = useTheme();
 
   const handleSignOut = async () => {
-    // --- FIX IS HERE: Specify 'local' scope for logout ---
     await supabase.auth.signOut({ scope: 'local' });
     navigate('/login');
   };
@@ -67,7 +66,9 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
   return (
     <aside
-      className={`fixed top-24 left-0 h-[calc(100vh-theme(space.24))] bg-gray-100 dark:bg-secondary border-r border-tertiary-light dark:border-tertiary z-30 overflow-hidden transition-all duration-300 ease-in-out ${
+      // --- THIS IS THE FIX ---
+      // Added `hidden md:block` to ensure the sidebar only appears on medium screens and larger.
+      className={`hidden md:block fixed top-24 left-0 h-[calc(100vh-theme(space.24))] bg-gray-100 dark:bg-secondary border-r border-tertiary-light dark:border-tertiary z-30 overflow-hidden transition-all duration-300 ease-in-out ${
         isExpanded ? 'w-48' : 'w-20'
       }`}
       onMouseEnter={() => setIsExpanded(true)}
