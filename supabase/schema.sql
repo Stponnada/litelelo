@@ -245,6 +245,36 @@ $$;
 ALTER FUNCTION "public"."cast_poll_vote"("p_option_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."check_bits_pilani_email"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+  allowed_domains TEXT[] := ARRAY[
+    'hyderabad.bits-pilani.ac.in',
+    'goa.bits-pilani.ac.in',
+    'pilani.bits-pilani.ac.in',
+    'dubai.bits-pilani.ac.in'
+  ];
+  email_domain TEXT;
+BEGIN
+  -- Extract the domain from the new user's email.
+  email_domain := split_part(NEW.email, '@', 2);
+
+  -- Check if the extracted domain is in our allowed list.
+  IF email_domain = ANY(allowed_domains) THEN
+    -- If it is, allow the user to be created.
+    RETURN NEW;
+  ELSE
+    -- If it's not, block the user creation and return an error message.
+    RAISE EXCEPTION 'Invalid email domain. Please use a valid BITS Pilani email address.';
+  END IF;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."check_bits_pilani_email"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."create_bot_post"("post_content" "text") RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
@@ -757,10 +787,10 @@ $$;
 ALTER FUNCTION "public"."get_blockchain_with_miners"() OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."get_bookmarked_posts"() RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "like_count" bigint, "comment_count" bigint, "user_vote" "text", "is_bookmarked" boolean, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "author_id" "uuid", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "original_poster_username" "text", "poll" "jsonb")
+CREATE OR REPLACE FUNCTION "public"."get_bookmarked_posts"() RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "user_vote" "text", "is_bookmarked" boolean, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "author_id" "uuid", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "original_poster_username" "text", "poll" "jsonb")
     LANGUAGE "sql" STABLE SECURITY DEFINER
     AS $$
-SELECT p.id, p.user_id, p.content, p.image_url, p.created_at, p.like_count, p.comment_count, l.like_type AS user_vote, true AS is_bookmarked, p.is_edited, p.is_deleted, p.community_id, p.is_public, COALESCE(p.community_id, p.user_id) as author_id, CASE WHEN p.community_id IS NOT NULL THEN 'community' ELSE 'user' END as author_type, COALESCE(c.name, up.full_name) as author_name, COALESCE(c.id::text, up.username) as author_username, COALESCE(c.avatar_url, up.avatar_url) as author_avatar_url, op.username as original_poster_username, (SELECT jsonb_build_object('id', poll.id, 'allow_multiple_answers', poll.allow_multiple_answers, 'total_votes', (SELECT SUM(vote_count) FROM poll_options WHERE poll_id = poll.id), 'user_votes', (SELECT jsonb_agg(option_id) FROM poll_votes WHERE poll_id = poll.id AND user_id = auth.uid()), 'options', (SELECT jsonb_agg(jsonb_build_object('id', po.id, 'option_text', po.option_text, 'vote_count', po.vote_count) ORDER BY po.id) FROM poll_options po WHERE po.poll_id = poll.id)) FROM polls poll WHERE poll.post_id = p.id) AS poll
+SELECT p.id, p.user_id, p.content, p.image_url, p.created_at, p.like_count, p.dislike_count, p.comment_count, l.like_type AS user_vote, true AS is_bookmarked, p.is_edited, p.is_deleted, p.community_id, p.is_public, COALESCE(p.community_id, p.user_id) as author_id, CASE WHEN p.community_id IS NOT NULL THEN 'community' ELSE 'user' END as author_type, COALESCE(c.name, up.full_name) as author_name, COALESCE(c.id::text, up.username) as author_username, COALESCE(c.avatar_url, up.avatar_url) as author_avatar_url, op.username as original_poster_username, (SELECT jsonb_build_object('id', poll.id, 'allow_multiple_answers', poll.allow_multiple_answers, 'total_votes', (SELECT SUM(vote_count) FROM poll_options WHERE poll_id = poll.id), 'user_votes', (SELECT jsonb_agg(option_id) FROM poll_votes WHERE poll_id = poll.id AND user_id = auth.uid()), 'options', (SELECT jsonb_agg(jsonb_build_object('id', po.id, 'option_text', po.option_text, 'vote_count', po.vote_count) ORDER BY po.id) FROM poll_options po WHERE po.poll_id = poll.id)) FROM polls poll WHERE poll.post_id = p.id) AS poll
 FROM posts p
 JOIN bookmarks book ON p.id = book.post_id
 LEFT JOIN likes l ON p.id = l.post_id AND l.user_id = auth.uid()
@@ -1036,82 +1066,133 @@ $$;
 ALTER FUNCTION "public"."get_conversations_for_user_v2"() OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."get_feed_posts"() RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "like_count" bigint, "comment_count" bigint, "user_vote" "text", "is_bookmarked" boolean, "original_poster_username" "text", "author_id" "text", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "poll" "jsonb")
-    LANGUAGE "sql"
+CREATE OR REPLACE FUNCTION "public"."get_feed_posts"() RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "user_vote" "text", "is_bookmarked" boolean, "original_poster_username" "text", "author_id" "text", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "poll" "jsonb")
+    LANGUAGE "sql" STABLE SECURITY DEFINER
     AS $$
-SELECT
-    p.id,
-    p.user_id,
-    p.content,
-    p.image_url,
-    p.created_at,
-    p.is_edited,
-    p.is_deleted,
-    p.community_id,
-    p.is_public,
-    p.like_count,
-    p.comment_count,
-    l.like_type AS user_vote,
-    b.post_id IS NOT NULL AS is_bookmarked,
-    op.username AS original_poster_username,
-    COALESCE(p.community_id::text, p.user_id::text) AS author_id,
-    CASE WHEN p.community_id IS NOT NULL THEN 'community' ELSE 'user' END AS author_type,
-    COALESCE(c.name, up.full_name) AS author_name,
-    COALESCE(c.id::text, up.username) AS author_username,
-    COALESCE(c.avatar_url, up.avatar_url) AS author_avatar_url,
-    poll_details.poll
-FROM
-    posts p
-LEFT JOIN
-    likes l ON p.id = l.post_id AND l.user_id = auth.uid()
-LEFT JOIN
-    bookmarks b ON p.id = b.post_id AND b.user_id = auth.uid()
-LEFT JOIN
-    profiles up ON p.user_id = up.user_id AND p.community_id IS NULL
-LEFT JOIN
-    communities c ON p.community_id = c.id
-LEFT JOIN
-    profiles op ON p.user_id = op.user_id AND p.community_id IS NOT NULL
-LEFT JOIN LATERAL (
+WITH posts_with_scores AS (
     SELECT
-        jsonb_build_object(
-            'id', po.id,
-            'allow_multiple_answers', po.allow_multiple_answers,
-            'total_votes', COALESCE((SELECT SUM(opt.vote_count) FROM poll_options opt WHERE opt.poll_id = po.id), 0),
-            'user_votes', (
-                SELECT jsonb_agg(pv.option_id)
-                FROM poll_votes pv
-                WHERE pv.poll_id = po.id AND pv.user_id = auth.uid()
-            ),
-            'options', (
-                SELECT jsonb_agg(
-                    jsonb_build_object(
-                        'id', opt.id,
-                        'option_text', opt.option_text,
-                        'vote_count', opt.vote_count
-                    ) ORDER BY opt.id -- THIS IS THE FIX: Changed from opt.created_at
-                )
-                FROM poll_options opt
-                WHERE opt.poll_id = po.id
+        p.id,
+        p.user_id,
+        p.content,
+        p.image_url,
+        p.created_at,
+        p.is_edited,
+        p.is_deleted,
+        p.community_id,
+        p.is_public,
+        p.like_count,
+        p.dislike_count,
+        p.comment_count,
+        l.like_type AS user_vote,
+        b.post_id IS NOT NULL AS is_bookmarked,
+        op.username AS original_poster_username,
+        
+        -- Author details (same as before)
+        COALESCE(p.community_id::text, p.user_id::text) AS author_id,
+        CASE WHEN p.community_id IS NOT NULL THEN 'community' ELSE 'user' END AS author_type,
+        COALESCE(c.name, up.full_name) AS author_name,
+        COALESCE(c.id::text, up.username) AS author_username,
+        COALESCE(c.avatar_url, up.avatar_url) AS author_avatar_url,
+        
+        -- Poll details (same as before)
+        poll_details.poll,
+
+        -- SCORING ALGORITHM
+        (
+            -- 1. Time Decay Factor (newer posts are better)
+            EXP(-0.05 * (EXTRACT(EPOCH FROM (NOW() - p.created_at)) / 3600.0)) *
+
+            -- 2. Content & Social Score
+            (
+                1.0 + -- Base score for all posts
+
+                -- Log-scaled Engagement Score (likes, dislikes, comments)
+                LN(1 + GREATEST(0, (p.like_count * 1.0 - p.dislike_count * 1.5 + p.comment_count * 2.0))) +
+
+                -- Following Bonus (for non-community posts from people you follow)
+                CASE 
+                    WHEN p.community_id IS NULL AND EXISTS (
+                        SELECT 1 FROM public.followers f WHERE f.follower_id = auth.uid() AND f.following_id = p.user_id
+                    ) THEN 50.0 
+                    ELSE 0.0 
+                END +
+
+                -- Community Member Bonus (for posts in communities you are a member of)
+                CASE
+                    WHEN p.community_id IS NOT NULL AND EXISTS (
+                        SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid()
+                    ) THEN 15.0
+                    ELSE 0.0
+                END +
+
+                -- Mention Bonus (for posts that mention someone you follow)
+                CASE
+                    WHEN EXISTS (
+                        SELECT 1 FROM public.mentions m JOIN public.followers f ON m.user_id = f.following_id WHERE m.post_id = p.id AND f.follower_id = auth.uid()
+                    ) THEN 25.0
+                    ELSE 0.0
+                END
             )
-        ) AS poll
-    FROM polls po
-    WHERE po.post_id = p.id
-) poll_details ON TRUE
-WHERE
-    p.is_deleted = false
-    AND (
-        p.community_id IS NULL
-        OR
-        p.is_public = true
-        OR
-        (p.community_id IS NOT NULL AND p.is_public = false AND EXISTS (
-            SELECT 1 FROM community_members cm
-            WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid()
-        ))
-    )
+        ) AS rank_score
+    FROM
+        public.posts p
+    LEFT JOIN
+        public.likes l ON p.id = l.post_id AND l.user_id = auth.uid()
+    LEFT JOIN
+        public.bookmarks b ON p.id = b.post_id AND b.user_id = auth.uid()
+    LEFT JOIN
+        public.profiles up ON p.user_id = up.user_id AND p.community_id IS NULL
+    LEFT JOIN
+        public.communities c ON p.community_id = c.id
+    LEFT JOIN
+        public.profiles op ON p.user_id = op.user_id AND p.community_id IS NOT NULL
+    LEFT JOIN LATERAL (
+        SELECT
+            jsonb_build_object(
+                'id', po.id,
+                'allow_multiple_answers', po.allow_multiple_answers,
+                'total_votes', COALESCE((SELECT SUM(opt.vote_count) FROM public.poll_options opt WHERE opt.poll_id = po.id), 0),
+                'user_votes', (
+                    SELECT jsonb_agg(pv.option_id)
+                    FROM public.poll_votes pv
+                    WHERE pv.poll_id = po.id AND pv.user_id = auth.uid()
+                ),
+                'options', (
+                    SELECT jsonb_agg(
+                        jsonb_build_object(
+                            'id', opt.id,
+                            'option_text', opt.option_text,
+                            'vote_count', opt.vote_count
+                        ) ORDER BY opt.id -- THIS IS THE FIX: Changed from opt.created_at
+                    )
+                    FROM poll_options opt
+                    WHERE opt.poll_id = po.id
+                )
+            ) AS poll
+        FROM polls po
+        WHERE po.post_id = p.id
+    ) poll_details ON TRUE
+    WHERE
+        p.is_deleted = false
+        AND (
+            p.community_id IS NULL -- All user posts are candidates for the feed
+            OR p.is_public = true -- All public community posts are candidates
+            OR ( -- Private community posts are candidates only for members
+                p.is_public = false AND EXISTS (
+                    SELECT 1 FROM public.community_members cm
+                    WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid()
+                )
+            )
+        )
+)
+SELECT 
+    pws.id, pws.user_id, pws.content, pws.image_url, pws.created_at, pws.is_edited, pws.is_deleted, 
+    pws.community_id, pws.is_public, pws.like_count, pws.dislike_count, pws.comment_count, 
+    pws.user_vote, pws.is_bookmarked, pws.original_poster_username, pws.author_id, pws.author_type, 
+    pws.author_name, pws.author_username, pws.author_avatar_url, pws.poll
+FROM posts_with_scores pws
 ORDER BY
-    p.created_at DESC;
+    pws.rank_score DESC, pws.created_at DESC;
 $$;
 
 
@@ -1148,6 +1229,77 @@ $$;
 
 
 ALTER FUNCTION "public"."get_follow_list"("profile_user_id" "uuid", "list_type" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."get_follow_suggestions"() RETURNS TABLE("user_id" "uuid", "username" "text", "full_name" "text", "avatar_url" "text", "bio" "text")
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
+    AS $$
+BEGIN
+    RETURN QUERY
+    WITH suggested_profiles AS (
+        SELECT
+            p.user_id,
+            p.username,
+            p.full_name,
+            p.avatar_url,
+            p.bio,
+            p.follower_count, -- <<< THE FIX IS HERE: Explicitly select follower_count
+            -- Calculate a score for ranking suggestions
+            (
+                -- Highest weight: People who already follow the current user
+                CASE
+                    WHEN EXISTS (
+                        SELECT 1 FROM public.followers f_back
+                        WHERE f_back.follower_id = p.user_id AND f_back.following_id = auth.uid()
+                    ) THEN 100
+                    ELSE 0
+                END
+                +
+                -- Medium weight: People followed by users you have a mutual follow with ("friends")
+                (
+                    SELECT COUNT(*) * 25
+                    FROM public.followers f_friends
+                    WHERE f_friends.following_id = p.user_id
+                      AND f_friends.follower_id IN (
+                          -- Find mutuals (users you follow who also follow you back)
+                          SELECT f_inner1.following_id FROM public.followers f_inner1 WHERE f_inner1.follower_id = auth.uid()
+                          INTERSECT
+                          SELECT f_inner2.follower_id FROM public.followers f_inner2 WHERE f_inner2.following_id = auth.uid()
+                      )
+                )
+                +
+                -- Lower weight: People in the same communities
+                (
+                    SELECT COUNT(*) * 10
+                    FROM public.community_members cm
+                    WHERE cm.user_id = p.user_id
+                      AND cm.community_id IN (
+                          SELECT sub_cm.community_id
+                          FROM public.community_members sub_cm
+                          WHERE sub_cm.user_id = auth.uid()
+                      )
+                )
+                +
+                -- Smallest weight: General popularity (follower count), log-scaled to reduce extreme impact
+                LN(1 + p.follower_count) * 5
+            ) AS suggestion_score
+        FROM
+            public.profiles p
+        WHERE
+            -- Exclude the current user
+            p.user_id <> auth.uid()
+            -- Exclude people the user already follows
+            AND NOT EXISTS (SELECT 1 FROM public.followers f WHERE f.follower_id = auth.uid() AND f.following_id = p.user_id)
+    )
+    SELECT s.user_id, s.username, s.full_name, s.avatar_url, s.bio
+    FROM suggested_profiles s
+    ORDER BY s.suggestion_score DESC, s.follower_count DESC -- Now this will work
+    LIMIT 5; -- Limit to 5 suggestions
+END;
+$$;
+
+
+ALTER FUNCTION "public"."get_follow_suggestions"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."get_images_for_place"("p_place_id" "uuid") RETURNS TABLE("image_url" "text")
@@ -1849,6 +2001,29 @@ $$;
 
 
 ALTER FUNCTION "public"."handle_new_like"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."handle_new_user"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+BEGIN
+  -- Insert a new row into the public.profiles table.
+  -- It sets the user_id and email from the new user record.
+  -- It also extracts a default username from the email (e.g., "f2025xxxx" from "f2025xxxx@hyderabad.bits-pilani.ac.in").
+  INSERT INTO public.profiles (user_id, email, username, full_name, avatar_url)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    split_part(NEW.email, '@', 1),
+    NEW.raw_user_meta_data ->> 'full_name', -- Get full name from Google
+    NEW.raw_user_meta_data ->> 'avatar_url'  -- Get avatar from Google
+  );
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."handle_new_user"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."increment_post_comment_count"("post_id_to_update" "uuid") RETURNS "void"
@@ -4285,6 +4460,13 @@ GRANT ALL ON FUNCTION "public"."cast_poll_vote"("p_option_id" "uuid") TO "servic
 
 
 
+GRANT ALL ON FUNCTION "public"."check_bits_pilani_email"() TO "anon";
+GRANT ALL ON FUNCTION "public"."check_bits_pilani_email"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."check_bits_pilani_email"() TO "service_role";
+GRANT ALL ON FUNCTION "public"."check_bits_pilani_email"() TO "supabase_auth_admin";
+
+
+
 GRANT ALL ON FUNCTION "public"."create_bot_post"("post_content" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."create_bot_post"("post_content" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."create_bot_post"("post_content" "text") TO "service_role";
@@ -4435,6 +4617,12 @@ GRANT ALL ON FUNCTION "public"."get_follow_list"("profile_user_id" "uuid", "list
 
 
 
+GRANT ALL ON FUNCTION "public"."get_follow_suggestions"() TO "anon";
+GRANT ALL ON FUNCTION "public"."get_follow_suggestions"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_follow_suggestions"() TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."get_images_for_place"("p_place_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."get_images_for_place"("p_place_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_images_for_place"("p_place_id" "uuid") TO "service_role";
@@ -4564,6 +4752,13 @@ GRANT ALL ON FUNCTION "public"."handle_new_follow"() TO "service_role";
 GRANT ALL ON FUNCTION "public"."handle_new_like"() TO "anon";
 GRANT ALL ON FUNCTION "public"."handle_new_like"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."handle_new_like"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."handle_new_user"() TO "anon";
+GRANT ALL ON FUNCTION "public"."handle_new_user"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."handle_new_user"() TO "service_role";
+GRANT ALL ON FUNCTION "public"."handle_new_user"() TO "supabase_auth_admin";
 
 
 

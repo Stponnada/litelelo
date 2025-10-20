@@ -72,6 +72,7 @@ avg_seller_rating?: number;
 total_seller_ratings?: number;
 avg_bits_coin_rating?: number;
 total_bits_coin_ratings?: number;
+bits_coin_balance?: number; // Added for CryptoHubWidget
 }
 export interface ConversationSummary {
 conversation_id: string;
@@ -101,6 +102,7 @@ export interface Post {
     poll: Poll | null; // <-- ADD THIS
     is_edited: boolean; // <-- ADD THIS
     is_deleted: boolean; // <-- ADD THIS
+    user_id: string; // <-- ADD THIS
 }
 
 export interface CampusNotice {
@@ -211,6 +213,7 @@ message_id: number;
 user_id: string;
 emoji: string;
 profiles: Profile | null;
+created_at: string; // <-- ADD THIS
 }
 export interface Message {
 id: number;
@@ -336,6 +339,8 @@ export interface BitsCoinRequest {
     status: 'open' | 'claimed' | 'completed' | 'cancelled';
     requester: { user_id: string; username: string; full_name: string; avatar_url: string; };
     claimer: { user_id: string; username: string; full_name: string; avatar_url: string; } | null;
+    category: string; // Added
+    deadline: string | null; // Added
 }
 
 export type NotificationType = 'like' | 'comment' | 'follow' | 'mention' | 'bits_coin_claim';
