@@ -197,7 +197,7 @@ const ProfileSetup: React.FC = () => {
         {/* Header Section */}
         <div className="text-center mb-8 animate-fade-in">
           <h1 className="text-4xl md:text-5xl font-bold text-text-main-light dark:text-text-main mb-3 bg-gradient-to-r from-brand-green to-emerald-400 bg-clip-text text-transparent">
-            Welcome to BITS Connect
+            Welcome to litelelo.
           </h1>
           <p className="text-lg text-text-secondary-light dark:text-text-secondary">
             Let's create your profile and get you connected
