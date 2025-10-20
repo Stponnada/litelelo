@@ -72,6 +72,12 @@ const BlockchainPage: React.FC = () => {
         };
     }, [fetchChainData, profile]);
 
+    useEffect(() => {
+        // When the user lands on this page, we set a flag in their browser's storage.
+        localStorage.setItem('discoveredBlockchain', 'true');
+    }, []);
+
+
     const handleMine = async (blockData: any, nonce: number, hash: string) => {
         setMiningStatus('mining');
         setMiningError('');
