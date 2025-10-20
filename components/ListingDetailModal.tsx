@@ -33,7 +33,13 @@ const ListingDetailModal: React.FC<ListingDetailModalProps> = ({ listing, onClos
 
     const handleContactSeller = () => {
         if (isOwner) return;
-        navigate('/chat', { state: { recipient: listing.seller_profile } });
+        // Ensure the modal is closed first so its fixed overlay doesn't remain
+        // mounted and block pointer events after navigation.
+        onClose();
+        // Defer navigation until after the next paint to allow React to unmount the modal.
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            navigate('/chat', { state: { recipient: listing.seller_profile } });
+        }));
     };
 
     const handleDelete = async () => {

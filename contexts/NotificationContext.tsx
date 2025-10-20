@@ -37,21 +37,21 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         fetchNotifications();
     }, [fetchNotifications]);
 
-    useEffect(() => {
-        if (!user) return;
+            useEffect(() => {
+                if (!user) return;
 
-        const channel = supabase
-            .channel('public:notifications')
-            .on(
-                'postgres_changes',
-                {
+                // --- THE FIX: Use a unique, abstract channel name ---
+                const channel = supabase
+                .channel('global-notifications')
+                .on(
+                    'postgres_changes',
+                    {
                     event: 'INSERT',
                     schema: 'public',
                     table: 'notifications',
                     filter: `user_id=eq.${user.id}`,
                 },
                 async (payload) => {
-                    // We need to fetch the actor profile manually for the new notification
                     const { data: actorProfile, error } = await supabase.from('profiles').select('*').eq('user_id', payload.new.actor_id).single();
                     if (error) {
                         console.error("Error fetching actor for new notification:", error);
@@ -80,7 +80,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const markAsRead = useCallback(async (notificationIds: string[]) => {
         if (notificationIds.length === 0) return;
         
-        // Optimistic update
         setNotifications(prev => 
             prev.map(n => notificationIds.includes(n.id) ? { ...n, is_read: true } : n)
         );
@@ -88,7 +87,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         const { error } = await supabase.rpc('mark_notifications_as_read', { notification_ids: notificationIds });
         if (error) {
             console.error("Failed to mark notifications as read:", error);
-            // Revert on error
             fetchNotifications();
         }
     }, [fetchNotifications]);

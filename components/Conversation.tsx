@@ -79,6 +79,8 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
     const { user, profile } = useAuth();
     const { latestMessage } = useChat();
     const [messages, setMessages] = useState<Message[]>([]);
+    const messagesRef = useRef<Message[]>([]);
+    useEffect(() => { messagesRef.current = messages; }, [messages]);
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -97,6 +99,8 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
     const [replyingTo, setReplyingTo] = useState<Message | null>(null);
 
     const [pinnedMessage, setPinnedMessage] = useState<PinnedMessage | null>(null);
+    const pinnedMessageRef = useRef<PinnedMessage | null>(null);
+    useEffect(() => { pinnedMessageRef.current = pinnedMessage; }, [pinnedMessage]);
     const [pinningOptions, setPinningOptions] = useState<{ messageId: number | null; x: number; y: number }>({ messageId: null, x: 0, y: 0 });
     const messageRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
 
@@ -105,21 +109,93 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
     const throttleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const [readTimestamps, setReadTimestamps] = useState<Map<string, string>>(new Map());
+    const readTimestampsRef = useRef<Map<string, string>>(readTimestamps);
+    useEffect(() => { readTimestampsRef.current = readTimestamps; }, [readTimestamps]);
+
+    // utility: shallow-equality for message lists (compares ids and updated/created timestamps)
+    const messagesEqual = (a: Message[], b: Message[]) => {
+        if (a === b) return true;
+        if (a.length !== b.length) return false;
+        for (let i = 0; i < a.length; i++) {
+            const ai = a[i];
+            const bi = b[i];
+            if (ai.id !== bi.id) return false;
+            const aTime = (ai as any).updated_at || ai.created_at;
+            const bTime = (bi as any).updated_at || bi.created_at;
+            if (aTime !== bTime) return false;
+        }
+        return true;
+    };
+
+    const mapShallowEqual = (a: Map<string, string>, b: Map<string, string>) => {
+        if (a === b) return true;
+        if (a.size !== b.size) return false;
+        for (const [k, v] of a) {
+            if (!b.has(k) || b.get(k) !== v) return false;
+        }
+        return true;
+    };
+
+    const setMessagesIfDifferent = (next: Message[] | ((prev: Message[]) => Message[])) => {
+        if (typeof next === 'function') {
+            setMessages(prev => {
+                const candidate = (next as any)(prev) as Message[];
+                const changed = !messagesEqual(prev, candidate);
+                if (changed) console.debug('[Conversation] setMessagesIfDifferent -> updating messages', { prevLength: prev.length, nextLength: candidate.length });
+                return changed ? candidate : prev;
+            });
+        } else {
+            setMessages(prev => {
+                const candidate = next as Message[];
+                const changed = !messagesEqual(prev, candidate);
+                if (changed) console.debug('[Conversation] setMessagesIfDifferent -> replacing messages', { prevLength: prev.length, nextLength: candidate.length });
+                return changed ? candidate : prev;
+            });
+        }
+    };
+
+    const setPinnedMessageIfDifferent = (next: PinnedMessage | null) => {
+        const prev = pinnedMessageRef.current;
+        const same = (prev === next) || (prev && next && prev.id === next.id && prev.message_id === next.message_id);
+        if (!same) {
+            console.debug('[Conversation] setPinnedMessageIfDifferent -> updating pinned message', { prev: prev?.id, next: next?.id });
+            setPinnedMessage(next);
+        }
+    };
+
+    const setReadTimestampsIfDifferent = (next: Map<string, string>) => {
+        if (!mapShallowEqual(readTimestampsRef.current, next)) {
+            console.debug('[Conversation] setReadTimestampsIfDifferent -> updating read timestamps', { prevSize: readTimestampsRef.current.size, nextSize: next.size });
+            setReadTimestamps(next);
+        }
+    };
     
     const otherParticipant = conversation.type === 'dm'
       ? conversation.participants.find(p => p.user_id !== user?.id)
       : null;
 
     useEffect(() => {
+        // Ensure any conversation-specific overlays are closed when conversation changes
+        console.debug('[Conversation] overlay reset effect for conversation', conversation.conversation_id);
+        setEmojiPickerMessageId(null);
+        setPinningOptions({ messageId: null, x: 0, y: 0 });
+        setGifPickerOpen(false);
+        setLightboxUrl(null);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [conversation.conversation_id]);
+
+    useEffect(() => {
+        console.debug('[Conversation] fetch messages effect', { currentConversationId, userId: user?.id });
+
         if (!user || currentConversationId.startsWith('placeholder_')) {
             setMessages([]); setLoading(false); return;
         }
 
-        const fetchPinnedMessage = async () => {
-          const { data, error } = await supabase.rpc('get_pinned_message_for_conversation', { p_conversation_id: currentConversationId });
-          if (error) console.error("Error fetching pinned message:", error);
-          else setPinnedMessage(data);
-        };
+                const fetchPinnedMessage = async () => {
+                    const { data, error } = await supabase.rpc('get_pinned_message_for_conversation', { p_conversation_id: currentConversationId });
+                    if (error) console.error("Error fetching pinned message:", error);
+                    else setPinnedMessageIfDifferent(data);
+                };
 
         const fetchReadTimestamps = async () => {
             const allParticipantIds = [user.id, ...conversation.participants.map(p => p.user_id)];
@@ -134,7 +210,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
             } else {
                 const timestampsMap = new Map<string, string>();
                 data.forEach(ts => timestampsMap.set(ts.user_id, ts.last_read_at));
-                setReadTimestamps(timestampsMap);
+                setReadTimestampsIfDifferent(timestampsMap);
             }
         };
 
@@ -145,7 +221,6 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
             
             const fetchedMessages = (data as unknown as Message[]) || [];
             const messageIds = fetchedMessages.map(m => m.id);
-
             if (messageIds.length > 0) {
                 const { data: reactionsData, error: reactionsError } = await supabase.from('message_reactions').select('*, profiles(*)').in('message_id', messageIds);
                 if (reactionsError) console.error("Error fetching reactions:", reactionsError);
@@ -157,41 +232,41 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                 });
 
                 const messagesWithReactions = fetchedMessages.map(msg => ({ ...msg, reactions: reactionsMap.get(msg.id) || [] }));
-                setMessages(messagesWithReactions);
+                setMessagesIfDifferent(messagesWithReactions);
             } else {
-                setMessages([]);
+                setMessagesIfDifferent([]);
             }
             setLoading(false);
         };
         fetchMessages();
         fetchPinnedMessage();
         fetchReadTimestamps();
-    }, [currentConversationId, user, conversation.participants]);
+    }, [currentConversationId, user?.id]);
     
     useEffect(() => {
-        if (latestMessage && latestMessage.conversation_id === currentConversationId && latestMessage.sender_id !== user?.id) {
-            const fetchProfileAndSetMessage = async () => {
-                const { data: senderProfile } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('user_id', latestMessage.sender_id)
-                    .single();
-                
-                if (senderProfile) {
-                    setMessages(prev => {
-                        if (prev.some(msg => msg.id === latestMessage.id)) {
-                            return prev;
-                        }
-                        return [...prev, { ...latestMessage, profiles: senderProfile, reactions: [] }];
-                    });
-                }
-            };
-            fetchProfileAndSetMessage();
-        }
-    }, [latestMessage, currentConversationId, user?.id]);
+        console.debug('[Conversation] latestMessage effect', { latestMessageId: latestMessage?.id, currentConversationId });
+        if (!latestMessage) return;
+        if (latestMessage.conversation_id !== currentConversationId || latestMessage.sender_id === user?.id) return;
+        // Use messagesRef to avoid stale closure and only append when necessary
+        const alreadyHas = messagesRef.current.some(m => m.id === latestMessage.id);
+        if (alreadyHas) return;
+
+        const fetchProfileAndSetMessage = async () => {
+            const { data: senderProfile } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('user_id', latestMessage.sender_id)
+                .single();
+
+            const newMsg: Message = { ...latestMessage, profiles: senderProfile || null, reactions: [] } as Message;
+            setMessagesIfDifferent(prev => [...prev, newMsg]);
+        };
+        fetchProfileAndSetMessage();
+    }, [latestMessage?.id, currentConversationId, user?.id]);
 
 
     useEffect(() => {
+        console.debug('[Conversation] realtime subscription effect', { currentConversationId, userId: user?.id });
         if (!user || currentConversationId.startsWith('placeholder_')) return;
         
         const handleDbChange = async (payload: any) => {
@@ -199,25 +274,37 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
             
             if (table === 'messages') {
                  if (eventType === 'UPDATE') {
-                    setMessages(prev => prev.map(msg => msg.id === newRecord.id ? { ...msg, ...newRecord } : msg));
+                    setMessages(prev => {
+                        const candidate = prev.map(msg => msg.id === newRecord.id ? { ...msg, ...newRecord } : msg);
+                        return messagesEqual(prev, candidate) ? prev : candidate;
+                    });
                 }
             } else if (table === 'message_reactions') {
                 if (eventType === 'INSERT') {
                     const { data: profile } = await supabase.from('profiles').select('*').eq('user_id', newRecord.user_id).single();
-                    setMessages(prev => prev.map(msg => 
-                        msg.id === newRecord.message_id 
-                            ? { ...msg, reactions: [...msg.reactions.filter(r => r.user_id !== newRecord.user_id), { ...newRecord, profiles: profile }] } 
-                            : msg
-                    ));
+                    setMessages(prev => {
+                        const candidate = prev.map(msg => 
+                            msg.id === newRecord.message_id 
+                                ? { ...msg, reactions: [...msg.reactions.filter(r => r.user_id !== newRecord.user_id), { ...newRecord, profiles: profile }] } 
+                                : msg
+                        );
+                        return messagesEqual(prev, candidate) ? prev : candidate;
+                    });
                 } else if (eventType === 'DELETE') {
-                    setMessages(prev => prev.map(msg => msg.id === oldRecord.message_id ? { ...msg, reactions: msg.reactions.filter(r => !(r.user_id === oldRecord.user_id && r.emoji === oldRecord.emoji)) } : msg));
+                    setMessages(prev => {
+                        const candidate = prev.map(msg => msg.id === oldRecord.message_id ? { ...msg, reactions: msg.reactions.filter(r => !(r.user_id === oldRecord.user_id && r.emoji === oldRecord.emoji)) } : msg);
+                        return messagesEqual(prev, candidate) ? prev : candidate;
+                    });
                 } else if (eventType === 'UPDATE') {
                     const { data: profile } = await supabase.from('profiles').select('*').eq('user_id', newRecord.user_id).single();
-                    setMessages(prev => prev.map(msg => 
-                        msg.id === newRecord.message_id 
-                            ? { ...msg, reactions: msg.reactions.map(r => r.user_id === newRecord.user_id ? { ...newRecord, profiles: profile } : r) } 
-                            : msg
-                    ));
+                    setMessages(prev => {
+                        const candidate = prev.map(msg => 
+                            msg.id === newRecord.message_id 
+                                ? { ...msg, reactions: msg.reactions.map(r => r.user_id === newRecord.user_id ? { ...newRecord, profiles: profile } : r) } 
+                                : msg
+                        );
+                        return messagesEqual(prev, candidate) ? prev : candidate;
+                    });
                 }
             }
         };
@@ -225,14 +312,18 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
         const channel = supabase.channel(`conversation-realtime:${currentConversationId}`)
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages', filter: `conversation_id=eq.${currentConversationId}` }, handleDbChange)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'message_reactions' }, handleDbChange)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'pinned_messages', filter: `conversation_id=eq.${currentConversationId}` }, async () => {
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'pinned_messages', filter: `conversation_id=eq.${currentConversationId}` }, async () => {
                 const { data, error } = await supabase.rpc('get_pinned_message_for_conversation', { p_conversation_id: currentConversationId });
                 if (error) console.error("Error refetching pinned message:", error);
-                else setPinnedMessage(data);
+                else setPinnedMessageIfDifferent(data);
             })
             .on('postgres_changes', { event: '*', schema: 'public', table: 'conversation_read_timestamps', filter: `conversation_id=eq.${currentConversationId}` }, (payload) => {
                 const newTimestamp = payload.new as { user_id: string, last_read_at: string };
-                setReadTimestamps(prev => new Map(prev).set(newTimestamp.user_id, newTimestamp.last_read_at));
+                setReadTimestamps(prev => {
+                    const next = new Map(prev) as Map<string, string>;
+                    next.set(newTimestamp.user_id, newTimestamp.last_read_at);
+                    return mapShallowEqual(prev, next) ? prev : next;
+                });
             })
             .on('broadcast', { event: 'typing' }, (payload) => {
                 const { user: typingUser } = payload.payload;
@@ -241,7 +332,9 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                 setTypingUsers(prev => {
                     const userExists = prev.some(u => u.userId === typingUser.userId);
                     if (userExists) return prev;
-                    return [...prev, typingUser];
+                    const candidate = [...prev, typingUser];
+                    if (prev.length === candidate.length && prev.every((p, i) => p.userId === candidate[i].userId)) return prev;
+                    return candidate;
                 });
 
                 if (typingTimeoutRefs.current.has(typingUser.userId)) {
@@ -261,7 +354,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
             supabase.removeChannel(channel); 
             typingTimeoutRefs.current.forEach(timeoutId => clearTimeout(timeoutId));
         };
-    }, [currentConversationId, user]);
+    }, [currentConversationId, user?.id]);
     
     useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
@@ -448,14 +541,14 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
   
       if (error) {
         console.error("Failed to pin message:", error);
-      } else {
-        const { data: newPinnedMessage, error: rpcError } = await supabase.rpc('get_pinned_message_for_conversation', { p_conversation_id: currentConversationId });
-        if (rpcError) {
-          console.error("Error fetching newly pinned message:", rpcError);
-        } else {
-          setPinnedMessage(newPinnedMessage);
-        }
-      }
+            } else {
+                const { data: newPinnedMessage, error: rpcError } = await supabase.rpc('get_pinned_message_for_conversation', { p_conversation_id: currentConversationId });
+                if (rpcError) {
+                    console.error("Error fetching newly pinned message:", rpcError);
+                } else {
+                    setPinnedMessageIfDifferent(newPinnedMessage);
+                }
+            }
       setPinningOptions({ messageId: null, x: 0, y: 0 });
     };
   
@@ -464,13 +557,19 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
       const { error } = await supabase.from('pinned_messages').delete().eq('id', pinnedMessage.id);
       if (error) {
         console.error("Failed to unpin message:", error);
-      } else {
-        setPinnedMessage(null);
-      }
+            } else {
+                setPinnedMessageIfDifferent(null);
+            }
     };
 
     const handleTyping = () => {
-        if (!user || !profile || !throttleTimeoutRef.current) {
+        // Don't do anything if user/profile missing
+        if (!user || !profile) return;
+        // If we're currently throttled, skip sending
+        if (throttleTimeoutRef.current) return;
+
+        // Send a typing broadcast on the conversation channel (fire-and-forget)
+        try {
             const channel = supabase.channel(`conversation-realtime:${currentConversationId}`);
             channel.send({
                 type: 'broadcast',
@@ -481,12 +580,14 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                         fullName: profile?.full_name || 'Someone'
                     }
                 },
-            });
-
-            throttleTimeoutRef.current = setTimeout(() => {
-                throttleTimeoutRef.current = null;
-            }, 1500);
+            }).catch(() => {});
+        } catch (e) {
+            // ignore
         }
+
+        throttleTimeoutRef.current = setTimeout(() => {
+            throttleTimeoutRef.current = null;
+        }, 1500);
     };
 
     const readersOfLastMessage = useMemo(() => {
@@ -557,32 +658,39 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
             {isGifPickerOpen && <GifPickerModal onClose={() => setGifPickerOpen(false)} onGifSelect={handleGifSelect} />}
             {lightboxUrl && <LightBox imageUrl={lightboxUrl} onClose={() => setLightboxUrl(null)} />}
 
-            {pinningOptions.messageId !== null && (
-              <div
-                className="fixed inset-0 z-40"
-                onClick={() => setPinningOptions({ messageId: null, x: 0, y: 0 })}
-              >
-                <div
-                  className="absolute bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden text-sm animate-fadeIn"
-                  style={{ top: pinningOptions.y, left: pinningOptions.x }}
-                  onClick={e => e.stopPropagation()}
-                >
-                  <div className="p-2 font-semibold border-b border-gray-200 dark:border-gray-700">Pin message for...</div>
-                  <button onClick={() => handlePinMessage(pinningOptions.messageId!, 24)} className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">24 hours</button>
-                  <button onClick={() => handlePinMessage(pinningOptions.messageId!, 24 * 7)} className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">7 days</button>
-                  <button onClick={() => handlePinMessage(pinningOptions.messageId!, null)} className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">Forever</button>
-                </div>
-              </div>
-            )}
+                        {pinningOptions.messageId !== null && (
+                            // Backdrop uses pointer-events-none so it doesn't block the entire app if
+                            // the overlay somehow remains mounted. The inner dialog is pointer-events-auto
+                            // so it remains interactive.
+                            <div
+                                className="fixed inset-0 z-40 pointer-events-none"
+                                // clicking the backdrop should still close the picker; we listen on the
+                                // inner container for clicks so also handle global close on Escape elsewhere
+                            >
+                                <div
+                                    className="absolute bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden text-sm animate-fadeIn pointer-events-auto"
+                                    style={{ top: pinningOptions.y, left: pinningOptions.x }}
+                                    onClick={e => { e.stopPropagation(); }}
+                                >
+                                    <div className="p-2 font-semibold border-b border-gray-200 dark:border-gray-700">Pin message for...</div>
+                                    <button onClick={() => { handlePinMessage(pinningOptions.messageId!, 24); setPinningOptions({ messageId: null, x: 0, y: 0 }); }} className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">24 hours</button>
+                                    <button onClick={() => { handlePinMessage(pinningOptions.messageId!, 24 * 7); setPinningOptions({ messageId: null, x: 0, y: 0 }); }} className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">7 days</button>
+                                    <button onClick={() => { handlePinMessage(pinningOptions.messageId!, null); setPinningOptions({ messageId: null, x: 0, y: 0 }); }} className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">Forever</button>
+                                </div>
+                            </div>
+                        )}
 
             {/* Global Emoji Picker Modal */}
             {emojiPickerMessageId !== null && (
+                // Make backdrop non-blocking to avoid intercepting clicks outside the emoji
+                // picker; keep the picker itself interactive.
                 <div 
-                    className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-                    onClick={() => setEmojiPickerMessageId(null)}
+                    className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 pointer-events-none"
+                    // clicking backdrop will not register here due to pointer-events-none;
+                    // the close button inside remains available to dismiss the picker.
                 >
                     <div 
-                        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden"
+                        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden pointer-events-auto"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between">

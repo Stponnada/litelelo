@@ -15,6 +15,11 @@ SET row_security = off;
 
 CREATE EXTENSION IF NOT EXISTS "pg_cron" WITH SCHEMA "pg_catalog";
 
+
+
+
+
+
 COMMENT ON SCHEMA "public" IS 'standard public schema';
 
 
@@ -718,6 +723,38 @@ $$;
 
 
 ALTER FUNCTION "public"."get_bits_coin_requests"("p_campus" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."get_blockchain_with_miners"() RETURNS TABLE("id" "uuid", "index" bigint, "timestamp" timestamp with time zone, "transactions" "jsonb", "previous_hash" "text", "hash" "text", "nonce" integer, "miner" "jsonb")
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        b.id,
+        b.index,
+        b.timestamp,
+        b.transactions,
+        b.previous_hash,
+        b.hash,
+        b.nonce,
+        jsonb_build_object(
+            'user_id', p.user_id,
+            'username', p.username,
+            'full_name', p.full_name,
+            'avatar_url', p.avatar_url
+        ) as miner
+    FROM
+        public.blockchain_blocks b
+    LEFT JOIN
+        public.profiles p ON b.mined_by = p.user_id
+    ORDER BY
+        b.index ASC;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."get_blockchain_with_miners"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."get_bookmarked_posts"() RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "like_count" bigint, "comment_count" bigint, "user_vote" "text", "is_bookmarked" boolean, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "author_id" "uuid", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "original_poster_username" "text", "poll" "jsonb")
@@ -4073,6 +4110,169 @@ GRANT USAGE ON SCHEMA "public" TO "service_role";
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 GRANT ALL ON FUNCTION "public"."add_mined_block"("new_block_index" bigint, "new_block_timestamp" timestamp with time zone, "transactions_in_block" "jsonb", "new_block_previous_hash" "text", "new_block_hash" "text", "new_block_nonce" integer) TO "anon";
 GRANT ALL ON FUNCTION "public"."add_mined_block"("new_block_index" bigint, "new_block_timestamp" timestamp with time zone, "transactions_in_block" "jsonb", "new_block_previous_hash" "text", "new_block_hash" "text", "new_block_nonce" integer) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."add_mined_block"("new_block_index" bigint, "new_block_timestamp" timestamp with time zone, "transactions_in_block" "jsonb", "new_block_previous_hash" "text", "new_block_hash" "text", "new_block_nonce" integer) TO "service_role";
@@ -4166,6 +4366,12 @@ GRANT ALL ON FUNCTION "public"."get_bits_coin_history_for_user"("p_user_id" "uui
 GRANT ALL ON FUNCTION "public"."get_bits_coin_requests"("p_campus" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."get_bits_coin_requests"("p_campus" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_bits_coin_requests"("p_campus" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."get_blockchain_with_miners"() TO "anon";
+GRANT ALL ON FUNCTION "public"."get_blockchain_with_miners"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_blockchain_with_miners"() TO "service_role";
 
 
 
@@ -4458,6 +4664,26 @@ GRANT ALL ON FUNCTION "public"."update_seller_rating_on_profile"() TO "service_r
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 GRANT ALL ON TABLE "public"."bits_coin_ratings" TO "anon";
 GRANT ALL ON TABLE "public"."bits_coin_ratings" TO "authenticated";
 GRANT ALL ON TABLE "public"."bits_coin_ratings" TO "service_role";
@@ -4740,6 +4966,33 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TAB
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

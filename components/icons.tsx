@@ -497,26 +497,16 @@ export const CurrencyRupeeIcon: React.FC<React.SVGProps<SVGSVGElement>> = ({ cla
     width="64"
     height="64"
     fill="none"
+    stroke="#fff"
     viewBox="0 0 24 24"
   >
-    <g id="SVGRepo_iconCarrier">
-      <path
-        fill="#323232"
-        d="M3 12c0-7.411 1.588-9 9-9s9 1.588 9 9-1.588 9-9 9c-7.411 0-9-1.588-9-9"
-        opacity="0.1"
-      ></path>
-      <path
-        stroke="#323232"
-        strokeWidth="2"
-        d="M3 12c0-7.411 1.588-9 9-9s9 1.588 9 9-1.588 9-9 9c-7.411 0-9-1.588-9-9Z"
-      ></path>
-      <path
-        stroke="#323232"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-        d="m12 17-2.878-2.878v0c-.045-.045-.01-.123.054-.125C13.999 13.835 13.94 7 9 7h6M9 10.5h6"
-      ></path>
+    <g
+      id="SVGRepo_iconCarrier"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+    >
+      <path d="m12 17-2.878-2.878v0c-.045-.045-.01-.123.054-.125C13.999 13.835 13.94 7 9 7h6M9 10.5h6"></path>
     </g>
   </svg>
   );

@@ -19,6 +19,16 @@ const PauseIcon: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
+// === Google Icon ===
+const GoogleIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} viewBox="0 0 48 48">
+    <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z" />
+    <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C16.318 4 9.656 8.337 6.306 14.691z" />
+    <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A8 8 0 0 1 24 36c-5.223 0-9.655-3.657-11.303-8.59H4.89v.01A20 20 0 0 0 24 44z" />
+    <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C44.434 36.316 48 30.659 48 24c0-1.341-.138-2.65-.389-3.917z" />
+  </svg>
+);
+
 const BITS_DOMAINS = [
   'hyderabad.bits-pilani.ac.in',
   'goa.bits-pilani.ac.in',
@@ -61,6 +71,20 @@ const Login: React.FC = () => {
     }, 50);
     return () => clearInterval(interval);
   }, []);
+
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    setError(null);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+    });
+
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+    }
+    // On success, Supabase redirects to Google, then back to your app. No need to handle success state here.
+  };
 
   const validateEmail = (email: string) => BITS_DOMAINS.includes(email.split('@')[1]);
 
@@ -266,6 +290,19 @@ const Login: React.FC = () => {
           <h2 className="text-xl sm:text-2xl font-bold text-center text-text-main-light dark:text-text-main mb-5 sm:mb-6">
             {isLogin ? 'Welcome Back!' : 'Create Account'}
           </h2>
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-3 p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+          >
+            <GoogleIcon className="w-5 h-5" />
+            Sign in with Google
+          </button>
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-tertiary-light dark:border-tertiary" /></div>
+            <div className="relative flex justify-center text-xs uppercase"><span className="bg-secondary-light dark:bg-secondary px-2 text-text-tertiary-light dark:text-text-tertiary">Or continue with</span></div>
+          </div>
           <form onSubmit={handleAuth} className="flex flex-col gap-3 sm:gap-4">
             <input type="email" placeholder={isLogin ? 'Email' : 'BITS Email'} value={email} onChange={e => setEmail(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />
             {!isLogin && <input type="text" placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />}
@@ -306,6 +343,19 @@ const Login: React.FC = () => {
           <h2 className="text-2xl font-bold text-center text-text-main-light dark:text-text-main mb-6">
             {isLogin ? 'Welcome Back!' : 'Create Account'}
           </h2>
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-3 p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+          >
+            <GoogleIcon className="w-5 h-5" />
+            Sign in with Google
+          </button>
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-tertiary-light dark:border-tertiary" /></div>
+            <div className="relative flex justify-center text-xs uppercase"><span className="bg-secondary-light dark:bg-secondary px-2 text-text-tertiary-light dark:text-text-tertiary">Or continue with</span></div>
+          </div>
           <form onSubmit={handleAuth} className="flex flex-col gap-4">
             <input type="email" placeholder={isLogin ? 'Email' : 'BITS Email'} value={email} onChange={e => setEmail(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />
             {!isLogin && <input type="text" placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />}

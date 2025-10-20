@@ -12,7 +12,7 @@ interface ChatContextType {
   markConversationAsRead: (conversationId: string) => Promise<void>;
   updateConversationId: (placeholderId: string, newId: string) => void;
   fetchConversations: () => void;
-  latestMessage: Message | null; // <-- ADD THIS
+  latestMessage: Message | null;
 }
 
 export const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -21,7 +21,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { user } = useAuth();
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [latestMessage, setLatestMessage] = useState<Message | null>(null); // <-- ADD THIS STATE
+  const [latestMessage, setLatestMessage] = useState<Message | null>(null);
 
   const fetchConversations = useCallback(async () => {
     if (!user) {
@@ -120,13 +120,13 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (!user) return;
 
+    // --- THE FIX: Use a unique, abstract channel name ---
     const channel = supabase
-      .channel('public:messages')
+      .channel('global-chat-feed')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, 
         (payload) => {
           const newMessage = payload.new as Message;
           
-          // --- FIX: Update the latestMessage state for the active component to consume ---
           setLatestMessage(newMessage);
 
           setConversations(prev => {

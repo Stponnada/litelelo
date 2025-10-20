@@ -38,6 +38,8 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const { profile } = useAuth();
   const { totalUnreadCount } = useChat();
   const { theme, toggleTheme } = useTheme();
+  const sidebarRef = React.useRef<HTMLElement | null>(null);
+  const collapseTimerRef = React.useRef<number | null>(null);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut({ scope: 'local' });
@@ -64,15 +66,67 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
     </Link>
   );
 
+  // pointermove fallback: collapse sidebar if pointer leaves the visual bounds
+  // This helps when a full-screen overlay intercepts mouseleave events.
+  React.useEffect(() => {
+    const onPointerMove = (e: PointerEvent) => {
+      const el = sidebarRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      // if the pointer is outside the expanded bounds, request collapse after a short debounce
+      if (document.pointerLockElement) return; // ignore when pointer locked
+      const outside = e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom;
+      if (outside) {
+        if (collapseTimerRef.current == null) {
+          collapseTimerRef.current = window.setTimeout(() => {
+            // dispatch a synthetic collapse event that the component listens for below
+            window.dispatchEvent(new CustomEvent('litelelo:sidebar-collapse'));
+            collapseTimerRef.current = null;
+          }, 120) as unknown as number;
+        }
+      } else if (collapseTimerRef.current) {
+        window.clearTimeout(collapseTimerRef.current);
+        collapseTimerRef.current = null;
+      }
+    };
+
+    window.addEventListener('pointermove', onPointerMove);
+    return () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      if (collapseTimerRef.current) {
+        window.clearTimeout(collapseTimerRef.current);
+        collapseTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  // listen for synthetic collapse events and collapse the sidebar
+  React.useEffect(() => {
+    const handler = () => setIsExpanded(false);
+    window.addEventListener('litelelo:sidebar-collapse', handler as EventListener);
+    return () => window.removeEventListener('litelelo:sidebar-collapse', handler as EventListener);
+  }, [setIsExpanded]);
+
   return (
-    <aside
+  <aside
       // --- THIS IS THE FIX ---
       // Added `hidden md:block` to ensure the sidebar only appears on medium screens and larger.
       className={`hidden md:block fixed top-24 left-0 h-[calc(100vh-theme(space.24))] bg-gray-100 dark:bg-secondary border-r border-tertiary-light dark:border-tertiary z-30 overflow-hidden transition-all duration-300 ease-in-out ${
         isExpanded ? 'w-48' : 'w-20'
       }`}
-      onMouseEnter={() => setIsExpanded(true)}
-      onMouseLeave={() => setIsExpanded(false)}
+      ref={(el) => (sidebarRef.current = el)}
+      onMouseEnter={() => {
+        // clear any pending collapse timer and expand
+        if (collapseTimerRef.current) {
+          window.clearTimeout(collapseTimerRef.current);
+          collapseTimerRef.current = null;
+        }
+        setIsExpanded(true);
+      }}
+      onMouseLeave={() => {
+        // normal collapse behavior on mouse leave
+        setIsExpanded(false);
+      }}
     >
       <div className="flex flex-col h-full p-3 pt-6">
         {/* Navigation Links */}
