@@ -3,14 +3,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-// --- THIS IS THE FIX ---
-import { useTheme } from '../contexts/ThemeContext'; // Corrected path
-// ----------------------
+import { useTheme } from '../contexts/ThemeContext';
 import { useNotifications } from '../hooks/useNotifications';
 import { supabase } from '../services/supabase';
 import {
   UserIcon, SunIcon, MoonIcon, InformationCircleIcon, LogoutIcon,
-  QuestionMarkCircleIcon, ShieldCheckIcon, LockClosedIcon, BellIcon
+  QuestionMarkCircleIcon, ShieldCheckIcon, LockClosedIcon, BellIcon,
+  LogoGraphicIcon
 } from './icons';
 import NotificationPanel from './NotificationPanel';
 
@@ -84,7 +83,9 @@ const Header: React.FC<HeaderProps> = ({ isSidebarExpanded, onOpenAboutModal }) 
                 </div>
                 {/* Center Item (Logo) */}
                 <div className="z-10">
-                    <Link to="/" className="text-4xl font-raleway font-black text-brand-green">litelelo.</Link>
+                    <Link to="/" className="text-4xl font-raleway font-black text-brand-green">
+                        litelelo.
+                    </Link>
                 </div>
                 {/* Right Item (Notifications) */}
                 <div className="flex-1 flex justify-end">
@@ -99,12 +100,12 @@ const Header: React.FC<HeaderProps> = ({ isSidebarExpanded, onOpenAboutModal }) 
             </div>
 
             {/* --- DESKTOP HEADER LAYOUT --- */}
-            <div className={`hidden md:flex h-full w-full items-center transition-all duration-300 ease-in-out`}>
-                <div className={`absolute top-0 h-full flex items-center transition-all duration-300 ease-in-out ${isSidebarExpanded ? 'left-48' : 'left-20'}`}>
-                     <Link to="/" className="text-5xl font-raleway font-black text-brand-green relative z-10">litelelo.</Link>
-                </div>
-                <div className="flex-1" /> {/* This is a spacer */}
-                <div ref={notificationRef} className="relative pr-6">
+            <div className="hidden md:flex h-full w-full items-center justify-between px-6">
+                <Link to="/" className="flex items-center gap-3 text-brand-green relative z-10">
+                    <LogoGraphicIcon className="w-10 h-10" />
+                    <span className="text-5xl font-raleway font-black">litelelo.</span>
+                </Link>
+                <div ref={notificationRef} className="relative">
                     <button onClick={() => setNotificationsOpen(p => !p)} className="p-2 relative rounded-full hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors">
                         <BellIcon className="w-7 h-7 text-text-secondary-light dark:text-text-secondary" />
                         {unreadCount > 0 && <span className="absolute top-1 right-1 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-secondary-light dark:ring-secondary" />}

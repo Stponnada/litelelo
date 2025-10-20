@@ -37,7 +37,10 @@ const BITS_DOMAINS = [
 ];
 
 const Login: React.FC = () => {
-  const [isLogin, setIsLogin] = useState(true);
+  // --- THIS IS THE CHANGE ---
+  // Default to the Sign Up view instead of the Log In view.
+  const [isLogin, setIsLogin] = useState(false);
+  // -------------------------
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -313,7 +316,7 @@ const Login: React.FC = () => {
           {error && <p className="mt-3 sm:mt-4 text-red-400 text-center text-sm">{error}</p>}
           <div className="mt-5 sm:mt-6 text-center">
             <button onClick={() => { setIsLogin(!isLogin); setError(null); }} className="text-sm text-text-tertiary-light dark:text-text-tertiary hover:text-text-main-light dark:hover:text-text-main">
-              {isLogin ? "Don't have an account? Sign Up" : 'Already have an account? Log In'}
+              {isLogin ? "Don't have an account? Sign Up" : 'Already on the platform? Sign In'}
             </button>
           </div>
         </div>
@@ -366,7 +369,7 @@ const Login: React.FC = () => {
           {error && <p className="mt-4 text-red-400 text-center text-sm">{error}</p>}
           <div className="mt-6 text-center">
             <button onClick={() => { setIsLogin(!isLogin); setError(null); }} className="text-sm text-text-tertiary-light dark:text-text-tertiary hover:text-text-main-light dark:hover:text-text-main">
-              {isLogin ? "Don't have an account? Sign Up" : 'Already have an account? Log In'}
+              {isLogin ? "Don't have an account? Sign Up" : 'Already on the platform? Sign In'}
             </button>
           </div>
         </div>
