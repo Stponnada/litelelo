@@ -36,9 +36,11 @@ export const renderContentWithEmbeds = (text: string): React.ReactNode[] => {
     const twitterMatch = line.match(TWITTER_REGEX);
     if (twitterMatch && twitterMatch[1]) {
       return (
-        // --- THE DEFINITIVE FIX: Using 'grid' and 'place-items-center' ---
         <div key={`tweet-${index}`} className="my-4 grid place-items-center">
-          <Tweet id={twitterMatch[1]} />
+          {/* --- THE FIX: Added min-w-0 to force shrinking on mobile --- */}
+          <div className="w-full max-w-sm min-w-0">
+            <Tweet id={twitterMatch[1]} />
+          </div>
         </div>
       );
     }

@@ -35,6 +35,12 @@ const NotificationItem: React.FC<{ notification: NotificationType, onClose: () =
             text = 'mentioned you in a post.';
             link = `/post/${notification.entity_id}`;
             break;
+        // --- THIS IS THE FIX ---
+        case 'new_message':
+            text = 'sent you a message.';
+            link = `/chat`; // Navigate to the main chat page
+            break;
+        // -----------------------
         case 'bits_coin_claim':
             text = 'claimed your Bits-coin request.';
             link = `/campus/bits-coin`; // Or a specific link if available

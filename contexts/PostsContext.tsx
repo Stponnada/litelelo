@@ -9,6 +9,7 @@ interface PostsContextType {
   posts: PostType[];
   loading: boolean;
   error: string | null;
+  fetchPosts: () => void;
   addPostToContext: (newPost: any) => void;
   updatePostInContext: (updatedPost: Partial<PostType> & { id: string }) => void;
 }
@@ -27,13 +28,18 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setLoading(false);
       return;
     }
-    setLoading(true);
+    // Only set loading on the initial fetch
+    if (posts.length === 0) {
+        setLoading(true);
+    }
     setError(null);
     try {
       const { data, error: fetchError } = await supabase.rpc('get_feed_posts');
       if (fetchError) throw fetchError;
       
-      // This is the transformation logic we need to replicate
+      // --- THIS IS THE RESTORED MAPPING LOGIC ---
+      // The RPC returns flat data, so we need to nest the author object
+      // to match our PostType interface.
       const formattedPosts = (data as any[]).map(p => ({
         ...p,
         author: {
@@ -58,10 +64,8 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     fetchPosts();
   }, [fetchPosts]);
 
-  // --- THIS IS THE FIX ---
-  // The 'newPost' coming from the RPC is flat, but our state requires a nested 'author' object.
-  // We must perform the same formatting here as we do in fetchPosts.
   const addPostToContext = (newPost: any) => {
+    // Also format the new post from the RPC call
     const formattedNewPost: PostType = {
       ...newPost,
       author: {
@@ -84,7 +88,7 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     );
   }, []);
 
-  const value = { posts, loading, error, addPostToContext, updatePostInContext };
+  const value = { posts, loading, error, addPostToContext, updatePostInContext, fetchPosts };
 
   return (
     <PostsContext.Provider value={value}>

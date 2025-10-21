@@ -1,5 +1,4 @@
 // src/hooks/usePosts.ts
-
 import { useContext } from 'react';
 import { PostsContext } from '../contexts/PostsContext';
 

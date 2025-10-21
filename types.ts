@@ -93,16 +93,24 @@ export interface Post {
     like_count: number;
     dislike_count: number;
     comment_count: number;
+    repost_count: number; // <-- ADD THIS
     user_vote: 'like' | 'dislike' | null;
     is_bookmarked: boolean;
+    user_has_reposted: boolean; // <-- ADD THIS
     community_id: string | null;
     is_public: boolean;
     author: AuthorProfile;
     original_poster_username: string | null;
-    poll: Poll | null; // <-- ADD THIS
-    is_edited: boolean; // <-- ADD THIS
-    is_deleted: boolean; // <-- ADD THIS
-    user_id: string; // <-- ADD THIS
+    poll: Poll | null;
+    is_edited: boolean;
+    is_deleted: boolean;
+    user_id: string;
+    quoted_post: QuotedPost | null;
+    reposted_by: { // <-- ADD THIS OBJECT
+        user_id: string;
+        username: string;
+        full_name: string | null;
+    } | null;
 }
 
 export interface CampusNotice {

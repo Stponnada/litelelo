@@ -9,7 +9,7 @@ import PostComponent from '../components/Post';
 import { Post as PostType, Comment as CommentType, Profile } from '../types';
 import Spinner from '../components/Spinner';
 import { formatTimestamp, formatExactTimestamp } from '../utils/timeUtils';
-import { renderContentWithEmbeds } from '../utils/renderEmbeds'; // <-- Import the embed renderer
+import { renderContentWithEmbeds } from '../utils/renderEmbeds';
 
 const getAvatarUrl = (profile: Profile | null) => {
   if (!profile) return '';
@@ -24,16 +24,20 @@ const Comment: React.FC<{ comment: CommentType }> = ({ comment }) => {
       <Link to={`/profile/${author?.username}`} className="flex-shrink-0">
         <img src={getAvatarUrl(author)} alt={author?.username || 'avatar'} className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 object-cover" />
       </Link>
-      <div>
-        <div className="flex flex-col md:flex-row md:items-baseline md:space-x-2">
-            <Link to={`/profile/${author?.username}`} className="font-semibold text-text-main-light dark:text-text-main hover:underline leading-tight">{author?.full_name || author?.username}</Link>
-            <div className="flex items-center space-x-2 text-sm text-text-tertiary-light dark:text-text-tertiary">
-                <p>@{author?.username}</p>
-                <span className="text-gray-500">&middot;</span>
-                <p title={new Date(comment.created_at).toLocaleString()}>
+      <div className="flex-1 min-w-0">
+        {/* --- THIS IS THE FIX --- */}
+        <div>
+            <div className="flex items-baseline md:space-x-2 flex-wrap md:flex-nowrap">
+                <Link to={`/profile/${author?.username}`} className="font-semibold text-text-main-light dark:text-text-main hover:underline leading-tight truncate">{author?.full_name || author?.username}</Link>
+                <span className="text-sm text-text-tertiary-light dark:text-text-tertiary truncate hidden md:inline">@{author?.username}</span>
+                <span className="text-sm text-text-tertiary-light dark:text-text-tertiary hidden md:inline">&middot;</span>
+                <span className="text-sm text-text-tertiary-light dark:text-text-tertiary hover:underline flex-shrink-0 hidden md:inline" title={new Date(comment.created_at).toLocaleString()}>
                     {formatTimestamp(comment.created_at)}
-                </p>
+                </span>
             </div>
+            <p className="md:hidden text-sm text-text-tertiary-light dark:text-text-tertiary -mt-1 truncate" title={new Date(comment.created_at).toLocaleString()}>
+                @{author?.username} &middot; {formatTimestamp(comment.created_at)}
+            </p>
         </div>
         <div className="mt-1 text-text-secondary-light dark:text-text-secondary">
           {renderContentWithEmbeds(comment.content)}
