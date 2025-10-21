@@ -8,12 +8,12 @@ import { FollowSuggestion } from '../types';
 import Spinner from './Spinner';
 
 const FollowSuggestionCard: React.FC<{ user: FollowSuggestion; onFollow: (userId: string) => void }> = ({ user, onFollow }) => (
-  <div className="flex items-center space-x-3 p-3 group">
+  <div className="flex items-center space-x-2 p-2 group">
     <Link to={`/profile/${user.username}`}>
       <img 
         src={user.avatar_url || `https://ui-avatars.com/api/?name=${user.full_name}&background=10b981&color=fff`} 
         alt={user.username} 
-        className="w-11 h-11 rounded-full object-cover ring-2 ring-transparent group-hover:ring-brand-green transition-all" 
+        className="w-10 h-10 rounded-full object-cover ring-2 ring-transparent group-hover:ring-brand-green transition-all" 
       />
     </Link>
     <div className="flex-1 min-w-0">
@@ -24,7 +24,7 @@ const FollowSuggestionCard: React.FC<{ user: FollowSuggestion; onFollow: (userId
     </div>
     <button
       onClick={() => onFollow(user.user_id)}
-      className="bg-brand-green text-black font-semibold py-1.5 px-4 rounded-full text-xs hover:bg-brand-green-darker hover:scale-105 active:scale-95 transition-all"
+      className="bg-brand-green text-black font-semibold py-1 px-3 rounded-full text-xs hover:bg-brand-green-darker hover:scale-105 active:scale-95 transition-all"
     >
       Follow
     </button>
@@ -40,13 +40,9 @@ const FollowSuggestions: React.FC = () => {
         const fetchSuggestions = async () => {
             setLoading(true);
             try {
-                // --- THIS IS THE FIX ---
-                // The RPC was named incorrectly. The correct RPC is `get_search_recommendations`,
-                // which returns an object containing multiple recommendation types.
-                const { data, error } = await supabase.rpc('get_search_recommendations');
+                const { data, error } = await supabase.rpc('get_follow_suggestions');
                 if (error) throw error;
-                // We extract the `follow_suggestions` array from the returned data object.
-                setSuggestions(data?.follow_suggestions || []);
+                setSuggestions(data || []);
             } catch (error) {
                 console.error("Error fetching follow suggestions:", error);
             } finally {

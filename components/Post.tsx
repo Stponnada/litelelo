@@ -134,7 +134,7 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => 
 
     return (
         <div 
-            className={`bg-secondary-light dark:bg-secondary rounded-xl shadow-lg border border-tertiary-light dark:border-tertiary p-4 transition-colors ${!post.is_deleted ? 'cursor-pointer hover:bg-tertiary-light/30 dark:hover:bg-tertiary/30' : ''}`}
+            className={`bg-secondary-light dark:bg-secondary rounded-xl shadow-lg border border-tertiary-light dark:border-tertiary p-4 transition-all duration-200 ${!post.is_deleted ? 'cursor-pointer hover:border-brand-green/20 dark:hover:border-brand-green/30 hover:bg-tertiary-light/20 dark:hover:bg-tertiary/20' : ''}`}
             onClick={() => !post.is_deleted && navigate(`/post/${post.id}`)}
         >
             <div className="flex items-start space-x-3">
@@ -142,7 +142,7 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => 
                     <img 
                         src={author.author_avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(author.author_name || ' ')}&background=3cfba2&color=000`} 
                         alt={author.author_name || ''} 
-                        className="w-12 h-12 rounded-full object-cover bg-gray-700" 
+                        className="w-10 h-10 rounded-full object-cover bg-gray-700" 
                     />
                 </Link>
                 <div className="flex-1">
@@ -199,7 +199,7 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => 
                         </div>
                     ) : (
                         <>
-                             <div className="mt-2 text-text-secondary-light dark:text-text-secondary">
+                             <div className="mt-1 text-text-secondary-light dark:text-text-secondary">
                                 {post.is_deleted ? (
                                     <p className="italic text-text-tertiary-light dark:text-text-tertiary">{post.content}</p>
                                 ) : (
@@ -221,8 +221,8 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => 
                             {!post.is_deleted && post.poll && <PollComponent poll={post.poll} postId={post.id} />}
 
                             {!post.is_deleted && (
-                                <div className="flex items-center justify-between mt-4 text-text-tertiary-light dark:text-text-tertiary">
-                                    <div className="flex items-center space-x-6">
+                                <div className="flex items-center justify-between mt-3 text-text-tertiary-light dark:text-text-tertiary">
+                                    <div className="flex items-center space-x-5">
                                         <div className="flex items-center space-x-1 group" onClick={(e) => { e.stopPropagation(); handleVote('like'); }}>
                                             <button className="p-1.5 rounded-full group-hover:bg-red-500/10 transition-colors">
                                                 {post.user_vote === 'like' ? <HeartSolid className="w-5 h-5 text-red-500" /> : <HeartOutline className="w-5 h-5 group-hover:text-red-500" />}

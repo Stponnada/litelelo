@@ -20,14 +20,14 @@ const ProfileCard: React.FC<{ profile: Profile }> = ({ profile }) => (
             <img 
                 src={profile.avatar_url || ''} 
                 alt="Your avatar" 
-                className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 dark:border-tertiary"
+                className="w-11 h-11 rounded-full object-cover border-2 border-gray-200 dark:border-tertiary"
             />
             <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-text-main-light dark:text-text-main truncate group-hover:text-brand-green transition-colors">{profile.full_name}</h3>
                 <p className="text-sm text-text-tertiary-light dark:text-text-tertiary">@{profile.username}</p>
             </div>
         </Link>
-        <div className="flex gap-4 mt-4 pt-4 border-t border-gray-200 dark:border-tertiary">
+        <div className="flex gap-4 mt-3 pt-3 border-t border-gray-200 dark:border-tertiary">
             <div>
                 <p className="font-bold text-text-main-light dark:text-text-main">{profile.follower_count}</p>
                 <p className="text-xs text-text-tertiary-light dark:text-text-tertiary">Followers</p>
@@ -85,7 +85,7 @@ const EventsWidget: React.FC<{ events: CampusEvent[] }> = ({ events }) => (
             <div className="space-y-3">
                 {events.slice(0, 3).map(event => (
                     <Link key={event.id} to={`/campus/events/${event.id}`} className="flex gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-tertiary transition-colors">
-                        <div className="flex-shrink-0 flex flex-col items-center justify-center w-12 h-12 text-center bg-brand-green/10 rounded-lg">
+                        <div className="flex-shrink-0 flex flex-col items-center justify-center w-11 h-11 text-center bg-brand-green/10 rounded-lg">
                             <span className="text-lg font-bold text-brand-green">{format(new Date(event.start_time), 'd')}</span>
                             <span className="text-[10px] font-semibold text-brand-green/70">{format(new Date(event.start_time), 'MMM')}</span>
                         </div>
@@ -118,7 +118,7 @@ const MarketplaceWidget: React.FC<{ listings: MarketplaceListing[] }> = ({ listi
             <div className="space-y-2">
                 {listings.slice(0, 3).map(item => (
                     <Link key={item.id} to="/campus/marketplace" state={{ selectedListingId: item.id }} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-tertiary transition-colors">
-                        <img src={item.primary_image_url || 'https://placehold.co/100x100'} alt={item.title} className="w-12 h-12 rounded-lg object-cover" />
+                        <img src={item.primary_image_url || 'https://placehold.co/100x100'} alt={item.title} className="w-11 h-11 rounded-lg object-cover" />
                         <div className="min-w-0 flex-1">
                             <p className="text-sm text-text-main-light dark:text-text-main line-clamp-1">{item.title}</p>
                             <p className="text-sm font-semibold text-brand-green">₹{item.price.toLocaleString()}</p>
@@ -258,7 +258,7 @@ export const HomePage: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* --- LEFT SIDEBAR (Desktop Only) --- */}
                 <aside className="hidden lg:block lg:col-span-3">
-                    <div className="sticky top-24 space-y-4">
+                    <div className="sticky top-28 space-y-3">
                         <ProfileCard profile={currentUserProfile} />
                         <FollowSuggestions />
                         <CommunitiesWidget />
@@ -275,7 +275,7 @@ export const HomePage: React.FC = () => {
                     
                     {/* Posts Feed */}
                     {posts.length > 0 ? (
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                             {posts.map((post) => (
                                 <PostComponent key={post.id} post={post} onImageClick={setLightboxUrl} />
                             ))}
@@ -299,7 +299,7 @@ export const HomePage: React.FC = () => {
                 
                 {/* --- RIGHT SIDEBAR (Desktop Only) --- */}
                 <aside className="hidden lg:block lg:col-span-3">
-                    <div className="sticky top-24 space-y-4">
+                    <div className="sticky top-28 space-y-3">
                         <EventsWidget events={upcomingEvents} />
                         <MarketplaceWidget listings={latestListings} />
                     </div>
