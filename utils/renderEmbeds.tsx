@@ -37,8 +37,11 @@ export const renderContentWithEmbeds = (text: string): React.ReactNode[] => {
     if (twitterMatch && twitterMatch[1]) {
       return (
         <div key={`tweet-${index}`} className="my-4 grid place-items-center">
-          {/* --- THE FIX: Added min-w-0 to force shrinking on mobile --- */}
-          <div className="w-full max-w-sm min-w-0">
+          {/* --- THE FIX: Added style to remove internal padding --- */}
+          <div 
+            className="w-full max-w-sm min-w-0" 
+            style={{ '--tweet-padding': '0px' } as React.CSSProperties}
+          >
             <Tweet id={twitterMatch[1]} />
           </div>
         </div>
