@@ -7,18 +7,9 @@ import { supabase } from '../services/supabase';
 import { CampusPlace, MarketplaceListing, LostAndFoundItem, CampusNotice } from '../types';
 import ListingCard from '../components/ListingCard';
 import Spinner from '../components/Spinner';
-import { ArchiveBoxIcon, ShoppingCartIcon, StarIcon, ClipboardDocumentListIcon, CurrencyDollarIcon, CarIcon } from '../components/icons';
+import { ArchiveBoxIcon, ShoppingCartIcon, StarIcon, ClipboardDocumentListIcon, CurrencyDollarIcon, CarIcon, CampusPlacesIcon } from '../components/icons';
 
-const CampusPlacesIcon: React.FC<{ className?: string }> = ({ className }) => (
-    <svg width="64px" height="64px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-        <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
-        <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g>
-        <g id="SVGRepo_iconCarrier">
-            <path d="M11.3196 3H5.08961C3.09961 3 2.09961 4.01 2.09961 6.02V22H7.49961V18.25C7.49961 17.84 7.83961 17.5 8.24961 17.5C8.65961 17.5 8.99961 17.83 8.99961 18.25V22H14.2996V6.02C14.2996 4.01 13.3096 3 11.3196 3ZM10.7496 12.75H5.79961C5.38961 12.75 5.04961 12.41 5.04961 12C5.04961 11.59 5.38961 11.25 5.79961 11.25H10.7496C11.1596 11.25 11.4996 11.59 11.4996 12C11.4996 12.41 11.1596 12.75 10.7496 12.75ZM10.7496 9H5.79961C5.38961 9 5.04961 8.66 5.04961 8.25C5.04961 7.84 5.38961 7.5 5.79961 7.5H10.7496C11.1596 7.5 11.4996 7.84 11.4996 8.25C11.4996 8.66 11.1596 9 10.7496 9Z" fill="currentColor"></path>
-            <path d="M23 21.2511H20.73V18.2511C21.68 17.9411 22.37 17.0511 22.37 16.0011V14.0011C22.37 12.6911 21.3 11.6211 19.99 11.6211C18.68 11.6211 17.61 12.6911 17.61 14.0011V16.0011C17.61 17.0411 18.29 17.9211 19.22 18.2411V21.2511H1C0.59 21.2511 0.25 21.5911 0.25 22.0011C0.25 22.4111 0.59 22.7511 1 22.7511H19.93C19.95 22.7511 19.96 22.7611 19.98 22.7611C20 22.7611 20.01 22.7511 20.03 22.7511H23C23.41 22.7511 23.75 22.4111 23.75 22.0011C23.75 21.5911 23.41 21.2511 23 21.2511Z" fill="currentColor"></path>
-        </g>
-    </svg>
-);
+
 
 const FeatureCard: React.FC<{ to: string; icon: React.ReactNode; title: string; description: string; gradient: string }> = ({ to, icon, title, description, gradient }) => (
     <Link to={to} className="group relative block bg-gradient-to-br from-secondary-light to-secondary-light dark:from-secondary dark:to-secondary rounded-xl md:rounded-2xl p-3 md:p-6 shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border border-tertiary-light dark:border-tertiary hover:border-transparent">
@@ -191,12 +182,12 @@ const CampusPage: React.FC = () => {
                 <div className="absolute bottom-0 left-0 w-40 md:w-80 h-40 md:h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
                 
                 <div className="relative text-center">
-                    <div className="inline-flex items-center gap-1.5 md:gap-2 mb-2 md:mb-6 px-2.5 md:px-5 py-1 md:py-2.5 bg-gradient-to-r from-brand-green/30 to-brand-green/20 backdrop-blur-sm rounded-full border border-brand-green/30 shadow-lg">
-                        <div className="w-1.5 md:w-2 h-1.5 md:h-2 bg-brand-green rounded-full animate-pulse"></div>
-                        <span className="text-[10px] md:text-sm font-bold text-brand-green uppercase tracking-wider">Your Campus Hub</span>
+                    <div className="hidden md:inline-flex items-center gap-2 mb-6 px-5 py-2.5 bg-gradient-to-r from-brand-green/30 to-brand-green/20 backdrop-blur-sm rounded-full border border-brand-green/30 shadow-lg">
+                        <div className="w-2 h-2 bg-brand-green rounded-full animate-pulse"></div>
+                        <span className="text-sm font-bold text-brand-green uppercase tracking-wider">Your Campus Hub</span>
                     </div>
                     
-                    <h1 className="text-xl md:text-7xl font-extrabold text-text-main-light dark:text-text-main mb-2 md:mb-6 leading-tight">
+                    <h1 className="text-xl md:text-7xl font-extrabold text-text-main-light dark:text-text-main leading-tight">
                         Today at BITS{' '}
                         <span className="relative inline-block">
                             <span className="bg-gradient-to-r from-brand-green via-green-400 to-brand-green bg-clip-text text-transparent">
@@ -208,19 +199,19 @@ const CampusPage: React.FC = () => {
                         </span>
                     </h1>
                     
-                    <p className="hidden md:block text-lg md:text-2xl text-text-secondary-light dark:text-text-secondary max-w-3xl mx-auto font-medium leading-relaxed">
+                    <p className="hidden md:block text-lg md:text-2xl text-text-secondary-light dark:text-text-secondary max-w-3xl mx-auto font-medium leading-relaxed mt-6">
                         Your one-stop destination for campus services, reviews, and community connections
                     </p>
                     
-                    {/* Stats bar */}
-                    <div className="mt-3 md:mt-10 flex flex-wrap justify-center gap-2 md:gap-6">
-                        <div className="bg-white/50 dark:bg-black/30 backdrop-blur-md px-3 md:px-6 py-1.5 md:py-3 rounded-lg md:rounded-2xl border border-white/20 dark:border-white/10">
-                            <div className="text-lg md:text-3xl font-bold text-brand-green">{topPlaces.length + newestListings.length + (latestLostItem ? 1 : 0) + latestNotices.length}</div>
-                            <div className="text-[10px] md:text-xs text-text-secondary-light dark:text-text-secondary font-semibold uppercase tracking-wider">Posts</div>
+                    {/* Stats bar - Hidden on mobile */}
+                    <div className="hidden md:flex mt-10 flex-wrap justify-center gap-6">
+                        <div className="bg-white/50 dark:bg-black/30 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/20 dark:border-white/10">
+                            <div className="text-3xl font-bold text-brand-green">{topPlaces.length + newestListings.length + (latestLostItem ? 1 : 0) + latestNotices.length}</div>
+                            <div className="text-xs text-text-secondary-light dark:text-text-secondary font-semibold uppercase tracking-wider">Posts</div>
                         </div>
-                        <div className="bg-white/50 dark:bg-black/30 backdrop-blur-md px-3 md:px-6 py-1.5 md:py-3 rounded-lg md:rounded-2xl border border-white/20 dark:border-white/10">
-                            <div className="text-lg md:text-3xl font-bold text-blue-500">6</div>
-                            <div className="text-[10px] md:text-xs text-text-secondary-light dark:text-text-secondary font-semibold uppercase tracking-wider">Services</div>
+                        <div className="bg-white/50 dark:bg-black/30 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/20 dark:border-white/10">
+                            <div className="text-3xl font-bold text-blue-500">6</div>
+                            <div className="text-xs text-text-secondary-light dark:text-text-secondary font-semibold uppercase tracking-wider">Services</div>
                         </div>
                     </div>
                 </div>
