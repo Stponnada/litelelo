@@ -38,8 +38,11 @@ export const renderContentWithEmbeds = (text: string): React.ReactNode[] => {
       return (
         <div key={`tweet-${index}`} className="my-4 grid place-items-center">
           {/* --- THE FIX: Added style to remove internal padding --- */}
-          <div 
-            className="w-full max-w-sm min-w-0" 
+          <div
+            // --- MY FIX: Changed max-w-sm to sm:max-w-sm to make it responsive. ---
+            // This ensures the tweet embed is full-width on mobile and doesn't overflow,
+            // while maintaining the max-width on desktop for better layout.
+            className="w-full sm:max-w-sm min-w-0"
             style={{ '--tweet-padding': '0px' } as React.CSSProperties}
           >
             <Tweet id={twitterMatch[1]} />

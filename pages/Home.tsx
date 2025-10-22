@@ -78,7 +78,7 @@ const CommunitiesWidget: React.FC = () => {
 const EventsWidget: React.FC<{ events: CampusEvent[] }> = ({ events }) => (
     <div className="bg-white dark:bg-secondary rounded-2xl border border-gray-200 dark:border-tertiary p-4">
         <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-text-main-light dark:text-text-main">Upcoming Events</h3>
+            <h3 className="font-semibold text-text-main-light dark:text-text-main">Upcoming and Previous Events</h3>
             <CalendarDaysIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary"/>
         </div>
         {events.length > 0 ? (
@@ -112,7 +112,7 @@ const MarketplaceWidget: React.FC<{ listings: MarketplaceListing[] }> = ({ listi
     <div className="bg-white dark:bg-secondary rounded-2xl border border-gray-200 dark:border-tertiary p-4">
         <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-text-main-light dark:text-text-main">Marketplace</h3>
-            <ShoppingCartIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary"/>
+            {/*<ShoppingCartIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary"/>*/}
         </div>
         {listings.length > 0 ? (
             <div className="space-y-2">
