@@ -22,6 +22,22 @@ interface CommunityLink {
     role: 'member' | 'admin';
 }
 
+// --- THIS IS THE FIX ---
+const Flair: React.FC<{ flair: { id: string; name: string; avatar_url: string | null } }> = ({ flair }) => (
+    <Link
+      to={`/communities/${flair.id}`}
+      className="group"
+      title={flair.name}
+    >
+        <img 
+            src={flair.avatar_url || `https://ui-avatars.com/api/?name=${flair.name}`} 
+            alt={flair.name} 
+            className="w-6 h-6 rounded-full object-cover transition-transform group-hover:scale-110 shadow-md border-2 border-secondary-light dark:border-secondary" 
+        />
+    </Link>
+);
+
+
 const TabButton: React.FC<{ label: string, isActive: boolean, onClick: () => void }> = ({ label, isActive, onClick }) => (
     <button
         onClick={onClick}
@@ -100,6 +116,7 @@ const ProfilePage: React.FC = () => {
                   author_name: p.author_name,
                   author_username: p.author_username,
                   author_avatar_url: p.author_avatar_url,
+                  author_flair_details: p.author_flair_details, // ADDED
                 }
             }));
             setPosts(fetchedPosts);
@@ -117,6 +134,7 @@ const ProfilePage: React.FC = () => {
                     author_name: p.author_name,
                     author_username: p.author_username,
                     author_avatar_url: p.author_avatar_url,
+                    author_flair_details: p.author_flair_details, // ADDED
                 }
             }));
             setMentions(fetchedMentions);
@@ -139,6 +157,7 @@ const ProfilePage: React.FC = () => {
                 author_name: authorProfile?.full_name || '',
                 author_username: authorProfile?.username || '',
                 author_avatar_url: authorProfile?.avatar_url || '',
+                author_flair_details: null, // Flair won't be available on optimistic creation, but that's ok
             },
             original_poster_username: null,
             // @ts-ignore
@@ -275,9 +294,13 @@ const ProfilePage: React.FC = () => {
                             <div className="mt-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                                 {/* Name and Username */}
                                 <div>
-                                    <h1 className="text-3xl sm:text-4xl font-bold text-text-main-light dark:text-white">
-                                        {profile.full_name}
-                                    </h1>
+                                    <div className="flex items-center gap-3">
+                                        <h1 className="text-3xl sm:text-4xl font-bold text-text-main-light dark:text-white">
+                                            {profile.full_name}
+                                        </h1>
+                                        {/* --- NEW: Display Flair --- */}
+                                        {profile.flair_details && <Flair flair={profile.flair_details} />}
+                                    </div>
                                     <p className="text-lg text-text-tertiary-light dark:text-text-tertiary mt-1">
                                         @{profile.username}
                                     </p>
@@ -605,6 +628,9 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState('');
     
+    // --- NEW: State for flair selection ---
+    const [joinedCommunities, setJoinedCommunities] = useState<CommunityLink[]>([]);
+    
     const [cropperState, setCropperState] = useState<{
       isOpen: boolean;
       type: 'avatar' | 'banner' | null;
@@ -625,6 +651,18 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
             setIsDualDegreeStudent(isMsc);
         }
     }, [profileData.campus, profileData.branch]);
+
+    // --- NEW: Fetch user's communities for the flair dropdown ---
+    useEffect(() => {
+        if (!user) return;
+        const fetchUserCommunities = async () => {
+            const { data, error } = await supabase.rpc('get_communities_for_user', { p_user_id: user.id });
+            if (error) console.error("Failed to fetch user's communities:", error);
+            else setJoinedCommunities(data || []);
+        };
+        fetchUserCommunities();
+    }, [user]);
+
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'banner') => {
         if (e.target.files && e.target.files[0]) {
@@ -687,6 +725,7 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
                 dual_degree_branch: profileData.dual_degree_branch || null, relationship_status: profileData.relationship_status,
                 dorm_building: profileData.dorm_building, dorm_room: profileData.dorm_room, dining_hall: profileData.dining_hall,
                 avatar_url, banner_url, updated_at: new Date().toISOString(),
+                displayed_community_flair: profileData.displayed_community_flair || null, // ADDED
             }).eq('user_id', user.id).select().single();
 
             if (updateError) throw updateError;
@@ -766,6 +805,26 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
                                 onChange={handleChange} 
                                 className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none" 
                             />
+                        </div>
+                        
+                        {/* --- NEW: Flair Selection Dropdown --- */}
+                        <div>
+                            <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                Display Flair
+                            </label>
+                            <select
+                                name="displayed_community_flair"
+                                value={profileData.displayed_community_flair || ''}
+                                onChange={handleChange}
+                                className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none"
+                            >
+                                <option value="">No Flair</option>
+                                {joinedCommunities.map(community => (
+                                    <option key={community.id} value={community.id}>
+                                        {community.name}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                         
                         {/* Bio */}

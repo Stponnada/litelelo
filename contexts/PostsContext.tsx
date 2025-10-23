@@ -49,6 +49,7 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           author_name: p.author_name,
           author_username: p.author_username,
           author_avatar_url: p.author_avatar_url,
+          author_flair_details: p.author_flair_details, // <-- THIS IS THE FIX
         }
       }));
 
@@ -75,6 +76,7 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         author_name: newPost.author_name,
         author_username: newPost.author_username,
         author_avatar_url: newPost.author_avatar_url,
+        author_flair_details: newPost.author_flair_details, // Also add here for optimistic updates
       }
     };
     

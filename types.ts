@@ -9,11 +9,16 @@ export interface Roommate {
 
 // --- NEW: A polymorphic "Author" type that can be a user OR a community ---
 export interface AuthorProfile {
-author_id: string;
-author_type: 'user' | 'community';
-author_name: string | null;
-author_username: string | null;
-author_avatar_url: string | null;
+  author_id: string;
+  author_type: 'user' | 'community';
+  author_name: string | null;
+  author_username: string | null;
+  author_avatar_url: string | null;
+  author_flair_details: { // <-- THIS IS NEW
+    id: string;
+    name: string;
+    avatar_url: string | null;
+  } | null;
 }
 // --- NEW: A polymorphic "Directory" entry ---
 export interface DirectoryProfile {
@@ -42,37 +47,43 @@ full_name: string | null;
 avatar_url: string | null;
 }
 export interface Profile {
-user_id: string;
-username: string;
-full_name: string | null;
-email?: string;
-avatar_url: string | null;
-banner_url: string | null;
-bio: string | null;
-campus: string | null;
-admission_year: number | null;
-branch: string | null;
-dual_degree_branch: string | null;
-relationship_status: string | null;
-dorm_building: string | null;
-dorm_room: string | null;
-dining_hall: string | null;
-clubs?: string | null;
-profile_complete?: boolean;
-created_at?: string;
-updated_at?: string;
-following_count: number;
-follower_count: number;
-is_following: boolean;
-is_followed_by?: boolean;
-roommates: Roommate[] | null;
-gender: string | null;
-birthday: string | null;
-avg_seller_rating?: number;
-total_seller_ratings?: number;
-avg_bits_coin_rating?: number;
-total_bits_coin_ratings?: number;
-bits_coin_balance?: number; // Added for CryptoHubWidget
+  user_id: string;
+  username: string;
+  full_name: string | null;
+  email?: string;
+  avatar_url: string | null;
+  banner_url: string | null;
+  bio: string | null;
+  campus: string | null;
+  admission_year: number | null;
+  branch: string | null;
+  dual_degree_branch: string | null;
+  relationship_status: string | null;
+  dorm_building: string | null;
+  dorm_room: string | null;
+  dining_hall: string | null;
+  clubs?: string | null;
+  profile_complete?: boolean;
+  created_at?: string;
+  updated_at?: string;
+  following_count: number;
+  follower_count: number;
+  is_following: boolean;
+  is_followed_by?: boolean;
+  roommates: Roommate[] | null;
+  gender: string | null;
+  birthday: string | null;
+  avg_seller_rating?: number;
+  total_seller_ratings?: number;
+  avg_bits_coin_rating?: number;
+  total_bits_coin_ratings?: number;
+  bits_coin_balance?: number; // Added for CryptoHubWidget
+  displayed_community_flair: string | null; // <-- THIS IS NEW
+  flair_details: { // <-- THIS IS NEW
+    id: string;
+    name: string;
+    avatar_url: string | null;
+  } | null;
 }
 export interface ConversationSummary {
 conversation_id: string;
@@ -351,14 +362,14 @@ export interface BitsCoinRequest {
     deadline: string | null; // Added
 }
 
-export type NotificationType = 'like' | 'comment' | 'follow' | 'mention' | 'bits_coin_claim';
+export type NotificationType = 'like' | 'comment' | 'follow' | 'mention' | 'bits_coin_claim' | 'new_message';
 
 export interface Notification {
     id: string;
     user_id: string;
     type: NotificationType;
     entity_id: string | null;
-    entity_type: 'post' | 'user' | 'bits_coin_request' | null;
+    entity_type: 'post' | 'user' | 'bits_coin_request' | 'conversation' | null;
     is_read: boolean;
     created_at: string;
     actor: {
@@ -373,6 +384,18 @@ export interface Notification {
 // src/types.ts
 
 // ... (other types)
+
+export interface QuotedPost {
+    id: string;
+    content: string;
+    image_url: string | null;
+    created_at: string;
+    is_deleted: boolean;
+    author_name: string | null;
+    author_username: string | null;
+    author_avatar_url: string | null;
+}
+
 
 export interface RideShare {
     id: string;

@@ -86,7 +86,8 @@ CREATE TYPE "public"."notification_type" AS ENUM (
     'comment',
     'follow',
     'mention',
-    'bits_coin_claim'
+    'bits_coin_claim',
+    'new_message'
 );
 
 
@@ -552,6 +553,30 @@ $$;
 
 
 ALTER FUNCTION "public"."create_post_with_poll"("p_content" "text", "p_image_url" "text", "p_community_id" "uuid", "p_is_public" boolean, "p_poll_options" "text"[], "p_allow_multiple_answers" boolean) OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."create_quote_post"("p_content" "text", "p_quoted_post_id" "uuid", "p_community_id" "uuid" DEFAULT NULL::"uuid", "p_is_public" boolean DEFAULT false) RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "user_vote" "text", "is_bookmarked" boolean, "original_poster_username" "text", "author_id" "text", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "poll" "jsonb", "quoted_post" "jsonb")
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+    new_post_id uuid;
+BEGIN
+    -- Insert the new post with a reference to the post being quoted
+    INSERT INTO public.posts (user_id, content, quoted_post_id, community_id, is_public)
+    VALUES (auth.uid(), p_content, p_quoted_post_id, p_community_id, p_is_public)
+    RETURNING posts.id INTO new_post_id;
+    
+    -- Now, return the full details of the newly created post by calling get_feed_posts
+    -- This ensures the output is always consistent with the main feed.
+    RETURN QUERY
+    SELECT f.*
+    FROM public.get_feed_posts() f
+    WHERE f.id = new_post_id;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."create_quote_post"("p_content" "text", "p_quoted_post_id" "uuid", "p_community_id" "uuid", "p_is_public" boolean) OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."decrement_vote_count"() RETURNS "trigger"
@@ -1066,133 +1091,91 @@ $$;
 ALTER FUNCTION "public"."get_conversations_for_user_v2"() OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."get_feed_posts"() RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "user_vote" "text", "is_bookmarked" boolean, "original_poster_username" "text", "author_id" "text", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "poll" "jsonb")
+CREATE OR REPLACE FUNCTION "public"."get_feed_posts"() RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "repost_count" integer, "user_vote" "text", "is_bookmarked" boolean, "user_has_reposted" boolean, "original_poster_username" "text", "author_id" "text", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "poll" "jsonb", "quoted_post" "jsonb", "reposted_by" "jsonb")
     LANGUAGE "sql" STABLE SECURITY DEFINER
     AS $$
-WITH posts_with_scores AS (
+WITH current_user_id AS (
+    SELECT auth.uid() AS id
+),
+followed_users AS (
+    SELECT following_id FROM public.followers WHERE follower_id = (SELECT id FROM current_user_id)
+),
+member_communities AS (
+    SELECT community_id FROM public.community_members WHERE user_id = (SELECT id FROM current_user_id)
+),
+feed_items AS (
+    -- 1. Original posts from followed users or member communities
     SELECT
-        p.id,
-        p.user_id,
-        p.content,
-        p.image_url,
-        p.created_at,
-        p.is_edited,
-        p.is_deleted,
-        p.community_id,
-        p.is_public,
-        p.like_count,
-        p.dislike_count,
-        p.comment_count,
-        l.like_type AS user_vote,
-        b.post_id IS NOT NULL AS is_bookmarked,
-        op.username AS original_poster_username,
-        
-        -- Author details (same as before)
-        COALESCE(p.community_id::text, p.user_id::text) AS author_id,
-        CASE WHEN p.community_id IS NOT NULL THEN 'community' ELSE 'user' END AS author_type,
-        COALESCE(c.name, up.full_name) AS author_name,
-        COALESCE(c.id::text, up.username) AS author_username,
-        COALESCE(c.avatar_url, up.avatar_url) AS author_avatar_url,
-        
-        -- Poll details (same as before)
-        poll_details.poll,
+        p.id AS post_id,
+        p.created_at AS event_time,
+        p.user_id AS actor_id,
+        NULL::jsonb AS reposted_by
+    FROM public.posts p
+    WHERE p.is_deleted = false
+      AND (
+            p.user_id IN (SELECT following_id FROM followed_users)
+            OR p.community_id IN (SELECT community_id FROM member_communities)
+            -- Always include user's own posts
+            OR p.user_id = (SELECT id FROM current_user_id)
+          )
 
-        -- SCORING ALGORITHM
-        (
-            -- 1. Time Decay Factor (newer posts are better)
-            EXP(-0.05 * (EXTRACT(EPOCH FROM (NOW() - p.created_at)) / 3600.0)) *
+    UNION ALL
 
-            -- 2. Content & Social Score
-            (
-                1.0 + -- Base score for all posts
-
-                -- Log-scaled Engagement Score (likes, dislikes, comments)
-                LN(1 + GREATEST(0, (p.like_count * 1.0 - p.dislike_count * 1.5 + p.comment_count * 2.0))) +
-
-                -- Following Bonus (for non-community posts from people you follow)
-                CASE 
-                    WHEN p.community_id IS NULL AND EXISTS (
-                        SELECT 1 FROM public.followers f WHERE f.follower_id = auth.uid() AND f.following_id = p.user_id
-                    ) THEN 50.0 
-                    ELSE 0.0 
-                END +
-
-                -- Community Member Bonus (for posts in communities you are a member of)
-                CASE
-                    WHEN p.community_id IS NOT NULL AND EXISTS (
-                        SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid()
-                    ) THEN 15.0
-                    ELSE 0.0
-                END +
-
-                -- Mention Bonus (for posts that mention someone you follow)
-                CASE
-                    WHEN EXISTS (
-                        SELECT 1 FROM public.mentions m JOIN public.followers f ON m.user_id = f.following_id WHERE m.post_id = p.id AND f.follower_id = auth.uid()
-                    ) THEN 25.0
-                    ELSE 0.0
-                END
-            )
-        ) AS rank_score
-    FROM
-        public.posts p
-    LEFT JOIN
-        public.likes l ON p.id = l.post_id AND l.user_id = auth.uid()
-    LEFT JOIN
-        public.bookmarks b ON p.id = b.post_id AND b.user_id = auth.uid()
-    LEFT JOIN
-        public.profiles up ON p.user_id = up.user_id AND p.community_id IS NULL
-    LEFT JOIN
-        public.communities c ON p.community_id = c.id
-    LEFT JOIN
-        public.profiles op ON p.user_id = op.user_id AND p.community_id IS NOT NULL
-    LEFT JOIN LATERAL (
-        SELECT
-            jsonb_build_object(
-                'id', po.id,
-                'allow_multiple_answers', po.allow_multiple_answers,
-                'total_votes', COALESCE((SELECT SUM(opt.vote_count) FROM public.poll_options opt WHERE opt.poll_id = po.id), 0),
-                'user_votes', (
-                    SELECT jsonb_agg(pv.option_id)
-                    FROM public.poll_votes pv
-                    WHERE pv.poll_id = po.id AND pv.user_id = auth.uid()
-                ),
-                'options', (
-                    SELECT jsonb_agg(
-                        jsonb_build_object(
-                            'id', opt.id,
-                            'option_text', opt.option_text,
-                            'vote_count', opt.vote_count
-                        ) ORDER BY opt.id -- THIS IS THE FIX: Changed from opt.created_at
-                    )
-                    FROM poll_options opt
-                    WHERE opt.poll_id = po.id
-                )
-            ) AS poll
-        FROM polls po
-        WHERE po.post_id = p.id
-    ) poll_details ON TRUE
-    WHERE
-        p.is_deleted = false
-        AND (
-            p.community_id IS NULL -- All user posts are candidates for the feed
-            OR p.is_public = true -- All public community posts are candidates
-            OR ( -- Private community posts are candidates only for members
-                p.is_public = false AND EXISTS (
-                    SELECT 1 FROM public.community_members cm
-                    WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid()
-                )
-            )
-        )
+    -- 2. Posts reposted by followed users
+    SELECT
+        r.post_id,
+        r.created_at AS event_time,
+        r.user_id AS actor_id,
+        jsonb_build_object(
+            'user_id', reposter.user_id,
+            'username', reposter.username,
+            'full_name', reposter.full_name
+        ) AS reposted_by
+    FROM public.reposts r
+    JOIN public.profiles reposter ON r.user_id = reposter.user_id
+    WHERE r.user_id IN (SELECT following_id FROM followed_users)
 )
-SELECT 
-    pws.id, pws.user_id, pws.content, pws.image_url, pws.created_at, pws.is_edited, pws.is_deleted, 
-    pws.community_id, pws.is_public, pws.like_count, pws.dislike_count, pws.comment_count, 
-    pws.user_vote, pws.is_bookmarked, pws.original_poster_username, pws.author_id, pws.author_type, 
-    pws.author_name, pws.author_username, pws.author_avatar_url, pws.poll
-FROM posts_with_scores pws
-ORDER BY
-    pws.rank_score DESC, pws.created_at DESC;
+, distinct_feed AS (
+    SELECT DISTINCT ON (post_id) *
+    FROM feed_items
+    ORDER BY post_id, event_time DESC
+)
+SELECT
+    p.id, p.user_id, p.content, p.image_url, p.created_at, p.is_edited, p.is_deleted, p.community_id, p.is_public,
+    p.like_count, p.dislike_count, p.comment_count, p.repost_count,
+    l.like_type AS user_vote,
+    b.post_id IS NOT NULL AS is_bookmarked,
+    r.post_id IS NOT NULL AS user_has_reposted,
+    op.username AS original_poster_username,
+    COALESCE(p.community_id::text, p.user_id::text) AS author_id,
+    CASE WHEN p.community_id IS NOT NULL THEN 'community' ELSE 'user' END AS author_type,
+    COALESCE(c.name, up.full_name) AS author_name,
+    COALESCE(c.id::text, up.username) AS author_username,
+    COALESCE(c.avatar_url, up.avatar_url) AS author_avatar_url,
+    poll_details.poll,
+    (
+        SELECT jsonb_build_object(
+            'id', qp.id, 'content', qp.content, 'image_url', qp.image_url, 'created_at', qp.created_at,
+            'is_deleted', qp.is_deleted, 'author_name', qp_author.full_name, 'author_username', qp_author.username,
+            'author_avatar_url', qp_author.avatar_url
+        )
+        FROM posts qp JOIN profiles qp_author ON qp.user_id = qp_author.user_id WHERE qp.id = p.quoted_post_id
+    ) AS quoted_post,
+    df.reposted_by
+FROM distinct_feed df
+JOIN public.posts p ON df.post_id = p.id
+LEFT JOIN public.likes l ON p.id = l.post_id AND l.user_id = (SELECT id FROM current_user_id)
+LEFT JOIN public.bookmarks b ON p.id = b.post_id AND b.user_id = (SELECT id FROM current_user_id)
+LEFT JOIN public.reposts r ON p.id = r.post_id AND r.user_id = (SELECT id FROM current_user_id)
+LEFT JOIN public.profiles up ON p.user_id = up.user_id AND p.community_id IS NULL
+LEFT JOIN public.communities c ON p.community_id = c.id
+LEFT JOIN public.profiles op ON p.user_id = op.user_id AND p.community_id IS NOT NULL
+LEFT JOIN LATERAL (
+    SELECT jsonb_build_object('id', po.id, 'allow_multiple_answers', po.allow_multiple_answers, 'total_votes', COALESCE((SELECT SUM(opt.vote_count) FROM public.poll_options opt WHERE opt.poll_id = po.id), 0), 'user_votes', (SELECT jsonb_agg(pv.option_id) FROM public.poll_votes pv WHERE pv.poll_id = po.id AND pv.user_id = auth.uid()), 'options', (SELECT jsonb_agg(jsonb_build_object('id', opt.id, 'option_text', opt.option_text, 'vote_count', opt.vote_count) ORDER BY opt.id) FROM poll_options opt WHERE opt.poll_id = po.id)) AS poll
+    FROM polls po WHERE po.post_id = p.id
+) poll_details ON TRUE
+WHERE p.is_deleted = false
+ORDER BY df.event_time DESC;
 $$;
 
 
@@ -1682,17 +1665,74 @@ $$;
 ALTER FUNCTION "public"."get_posts_for_community"("p_community_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."get_posts_for_profile"("p_user_id" "uuid") RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "like_count" bigint, "comment_count" bigint, "user_vote" "text", "is_bookmarked" boolean, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "author_id" "uuid", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "original_poster_username" "text", "poll" "jsonb")
+CREATE OR REPLACE FUNCTION "public"."get_posts_for_profile"("p_user_id" "uuid") RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "repost_count" integer, "user_vote" "text", "is_bookmarked" boolean, "user_has_reposted" boolean, "original_poster_username" "text", "author_id" "text", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "poll" "jsonb", "quoted_post" "jsonb", "reposted_by" "jsonb")
     LANGUAGE "sql" STABLE SECURITY DEFINER
     AS $$
-SELECT p.id, p.user_id, p.content, p.image_url, p.created_at, p.like_count, p.comment_count, l.like_type AS user_vote, EXISTS (SELECT 1 FROM bookmarks b WHERE b.post_id = p.id AND b.user_id = auth.uid()) AS is_bookmarked, p.is_edited, p.is_deleted, p.community_id, p.is_public, COALESCE(p.community_id, p.user_id) as author_id, CASE WHEN p.community_id IS NOT NULL THEN 'community' ELSE 'user' END as author_type, COALESCE(c.name, up.full_name) as author_name, COALESCE(c.id::text, up.username) as author_username, COALESCE(c.avatar_url, up.avatar_url) as author_avatar_url, op.username as original_poster_username, (SELECT jsonb_build_object('id', poll.id, 'allow_multiple_answers', poll.allow_multiple_answers, 'total_votes', (SELECT SUM(vote_count) FROM poll_options WHERE poll_id = poll.id), 'user_votes', (SELECT jsonb_agg(option_id) FROM poll_votes WHERE poll_id = poll.id AND user_id = auth.uid()), 'options', (SELECT jsonb_agg(jsonb_build_object('id', po.id, 'option_text', po.option_text, 'vote_count', po.vote_count) ORDER BY po.id) FROM poll_options po WHERE po.poll_id = poll.id)) FROM polls poll WHERE poll.post_id = p.id) AS poll
-FROM posts p
-LEFT JOIN likes l ON p.id = l.post_id AND l.user_id = auth.uid()
-LEFT JOIN profiles up ON p.user_id = up.user_id AND p.community_id IS NULL
-LEFT JOIN communities c ON p.community_id = c.id
-LEFT JOIN profiles op ON p.user_id = op.user_id AND p.community_id IS NOT NULL
-WHERE p.is_deleted = false AND (p.user_id = p_user_id OR p.community_id IN (SELECT cm.community_id FROM community_members cm WHERE cm.user_id = p_user_id))
-ORDER BY p.created_at DESC;
+WITH profile_feed_items AS (
+    -- 1. Get all original posts by this user (where they are the direct author)
+    SELECT
+        p.id AS post_id,
+        p.created_at AS event_time,
+        NULL::jsonb AS reposted_by -- This is not a repost, so this is null
+    FROM public.posts p
+    WHERE p.user_id = p_user_id AND p.is_deleted = false
+
+    UNION ALL
+
+    -- 2. Get all posts reposted by this user
+    SELECT
+        r.post_id,
+        r.created_at AS event_time,
+        jsonb_build_object(
+            'user_id', p_profile.user_id,
+            'username', p_profile.username,
+            'full_name', p_profile.full_name
+        ) AS reposted_by
+    FROM public.reposts r
+    JOIN public.profiles p_profile ON r.user_id = p_profile.user_id
+    WHERE r.user_id = p_user_id
+),
+distinct_feed AS (
+    SELECT DISTINCT ON (post_id) *
+    FROM profile_feed_items
+    ORDER BY post_id, event_time DESC
+)
+SELECT
+    p.id, p.user_id, p.content, p.image_url, p.created_at, p.is_edited, p.is_deleted, p.community_id, p.is_public,
+    p.like_count, p.dislike_count, p.comment_count, p.repost_count,
+    l.like_type AS user_vote,
+    b.post_id IS NOT NULL AS is_bookmarked,
+    r.post_id IS NOT NULL AS user_has_reposted,
+    op.username AS original_poster_username,
+    COALESCE(p.community_id::text, p.user_id::text) AS author_id,
+    CASE WHEN p.community_id IS NOT NULL THEN 'community' ELSE 'user' END AS author_type,
+    COALESCE(c.name, up.full_name) AS author_name,
+    COALESCE(c.id::text, up.username) AS author_username,
+    COALESCE(c.avatar_url, up.avatar_url) AS author_avatar_url,
+    poll_details.poll,
+    (
+        SELECT jsonb_build_object(
+            'id', qp.id, 'content', qp.content, 'image_url', qp.image_url, 'created_at', qp.created_at,
+            'is_deleted', qp.is_deleted, 'author_name', qp_author.full_name, 'author_username', qp_author.username,
+            'author_avatar_url', qp_author.avatar_url
+        )
+        FROM posts qp JOIN profiles qp_author ON qp.user_id = qp_author.user_id WHERE qp.id = p.quoted_post_id
+    ) AS quoted_post,
+    df.reposted_by
+FROM distinct_feed df
+JOIN public.posts p ON df.post_id = p.id
+LEFT JOIN public.likes l ON p.id = l.post_id AND l.user_id = auth.uid()
+LEFT JOIN public.bookmarks b ON p.id = b.post_id AND b.user_id = auth.uid()
+LEFT JOIN public.reposts r ON p.id = r.post_id AND r.user_id = auth.uid()
+LEFT JOIN public.profiles up ON p.user_id = up.user_id AND p.community_id IS NULL
+LEFT JOIN public.communities c ON p.community_id = c.id
+LEFT JOIN public.profiles op ON p.user_id = op.user_id AND p.community_id IS NOT NULL
+LEFT JOIN LATERAL (
+    SELECT jsonb_build_object('id', po.id, 'allow_multiple_answers', po.allow_multiple_answers, 'total_votes', COALESCE((SELECT SUM(opt.vote_count) FROM public.poll_options opt WHERE opt.poll_id = po.id), 0), 'user_votes', (SELECT jsonb_agg(pv.option_id) FROM public.poll_votes pv WHERE pv.poll_id = po.id AND pv.user_id = auth.uid()), 'options', (SELECT jsonb_agg(jsonb_build_object('id', opt.id, 'option_text', opt.option_text, 'vote_count', opt.vote_count) ORDER BY opt.id) FROM poll_options opt WHERE opt.poll_id = po.id)) AS poll
+    FROM polls po WHERE po.post_id = p.id
+) poll_details ON TRUE
+WHERE p.is_deleted = false
+ORDER BY df.event_time DESC;
 $$;
 
 
@@ -2003,6 +2043,32 @@ $$;
 ALTER FUNCTION "public"."handle_new_like"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."handle_new_message_notification"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+    recipient_id_var uuid;
+BEGIN
+    -- For each participant in the conversation...
+    FOR recipient_id_var IN
+        SELECT user_id FROM public.conversation_participants
+        WHERE conversation_id = NEW.conversation_id
+    LOOP
+        -- ...if they are NOT the sender of the new message...
+        IF recipient_id_var <> NEW.sender_id THEN
+            -- ...insert a notification for them.
+            INSERT INTO public.notifications (user_id, actor_id, type, entity_id, entity_type)
+            VALUES (recipient_id_var, NEW.sender_id, 'new_message', NEW.conversation_id, 'conversation');
+        END IF;
+    END LOOP;
+    RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."handle_new_message_notification"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."handle_new_user"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
@@ -2125,6 +2191,29 @@ $$;
 ALTER FUNCTION "public"."mark_conversation_as_read"("p_conversation_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."mark_message_notifications_as_read"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+BEGIN
+    -- When a timestamp is updated (meaning a conversation was read),
+    -- find all 'new_message' notifications for that user and conversation
+    -- and set their is_read status to true.
+    UPDATE public.notifications
+    SET is_read = true
+    WHERE
+        user_id = NEW.user_id -- The user who read the conversation
+        AND entity_id = NEW.conversation_id -- The specific conversation that was read
+        AND type = 'new_message' -- Only affect new message notifications
+        AND is_read = false; -- Only update unread ones to avoid unnecessary writes
+
+    RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."mark_message_notifications_as_read"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."mark_notifications_as_read"("notification_ids" "uuid"[]) RETURNS "void"
     LANGUAGE "plpgsql"
     AS $$
@@ -2217,6 +2306,22 @@ $$;
 
 
 ALTER FUNCTION "public"."set_community_member_role"("p_community_id" "uuid", "p_target_user_id" "uuid", "p_new_role" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."toggle_repost"("p_post_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM public.reposts WHERE post_id = p_post_id AND user_id = auth.uid()) THEN
+        DELETE FROM public.reposts WHERE post_id = p_post_id AND user_id = auth.uid();
+    ELSE
+        INSERT INTO public.reposts (post_id, user_id) VALUES (p_post_id, auth.uid());
+    END IF;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."toggle_repost"("p_post_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."toggle_rsvp"("p_event_id" "uuid", "p_rsvp_status" "public"."event_rsvp_status") RETURNS "void"
@@ -2384,6 +2489,23 @@ $$;
 
 
 ALTER FUNCTION "public"."update_post_like_counts"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."update_post_repost_count"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+BEGIN
+    IF (TG_OP = 'INSERT') THEN
+        UPDATE public.posts SET repost_count = repost_count + 1 WHERE id = NEW.post_id;
+    ELSIF (TG_OP = 'DELETE') THEN
+        UPDATE public.posts SET repost_count = repost_count - 1 WHERE id = OLD.post_id;
+    END IF;
+    RETURN NULL; -- result is ignored since this is an AFTER trigger
+END;
+$$;
+
+
+ALTER FUNCTION "public"."update_post_repost_count"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."update_seller_rating_on_profile"() RETURNS "trigger"
@@ -2894,6 +3016,8 @@ CREATE TABLE IF NOT EXISTS "public"."posts" (
     "is_public" boolean DEFAULT false NOT NULL,
     "is_edited" boolean DEFAULT false,
     "is_deleted" boolean DEFAULT false,
+    "quoted_post_id" "uuid",
+    "repost_count" integer DEFAULT 0 NOT NULL,
     CONSTRAINT "community_id_required_for_public_posts" CHECK ((("is_public" = false) OR (("is_public" = true) AND ("community_id" IS NOT NULL))))
 );
 
@@ -2946,6 +3070,16 @@ ALTER TABLE "public"."profiles" ALTER COLUMN "id" ADD GENERATED BY DEFAULT AS ID
     CACHE 1
 );
 
+
+
+CREATE TABLE IF NOT EXISTS "public"."reposts" (
+    "post_id" "uuid" NOT NULL,
+    "user_id" "uuid" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+ALTER TABLE "public"."reposts" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."reviews" (
@@ -3200,6 +3334,11 @@ ALTER TABLE ONLY "public"."seller_ratings"
 
 
 
+ALTER TABLE ONLY "public"."reposts"
+    ADD CONSTRAINT "reposts_pkey" PRIMARY KEY ("post_id", "user_id");
+
+
+
 ALTER TABLE ONLY "public"."reviews"
     ADD CONSTRAINT "reviews_pkey" PRIMARY KEY ("id");
 
@@ -3249,6 +3388,10 @@ CREATE OR REPLACE TRIGGER "on_comment_change" AFTER INSERT OR DELETE ON "public"
 
 
 
+CREATE OR REPLACE TRIGGER "on_conversation_read_mark_notifications" AFTER INSERT OR UPDATE ON "public"."conversation_read_timestamps" FOR EACH ROW EXECUTE FUNCTION "public"."mark_message_notifications_as_read"();
+
+
+
 CREATE OR REPLACE TRIGGER "on_follow_change" AFTER INSERT OR DELETE ON "public"."followers" FOR EACH ROW EXECUTE FUNCTION "public"."update_follow_counts"();
 
 
@@ -3266,6 +3409,14 @@ CREATE OR REPLACE TRIGGER "on_new_follow" AFTER INSERT ON "public"."followers" F
 
 
 CREATE OR REPLACE TRIGGER "on_new_like" AFTER INSERT ON "public"."likes" FOR EACH ROW EXECUTE FUNCTION "public"."handle_new_like"();
+
+
+
+CREATE OR REPLACE TRIGGER "on_new_message" AFTER INSERT ON "public"."messages" FOR EACH ROW EXECUTE FUNCTION "public"."handle_new_message_notification"();
+
+
+
+CREATE OR REPLACE TRIGGER "on_repost_change" AFTER INSERT OR DELETE ON "public"."reposts" FOR EACH ROW EXECUTE FUNCTION "public"."update_post_repost_count"();
 
 
 
@@ -3562,12 +3713,27 @@ ALTER TABLE ONLY "public"."posts"
 
 
 ALTER TABLE ONLY "public"."posts"
+    ADD CONSTRAINT "posts_quoted_post_id_fkey" FOREIGN KEY ("quoted_post_id") REFERENCES "public"."posts"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."posts"
     ADD CONSTRAINT "posts_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("user_id");
 
 
 
 ALTER TABLE ONLY "public"."profiles"
     ADD CONSTRAINT "profiles_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id");
+
+
+
+ALTER TABLE ONLY "public"."reposts"
+    ADD CONSTRAINT "reposts_post_id_fkey" FOREIGN KEY ("post_id") REFERENCES "public"."posts"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."reposts"
+    ADD CONSTRAINT "reposts_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("user_id") ON DELETE CASCADE;
 
 
 
@@ -3656,6 +3822,10 @@ CREATE POLICY "Allow all read access on places" ON "public"."campus_places" FOR 
 
 
 CREATE POLICY "Allow all read access on reviews" ON "public"."reviews" FOR SELECT USING (true);
+
+
+
+CREATE POLICY "Allow all users to view reposts" ON "public"."reposts" FOR SELECT USING (true);
 
 
 
@@ -3906,6 +4076,10 @@ CREATE POLICY "Allow users to manage their own RSVPs" ON "public"."event_rsvps" 
 
 
 CREATE POLICY "Allow users to manage their own device keys" ON "public"."device_keys" USING (("auth"."uid"() = "user_id"));
+
+
+
+CREATE POLICY "Allow users to manage their own reposts" ON "public"."reposts" USING (("auth"."uid"() = "user_id")) WITH CHECK (("auth"."uid"() = "user_id"));
 
 
 
@@ -4229,6 +4403,9 @@ ALTER TABLE "public"."posts" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."profiles" ENABLE ROW LEVEL SECURITY;
 
 
+ALTER TABLE "public"."reposts" ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE "public"."reviews" ENABLE ROW LEVEL SECURITY;
 
 
@@ -4515,6 +4692,12 @@ GRANT ALL ON FUNCTION "public"."create_post_with_poll"("p_content" "text", "p_im
 
 
 
+GRANT ALL ON FUNCTION "public"."create_quote_post"("p_content" "text", "p_quoted_post_id" "uuid", "p_community_id" "uuid", "p_is_public" boolean) TO "anon";
+GRANT ALL ON FUNCTION "public"."create_quote_post"("p_content" "text", "p_quoted_post_id" "uuid", "p_community_id" "uuid", "p_is_public" boolean) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."create_quote_post"("p_content" "text", "p_quoted_post_id" "uuid", "p_community_id" "uuid", "p_is_public" boolean) TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."decrement_vote_count"() TO "anon";
 GRANT ALL ON FUNCTION "public"."decrement_vote_count"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."decrement_vote_count"() TO "service_role";
@@ -4755,6 +4938,12 @@ GRANT ALL ON FUNCTION "public"."handle_new_like"() TO "service_role";
 
 
 
+GRANT ALL ON FUNCTION "public"."handle_new_message_notification"() TO "anon";
+GRANT ALL ON FUNCTION "public"."handle_new_message_notification"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."handle_new_message_notification"() TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."handle_new_user"() TO "anon";
 GRANT ALL ON FUNCTION "public"."handle_new_user"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."handle_new_user"() TO "service_role";
@@ -4798,6 +4987,12 @@ GRANT ALL ON FUNCTION "public"."mark_conversation_as_read"("p_conversation_id" "
 
 
 
+GRANT ALL ON FUNCTION "public"."mark_message_notifications_as_read"() TO "anon";
+GRANT ALL ON FUNCTION "public"."mark_message_notifications_as_read"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."mark_message_notifications_as_read"() TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."mark_notifications_as_read"("notification_ids" "uuid"[]) TO "anon";
 GRANT ALL ON FUNCTION "public"."mark_notifications_as_read"("notification_ids" "uuid"[]) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."mark_notifications_as_read"("notification_ids" "uuid"[]) TO "service_role";
@@ -4813,6 +5008,12 @@ GRANT ALL ON FUNCTION "public"."search_all"("search_term" "text") TO "service_ro
 GRANT ALL ON FUNCTION "public"."set_community_member_role"("p_community_id" "uuid", "p_target_user_id" "uuid", "p_new_role" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."set_community_member_role"("p_community_id" "uuid", "p_target_user_id" "uuid", "p_new_role" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."set_community_member_role"("p_community_id" "uuid", "p_target_user_id" "uuid", "p_new_role" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."toggle_repost"("p_post_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."toggle_repost"("p_post_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."toggle_repost"("p_post_id" "uuid") TO "service_role";
 
 
 
@@ -4849,6 +5050,12 @@ GRANT ALL ON FUNCTION "public"."update_post_comment_count"() TO "service_role";
 GRANT ALL ON FUNCTION "public"."update_post_like_counts"() TO "anon";
 GRANT ALL ON FUNCTION "public"."update_post_like_counts"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."update_post_like_counts"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."update_post_repost_count"() TO "anon";
+GRANT ALL ON FUNCTION "public"."update_post_repost_count"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."update_post_repost_count"() TO "service_role";
 
 
 
@@ -5113,6 +5320,12 @@ GRANT ALL ON SEQUENCE "public"."profiles_id_seq" TO "service_role";
 
 
 
+GRANT ALL ON TABLE "public"."reposts" TO "anon";
+GRANT ALL ON TABLE "public"."reposts" TO "authenticated";
+GRANT ALL ON TABLE "public"."reposts" TO "service_role";
+
+
+
 GRANT ALL ON TABLE "public"."reviews" TO "anon";
 GRANT ALL ON TABLE "public"."reviews" TO "authenticated";
 GRANT ALL ON TABLE "public"."reviews" TO "service_role";
@@ -5128,11 +5341,6 @@ GRANT ALL ON TABLE "public"."ride_shares" TO "service_role";
 GRANT ALL ON TABLE "public"."seller_ratings" TO "anon";
 GRANT ALL ON TABLE "public"."seller_ratings" TO "authenticated";
 GRANT ALL ON TABLE "public"."seller_ratings" TO "service_role";
-
-
-
-
-
 
 
 
@@ -5161,33 +5369,6 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TAB
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

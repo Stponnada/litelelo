@@ -16,6 +16,23 @@ const getAvatarUrl = (profile: Profile | null) => {
   return profile.avatar_url || `https://ui-avatars.com/api/?name=${profile.full_name || profile.username}&background=E53E3E&color=fff`;
 };
 
+// --- THIS IS THE FIX: New Flair component ---
+const Flair: React.FC<{ flair: { id: string; name: string; avatar_url: string | null } }> = ({ flair }) => (
+    <Link
+      to={`/communities/${flair.id}`}
+      onClick={(e) => e.stopPropagation()}
+      className="group ml-2"
+      title={flair.name}
+    >
+        <img 
+            src={flair.avatar_url || `https://ui-avatars.com/api/?name=${flair.name}`} 
+            alt={flair.name} 
+            className="w-5 h-5 rounded-full object-cover transition-transform group-hover:scale-110" 
+        />
+    </Link>
+);
+
+
 // Comment Component with the correct renderer
 const Comment: React.FC<{ comment: CommentType }> = ({ comment }) => {
   const author = comment.profiles;
@@ -29,6 +46,8 @@ const Comment: React.FC<{ comment: CommentType }> = ({ comment }) => {
         <div>
             <div className="flex items-baseline md:space-x-2 flex-wrap md:flex-nowrap">
                 <Link to={`/profile/${author?.username}`} className="font-semibold text-text-main-light dark:text-text-main hover:underline leading-tight truncate">{author?.full_name || author?.username}</Link>
+                {/* --- Display Flair on Comments --- */}
+                {author?.flair_details && <Flair flair={author.flair_details} />}
                 <span className="text-sm text-text-tertiary-light dark:text-text-tertiary truncate hidden md:inline">@{author?.username}</span>
                 <span className="text-sm text-text-tertiary-light dark:text-text-tertiary hidden md:inline">&middot;</span>
                 <span className="text-sm text-text-tertiary-light dark:text-text-tertiary hover:underline flex-shrink-0 hidden md:inline" title={new Date(comment.created_at).toLocaleString()}>
@@ -64,11 +83,17 @@ const PostPage: React.FC = () => {
     const fetchPageSpecificData = async () => {
         if (!postId) return;
         setCommentsLoading(true);
-        const { data: commentsData } = await supabase.from('comments').select('*, profiles(*)').eq('post_id', postId).order('created_at', { ascending: true });
-        setComments((commentsData as any) || []);
+        // --- UPDATED to use new RPC function ---
+        const { data: commentsData, error } = await supabase.rpc('get_comments_for_post', { p_post_id: postId });
+        if (error) {
+          console.error("Error fetching comments with flair:", error);
+        } else {
+          setComments((commentsData as any) || []);
+        }
+
         if (user) {
-          const { data: profileData } = await supabase.from('profiles').select('*').eq('user_id', user.id).single();
-          setCurrentUserProfile(profileData);
+          const { data: profileData } = await supabase.from('profiles').select('*, flair_details:displayed_community_flair(id, name, avatar_url)').eq('user_id', user.id).single();
+          setCurrentUserProfile(profileData as Profile);
         }
         setCommentsLoading(false);
     }

@@ -22,6 +22,23 @@ import PollComponent from './Poll';
 import QuotePostDisplay from './QuotePostDisplay';
 import QuotePostModal from './QuotePostModal';
 
+// --- THIS IS THE FIX ---
+const Flair: React.FC<{ flair: { id: string; name: string; avatar_url: string | null } }> = ({ flair }) => (
+    <Link
+      to={`/communities/${flair.id}`}
+      onClick={(e) => e.stopPropagation()}
+      className="group ml-2"
+      title={flair.name}
+    >
+        <img 
+            src={flair.avatar_url || `https://ui-avatars.com/api/?name=${flair.name}`} 
+            alt={flair.name} 
+            className="w-5 h-5 rounded-full object-cover transition-transform group-hover:scale-110" 
+        />
+    </Link>
+);
+
+
 interface PostComponentProps {
     post: PostType;
     onImageClick?: (imageUrl: string) => void;
@@ -224,6 +241,8 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => 
                                         <div>
                                             <div className="flex items-baseline md:space-x-2 flex-wrap md:flex-nowrap">
                                                 <Link to={authorLink} onClick={e => e.stopPropagation()} className="font-bold hover:underline text-text-main-light dark:text-text-main leading-tight truncate">{author.author_name}</Link>
+                                                {/* --- NEW: Display Flair --- */}
+                                                {author.author_flair_details && <Flair flair={author.author_flair_details} />}
                                                 <span className="text-sm text-text-tertiary-light dark:text-text-tertiary truncate hidden md:inline">@{author.author_username}</span>
                                                 <span className="text-sm text-text-tertiary-light dark:text-text-tertiary hidden md:inline">&middot;</span>
                                                 <span className="text-sm text-text-tertiary-light dark:text-text-tertiary hover:underline flex-shrink-0 hidden md:inline">{formatTimestamp(post.created_at)}</span>
