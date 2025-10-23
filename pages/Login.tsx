@@ -21,9 +21,7 @@ const BITS_DOMAINS = [
 
 type AuthView = 'signup' | 'login' | 'reset_request';
 
-// --- THIS IS THE FIX: Part 1 ---
-// Define the form components OUTSIDE of the main Login component.
-// This prevents them from being re-created on every state change.
+// --- Form components defined outside the main component to prevent re-creation ---
 
 interface AuthFormProps {
   view: 'login' | 'signup';
@@ -70,7 +68,6 @@ const ResetRequestForm: React.FC<ResetFormProps> = ({ handlePasswordResetRequest
       <button type="submit" disabled={loading} className="bg-brand-green text-black font-semibold rounded-md py-3 transition duration-300 ease-in-out hover:bg-brand-green-darker disabled:opacity-50">{loading ? <Spinner /> : 'Send Reset Link'}</button>
   </form>
 );
-// --- END OF FIX: Part 1 ---
 
 
 const Login: React.FC = () => {
@@ -274,6 +271,8 @@ const Login: React.FC = () => {
         <div className="absolute inset-0 bg-[linear-gradient(130deg,transparent_0%,rgba(0,255,100,0.17)_10%,transparent_20%,rgba(0,255,150,0.22)_30%,transparent_40%,rgba(0,255,100,0.25)_50%,transparent_60%)] bg-[length:400%_400%] animate-[circuitFlowSmooth_18s_ease-in-out_infinite]"></div>
       </div>
       <canvas ref={canvasRef} className={`absolute inset-0 w-full h-full z-0 pointer-events-none transition-opacity duration-2000 ${isPlaying ? 'opacity-100' : 'opacity-0'}`}/>
+      
+      {/* Mobile: Combined container for branding and login */}
       <div className="relative z-10 w-full lg:w-1/2 flex flex-col items-center justify-center gap-8 px-4 py-8 lg:hidden">
         <div className="text-center">
           <h1 className={`logo-transform text-7xl sm:text-8xl select-none ${isPlaying ? 'font-rubik-glitch text-neon-green animate-neon-glitch' : 'font-raleway font-black text-brand-green drop-shadow-[0_0_20px_rgba(0,255,150,0.3)]'}`}>
@@ -312,6 +311,8 @@ const Login: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Desktop: Branding on left */}
       <div className="relative z-10 hidden lg:flex w-1/2 items-center justify-end p-8 pr-12">
         <div className="text-left">
           <h1 className={`logo-transform text-8xl select-none ${isPlaying ? 'font-rubik-glitch text-neon-green animate-neon-glitch' : 'font-raleway font-black text-brand-green drop-shadow-[0_0_20px_rgba(0,255,150,0.3)]'}`}>
@@ -322,6 +323,8 @@ const Login: React.FC = () => {
           </p>
         </div>
       </div>
+
+      {/* Desktop: Login Card on right */}
       <div className="relative z-10 hidden lg:flex w-1/2 flex-col items-start justify-center p-8 pl-12">
         <div className="w-full max-w-md bg-secondary-light dark:bg-secondary p-8 rounded-lg shadow-lg relative backdrop-blur-sm bg-opacity-90 dark:bg-opacity-80">
           <h2 className="text-2xl font-bold text-center text-text-main-light dark:text-text-main mb-6">
@@ -352,6 +355,7 @@ const Login: React.FC = () => {
           </div>
         </div>
       </div>
+
       <div className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 flex items-center gap-3 sm:gap-4 z-20">
         <button onClick={toggleMusic} title={isPlaying ? 'Pause Music' : 'Play Music'} className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 ${isPlaying ? 'bg-brand-green/20 border border-brand-green/30 text-brand-green' : 'bg-secondary-light dark:bg-secondary border border-tertiary-light dark:border-tertiary text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary'}`}>
             {isPlaying ? <PauseIcon className="w-5 h-5 sm:w-6 sm:h-6" /> : <MusicIcon className="w-5 h-5 sm:w-6 sm:h-6" />}
