@@ -36,17 +36,17 @@ const BITS_DOMAINS = [
   'dubai.bits-pilani.ac.in'
 ];
 
+type AuthView = 'signup' | 'login' | 'reset_request';
+
 const Login: React.FC = () => {
-  // --- THIS IS THE CHANGE ---
-  // Default to the Sign Up view instead of the Log In view.
-  const [isLogin, setIsLogin] = useState(false);
-  // -------------------------
+  const [view, setView] = useState<AuthView>('signup');
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null); // For success/info messages
   const [typedText, setTypedText] = useState('');
   const navigate = useNavigate();
   const { session, isLoading: authLoading } = useAuth();
@@ -86,7 +86,6 @@ const Login: React.FC = () => {
       setError(error.message);
       setLoading(false);
     }
-    // On success, Supabase redirects to Google, then back to your app. No need to handle success state here.
   };
 
   const validateEmail = (email: string) => BITS_DOMAINS.includes(email.split('@')[1]);
@@ -232,12 +231,13 @@ const Login: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setMessage(null);
     try {
-      if (isLogin) {
+      if (view === 'login') {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         fadeOutAudio(() => { setLoading(false); navigate('/'); });
-      } else {
+      } else { // signup
         if (/\s/.test(username)) throw new Error('Username cannot contain spaces.');
         if (password !== confirmPassword) throw new Error('Passwords do not match.');
         if (!validateEmail(email)) throw new Error('Please use a valid BITS Pilani email address.');
@@ -254,7 +254,48 @@ const Login: React.FC = () => {
     }
   };
 
+  const handlePasswordResetRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setMessage(null);
+    try {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: `${window.location.origin}/password-reset`,
+        });
+        if (error) throw error;
+        setMessage("Password reset link sent! Please check your email.");
+    } catch (err: any) {
+        setError(err.message);
+    } finally {
+        setLoading(false);
+    }
+  };
+
   if (authLoading || session) return <div className="flex items-center justify-center h-screen bg-primary-light dark:bg-primary"><Spinner /></div>;
+
+  const AuthForm = () => (
+    <form onSubmit={handleAuth} className="flex flex-col gap-3 sm:gap-4">
+      {view === 'signup' && <input type="text" placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />}
+      <input type="email" placeholder={view === 'signup' ? 'BITS Email' : 'Email'} value={email} onChange={e => setEmail(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />
+      <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />
+      {view === 'signup' && <input type="password" placeholder="Confirm Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />}
+      {view === 'login' && (
+        <button type="button" onClick={() => { setView('reset_request'); setError(null); setMessage(null); }} className="text-xs text-right text-text-tertiary-light dark:text-text-tertiary hover:text-brand-green">
+            Forgot Password?
+        </button>
+      )}
+      <button type="submit" disabled={loading} className="bg-brand-green text-black font-semibold rounded-md py-3 transition duration-300 ease-in-out hover:bg-brand-green-darker disabled:opacity-50">{loading ? <Spinner /> : view === 'login' ? 'Log In' : 'Sign Up'}</button>
+    </form>
+  );
+
+  const ResetRequestForm = () => (
+    <form onSubmit={handlePasswordResetRequest} className="flex flex-col gap-4">
+        <p className="text-sm text-center text-text-secondary-light dark:text-text-secondary">Enter your email to receive a password reset link.</p>
+        <input type="email" placeholder="BITS Email" value={email} onChange={e => setEmail(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />
+        <button type="submit" disabled={loading} className="bg-brand-green text-black font-semibold rounded-md py-3 transition duration-300 ease-in-out hover:bg-brand-green-darker disabled:opacity-50">{loading ? <Spinner /> : 'Send Reset Link'}</button>
+    </form>
+  );
 
   return (
     <div className="relative flex flex-col lg:flex-row items-center justify-center min-h-screen bg-primary-light dark:bg-primary overflow-hidden">
@@ -270,12 +311,12 @@ const Login: React.FC = () => {
         className={`absolute inset-0 w-full h-full z-0 pointer-events-none transition-opacity duration-2000 ${isPlaying ? 'opacity-100' : 'opacity-0'}`}
       />
 
-      {/* Mobile: Combined container for branding and login, Desktop: separate sections */}
-      <div className="relative z-10 w-full lg:w-1/2 flex flex-col items-center justify-center gap-8 px-4 py-8 lg:hidden">
+      {/* Combined container for mobile */}
+      <div className="relative z-10 w-full lg:w-auto flex flex-col lg:flex-row items-center justify-center lg:gap-24 px-4 py-8">
         {/* Branding */}
-        <div className="text-center">
+        <div className="text-center lg:text-left mb-8 lg:mb-0">
           <h1
-            className={`logo-transform text-7xl sm:text-8xl select-none
+            className={`logo-transform text-7xl sm:text-8xl lg:text-9xl select-none
               ${isPlaying
                 ? 'font-rubik-glitch text-neon-green animate-neon-glitch'
                 : 'font-raleway font-black text-brand-green drop-shadow-[0_0_20px_rgba(0,255,150,0.3)]'
@@ -288,88 +329,49 @@ const Login: React.FC = () => {
           </p>
         </div>
 
-        {/* Login Card */}
+        {/* Auth Card */}
         <div className="w-full max-w-md bg-secondary-light dark:bg-secondary p-6 sm:p-8 rounded-lg shadow-lg relative backdrop-blur-sm bg-opacity-90 dark:bg-opacity-80">
           <h2 className="text-xl sm:text-2xl font-bold text-center text-text-main-light dark:text-text-main mb-5 sm:mb-6">
-            {isLogin ? 'Welcome Back!' : 'Create Account'}
+            {view === 'login' && 'Welcome Back!'}
+            {view === 'signup' && 'Create Account'}
+            {view === 'reset_request' && 'Reset Password'}
           </h2>
-          <button
-            type="button"
-            onClick={handleGoogleSignIn}
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-3 p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
-          >
-            <GoogleIcon className="w-5 h-5" />
-            Sign in with Google
-          </button>
-          <div className="relative my-4">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-tertiary-light dark:border-tertiary" /></div>
-            <div className="relative flex justify-center text-xs uppercase"><span className="bg-secondary-light dark:bg-secondary px-2 text-text-tertiary-light dark:text-text-tertiary">Or continue with</span></div>
-          </div>
-          <form onSubmit={handleAuth} className="flex flex-col gap-3 sm:gap-4">
-            <input type="email" placeholder={isLogin ? 'Email' : 'BITS Email'} value={email} onChange={e => setEmail(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />
-            {!isLogin && <input type="text" placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />}
-            <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />
-            {!isLogin && <input type="password" placeholder="Confirm Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />}
-            <button type="submit" disabled={loading} className="bg-brand-green text-black font-semibold rounded-md py-3 transition duration-300 ease-in-out hover:bg-brand-green-darker disabled:opacity-50">{loading ? <Spinner /> : isLogin ? 'Log In' : 'Sign Up'}</button>
-          </form>
+          
+          {view !== 'reset_request' && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleGoogleSignIn}
+                  disabled={loading}
+                  className="w-full flex items-center justify-center gap-3 p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+                >
+                  <GoogleIcon className="w-5 h-5" />
+                  Sign in with Google
+                </button>
+                <div className="relative my-4">
+                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-tertiary-light dark:border-tertiary" /></div>
+                  <div className="relative flex justify-center text-xs uppercase"><span className="bg-secondary-light dark:bg-secondary px-2 text-text-tertiary-light dark:text-text-tertiary">Or continue with</span></div>
+                </div>
+              </>
+          )}
+
+          {view === 'reset_request' ? <ResetRequestForm /> : <AuthForm />}
+          
           {error && <p className="mt-3 sm:mt-4 text-red-400 text-center text-sm">{error}</p>}
+          {message && <p className="mt-3 sm:mt-4 text-brand-green text-center text-sm">{message}</p>}
+          
           <div className="mt-5 sm:mt-6 text-center">
-            <button onClick={() => { setIsLogin(!isLogin); setError(null); }} className="text-sm text-text-tertiary-light dark:text-text-tertiary hover:text-text-main-light dark:hover:text-text-main">
-              {isLogin ? "Don't have an account? Sign Up" : 'Already on the platform? Sign In'}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Desktop: Branding on left */}
-      <div className="relative z-10 hidden lg:flex w-1/2 items-center justify-end p-8 pr-12">
-        <div className="text-left">
-          <h1
-            className={`logo-transform text-8xl select-none
-              ${isPlaying
-                ? 'font-rubik-glitch text-neon-green animate-neon-glitch'
-                : 'font-raleway font-black text-brand-green drop-shadow-[0_0_20px_rgba(0,255,150,0.3)]'
-              }`}
-          >
-            litelelo.
-          </h1>
-          <p className="text-text-tertiary-light dark:text-text-tertiary mt-3 text-lg min-h-[24px]">
-            {typedText}{typedText.length < 45 && <span className="animate-pulse">|</span>}
-          </p>
-        </div>
-      </div>
-
-      {/* Desktop: Login Card on right */}
-      <div className="relative z-10 hidden lg:flex w-1/2 flex-col items-start justify-center p-8 pl-12">
-        <div className="w-full max-w-md bg-secondary-light dark:bg-secondary p-8 rounded-lg shadow-lg relative backdrop-blur-sm bg-opacity-90 dark:bg-opacity-80">
-          <h2 className="text-2xl font-bold text-center text-text-main-light dark:text-text-main mb-6">
-            {isLogin ? 'Welcome Back!' : 'Create Account'}
-          </h2>
-          <button
-            type="button"
-            onClick={handleGoogleSignIn}
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-3 p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
-          >
-            <GoogleIcon className="w-5 h-5" />
-            Sign in with Google
-          </button>
-          <div className="relative my-4">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-tertiary-light dark:border-tertiary" /></div>
-            <div className="relative flex justify-center text-xs uppercase"><span className="bg-secondary-light dark:bg-secondary px-2 text-text-tertiary-light dark:text-text-tertiary">Or continue with</span></div>
-          </div>
-          <form onSubmit={handleAuth} className="flex flex-col gap-4">
-            <input type="email" placeholder={isLogin ? 'Email' : 'BITS Email'} value={email} onChange={e => setEmail(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />
-            {!isLogin && <input type="text" placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />}
-            <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />
-            {!isLogin && <input type="password" placeholder="Confirm Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />}
-            <button type="submit" disabled={loading} className="bg-brand-green text-black font-semibold rounded-md py-3 transition duration-300 ease-in-out hover:bg-brand-green-darker disabled:opacity-50">{loading ? <Spinner /> : isLogin ? 'Log In' : 'Sign Up'}</button>
-          </form>
-          {error && <p className="mt-4 text-red-400 text-center text-sm">{error}</p>}
-          <div className="mt-6 text-center">
-            <button onClick={() => { setIsLogin(!isLogin); setError(null); }} className="text-sm text-text-tertiary-light dark:text-text-tertiary hover:text-text-main-light dark:hover:text-text-main">
-              {isLogin ? "Don't have an account? Sign Up" : 'Already on the platform? Sign In'}
+            <button 
+                onClick={() => { 
+                    setView(view === 'login' ? 'signup' : 'login'); 
+                    setError(null);
+                    setMessage(null);
+                }} 
+                className="text-sm text-text-tertiary-light dark:text-text-tertiary hover:text-text-main-light dark:hover:text-text-main"
+            >
+              {view === 'login' && "Don't have an account? Sign Up"}
+              {view === 'signup' && 'Already on the platform? Sign In'}
+              {view === 'reset_request' && 'Back to Login'}
             </button>
           </div>
         </div>

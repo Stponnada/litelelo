@@ -41,6 +41,7 @@ import PrivacyPage from './pages/PrivacyPage';
 import EasterEggPage from './pages/EasterEggPage';
 import RideSharePage from './pages/RideSharePage';
 import BlockchainPage from './pages/BlockchainPage';
+import PasswordResetPage from './pages/PasswordResetPage'; // <-- IMPORT THE NEW PAGE
 
 const AppRoutes = () => {
   const { user, profile, isLoading } = useAuth();
@@ -66,6 +67,8 @@ const AppRoutes = () => {
     return (
       <Routes>
         <Route path="/login" element={<Login />} />
+        {/* --- ADD THIS NEW ROUTE --- */}
+        <Route path="/password-reset" element={<PasswordResetPage />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );
@@ -115,6 +118,8 @@ const AppRoutes = () => {
       {/* Routes outside the main layout */}
       <Route path="/easter-egg" element={<EasterEggPage />} />
       <Route path="/login" element={<Navigate to="/" replace />} />
+      {/* --- ADD THIS NEW ROUTE --- */}
+      <Route path="/password-reset" element={<Navigate to="/" replace />} />
       <Route path="/setup" element={<Navigate to="/" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
