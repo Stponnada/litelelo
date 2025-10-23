@@ -176,16 +176,16 @@ const CampusPage: React.FC = () => {
     return (
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 md:py-8">
             {/* Compact Hero Section */}
-            <div className="relative bg-gradient-to-br from-brand-green/20 via-blue-500/10 to-purple-500/10 dark:from-brand-green/10 dark:via-blue-500/5 dark:to-purple-500/5 p-4 md:p-16 rounded-xl md:rounded-3xl shadow-xl md:shadow-2xl border border-brand-green/20 mb-4 md:mb-16 overflow-hidden">
+            {/* <div className="relative bg-gradient-to-br from-brand-green/20 via-blue-500/10 to-purple-500/10 dark:from-brand-green/10 dark:via-blue-500/5 dark:to-purple-500/5 p-4 md:p-16 rounded-xl md:rounded-3xl shadow-xl md:shadow-2xl border border-brand-green/20 mb-4 md:mb-16 overflow-hidden">*/}
                 {/* Animated background blobs */}
                 <div className="absolute top-0 right-0 w-48 md:w-96 h-48 md:h-96 bg-brand-green/20 rounded-full blur-3xl animate-pulse"></div>
                 <div className="absolute bottom-0 left-0 w-40 md:w-80 h-40 md:h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
                 
                 <div className="relative text-center">
-                    <div className="hidden md:inline-flex items-center gap-2 mb-6 px-5 py-2.5 bg-gradient-to-r from-brand-green/30 to-brand-green/20 backdrop-blur-sm rounded-full border border-brand-green/30 shadow-lg">
+                     {/*<div className="hidden md:inline-flex items-center gap-2 mb-6 px-5 py-2.5 bg-gradient-to-r from-brand-green/30 to-brand-green/20 backdrop-blur-sm rounded-full border border-brand-green/30 shadow-lg">
                         <div className="w-2 h-2 bg-brand-green rounded-full animate-pulse"></div>
-                        <span className="text-sm font-bold text-brand-green uppercase tracking-wider">Your Campus Hub</span>
-                    </div>
+                       <span className="text-sm font-bold text-brand-green uppercase tracking-wider">Your Campus Hub</span>
+                    </div>*/}
                     
                     <h1 className="text-xl md:text-7xl font-extrabold text-text-main-light dark:text-text-main leading-tight">
                         Today at BITS{' '}
@@ -199,23 +199,12 @@ const CampusPage: React.FC = () => {
                         </span>
                     </h1>
                     
-                    <p className="hidden md:block text-lg md:text-2xl text-text-secondary-light dark:text-text-secondary max-w-3xl mx-auto font-medium leading-relaxed mt-6">
+                    <p className="hidden md:block text-lg md:text-2xl text-text-secondary-light dark:text-text-secondary max-w-2xl mx-auto font-medium leading-relaxed mt-3">
                         Your one-stop destination for campus services, reviews, and community connections
                     </p>
-                    
                     {/* Stats bar - Hidden on mobile */}
-                    <div className="hidden md:flex mt-10 flex-wrap justify-center gap-6">
-                        <div className="bg-white/50 dark:bg-black/30 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/20 dark:border-white/10">
-                            <div className="text-3xl font-bold text-brand-green">{topPlaces.length + newestListings.length + (latestLostItem ? 1 : 0) + latestNotices.length}</div>
-                            <div className="text-xs text-text-secondary-light dark:text-text-secondary font-semibold uppercase tracking-wider">Posts</div>
-                        </div>
-                        <div className="bg-white/50 dark:bg-black/30 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/20 dark:border-white/10">
-                            <div className="text-3xl font-bold text-blue-500">6</div>
-                            <div className="text-xs text-text-secondary-light dark:text-text-secondary font-semibold uppercase tracking-wider">Services</div>
-                        </div>
-                    </div>
                 </div>
-            </div>
+            {/* </div>*/}
 
             {/* Compact Services Grid */}
             <div className="mb-8 md:mb-16">
@@ -276,7 +265,7 @@ const CampusPage: React.FC = () => {
                     <div>
                         <div className="flex items-center gap-2 md:gap-3 mb-1 md:mb-2">
                             <div className="h-0.5 md:h-1 w-8 md:w-16 bg-gradient-to-r from-brand-green to-transparent rounded-full"></div>
-                            <h2 className="text-xl md:text-4xl font-extrabold text-text-main-light dark:text-text-main">What's Happening</h2>
+                            <h2 className="text-xl md:text-3xl font-extrabold text-text-main-light dark:text-text-main">What's Happening</h2>
                         </div>
                         <p className="hidden md:block text-text-secondary-light dark:text-text-secondary text-lg ml-20">
                             Latest updates from around campus
