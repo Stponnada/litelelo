@@ -261,7 +261,7 @@ export const HomePage: React.FC = () => {
                     {/* This outer div becomes the sticky container */}
                     <div className="sticky top-28">
                         {/* This inner div handles overflow and has the actual content */}
-                        <div className="space-y-3 max-h-[calc(100vh-7rem)] overflow-y-auto">
+                        <div className="space-y-3 max-h-[calc(100vh-7rem)] overflow-y-auto scrollbar-hide">
                             <ProfileCard profile={currentUserProfile} />
                             <FollowSuggestions />
                             <CommunitiesWidget />
@@ -306,7 +306,7 @@ export const HomePage: React.FC = () => {
                     {/* This outer div becomes the sticky container */}
                     <div className="sticky top-28">
                         {/* This inner div handles overflow and has the actual content */}
-                        <div className="space-y-3 max-h-[calc(100vh-7rem)] overflow-y-auto">
+                        <div className="space-y-3 max-h-[calc(100vh-7rem)] overflow-y-auto scrollbar-hide">
                             <EventsWidget events={upcomingEvents} />
                             <MarketplaceWidget listings={latestListings} />
                         </div>
