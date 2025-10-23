@@ -7,27 +7,10 @@ import { useTheme } from '../contexts/ThemeContext';
 import { SunIcon, MoonIcon } from '../components/icons';
 import Spinner from '../components/Spinner';
 
-// === Music & Pause Icons ===
-const MusicIcon: React.FC<{ className?: string }> = ({ className }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className={className}>
-    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
-  </svg>
-);
-const PauseIcon: React.FC<{ className?: string }> = ({ className }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className={className}>
-    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-  </svg>
-);
-
-// === Google Icon ===
-const GoogleIcon: React.FC<{ className?: string }> = ({ className }) => (
-  <svg className={className} viewBox="0 0 48 48">
-    <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z" />
-    <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C16.318 4 9.656 8.337 6.306 14.691z" />
-    <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A8 8 0 0 1 24 36c-5.223 0-9.655-3.657-11.303-8.59H4.89v.01A20 20 0 0 0 24 44z" />
-    <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C44.434 36.316 48 30.659 48 24c0-1.341-.138-2.65-.389-3.917z" />
-  </svg>
-);
+// === Icon Components (Kept for brevity) ===
+const MusicIcon: React.FC<{ className?: string }> = ({ className }) => ( <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className={className}><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" /></svg> );
+const PauseIcon: React.FC<{ className?: string }> = ({ className }) => ( <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className={className}><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" /></svg> );
+const GoogleIcon: React.FC<{ className?: string }> = ({ className }) => ( <svg className={className} viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z" /><path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C16.318 4 9.656 8.337 6.306 14.691z" /><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A8 8 0 0 1 24 36c-5.223 0-9.655-3.657-11.303-8.59H4.89v.01A20 20 0 0 0 24 44z" /><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C44.434 36.316 48 30.659 48 24c0-1.341-.138-2.65-.389-3.917z" /></svg> );
 
 const BITS_DOMAINS = [
   'hyderabad.bits-pilani.ac.in',
@@ -38,6 +21,58 @@ const BITS_DOMAINS = [
 
 type AuthView = 'signup' | 'login' | 'reset_request';
 
+// --- THIS IS THE FIX: Part 1 ---
+// Define the form components OUTSIDE of the main Login component.
+// This prevents them from being re-created on every state change.
+
+interface AuthFormProps {
+  view: 'login' | 'signup';
+  handleAuth: (e: React.FormEvent) => Promise<void>;
+  email: string; setEmail: (v: string) => void;
+  username: string; setUsername: (v: string) => void;
+  password: string; setPassword: (v: string) => void;
+  confirmPassword: string; setConfirmPassword: (v: string) => void;
+  loading: boolean;
+  setView: (v: AuthView) => void;
+  setError: (v: string | null) => void;
+  setMessage: (v: string | null) => void;
+}
+
+const AuthForm: React.FC<AuthFormProps> = ({
+  view, handleAuth, email, setEmail, username, setUsername, password, setPassword,
+  confirmPassword, setConfirmPassword, loading, setView, setError, setMessage
+}) => (
+  <form onSubmit={handleAuth} className="flex flex-col gap-3 sm:gap-4">
+    {view === 'signup' && <input type="text" placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />}
+    <input type="email" placeholder={view === 'signup' ? 'BITS Email' : 'Email'} value={email} onChange={e => setEmail(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />
+    <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />
+    {view === 'signup' && <input type="password" placeholder="Confirm Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />}
+    {view === 'login' && (
+      <button type="button" onClick={() => { setView('reset_request'); setError(null); setMessage(null); }} className="text-xs text-right text-text-tertiary-light dark:text-text-tertiary hover:text-brand-green">
+          Forgot Password?
+      </button>
+    )}
+    <button type="submit" disabled={loading} className="bg-brand-green text-black font-semibold rounded-md py-3 transition duration-300 ease-in-out hover:bg-brand-green-darker disabled:opacity-50">{loading ? <Spinner /> : view === 'login' ? 'Log In' : 'Sign Up'}</button>
+  </form>
+);
+
+interface ResetFormProps {
+  handlePasswordResetRequest: (e: React.FormEvent) => Promise<void>;
+  email: string;
+  setEmail: (v: string) => void;
+  loading: boolean;
+}
+
+const ResetRequestForm: React.FC<ResetFormProps> = ({ handlePasswordResetRequest, email, setEmail, loading }) => (
+  <form onSubmit={handlePasswordResetRequest} className="flex flex-col gap-4">
+      <p className="text-sm text-center text-text-secondary-light dark:text-text-secondary">Enter your email to receive a password reset link.</p>
+      <input type="email" placeholder="BITS Email" value={email} onChange={e => setEmail(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />
+      <button type="submit" disabled={loading} className="bg-brand-green text-black font-semibold rounded-md py-3 transition duration-300 ease-in-out hover:bg-brand-green-darker disabled:opacity-50">{loading ? <Spinner /> : 'Send Reset Link'}</button>
+  </form>
+);
+// --- END OF FIX: Part 1 ---
+
+
 const Login: React.FC = () => {
   const [view, setView] = useState<AuthView>('signup');
   const [email, setEmail] = useState('');
@@ -46,13 +81,12 @@ const Login: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null); // For success/info messages
+  const [message, setMessage] = useState<string | null>(null); 
   const [typedText, setTypedText] = useState('');
   const navigate = useNavigate();
   const { session, isLoading: authLoading } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
-  // === Music state ===
   const [isPlaying, setIsPlaying] = useState(false);
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -64,7 +98,6 @@ const Login: React.FC = () => {
     if (session) navigate('/');
   }, [session, navigate]);
 
-  // Typewriter effect
   useEffect(() => {
     const fullText = 'The exclusive social network for BITSians.';
     let index = 0;
@@ -78,25 +111,17 @@ const Login: React.FC = () => {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     setError(null);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-    });
-
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-    }
+    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+    if (error) { setError(error.message); setLoading(false); }
   };
 
   const validateEmail = (email: string) => BITS_DOMAINS.includes(email.split('@')[1]);
 
-  // Setup audio
   useEffect(() => {
     const newAudio = new Audio('/login_music.mp3');
     newAudio.loop = true;
     newAudio.volume = 0.2;
     setAudio(newAudio);
-
     const ctx = new AudioContext();
     const analyserNode = ctx.createAnalyser();
     const source = ctx.createMediaElementSource(newAudio);
@@ -105,22 +130,15 @@ const Login: React.FC = () => {
     analyserNode.fftSize = 128;
     const bufferLength = analyserNode.frequencyBinCount;
     const dataArr = new Uint8Array(bufferLength);
-
     setAudioCtx(ctx);
     setAnalyser(analyserNode);
     setDataArray(dataArr);
-
-    return () => {
-      newAudio.pause();
-      newAudio.src = '';
-    };
+    return () => { newAudio.pause(); newAudio.src = ''; };
   }, []);
   
-  // High-DPI Canvas setup
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     const setupCanvas = () => {
       const dpr = window.devicePixelRatio || 1;
       const rect = canvas.getBoundingClientRect();
@@ -129,63 +147,45 @@ const Login: React.FC = () => {
       const ctx = canvas.getContext('2d');
       ctx?.scale(dpr, dpr);
     };
-
     setupCanvas();
     window.addEventListener('resize', setupCanvas);
     return () => window.removeEventListener('resize', setupCanvas);
   }, []);
 
-  // === Draw gonio circular visual ===
   const drawGonio = () => {
     if (!canvasRef.current || !analyser || !dataArray) return;
     const canvas = canvasRef.current;
     const { width, height } = canvas.getBoundingClientRect();
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    
     ctx.clearRect(0, 0, width, height);
     ctx.save();
-
     const centerX = width / 1.75;
-    const centerY = height * 1.75; // Center the arc's origin well below the screen
-    const radius = height * 1.55;    // Use a large radius based on screen height
-    
+    const centerY = height * 1.75;
+    const radius = height * 1.55;
     analyser.getByteFrequencyData(dataArray);
-    
     const bufferLength = analyser.frequencyBinCount;
-    // Spread the visualizer across a wide, flat arc (approx 120 degrees)
-    const totalArc = Math.PI * 0.76; 
-    // Start angle is offset to center this arc at the top of its circle
+    const totalArc = Math.PI * 0.76;
     const startAngle = -Math.PI / 2 - totalArc / 2 + 0.52;
-
     dataArray.forEach((val, i) => {
         const angle = startAngle + (i / bufferLength) * totalArc;
-        const length = (val / 255) * (height * 0.4); // Max length is 40% of screen height
-
+        const length = (val / 255) * (height * 0.4);
         const startX = centerX + radius * Math.cos(angle);
         const startY = centerY + radius * Math.sin(angle);
         const endX = centerX + (radius + length) * Math.cos(angle);
         const endY = centerY + (radius + length) * Math.sin(angle);
-        
         ctx.beginPath();
         ctx.moveTo(startX, startY);
         ctx.lineTo(endX, endY);
-        
         ctx.strokeStyle = `rgba(60, 251, 162, ${Math.max(0.2, val / 255)})`;
-        ctx.lineWidth = 3; // Make lines a bit thicker to match reference
+        ctx.lineWidth = 3;
         ctx.stroke();
     });
-
     ctx.restore();
     requestAnimationFrame(drawGonio);
   };
 
-  // Start visual
-  useEffect(() => {
-    if (isPlaying) {
-        requestAnimationFrame(drawGonio);
-    }
-  }, [isPlaying, analyser, dataArray]);
+  useEffect(() => { if (isPlaying) requestAnimationFrame(drawGonio); }, [isPlaying, analyser, dataArray]);
 
   const fadeInAudio = (targetVol = 0.2) => {
     if (!audio) return;
@@ -199,10 +199,7 @@ const Login: React.FC = () => {
   };
 
   const fadeOutAudio = (callback?: () => void) => {
-    if (!audio || !isPlaying) {
-      callback?.();
-      return;
-    }
+    if (!audio || !isPlaying) { callback?.(); return; }
     const interval = setInterval(() => {
       if (!audio) return clearInterval(interval);
       if (audio.volume > 0.02) audio.volume -= 0.02;
@@ -218,11 +215,7 @@ const Login: React.FC = () => {
 
   const toggleMusic = () => {
     if (!audio || !audioCtx) return;
-
-    if (audioCtx.state === 'suspended') {
-      audioCtx.resume();
-    }
-
+    if (audioCtx.state === 'suspended') audioCtx.resume();
     if (isPlaying) fadeOutAudio();
     else { fadeInAudio(); setIsPlaying(true); }
   };
@@ -274,101 +267,44 @@ const Login: React.FC = () => {
 
   if (authLoading || session) return <div className="flex items-center justify-center h-screen bg-primary-light dark:bg-primary"><Spinner /></div>;
 
-  const AuthForm = () => (
-    <form onSubmit={handleAuth} className="flex flex-col gap-3 sm:gap-4">
-      {view === 'signup' && <input type="text" placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />}
-      <input type="email" placeholder={view === 'signup' ? 'BITS Email' : 'Email'} value={email} onChange={e => setEmail(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />
-      <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />
-      {view === 'signup' && <input type="password" placeholder="Confirm Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />}
-      {view === 'login' && (
-        <button type="button" onClick={() => { setView('reset_request'); setError(null); setMessage(null); }} className="text-xs text-right text-text-tertiary-light dark:text-text-tertiary hover:text-brand-green">
-            Forgot Password?
-        </button>
-      )}
-      <button type="submit" disabled={loading} className="bg-brand-green text-black font-semibold rounded-md py-3 transition duration-300 ease-in-out hover:bg-brand-green-darker disabled:opacity-50">{loading ? <Spinner /> : view === 'login' ? 'Log In' : 'Sign Up'}</button>
-    </form>
-  );
-
-  const ResetRequestForm = () => (
-    <form onSubmit={handlePasswordResetRequest} className="flex flex-col gap-4">
-        <p className="text-sm text-center text-text-secondary-light dark:text-text-secondary">Enter your email to receive a password reset link.</p>
-        <input type="email" placeholder="BITS Email" value={email} onChange={e => setEmail(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />
-        <button type="submit" disabled={loading} className="bg-brand-green text-black font-semibold rounded-md py-3 transition duration-300 ease-in-out hover:bg-brand-green-darker disabled:opacity-50">{loading ? <Spinner /> : 'Send Reset Link'}</button>
-    </form>
-  );
-
   return (
     <div className="relative flex flex-col lg:flex-row items-center justify-center min-h-screen bg-primary-light dark:bg-primary overflow-hidden">
-      {/* Background waves */}
       <div className={`absolute inset-0 z-0 transition-all duration-[3s] ${isPlaying ? 'opacity-0' : 'opacity-50'}`}>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_25%,rgba(0,255,100,0.7)_0%,transparent_70%),radial-gradient(circle_at_85%_75%,rgba(0,255,150,0.15)_0%,transparent_70%)]"></div>
         <div className="absolute inset-0 bg-[linear-gradient(130deg,transparent_0%,rgba(0,255,100,0.17)_10%,transparent_20%,rgba(0,255,150,0.22)_30%,transparent_40%,rgba(0,255,100,0.25)_50%,transparent_60%)] bg-[length:400%_400%] animate-[circuitFlowSmooth_18s_ease-in-out_infinite]"></div>
       </div>
-
-      {/* Wire/Gonio canvas */}
-      <canvas
-        ref={canvasRef}
-        className={`absolute inset-0 w-full h-full z-0 pointer-events-none transition-opacity duration-2000 ${isPlaying ? 'opacity-100' : 'opacity-0'}`}
-      />
-
-      {/* Combined container for mobile */}
-      <div className="relative z-10 w-full lg:w-auto flex flex-col lg:flex-row items-center justify-center lg:gap-24 px-4 py-8">
-        {/* Branding */}
-        <div className="text-center lg:text-left mb-8 lg:mb-0">
-          <h1
-            className={`logo-transform text-7xl sm:text-8xl lg:text-9xl select-none
-              ${isPlaying
-                ? 'font-rubik-glitch text-neon-green animate-neon-glitch'
-                : 'font-raleway font-black text-brand-green drop-shadow-[0_0_20px_rgba(0,255,150,0.3)]'
-              }`}
-          >
+      <canvas ref={canvasRef} className={`absolute inset-0 w-full h-full z-0 pointer-events-none transition-opacity duration-2000 ${isPlaying ? 'opacity-100' : 'opacity-0'}`}/>
+      <div className="relative z-10 w-full lg:w-1/2 flex flex-col items-center justify-center gap-8 px-4 py-8 lg:hidden">
+        <div className="text-center">
+          <h1 className={`logo-transform text-7xl sm:text-8xl select-none ${isPlaying ? 'font-rubik-glitch text-neon-green animate-neon-glitch' : 'font-raleway font-black text-brand-green drop-shadow-[0_0_20px_rgba(0,255,150,0.3)]'}`}>
             litelelo.
           </h1>
           <p className="text-text-tertiary-light dark:text-text-tertiary mt-3 text-base sm:text-lg min-h-[24px]">
             {typedText}{typedText.length < 45 && <span className="animate-pulse">|</span>}
           </p>
         </div>
-
-        {/* Auth Card */}
         <div className="w-full max-w-md bg-secondary-light dark:bg-secondary p-6 sm:p-8 rounded-lg shadow-lg relative backdrop-blur-sm bg-opacity-90 dark:bg-opacity-80">
           <h2 className="text-xl sm:text-2xl font-bold text-center text-text-main-light dark:text-text-main mb-5 sm:mb-6">
             {view === 'login' && 'Welcome Back!'}
             {view === 'signup' && 'Create Account'}
             {view === 'reset_request' && 'Reset Password'}
           </h2>
-          
           {view !== 'reset_request' && (
-              <>
-                <button
-                  type="button"
-                  onClick={handleGoogleSignIn}
-                  disabled={loading}
-                  className="w-full flex items-center justify-center gap-3 p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
-                >
-                  <GoogleIcon className="w-5 h-5" />
-                  Sign in with Google
-                </button>
-                <div className="relative my-4">
-                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-tertiary-light dark:border-tertiary" /></div>
-                  <div className="relative flex justify-center text-xs uppercase"><span className="bg-secondary-light dark:bg-secondary px-2 text-text-tertiary-light dark:text-text-tertiary">Or continue with</span></div>
-                </div>
-              </>
+            <>
+              <button type="button" onClick={handleGoogleSignIn} disabled={loading} className="w-full flex items-center justify-center gap-3 p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50">
+                <GoogleIcon className="w-5 h-5" /> Sign in with Google
+              </button>
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-tertiary-light dark:border-tertiary" /></div>
+                <div className="relative flex justify-center text-xs uppercase"><span className="bg-secondary-light dark:bg-secondary px-2 text-text-tertiary-light dark:text-text-tertiary">Or continue with</span></div>
+              </div>
+            </>
           )}
-
-          {view === 'reset_request' ? <ResetRequestForm /> : <AuthForm />}
-          
+          {view === 'reset_request' ? <ResetRequestForm handlePasswordResetRequest={handlePasswordResetRequest} email={email} setEmail={setEmail} loading={loading} /> : <AuthForm view={view} handleAuth={handleAuth} email={email} setEmail={setEmail} username={username} setUsername={setUsername} password={password} setPassword={setPassword} confirmPassword={confirmPassword} setConfirmPassword={setConfirmPassword} loading={loading} setView={setView} setError={setError} setMessage={setMessage} />}
           {error && <p className="mt-3 sm:mt-4 text-red-400 text-center text-sm">{error}</p>}
           {message && <p className="mt-3 sm:mt-4 text-brand-green text-center text-sm">{message}</p>}
-          
           <div className="mt-5 sm:mt-6 text-center">
-            <button 
-                onClick={() => { 
-                    setView(view === 'login' ? 'signup' : 'login'); 
-                    setError(null);
-                    setMessage(null);
-                }} 
-                className="text-sm text-text-tertiary-light dark:text-text-tertiary hover:text-text-main-light dark:hover:text-text-main"
-            >
+            <button onClick={() => { setView(view === 'login' ? 'signup' : 'login'); setError(null); setMessage(null); }} className="text-sm text-text-tertiary-light dark:text-text-tertiary hover:text-text-main-light dark:hover:text-text-main">
               {view === 'login' && "Don't have an account? Sign Up"}
               {view === 'signup' && 'Already on the platform? Sign In'}
               {view === 'reset_request' && 'Back to Login'}
@@ -376,25 +312,51 @@ const Login: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Action Buttons */}
+      <div className="relative z-10 hidden lg:flex w-1/2 items-center justify-end p-8 pr-12">
+        <div className="text-left">
+          <h1 className={`logo-transform text-8xl select-none ${isPlaying ? 'font-rubik-glitch text-neon-green animate-neon-glitch' : 'font-raleway font-black text-brand-green drop-shadow-[0_0_20px_rgba(0,255,150,0.3)]'}`}>
+            litelelo.
+          </h1>
+          <p className="text-text-tertiary-light dark:text-text-tertiary mt-3 text-lg min-h-[24px]">
+            {typedText}{typedText.length < 45 && <span className="animate-pulse">|</span>}
+          </p>
+        </div>
+      </div>
+      <div className="relative z-10 hidden lg:flex w-1/2 flex-col items-start justify-center p-8 pl-12">
+        <div className="w-full max-w-md bg-secondary-light dark:bg-secondary p-8 rounded-lg shadow-lg relative backdrop-blur-sm bg-opacity-90 dark:bg-opacity-80">
+          <h2 className="text-2xl font-bold text-center text-text-main-light dark:text-text-main mb-6">
+            {view === 'login' && 'Welcome Back!'}
+            {view === 'signup' && 'Create Account'}
+            {view === 'reset_request' && 'Reset Password'}
+          </h2>
+          {view !== 'reset_request' && (
+            <>
+              <button type="button" onClick={handleGoogleSignIn} disabled={loading} className="w-full flex items-center justify-center gap-3 p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50">
+                <GoogleIcon className="w-5 h-5" /> Sign in with Google
+              </button>
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-tertiary-light dark:border-tertiary" /></div>
+                <div className="relative flex justify-center text-xs uppercase"><span className="bg-secondary-light dark:bg-secondary px-2 text-text-tertiary-light dark:text-text-tertiary">Or continue with</span></div>
+              </div>
+            </>
+          )}
+          {view === 'reset_request' ? <ResetRequestForm handlePasswordResetRequest={handlePasswordResetRequest} email={email} setEmail={setEmail} loading={loading} /> : <AuthForm view={view} handleAuth={handleAuth} email={email} setEmail={setEmail} username={username} setUsername={setUsername} password={password} setPassword={setPassword} confirmPassword={confirmPassword} setConfirmPassword={setConfirmPassword} loading={loading} setView={setView} setError={setError} setMessage={setMessage} />}
+          {error && <p className="mt-4 text-red-400 text-center text-sm">{error}</p>}
+          {message && <p className="mt-4 text-brand-green text-center text-sm">{message}</p>}
+          <div className="mt-6 text-center">
+            <button onClick={() => { setView(view === 'login' ? 'signup' : 'login'); setError(null); setMessage(null); }} className="text-sm text-text-tertiary-light dark:text-text-tertiary hover:text-text-main-light dark:hover:text-text-main">
+              {view === 'login' && "Don't have an account? Sign Up"}
+              {view === 'signup' && 'Already on the platform? Sign In'}
+              {view === 'reset_request' && 'Back to Login'}
+            </button>
+          </div>
+        </div>
+      </div>
       <div className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 flex items-center gap-3 sm:gap-4 z-20">
-        <button 
-          onClick={toggleMusic} 
-          title={isPlaying ? 'Pause Music' : 'Play Music'} 
-          className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 ${
-            isPlaying 
-              ? 'bg-brand-green/20 border border-brand-green/30 text-brand-green' 
-              : 'bg-secondary-light dark:bg-secondary border border-tertiary-light dark:border-tertiary text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary'
-          }`}
-        >
+        <button onClick={toggleMusic} title={isPlaying ? 'Pause Music' : 'Play Music'} className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 ${isPlaying ? 'bg-brand-green/20 border border-brand-green/30 text-brand-green' : 'bg-secondary-light dark:bg-secondary border border-tertiary-light dark:border-tertiary text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary'}`}>
             {isPlaying ? <PauseIcon className="w-5 h-5 sm:w-6 sm:h-6" /> : <MusicIcon className="w-5 h-5 sm:w-6 sm:h-6" />}
         </button>
-        <button 
-          onClick={toggleTheme} 
-          title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`} 
-          className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-secondary-light dark:bg-secondary border border-tertiary-light dark:border-tertiary shadow-lg flex items-center justify-center text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors"
-        >
+        <button onClick={toggleTheme} title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`} className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-secondary-light dark:bg-secondary border border-tertiary-light dark:border-tertiary shadow-lg flex items-center justify-center text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors">
           {theme === 'light' ? <MoonIcon className="w-5 h-5 sm:w-6 sm:h-6" /> : <SunIcon className="w-5 h-5 sm:w-6 sm:h-6" />}
         </button>
       </div>
