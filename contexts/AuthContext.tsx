@@ -10,7 +10,7 @@ interface AuthContextType {
   user: User | null;
   profile: Profile | null;
   isLoading: boolean;
-  updateProfileContext: (newProfile: Profile | null) => void; // <-- ADD THIS LINE
+  updateProfileContext: (newProfile: Profile | null) => void;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,12 +21,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // --- NEW FUNCTION ---
-  // This allows other components to update the profile in the context.
   const updateProfileContext = (newProfile: Profile | null) => {
     setProfile(newProfile);
   };
-  // --------------------
 
   useEffect(() => {
     // Check for an active session on initial load
@@ -41,10 +38,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           .single()
           .then(({ data }) => {
             setProfile(data as Profile | null);
-            setIsLoading(false);
+            setIsLoading(false); // <--- Finish initial load
           });
       } else {
-        setIsLoading(false);
+        setIsLoading(false); // <--- Finish initial load if no user
       }
     });
 
@@ -54,7 +51,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          setIsLoading(true);
+          // --- THIS IS THE FIX ---
+          // DO NOT set loading to true here. This is a background update.
           supabase
             .from('profiles')
             .select('*')
@@ -62,7 +60,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             .single()
             .then(({ data }) => {
               setProfile(data as Profile | null);
-              setIsLoading(false);
+              // Do not touch isLoading here.
             });
         } else {
           setProfile(null);
@@ -80,7 +78,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     user, 
     profile, 
     isLoading, 
-    updateProfileContext // <-- EXPOSE THE FUNCTION
+    updateProfileContext
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

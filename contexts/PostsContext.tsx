@@ -23,7 +23,8 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [error, setError] = useState<string | null>(null);
 
   const fetchPosts = useCallback(async () => {
-    if (!user) {
+    // --- THIS IS THE FIX: The hook now depends on the stable user ID ---
+    if (!user?.id) {
       setPosts([]);
       setLoading(false);
       return;
@@ -58,7 +59,7 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user?.id]); // --- THE FIX IS HERE ---
 
   useEffect(() => {
     fetchPosts();

@@ -24,7 +24,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [latestMessage, setLatestMessage] = useState<Message | null>(null);
 
   const fetchConversations = useCallback(async () => {
-    if (!user) {
+    // --- THIS IS THE FIX: The hook now depends on the stable user ID ---
+    if (!user?.id) {
       setLoading(false);
       return;
     }
@@ -113,7 +114,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user?.id]); // --- THE FIX IS HERE ---
 
   useEffect(() => { if (user) fetchConversations() }, [user, fetchConversations]);
 
@@ -122,7 +123,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // --- THE FIX: Use a unique, abstract channel name ---
     const channel = supabase
-      .channel('global-chat-feed')
+      .channel('chat-feed-channel')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, 
         (payload) => {
           const newMessage = payload.new as Message;

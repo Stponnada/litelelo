@@ -258,11 +258,15 @@ export const HomePage: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* --- LEFT SIDEBAR (Desktop Only) --- */}
                 <aside className="hidden lg:block lg:col-span-3">
-                    <div className="sticky top-28 space-y-3">
-                        <ProfileCard profile={currentUserProfile} />
-                        <FollowSuggestions />
-                        <CommunitiesWidget />
-                        {hasDiscoveredBlockchain && <CryptoHubWidget profile={currentUserProfile} />}
+                    {/* This outer div becomes the sticky container */}
+                    <div className="sticky top-28">
+                        {/* This inner div handles overflow and has the actual content */}
+                        <div className="space-y-3 max-h-[calc(100vh-7rem)] overflow-y-auto">
+                            <ProfileCard profile={currentUserProfile} />
+                            <FollowSuggestions />
+                            <CommunitiesWidget />
+                            {hasDiscoveredBlockchain && <CryptoHubWidget profile={currentUserProfile} />}
+                        </div>
                     </div>
                 </aside>
 
@@ -299,9 +303,13 @@ export const HomePage: React.FC = () => {
                 
                 {/* --- RIGHT SIDEBAR (Desktop Only) --- */}
                 <aside className="hidden lg:block lg:col-span-3">
-                    <div className="sticky top-28 space-y-3">
-                        <EventsWidget events={upcomingEvents} />
-                        <MarketplaceWidget listings={latestListings} />
+                    {/* This outer div becomes the sticky container */}
+                    <div className="sticky top-28">
+                        {/* This inner div handles overflow and has the actual content */}
+                        <div className="space-y-3 max-h-[calc(100vh-7rem)] overflow-y-auto">
+                            <EventsWidget events={upcomingEvents} />
+                            <MarketplaceWidget listings={latestListings} />
+                        </div>
                     </div>
                 </aside>
             </div>

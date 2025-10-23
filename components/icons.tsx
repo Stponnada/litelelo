@@ -629,3 +629,4 @@ export const CampusPlacesIcon: React.FC<{ className?: string }> = ({ className }
     </g>
   </svg>
 );
+

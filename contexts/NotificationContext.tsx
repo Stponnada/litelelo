@@ -20,7 +20,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const [loading, setLoading] = useState(true);
 
     const fetchNotifications = useCallback(async () => {
-        if (!user) return;
+        // --- THIS IS THE FIX: The hook now depends on the stable user ID ---
+        if (!user?.id) return;
         setLoading(true);
         try {
             const { data, error } = await supabase.rpc('get_my_notifications');
@@ -31,7 +32,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         } finally {
             setLoading(false);
         }
-    }, [user]);
+    }, [user?.id]); // --- THE FIX IS HERE ---
 
     useEffect(() => {
         fetchNotifications();
@@ -42,7 +43,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
                 // --- THE FIX: Use a unique, abstract channel name ---
                 const channel = supabase
-                .channel('global-notifications')
+                .channel('notifications-channel')
                 .on(
                     'postgres_changes',
                     {

@@ -136,11 +136,17 @@ img::selection, img::-moz-selection {
 }
 /* --- END OF CHANGES --- */
 
-/* Smooth Morph Transition */
-.logo-transform {
-  transition: 
-    font-family 0.8s ease-in-out,
-    color 0.6s ease,
-    text-shadow 0.6s ease,
-    transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+/* --- NEW SPINNER ANIMATION --- */
+@keyframes swing {
+  0% {
+    transform: rotate(-15deg);
+  }
+  100% {
+    transform: rotate(15deg);
+  }
+}
+
+.animate-swing {
+  animation: swing 1.5s ease-in-out infinite alternate;
+  transform-origin: center 40%;
 }

@@ -313,38 +313,38 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => 
                 </div>
 
                 {!isEditing && !post.is_deleted && (
-                    <div className="flex items-center justify-between mt-3 text-text-tertiary-light dark:text-text-tertiary">
-                        <div className="flex items-center space-x-5">
-                            <div className="flex items-center space-x-1 group" onClick={(e) => { e.stopPropagation(); handleVote('like'); }}>
-                                <button className="p-1.5 rounded-full group-hover:bg-red-500/10 transition-colors">
-                                    {post.user_vote === 'like' ? <HeartSolid className="w-5 h-5 text-red-500" /> : <HeartOutline className="w-5 h-5 group-hover:text-red-500" />}
-                                </button>
-                                <span className={`text-sm group-hover:text-red-500 ${post.user_vote === 'like' ? 'text-red-500 font-semibold' : ''}`}>{post.like_count}</span>
+                    <div className="flex items-center justify-around mt-3 text-text-tertiary-light dark:text-text-tertiary">
+                        <Link to={`/post/${post.id}`} onClick={(e) => e.stopPropagation()} className="flex items-center space-x-1 group">
+                            <div className="p-1.5 rounded-full group-hover:bg-blue-500/10 transition-colors">
+                                <ChatBubbleOvalLeftEllipsisIcon className="w-5 h-5 group-hover:text-blue-500" />
                             </div>
-                            <Link to={`/post/${post.id}`} onClick={(e) => e.stopPropagation()} className="flex items-center space-x-1 group">
-                                <div className="p-1.5 rounded-full group-hover:bg-blue-500/10 transition-colors">
-                                    <ChatBubbleOvalLeftEllipsisIcon className="w-5 h-5 group-hover:text-blue-500" />
-                                </div>
-                                <span className="text-sm group-hover:text-blue-500">{post.comment_count}</span>
-                            </Link>
-                            
-                            <div className="flex items-center space-x-1 group" onClick={(e) => { e.stopPropagation(); handleRepostToggle(); }}>
-                                <button className="p-1.5 rounded-full group-hover:bg-green-500/10 transition-colors">
-                                    <ArrowPathRoundedSquareIcon className={`w-5 h-5 group-hover:text-green-500 ${post.user_has_reposted ? 'text-green-500' : ''}`} />
-                                </button>
-                                <span className={`text-sm group-hover:text-green-500 ${post.user_has_reposted ? 'text-green-500 font-semibold' : ''}`}>{post.repost_count}</span>
-                            </div>
-                            
-                            <button 
-                                className="p-1.5 rounded-full hover:bg-blue-500/10 transition-colors group" 
-                                onClick={(e) => { e.stopPropagation(); setQuoteModalOpen(true); }}
-                                title="Quote Post"
-                            >
-                                <svg className="w-5 h-5 group-hover:text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
-                                </svg>
+                            <span className="text-sm group-hover:text-blue-500">{post.comment_count}</span>
+                        </Link>
+                        
+                        <div className="flex items-center space-x-1 group" onClick={(e) => { e.stopPropagation(); handleRepostToggle(); }}>
+                            <button className="p-1.5 rounded-full group-hover:bg-green-500/10 transition-colors">
+                                <ArrowPathRoundedSquareIcon className={`w-5 h-5 group-hover:text-green-500 ${post.user_has_reposted ? 'text-green-500' : ''}`} />
                             </button>
+                            <span className={`text-sm group-hover:text-green-500 ${post.user_has_reposted ? 'text-green-500 font-semibold' : ''}`}>{post.repost_count}</span>
                         </div>
+                        
+                        <div className="flex items-center space-x-1 group" onClick={(e) => { e.stopPropagation(); handleVote('like'); }}>
+                            <button className="p-1.5 rounded-full group-hover:bg-red-500/10 transition-colors">
+                                {post.user_vote === 'like' ? <HeartSolid className="w-5 h-5 text-red-500" /> : <HeartOutline className="w-5 h-5 group-hover:text-red-500" />}
+                            </button>
+                            <span className={`text-sm group-hover:text-red-500 ${post.user_vote === 'like' ? 'text-red-500 font-semibold' : ''}`}>{post.like_count}</span>
+                        </div>
+                        
+                        <button 
+                            className="p-1.5 rounded-full hover:bg-blue-500/10 transition-colors group" 
+                            onClick={(e) => { e.stopPropagation(); setQuoteModalOpen(true); }}
+                            title="Quote Post"
+                        >
+                            <svg className="w-5 h-5 group-hover:text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
+                            </svg>
+                        </button>
+                        
                         <button className="p-1.5 rounded-full hover:bg-brand-green/10 transition-colors group" onClick={(e) => { e.stopPropagation(); handleBookmarkToggle(); }}>
                             {post.is_bookmarked ? <BookmarkSolid className="w-5 h-5 text-brand-green" /> : <BookmarkIcon className="w-5 h-5 group-hover:text-brand-green" />}
                         </button>

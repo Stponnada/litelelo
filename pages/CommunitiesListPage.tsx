@@ -101,6 +101,7 @@ const CommunitiesListPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [isCreateModalOpen, setCreateModalOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState<'discover' | 'my'>('discover');
 
     useEffect(() => {
         if (!profile?.campus) return;
@@ -149,11 +150,20 @@ const CommunitiesListPage: React.FC = () => {
     const handleCommunityCreated = (newCommunity: CommunityListItem) => {
         setCommunities(prev => [newCommunity, ...prev]);
         setCreateModalOpen(false);
+        setActiveTab('my');
     }
     
     const filteredCommunities = useMemo(() => {
-        return communities.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
-    }, [communities, searchTerm]);
+        const listToFilter = activeTab === 'my'
+            ? communities.filter(c => c.is_member)
+            : communities.filter(c => !c.is_member);
+        
+        if (!searchTerm.trim()) {
+            return listToFilter;
+        }
+
+        return listToFilter.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    }, [communities, searchTerm, activeTab]);
 
     if (loading) {
         return (
@@ -263,6 +273,33 @@ const CommunitiesListPage: React.FC = () => {
                     </div>
                 </div>
 
+                {/* --- THIS IS THE NEW PART --- */}
+                <div className="flex justify-center mb-8 sm:mb-12">
+                    <div className="inline-flex bg-secondary-light dark:bg-secondary rounded-xl p-1.5 border border-tertiary-light/50 dark:border-tertiary/50">
+                        <button
+                            onClick={() => setActiveTab('discover')}
+                            className={`px-6 py-2 rounded-lg font-semibold text-sm transition-all duration-200 ${
+                                activeTab === 'discover'
+                                    ? 'bg-brand-green text-black shadow-md'
+                                    : 'text-text-secondary-light dark:text-text-secondary hover:text-text-main-light dark:hover:text-text-main'
+                            }`}
+                        >
+                            Discover
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('my')}
+                            className={`px-6 py-2 rounded-lg font-semibold text-sm transition-all duration-200 ${
+                                activeTab === 'my'
+                                    ? 'bg-brand-green text-black shadow-md'
+                                    : 'text-text-secondary-light dark:text-text-secondary hover:text-text-main-light dark:hover:text-text-main'
+                            }`}
+                        >
+                            My Communities
+                        </button>
+                    </div>
+                </div>
+                {/* --- END OF NEW PART --- */}
+
                 {/* Communities Grid */}
                 {filteredCommunities.length > 0 ? (
                     <>
@@ -293,7 +330,9 @@ const CommunitiesListPage: React.FC = () => {
                             </div>
                         </div>
                         <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-text-main-light dark:text-text-main mb-3 sm:mb-4">
-                            {searchTerm ? 'No communities found' : 'No communities yet'}
+                            {searchTerm 
+                                ? 'No communities found' 
+                                : (activeTab === 'my' ? "You haven't joined any communities" : "No other communities to join")}
                         </h2>
                         <p className="text-base sm:text-lg text-text-secondary-light dark:text-text-secondary max-w-md mx-auto mb-6 sm:mb-8">
                             {searchTerm ? (
@@ -302,7 +341,7 @@ const CommunitiesListPage: React.FC = () => {
                                     <span className="font-semibold text-text-main-light dark:text-text-main">"{searchTerm}"</span>
                                 </>
                             ) : (
-                                'Be the first to create a community on your campus!'
+                                activeTab === 'my' ? "Explore the 'Discover' tab to find your people!" : 'Why not be the first to create one?'
                             )}
                         </p>
                         {searchTerm ? (
@@ -312,12 +351,12 @@ const CommunitiesListPage: React.FC = () => {
                             >
                                 Clear search
                             </button>
-                        ) : (
+                        ) : activeTab === 'discover' && (
                             <button
                                 onClick={() => setCreateModalOpen(true)}
                                 className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-brand-green hover:bg-brand-green/90 text-black font-bold rounded-xl sm:rounded-2xl transition-all shadow-2xl shadow-brand-green/25 hover:shadow-brand-green/40 hover:scale-105"
                             >
-                                Create First Community
+                                Create a Community
                             </button>
                         )}
                     </div>
