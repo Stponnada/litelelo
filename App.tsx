@@ -67,7 +67,6 @@ const AppRoutes = () => {
     return (
       <Routes>
         <Route path="/login" element={<Login />} />
-        {/* --- ADD THIS NEW ROUTE --- */}
         <Route path="/password-reset" element={<PasswordResetPage />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
@@ -95,7 +94,7 @@ const AppRoutes = () => {
         <Route path="/campus" element={<CampusPage />} />
         <Route path="/campus/reviews" element={<CampusDirectoryPage />} />
         <Route path="/campus/reviews/:placeId" element={<PlaceDetailPage />} />
-        <Route path="/campus/noticeboard" element={<NoticeboardPage />} /> {/* <-- Add this route */}
+        <Route path="/campus/noticeboard" element={<NoticeboardPage />} />
         <Route path="/campus/lost-and-found" element={<LostAndFoundPage />} />
         <Route path="/campus/marketplace" element={<MarketplacePage />} />
         <Route path="/campus/bits-coin" element={<BitsCoinPage />} />
@@ -118,8 +117,9 @@ const AppRoutes = () => {
       {/* Routes outside the main layout */}
       <Route path="/easter-egg" element={<EasterEggPage />} />
       <Route path="/login" element={<Navigate to="/" replace />} />
-      {/* --- ADD THIS NEW ROUTE --- */}
-      <Route path="/password-reset" element={<Navigate to="/" replace />} />
+      {/* --- THIS IS THE FIX --- */}
+      {/* Instead of redirecting, render the component so the user can reset their password. */}
+      <Route path="/password-reset" element={<PasswordResetPage />} />
       <Route path="/setup" element={<Navigate to="/" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
@@ -133,7 +133,7 @@ const App = () => {
         <AuthProvider>
           <PostsProvider>
             <ChatProvider>
-              <NotificationProvider> {/* <-- WRAP HERE */}
+              <NotificationProvider>
                 <AppRoutes />
               </NotificationProvider>
             </ChatProvider>
