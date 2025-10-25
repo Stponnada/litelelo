@@ -388,6 +388,28 @@ $$;
 ALTER FUNCTION "public"."create_event"("p_name" "text", "p_description" "text", "p_start_time" timestamp with time zone, "p_end_time" timestamp with time zone, "p_location" "text", "p_campus" "text", "p_image_url" "text", "p_community_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."create_event"("p_name" "text", "p_description" "text", "p_start_time" timestamp with time zone, "p_end_time" timestamp with time zone, "p_location" "text", "p_campus" "text", "p_image_url" "text", "p_image_file_id" "text", "p_community_id" "uuid" DEFAULT NULL::"uuid") RETURNS "uuid"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+    new_event_id uuid;
+BEGIN
+    INSERT INTO public.events (name, description, start_time, end_time, location, campus, image_url, image_file_id, created_by, community_id) -- Added image_file_id
+    VALUES (p_name, p_description, p_start_time, p_end_time, p_location, p_campus, p_image_url, p_image_file_id, auth.uid(), p_community_id) -- Added p_image_file_id
+    RETURNING id INTO new_event_id;
+
+    -- Automatically RSVP the creator as 'going'
+    INSERT INTO public.event_rsvps (event_id, user_id, rsvp_status)
+    VALUES (new_event_id, auth.uid(), 'going');
+
+    RETURN new_event_id;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."create_event"("p_name" "text", "p_description" "text", "p_start_time" timestamp with time zone, "p_end_time" timestamp with time zone, "p_location" "text", "p_campus" "text", "p_image_url" "text", "p_image_file_id" "text", "p_community_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."create_group_chat"("group_name" "text", "participant_ids" "uuid"[]) RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
@@ -555,23 +577,18 @@ $$;
 ALTER FUNCTION "public"."create_post_with_poll"("p_content" "text", "p_image_url" "text", "p_community_id" "uuid", "p_is_public" boolean, "p_poll_options" "text"[], "p_allow_multiple_answers" boolean) OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."create_quote_post"("p_content" "text", "p_quoted_post_id" "uuid", "p_community_id" "uuid" DEFAULT NULL::"uuid", "p_is_public" boolean DEFAULT false) RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "user_vote" "text", "is_bookmarked" boolean, "original_poster_username" "text", "author_id" "text", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "poll" "jsonb", "quoted_post" "jsonb")
+CREATE OR REPLACE FUNCTION "public"."create_quote_post"("p_content" "text", "p_quoted_post_id" "uuid", "p_community_id" "uuid" DEFAULT NULL::"uuid", "p_is_public" boolean DEFAULT false) RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "repost_count" integer, "user_vote" "text", "is_bookmarked" boolean, "user_has_reposted" boolean, "original_poster_username" "text", "author_id" "text", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "author_flair_details" "jsonb", "poll" "jsonb", "quoted_post" "jsonb", "reposted_by" "jsonb")
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
 DECLARE
     new_post_id uuid;
 BEGIN
-    -- Insert the new post with a reference to the post being quoted
     INSERT INTO public.posts (user_id, content, quoted_post_id, community_id, is_public)
     VALUES (auth.uid(), p_content, p_quoted_post_id, p_community_id, p_is_public)
     RETURNING posts.id INTO new_post_id;
-    
-    -- Now, return the full details of the newly created post by calling get_feed_posts
-    -- This ensures the output is always consistent with the main feed.
+
     RETURN QUERY
-    SELECT f.*
-    FROM public.get_feed_posts() f
-    WHERE f.id = new_post_id;
+    SELECT f.* FROM public.get_feed_posts() f WHERE f.id = new_post_id;
 END;
 $$;
 
@@ -812,10 +829,10 @@ $$;
 ALTER FUNCTION "public"."get_blockchain_with_miners"() OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."get_bookmarked_posts"() RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "user_vote" "text", "is_bookmarked" boolean, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "author_id" "uuid", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "original_poster_username" "text", "poll" "jsonb")
+CREATE OR REPLACE FUNCTION "public"."get_bookmarked_posts"() RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "user_vote" "text", "is_bookmarked" boolean, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "author_id" "text", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "author_flair_details" "jsonb", "original_poster_username" "text", "poll" "jsonb")
     LANGUAGE "sql" STABLE SECURITY DEFINER
     AS $$
-SELECT p.id, p.user_id, p.content, p.image_url, p.created_at, p.like_count, p.dislike_count, p.comment_count, l.like_type AS user_vote, true AS is_bookmarked, p.is_edited, p.is_deleted, p.community_id, p.is_public, COALESCE(p.community_id, p.user_id) as author_id, CASE WHEN p.community_id IS NOT NULL THEN 'community' ELSE 'user' END as author_type, COALESCE(c.name, up.full_name) as author_name, COALESCE(c.id::text, up.username) as author_username, COALESCE(c.avatar_url, up.avatar_url) as author_avatar_url, op.username as original_poster_username, (SELECT jsonb_build_object('id', poll.id, 'allow_multiple_answers', poll.allow_multiple_answers, 'total_votes', (SELECT SUM(vote_count) FROM poll_options WHERE poll_id = poll.id), 'user_votes', (SELECT jsonb_agg(option_id) FROM poll_votes WHERE poll_id = poll.id AND user_id = auth.uid()), 'options', (SELECT jsonb_agg(jsonb_build_object('id', po.id, 'option_text', po.option_text, 'vote_count', po.vote_count) ORDER BY po.id) FROM poll_options po WHERE po.poll_id = poll.id)) FROM polls poll WHERE poll.post_id = p.id) AS poll
+SELECT p.id, p.user_id, p.content, p.image_url, p.created_at, p.like_count, p.dislike_count, p.comment_count, l.like_type AS user_vote, true AS is_bookmarked, p.is_edited, p.is_deleted, p.community_id, p.is_public, COALESCE(p.community_id::text, p.user_id::text) as author_id, CASE WHEN p.community_id IS NOT NULL THEN 'community' ELSE 'user' END as author_type, COALESCE(c.name, up.full_name) as author_name, COALESCE(c.id::text, up.username) as author_username, COALESCE(c.avatar_url, up.avatar_url) as author_avatar_url, (SELECT CASE WHEN p.community_id IS NULL THEN (SELECT jsonb_build_object('id', flair_comm.id, 'name', flair_comm.name, 'avatar_url', flair_comm.avatar_url) FROM public.communities flair_comm WHERE flair_comm.id = up.displayed_community_flair) ELSE NULL END) AS author_flair_details, op.username as original_poster_username, (SELECT jsonb_build_object('id', poll.id, 'allow_multiple_answers', poll.allow_multiple_answers, 'total_votes', (SELECT SUM(vote_count) FROM poll_options WHERE poll_id = poll.id), 'user_votes', (SELECT jsonb_agg(option_id) FROM poll_votes WHERE poll_id = poll.id AND user_id = auth.uid()), 'options', (SELECT jsonb_agg(jsonb_build_object('id', po.id, 'option_text', po.option_text, 'vote_count', po.vote_count) ORDER BY po.id) FROM poll_options po WHERE po.poll_id = poll.id)) FROM polls poll WHERE poll.post_id = p.id) AS poll
 FROM posts p
 JOIN bookmarks book ON p.id = book.post_id
 LEFT JOIN likes l ON p.id = l.post_id AND l.user_id = auth.uid()
@@ -955,6 +972,35 @@ $$;
 ALTER FUNCTION "public"."get_campus_places_with_ratings"("p_campus" "text") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."get_comments_for_post"("p_post_id" "uuid") RETURNS TABLE("id" bigint, "content" "text", "user_id" "uuid", "post_id" "uuid", "created_at" timestamp with time zone, "profiles" "jsonb")
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        c.id, c.content, c.user_id, c.post_id, c.created_at,
+        jsonb_build_object(
+            'user_id', p.user_id,
+            'username', p.username,
+            'full_name', p.full_name,
+            'avatar_url', p.avatar_url,
+            'displayed_community_flair', p.displayed_community_flair,
+            'flair_details', (
+                SELECT jsonb_build_object('id', comm.id, 'name', comm.name, 'avatar_url', comm.avatar_url)
+                FROM public.communities comm WHERE comm.id = p.displayed_community_flair
+            )
+        ) AS profiles
+    FROM public.comments c
+    JOIN public.profiles p ON c.user_id = p.user_id
+    WHERE c.post_id = p_post_id
+    ORDER BY c.created_at ASC;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."get_comments_for_post"("p_post_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."get_communities_for_user"("p_user_id" "uuid") RETURNS TABLE("id" "uuid", "name" "text", "avatar_url" "text", "role" "text")
     LANGUAGE "sql" STABLE
     AS $$
@@ -1091,7 +1137,7 @@ $$;
 ALTER FUNCTION "public"."get_conversations_for_user_v2"() OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."get_feed_posts"() RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "repost_count" integer, "user_vote" "text", "is_bookmarked" boolean, "user_has_reposted" boolean, "original_poster_username" "text", "author_id" "text", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "poll" "jsonb", "quoted_post" "jsonb", "reposted_by" "jsonb")
+CREATE OR REPLACE FUNCTION "public"."get_feed_posts"() RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "repost_count" integer, "user_vote" "text", "is_bookmarked" boolean, "user_has_reposted" boolean, "original_poster_username" "text", "author_id" "text", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "author_flair_details" "jsonb", "poll" "jsonb", "quoted_post" "jsonb", "reposted_by" "jsonb")
     LANGUAGE "sql" STABLE SECURITY DEFINER
     AS $$
 WITH current_user_id AS (
@@ -1152,6 +1198,8 @@ SELECT
     COALESCE(c.name, up.full_name) AS author_name,
     COALESCE(c.id::text, up.username) AS author_username,
     COALESCE(c.avatar_url, up.avatar_url) AS author_avatar_url,
+    -- New Flair Details for the author
+    (SELECT CASE WHEN p.community_id IS NULL THEN (SELECT jsonb_build_object('id', flair_comm.id, 'name', flair_comm.name, 'avatar_url', flair_comm.avatar_url) FROM public.communities flair_comm WHERE flair_comm.id = up.displayed_community_flair) ELSE NULL END) AS author_flair_details,
     poll_details.poll,
     (
         SELECT jsonb_build_object(
@@ -1393,10 +1441,10 @@ $$;
 ALTER FUNCTION "public"."get_marketplace_listings"("p_campus" "text", "p_search_term" "text", "p_category" "text", "p_sort_by" "text") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."get_mentions_for_user"("profile_user_id" "uuid") RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "like_count" bigint, "comment_count" bigint, "user_vote" "text", "is_bookmarked" boolean, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "author_id" "uuid", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "original_poster_username" "text", "poll" "jsonb")
+CREATE OR REPLACE FUNCTION "public"."get_mentions_for_user"("profile_user_id" "uuid") RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "like_count" bigint, "comment_count" bigint, "user_vote" "text", "is_bookmarked" boolean, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "author_id" "text", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "author_flair_details" "jsonb", "original_poster_username" "text", "poll" "jsonb")
     LANGUAGE "sql" STABLE SECURITY DEFINER
     AS $$
-SELECT p.id, p.user_id, p.content, p.image_url, p.created_at, p.like_count, p.comment_count, l.like_type AS user_vote, EXISTS (SELECT 1 FROM bookmarks b WHERE b.post_id = p.id AND b.user_id = auth.uid()) AS is_bookmarked, p.is_edited, p.is_deleted, p.community_id, p.is_public, COALESCE(p.community_id, p.user_id) as author_id, CASE WHEN p.community_id IS NOT NULL THEN 'community' ELSE 'user' END as author_type, COALESCE(c.name, up.full_name) as author_name, COALESCE(c.id::text, up.username) as author_username, COALESCE(c.avatar_url, up.avatar_url) as author_avatar_url, op.username as original_poster_username, (SELECT jsonb_build_object('id', poll.id, 'allow_multiple_answers', poll.allow_multiple_answers, 'total_votes', (SELECT SUM(vote_count) FROM poll_options WHERE poll_id = poll.id), 'user_votes', (SELECT jsonb_agg(option_id) FROM poll_votes WHERE poll_id = poll.id AND user_id = auth.uid()), 'options', (SELECT jsonb_agg(jsonb_build_object('id', po.id, 'option_text', po.option_text, 'vote_count', po.vote_count) ORDER BY po.id) FROM poll_options po WHERE po.poll_id = poll.id)) FROM polls poll WHERE poll.post_id = p.id) AS poll
+SELECT p.id, p.user_id, p.content, p.image_url, p.created_at, p.like_count, p.comment_count, l.like_type AS user_vote, EXISTS (SELECT 1 FROM bookmarks b WHERE b.post_id = p.id AND b.user_id = auth.uid()) AS is_bookmarked, p.is_edited, p.is_deleted, p.community_id, p.is_public, COALESCE(p.community_id::text, p.user_id::text) as author_id, CASE WHEN p.community_id IS NOT NULL THEN 'community' ELSE 'user' END as author_type, COALESCE(c.name, up.full_name) as author_name, COALESCE(c.id::text, up.username) as author_username, COALESCE(c.avatar_url, up.avatar_url) as author_avatar_url, (SELECT CASE WHEN p.community_id IS NULL THEN (SELECT jsonb_build_object('id', flair_comm.id, 'name', flair_comm.name, 'avatar_url', flair_comm.avatar_url) FROM public.communities flair_comm WHERE flair_comm.id = up.displayed_community_flair) ELSE NULL END) AS author_flair_details, op.username as original_poster_username, (SELECT jsonb_build_object('id', poll.id, 'allow_multiple_answers', poll.allow_multiple_answers, 'total_votes', (SELECT SUM(vote_count) FROM poll_options WHERE poll_id = poll.id), 'user_votes', (SELECT jsonb_agg(option_id) FROM poll_votes WHERE poll_id = poll.id AND user_id = auth.uid()), 'options', (SELECT jsonb_agg(jsonb_build_object('id', po.id, 'option_text', po.option_text, 'vote_count', po.vote_count) ORDER BY po.id) FROM poll_options po WHERE po.poll_id = poll.id)) FROM polls poll WHERE poll.post_id = p.id) AS poll
 FROM posts p
 JOIN mentions m ON p.id = m.post_id
 LEFT JOIN likes l ON p.id = l.post_id AND l.user_id = auth.uid()
@@ -1665,59 +1713,34 @@ $$;
 ALTER FUNCTION "public"."get_posts_for_community"("p_community_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."get_posts_for_profile"("p_user_id" "uuid") RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "repost_count" integer, "user_vote" "text", "is_bookmarked" boolean, "user_has_reposted" boolean, "original_poster_username" "text", "author_id" "text", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "poll" "jsonb", "quoted_post" "jsonb", "reposted_by" "jsonb")
+CREATE OR REPLACE FUNCTION "public"."get_posts_for_profile"("p_user_id" "uuid") RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "repost_count" integer, "user_vote" "text", "is_bookmarked" boolean, "user_has_reposted" boolean, "original_poster_username" "text", "author_id" "text", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "author_flair_details" "jsonb", "poll" "jsonb", "quoted_post" "jsonb", "reposted_by" "jsonb")
     LANGUAGE "sql" STABLE SECURITY DEFINER
     AS $$
+  -- Copied from get_feed_posts and adjusted WHERE clause
+  -- The body is identical except for the WHERE clause filtering
+  -- and how the feed items are sourced.
 WITH profile_feed_items AS (
-    -- 1. Get all original posts by this user (where they are the direct author)
-    SELECT
-        p.id AS post_id,
-        p.created_at AS event_time,
-        NULL::jsonb AS reposted_by -- This is not a repost, so this is null
-    FROM public.posts p
-    WHERE p.user_id = p_user_id AND p.is_deleted = false
-
+    SELECT p.id AS post_id, p.created_at AS event_time, NULL::jsonb AS reposted_by
+    FROM public.posts p WHERE p.user_id = p_user_id AND p.is_deleted = false
     UNION ALL
-
-    -- 2. Get all posts reposted by this user
-    SELECT
-        r.post_id,
-        r.created_at AS event_time,
-        jsonb_build_object(
-            'user_id', p_profile.user_id,
-            'username', p_profile.username,
-            'full_name', p_profile.full_name
-        ) AS reposted_by
-    FROM public.reposts r
-    JOIN public.profiles p_profile ON r.user_id = p_profile.user_id
-    WHERE r.user_id = p_user_id
+    SELECT r.post_id, r.created_at AS event_time, jsonb_build_object('user_id', p_profile.user_id, 'username', p_profile.username, 'full_name', p_profile.full_name) AS reposted_by
+    FROM public.reposts r JOIN public.profiles p_profile ON r.user_id = p_profile.user_id WHERE r.user_id = p_user_id
 ),
 distinct_feed AS (
-    SELECT DISTINCT ON (post_id) *
-    FROM profile_feed_items
-    ORDER BY post_id, event_time DESC
+    SELECT DISTINCT ON (post_id) * FROM profile_feed_items ORDER BY post_id, event_time DESC
 )
 SELECT
     p.id, p.user_id, p.content, p.image_url, p.created_at, p.is_edited, p.is_deleted, p.community_id, p.is_public,
-    p.like_count, p.dislike_count, p.comment_count, p.repost_count,
-    l.like_type AS user_vote,
-    b.post_id IS NOT NULL AS is_bookmarked,
-    r.post_id IS NOT NULL AS user_has_reposted,
-    op.username AS original_poster_username,
+    p.like_count, p.dislike_count, p.comment_count, p.repost_count, l.like_type AS user_vote, b.post_id IS NOT NULL AS is_bookmarked,
+    r.post_id IS NOT NULL AS user_has_reposted, op.username AS original_poster_username,
     COALESCE(p.community_id::text, p.user_id::text) AS author_id,
     CASE WHEN p.community_id IS NOT NULL THEN 'community' ELSE 'user' END AS author_type,
     COALESCE(c.name, up.full_name) AS author_name,
     COALESCE(c.id::text, up.username) AS author_username,
     COALESCE(c.avatar_url, up.avatar_url) AS author_avatar_url,
+    (SELECT CASE WHEN p.community_id IS NULL THEN (SELECT jsonb_build_object('id', flair_comm.id, 'name', flair_comm.name, 'avatar_url', flair_comm.avatar_url) FROM public.communities flair_comm WHERE flair_comm.id = up.displayed_community_flair) ELSE NULL END) AS author_flair_details,
     poll_details.poll,
-    (
-        SELECT jsonb_build_object(
-            'id', qp.id, 'content', qp.content, 'image_url', qp.image_url, 'created_at', qp.created_at,
-            'is_deleted', qp.is_deleted, 'author_name', qp_author.full_name, 'author_username', qp_author.username,
-            'author_avatar_url', qp_author.avatar_url
-        )
-        FROM posts qp JOIN profiles qp_author ON qp.user_id = qp_author.user_id WHERE qp.id = p.quoted_post_id
-    ) AS quoted_post,
+    (SELECT jsonb_build_object('id', qp.id, 'content', qp.content, 'image_url', qp.image_url, 'created_at', qp.created_at, 'is_deleted', qp.is_deleted, 'author_name', qp_author.full_name, 'author_username', qp_author.username, 'author_avatar_url', qp_author.avatar_url) FROM posts qp JOIN profiles qp_author ON qp.user_id = qp_author.user_id WHERE qp.id = p.quoted_post_id) AS quoted_post,
     df.reposted_by
 FROM distinct_feed df
 JOIN public.posts p ON df.post_id = p.id
@@ -1727,10 +1750,7 @@ LEFT JOIN public.reposts r ON p.id = r.post_id AND r.user_id = auth.uid()
 LEFT JOIN public.profiles up ON p.user_id = up.user_id AND p.community_id IS NULL
 LEFT JOIN public.communities c ON p.community_id = c.id
 LEFT JOIN public.profiles op ON p.user_id = op.user_id AND p.community_id IS NOT NULL
-LEFT JOIN LATERAL (
-    SELECT jsonb_build_object('id', po.id, 'allow_multiple_answers', po.allow_multiple_answers, 'total_votes', COALESCE((SELECT SUM(opt.vote_count) FROM public.poll_options opt WHERE opt.poll_id = po.id), 0), 'user_votes', (SELECT jsonb_agg(pv.option_id) FROM public.poll_votes pv WHERE pv.poll_id = po.id AND pv.user_id = auth.uid()), 'options', (SELECT jsonb_agg(jsonb_build_object('id', opt.id, 'option_text', opt.option_text, 'vote_count', opt.vote_count) ORDER BY opt.id) FROM poll_options opt WHERE opt.poll_id = po.id)) AS poll
-    FROM polls po WHERE po.post_id = p.id
-) poll_details ON TRUE
+LEFT JOIN LATERAL (SELECT jsonb_build_object('id', po.id, 'allow_multiple_answers', po.allow_multiple_answers, 'total_votes', COALESCE((SELECT SUM(opt.vote_count) FROM public.poll_options opt WHERE opt.poll_id = po.id), 0), 'user_votes', (SELECT jsonb_agg(pv.option_id) FROM public.poll_votes pv WHERE pv.poll_id = po.id AND pv.user_id = auth.uid()), 'options', (SELECT jsonb_agg(jsonb_build_object('id', opt.id, 'option_text', opt.option_text, 'vote_count', opt.vote_count) ORDER BY opt.id) FROM poll_options opt WHERE opt.poll_id = po.id)) AS poll FROM polls po WHERE po.post_id = p.id) poll_details ON TRUE
 WHERE p.is_deleted = false
 ORDER BY df.event_time DESC;
 $$;
@@ -1777,18 +1797,21 @@ $$;
 ALTER FUNCTION "public"."get_posts_with_likes"("p_profile_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."get_profile_details"("profile_username" "text") RETURNS TABLE("user_id" "uuid", "username" "text", "avatar_url" "text", "bio" "text", "created_at" timestamp with time zone, "full_name" "text", "email" "text", "banner_url" "text", "campus" "text", "admission_year" integer, "branch" "text", "relationship_status" "text", "dorm_building" "text", "dorm_room" "text", "dining_hall" "text", "profile_complete" boolean, "updated_at" timestamp with time zone, "id" bigint, "dual_degree_branch" "text", "birthday" "date", "gender" "text", "avg_seller_rating" numeric, "total_seller_ratings" integer, "avg_bits_coin_rating" numeric, "total_bits_coin_ratings" integer, "following_count" integer, "follower_count" integer, "is_following" boolean, "is_followed_by" boolean, "roommates" "jsonb")
+CREATE OR REPLACE FUNCTION "public"."get_profile_details"("profile_username" "text") RETURNS TABLE("user_id" "uuid", "username" "text", "avatar_url" "text", "bio" "text", "created_at" timestamp with time zone, "full_name" "text", "email" "text", "banner_url" "text", "campus" "text", "admission_year" integer, "branch" "text", "relationship_status" "text", "dorm_building" "text", "dorm_room" "text", "dining_hall" "text", "profile_complete" boolean, "updated_at" timestamp with time zone, "id" bigint, "dual_degree_branch" "text", "birthday" "date", "gender" "text", "avg_seller_rating" numeric, "total_seller_ratings" integer, "avg_bits_coin_rating" numeric, "total_bits_coin_ratings" integer, "displayed_community_flair" "uuid", "following_count" integer, "follower_count" integer, "is_following" boolean, "is_followed_by" boolean, "roommates" "jsonb", "flair_details" "jsonb")
     LANGUAGE "sql" SECURITY DEFINER
     AS $$
   SELECT
     p.user_id, p.username, p.avatar_url, p.bio, p.created_at, p.full_name, p.email, p.banner_url, p.campus, p.admission_year, p.branch, p.relationship_status, p.dorm_building, p.dorm_room, p.dining_hall, p.profile_complete, p.updated_at, p.id, p.dual_degree_branch, p.birthday, p.gender, p.avg_seller_rating, p.total_seller_ratings,
-    p.avg_bits_coin_rating, -- New
-    p.total_bits_coin_ratings, -- New
+    p.avg_bits_coin_rating,
+    p.total_bits_coin_ratings,
+    p.displayed_community_flair, -- New flair ID
     (SELECT count(*) FROM public.followers WHERE follower_id = p.user_id)::int as following_count,
     (SELECT count(*) FROM public.followers WHERE following_id = p.user_id)::int as follower_count,
     EXISTS (SELECT 1 FROM public.followers WHERE follower_id = auth.uid() AND following_id = p.user_id) as is_following,
     EXISTS (SELECT 1 FROM public.followers WHERE follower_id = p.user_id AND following_id = auth.uid()) as is_followed_by,
-    (SELECT jsonb_agg(jsonb_build_object('user_id', r.user_id, 'username', r.username, 'full_name', r.full_name, 'avatar_url', r.avatar_url)) FROM public.profiles r WHERE r.user_id != p.user_id AND r.campus = p.campus AND r.dorm_building = p.dorm_building AND r.dorm_room = p.dorm_room AND p.dorm_building IS NOT NULL AND p.dorm_room IS NOT NULL AND p.campus IS NOT NULL) as roommates
+    (SELECT jsonb_agg(jsonb_build_object('user_id', r.user_id, 'username', r.username, 'full_name', r.full_name, 'avatar_url', r.avatar_url)) FROM public.profiles r WHERE r.user_id != p.user_id AND r.campus = p.campus AND r.dorm_building = p.dorm_building AND r.dorm_room = p.dorm_room AND p.dorm_building IS NOT NULL AND p.dorm_room IS NOT NULL AND p.campus IS NOT NULL) as roommates,
+    -- New flair details object
+    (SELECT jsonb_build_object('id', fc.id, 'name', fc.name, 'avatar_url', fc.avatar_url) FROM public.communities fc WHERE fc.id = p.displayed_community_flair) as flair_details
   FROM public.profiles p
   WHERE p.username = profile_username;
 $$;
@@ -2605,7 +2628,8 @@ CREATE TABLE IF NOT EXISTS "public"."campus_notice_files" (
     "notice_id" "uuid" NOT NULL,
     "file_url" "text" NOT NULL,
     "file_type" "text" NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "file_id" "text"
 );
 
 
@@ -2629,7 +2653,8 @@ CREATE TABLE IF NOT EXISTS "public"."campus_place_images" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "place_id" "uuid" NOT NULL,
     "image_url" "text" NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "file_id" "text"
 );
 
 
@@ -2779,7 +2804,8 @@ CREATE TABLE IF NOT EXISTS "public"."events" (
     "campus" "text" NOT NULL,
     "image_url" "text",
     "created_by" "uuid" NOT NULL,
-    "community_id" "uuid"
+    "community_id" "uuid",
+    "image_file_id" "text"
 );
 
 
@@ -2834,7 +2860,8 @@ CREATE TABLE IF NOT EXISTS "public"."lost_and_found_items" (
     "status" "text" DEFAULT 'active'::"text" NOT NULL,
     "campus" "text" NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"(),
-    "item_type" "text" NOT NULL
+    "item_type" "text" NOT NULL,
+    "file_id" "text"
 );
 
 
@@ -2845,7 +2872,8 @@ CREATE TABLE IF NOT EXISTS "public"."marketplace_images" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "listing_id" "uuid" NOT NULL,
     "image_url" "text" NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "file_id" "text"
 );
 
 
@@ -2912,7 +2940,8 @@ CREATE TABLE IF NOT EXISTS "public"."messages" (
     "reply_to_message_id" bigint,
     "conversation_id" "uuid",
     "is_edited" boolean DEFAULT false,
-    "is_deleted" boolean DEFAULT false
+    "is_deleted" boolean DEFAULT false,
+    "attachment_file_id" "text"
 );
 
 
@@ -3018,6 +3047,7 @@ CREATE TABLE IF NOT EXISTS "public"."posts" (
     "is_deleted" boolean DEFAULT false,
     "quoted_post_id" "uuid",
     "repost_count" integer DEFAULT 0 NOT NULL,
+    "image_file_id" "text",
     CONSTRAINT "community_id_required_for_public_posts" CHECK ((("is_public" = false) OR (("is_public" = true) AND ("community_id" IS NOT NULL))))
 );
 
@@ -3054,6 +3084,9 @@ CREATE TABLE IF NOT EXISTS "public"."profiles" (
     "avg_bits_coin_rating" numeric(2,1) DEFAULT 0.0,
     "total_bits_coin_ratings" integer DEFAULT 0,
     "bits_coin_balance" numeric DEFAULT 100.00,
+    "displayed_community_flair" "uuid",
+    "avatar_file_id" "text",
+    "banner_file_id" "text",
     CONSTRAINT "username_format_check" CHECK (("username" ~ '^[a-zA-Z0-9_.]+$'::"text"))
 );
 
@@ -3719,6 +3752,11 @@ ALTER TABLE ONLY "public"."posts"
 
 ALTER TABLE ONLY "public"."posts"
     ADD CONSTRAINT "posts_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("user_id");
+
+
+
+ALTER TABLE ONLY "public"."profiles"
+    ADD CONSTRAINT "profiles_displayed_community_flair_fkey" FOREIGN KEY ("displayed_community_flair") REFERENCES "public"."communities"("id") ON DELETE SET NULL;
 
 
 
@@ -4668,6 +4706,12 @@ GRANT ALL ON FUNCTION "public"."create_event"("p_name" "text", "p_description" "
 
 
 
+GRANT ALL ON FUNCTION "public"."create_event"("p_name" "text", "p_description" "text", "p_start_time" timestamp with time zone, "p_end_time" timestamp with time zone, "p_location" "text", "p_campus" "text", "p_image_url" "text", "p_image_file_id" "text", "p_community_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."create_event"("p_name" "text", "p_description" "text", "p_start_time" timestamp with time zone, "p_end_time" timestamp with time zone, "p_location" "text", "p_campus" "text", "p_image_url" "text", "p_image_file_id" "text", "p_community_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."create_event"("p_name" "text", "p_description" "text", "p_start_time" timestamp with time zone, "p_end_time" timestamp with time zone, "p_location" "text", "p_campus" "text", "p_image_url" "text", "p_image_file_id" "text", "p_community_id" "uuid") TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."create_group_chat"("group_name" "text", "participant_ids" "uuid"[]) TO "anon";
 GRANT ALL ON FUNCTION "public"."create_group_chat"("group_name" "text", "participant_ids" "uuid"[]) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."create_group_chat"("group_name" "text", "participant_ids" "uuid"[]) TO "service_role";
@@ -4761,6 +4805,12 @@ GRANT ALL ON FUNCTION "public"."get_campus_notices_with_files"("p_campus" "text"
 GRANT ALL ON FUNCTION "public"."get_campus_places_with_ratings"("p_campus" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."get_campus_places_with_ratings"("p_campus" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_campus_places_with_ratings"("p_campus" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."get_comments_for_post"("p_post_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_comments_for_post"("p_post_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_comments_for_post"("p_post_id" "uuid") TO "service_role";
 
 
 

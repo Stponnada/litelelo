@@ -23,7 +23,6 @@ interface CommunityDetails {
     member_count: number;
     is_member: boolean;
     is_admin: boolean; // Using 'is_admin' to match the SQL function
-    conversation_id: string | null;
 }
 
 
@@ -36,6 +35,9 @@ const CommunityPage: React.FC = () => {
     const [posts, setPosts] = useState<PostType[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editedName, setEditedName] = useState('');
+    const [editedDescription, setEditedDescription] = useState('');
     const [activeTab, setActiveTab] = useState<'private' | 'public'>('private');
     
     const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
@@ -122,6 +124,32 @@ const CommunityPage: React.FC = () => {
             setIsSaving(false);
             setCropperState({ isOpen: false, type: null, src: null });
         }
+    };
+
+    const handleStartEdit = () => {
+        if (!community) return;
+        setEditedName(community.name);
+        setEditedDescription(community.description);
+        setIsEditing(true);
+    };
+
+    const handleCancelEdit = () => {
+        setIsEditing(false);
+    };
+
+    const handleSaveChanges = async () => {
+        if (!community) return;
+        setIsSaving(true);
+        const { data, error } = await supabase
+            .from('communities')
+            .update({ name: editedName, description: editedDescription })
+            .eq('id', community.id)
+            .select()
+            .single();
+        
+        if (data) setCommunity(prev => ({...prev!, ...data}));
+        setIsSaving(false);
+        setIsEditing(false);
     };
 
     const handleJoinToggle = async () => {
@@ -229,7 +257,7 @@ const CommunityPage: React.FC = () => {
                         )}
                     </div>
 
-                    <div className="p-6 md:p-8">
+                    <div className="px-6 md:px-8 pt-4">
                         <div className="flex justify-between items-end -mt-28 md:-mt-32">
                             <div className="relative group">
                                 <div className="absolute inset-0 bg-brand-green/30 blur-2xl rounded-full"></div>
@@ -251,24 +279,46 @@ const CommunityPage: React.FC = () => {
                                     </>
                                 )}
                             </div>
-                            <div className="flex items-center gap-3">
-                                <button 
-                                    onClick={handleJoinToggle} 
-                                    className={`font-bold py-3 px-6 rounded-xl text-sm transition-all shadow-lg ${
-                                        community.is_member 
-                                            ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border-2 border-red-500/30 hover:border-red-500/50' 
-                                            : 'bg-brand-green text-black hover:bg-brand-green/90 border-2 border-brand-green/30 hover:shadow-xl hover:shadow-brand-green/30'
-                                    }`}
-                                >
-                                    {community.is_member ? 'Leave Community' : 'Join Community'}
-                                </button>
+                            <div className="flex items-center gap-3 flex-shrink-0 transform translate-y-8">
+                                {isEditing ? (
+                                    <>
+                                        <button onClick={handleCancelEdit} className="font-semibold py-2.5 px-6 rounded-xl bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main hover:bg-tertiary-light/80 dark:hover:bg-tertiary/80 transition-colors">Cancel</button>
+                                        <button onClick={handleSaveChanges} disabled={isSaving} className="font-bold py-2.5 px-6 rounded-xl bg-brand-green text-black hover:bg-brand-green-darker transition-colors">{isSaving ? <Spinner /> : 'Save'}</button>
+                                    </>
+                                ) : canEdit ? (
+                                    <button onClick={handleStartEdit} className="font-semibold py-2.5 px-6 rounded-full bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main hover:bg-tertiary-light/80 dark:hover:bg-tertiary/80 transition-colors">
+                                        Edit Community
+                                    </button>
+                                ) : (
+                                    <button 
+                                        onClick={handleJoinToggle} 
+                                        className={`font-bold py-2.5 px-6 rounded-full transition-all disabled:opacity-50 min-w-[120px] ${
+                                            community.is_member 
+                                            ? 'bg-tertiary-light/60 dark:bg-tertiary/60 text-text-secondary-light dark:text-text-secondary' 
+                                            : 'bg-brand-green text-black hover:bg-brand-green-darker shadow-lg shadow-brand-green/20'
+                                        }`}
+                                    >
+                                        {community.is_member ? 'Joined' : 'Join'}
+                                    </button>
+                                )}
                             </div>
                         </div>
-
+                    </div>
+                    
+                    <div className="p-6 md:p-8 pt-4">
                         <div className="mt-6">
-                            <h1 className="text-3xl md:text-4xl font-black text-text-main-light dark:text-text-main mb-2">
-                                {community.name}
-                            </h1>
+                            {isEditing ? (
+                                <input 
+                                    type="text"
+                                    value={editedName}
+                                    onChange={(e) => setEditedName(e.target.value)}
+                                    className="w-full text-3xl sm:text-4xl font-black bg-tertiary-light dark:bg-tertiary rounded-lg p-2 mb-4"
+                                />
+                            ) : (
+                                <h1 className="text-3xl md:text-4xl font-black text-text-main-light dark:text-text-main mb-2">
+                                    {community.name}
+                                </h1>
+                            )}
                             <Link 
                                 to={`/communities/${community.id}/members`}
                                 className="inline-flex items-center gap-2 bg-brand-green/10 rounded-full px-4 py-2 border border-brand-green/20 hover:bg-brand-green/20 hover:border-brand-green/30 transition-colors cursor-pointer"
@@ -281,7 +331,15 @@ const CommunityPage: React.FC = () => {
                                     {community.member_count === 1 ? 'member' : 'members'}
                                 </span>
                             </Link>
-                            {community.description && (
+                            
+                            {isEditing ? (
+                                <textarea
+                                    value={editedDescription}
+                                    onChange={(e) => setEditedDescription(e.target.value)}
+                                    className="w-full mt-4 text-text-secondary-light dark:text-text-secondary text-base leading-relaxed max-w-3xl bg-tertiary-light dark:bg-tertiary rounded-lg p-2"
+                                    rows={3}
+                                />
+                            ) : community.description && (
                                 <p className="mt-4 text-text-secondary-light dark:text-text-secondary text-base leading-relaxed max-w-3xl">
                                     {community.description}
                                 </p>
@@ -341,6 +399,7 @@ const CommunityPage: React.FC = () => {
                                                     author_name: post.original_poster_full_name,
                                                     author_username: post.original_poster_username,
                                                     author_avatar_url: post.original_poster_avatar_url,
+                                                    author_flair_details: null,
                                                 },
                                                 original_poster_username: null,
                                             };
