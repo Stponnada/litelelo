@@ -33,7 +33,12 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setLoading(false);
       return;
     }
-    setLoading(true); // Always set loading on fetch
+    // --- THIS IS THE FIX ---
+    // Only set loading to true on the initial fetch when the posts array is empty.
+    // This prevents the spinner from showing every time the user switches tabs.
+    if (posts.length === 0) {
+        setLoading(true);
+    }
     setError(null);
     try {
       const rpcToCall = feedType === 'foryou' ? 'get_public_feed_posts' : 'get_feed_posts';
@@ -60,7 +65,7 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } finally {
       setLoading(false);
     }
-  }, [user?.id, feedType]); // <-- THE FIX: Added feedType to the dependency array
+  }, [user?.id, feedType]);
 
   useEffect(() => {
     fetchPosts();
