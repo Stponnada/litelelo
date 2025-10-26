@@ -1,3 +1,4 @@
+
 // src/components/LeftSidebar.tsx
 
 import React from 'react';
@@ -18,7 +19,10 @@ import {
   GlobeIcon,
   SearchIcon,
   InformationCircleIcon,
-  CalendarDaysIcon
+  CalendarDaysIcon,
+  QuestionMarkCircleIcon,
+  ShieldCheckIcon,
+  LockClosedIcon,
 } from './icons';
 
 interface LeftSidebarProps {
@@ -185,9 +189,20 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
               <InformationCircleIcon className="w-5 h-5" />
               <span>About</span>
             </button>
+            <div className="my-1 mx-2 h-px bg-tertiary-light/50 dark:bg-tertiary/50" />
+            <Link to="/help" className="flex items-center gap-3 px-4 py-2 text-sm text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary">
+              <QuestionMarkCircleIcon className="w-5 h-5" /> Help Center
+            </Link>
+            <Link to="/terms" className="flex items-center gap-3 px-4 py-2 text-sm text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary">
+              <ShieldCheckIcon className="w-5 h-5" /> Terms
+            </Link>
+            <Link to="/privacy" className="flex items-center gap-3 px-4 py-2 text-sm text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary">
+              <LockClosedIcon className="w-5 h-5" /> Privacy
+            </Link>
+            <div className="my-1 mx-2 h-px bg-tertiary-light/50 dark:bg-tertiary/50" />
             <button
               onClick={handleSignOut}
-              className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-red-500 hover:bg-tertiary-light dark:hover:bg-tertiary"
+              className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-red-500 hover:bg-red-500/10"
             >
               <LogoutIcon className="w-5 h-5" />
               <span>Logout</span>

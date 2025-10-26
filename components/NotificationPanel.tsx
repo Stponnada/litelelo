@@ -35,6 +35,10 @@ const NotificationItem: React.FC<{ notification: NotificationType, onClose: () =
             text = 'mentioned you in a post.';
             link = `/post/${notification.entity_id}`;
             break;
+        case 'community_join_request':
+            text = 'requested to join a community you manage.';
+            link = `/communities/${notification.entity_id}/members`;
+            break;
         // --- THIS IS THE FIX ---
         case 'new_message':
             text = 'sent you a message.';

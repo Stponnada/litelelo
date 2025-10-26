@@ -81,7 +81,7 @@ const Layout = () => {
       </main>
 
       <BottomNavBar />
-      <FloatingFooter onOpenAboutModal={() => setIsAboutModalOpen(true)} />
+      {/*<FloatingFooter onOpenAboutModal={() => setIsAboutModalOpen(true)} />*/}
     </div>
   );
 };

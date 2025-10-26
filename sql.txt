@@ -87,7 +87,8 @@ CREATE TYPE "public"."notification_type" AS ENUM (
     'follow',
     'mention',
     'bits_coin_claim',
-    'new_message'
+    'new_message',
+    'community_join_request'
 );
 
 
@@ -300,28 +301,28 @@ $$;
 ALTER FUNCTION "public"."create_bot_post"("post_content" "text") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."create_community"("p_name" "text", "p_description" "text", "p_campus" "text") RETURNS "uuid"
+CREATE OR REPLACE FUNCTION "public"."create_community"("p_name" "text", "p_description" "text", "p_campus" "text", "p_access_type" "text", "p_avatar_url" "text" DEFAULT NULL::"text", "p_banner_url" "text" DEFAULT NULL::"text") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
-declare
+DECLARE
   new_community_id uuid;
   current_user_id uuid := auth.uid();
-begin
-  -- 1. Create the community
-  insert into public.communities (name, description, campus, created_by)
-  values (p_name, p_description, p_campus, current_user_id)
-  returning id into new_community_id;
+BEGIN
+  -- 1. Create the community with all the new details
+  INSERT INTO public.communities (name, description, campus, created_by, access_type, avatar_url, banner_url)
+  VALUES (p_name, p_description, p_campus, current_user_id, p_access_type, p_avatar_url, p_banner_url)
+  RETURNING id INTO new_community_id;
 
-  -- 2. Add the creator as the first member of the community
-  insert into public.community_members (community_id, user_id)
-  values (new_community_id, current_user_id);
+  -- 2. Add the creator as the first member and make them an admin (Consul)
+  INSERT INTO public.community_members (community_id, user_id, role, status)
+  VALUES (new_community_id, current_user_id, 'admin', 'approved');
 
-  return new_community_id;
-end;
+  RETURN new_community_id;
+END;
 $$;
 
 
-ALTER FUNCTION "public"."create_community"("p_name" "text", "p_description" "text", "p_campus" "text") OWNER TO "postgres";
+ALTER FUNCTION "public"."create_community"("p_name" "text", "p_description" "text", "p_campus" "text", "p_access_type" "text", "p_avatar_url" "text", "p_banner_url" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."create_dm_conversation"("recipient_id" "uuid") RETURNS "uuid"
@@ -594,6 +595,62 @@ $$;
 
 
 ALTER FUNCTION "public"."create_quote_post"("p_content" "text", "p_quoted_post_id" "uuid", "p_community_id" "uuid", "p_is_public" boolean) OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."create_subcommunity"("p_parent_community_id" "uuid", "p_name" "text", "p_description" "text", "p_access_type" "text", "p_consul_ids" "uuid"[]) RETURNS "uuid"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+  new_subcommunity_id uuid;
+  new_conversation_id uuid;
+  consul_id uuid;
+  parent_campus text;
+BEGIN
+    -- Ensure the creator is an admin of the parent community
+    IF NOT public.is_community_admin(p_parent_community_id, auth.uid()) THEN
+        RAISE EXCEPTION 'Only consuls of the parent community can create subcommunities.';
+    END IF;
+
+    -- Get campus from parent
+    SELECT campus INTO parent_campus FROM public.communities WHERE id = p_parent_community_id;
+
+    -- Create the subcommunity record
+    INSERT INTO public.communities (name, description, campus, created_by, parent_community_id, access_type)
+    VALUES (p_name, p_description, parent_campus, auth.uid(), p_parent_community_id, p_access_type)
+    RETURNING id INTO new_subcommunity_id;
+    
+    -- Create an associated group conversation for the subcommunity
+    INSERT INTO public.conversations (name, type, created_by, community_id)
+    VALUES (p_name, 'group', auth.uid(), new_subcommunity_id)
+    RETURNING id INTO new_conversation_id;
+
+    -- Add the creator as an admin member to the subcommunity and its chat
+    INSERT INTO public.community_members (community_id, user_id, role, status)
+    VALUES (new_subcommunity_id, auth.uid(), 'admin', 'approved');
+    INSERT INTO public.conversation_participants (conversation_id, user_id)
+    VALUES (new_conversation_id, auth.uid());
+
+    -- Add other assigned consuls
+    FOREACH consul_id IN ARRAY p_consul_ids LOOP
+        IF consul_id <> auth.uid() THEN
+            -- Add as admin to subcommunity
+            INSERT INTO public.community_members (community_id, user_id, role, status)
+            VALUES (new_subcommunity_id, consul_id, 'admin', 'approved')
+            ON CONFLICT (community_id, user_id) DO UPDATE SET role = 'admin', status = 'approved';
+            
+            -- Add to the chat
+            INSERT INTO public.conversation_participants (conversation_id, user_id)
+            VALUES (new_conversation_id, consul_id)
+            ON CONFLICT (conversation_id, user_id) DO NOTHING;
+        END IF;
+    END LOOP;
+
+    RETURN new_subcommunity_id;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."create_subcommunity"("p_parent_community_id" "uuid", "p_name" "text", "p_description" "text", "p_access_type" "text", "p_consul_ids" "uuid"[]) OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."decrement_vote_count"() RETURNS "trigger"
@@ -1052,33 +1109,47 @@ $$;
 ALTER FUNCTION "public"."get_communities_list"("p_campus" "text") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."get_community_details"("p_community_id" "uuid") RETURNS TABLE("id" "uuid", "name" "text", "description" "text", "campus" "text", "avatar_url" "text", "banner_url" "text", "created_by" "uuid", "member_count" bigint, "is_member" boolean, "conversation_id" "uuid")
+CREATE OR REPLACE FUNCTION "public"."get_community_details"("p_community_id" "uuid") RETURNS TABLE("id" "uuid", "name" "text", "description" "text", "campus" "text", "avatar_url" "text", "banner_url" "text", "created_by" "uuid", "member_count" bigint, "is_member" boolean, "is_admin" boolean, "has_pending_request" boolean, "access_type" "text")
     LANGUAGE "plpgsql"
     AS $$
-declare
-  current_user_id uuid := auth.uid();
-begin
-  return query
-  select
-    c.id,
-    c.name,
-    c.description,
-    c.campus,
-    c.avatar_url,
-    c.banner_url,
-    c.created_by,
-    (select count(*) from public.community_members cm where cm.community_id = c.id) as member_count,
-    exists(select 1 from public.community_members cm where cm.community_id = c.id and cm.user_id = current_user_id) as is_member,
-    null::uuid as conversation_id -- Always return null for conversation_id
-  from
-    public.communities c
-  where
-    c.id = p_community_id;
-end;
+DECLARE
+  current_user_id UUID := auth.uid();
+BEGIN
+  RETURN QUERY
+  SELECT
+    c.id, c.name, c.description, c.campus, c.avatar_url, c.banner_url, c.created_by,
+    (SELECT count(*) FROM public.community_members cm WHERE cm.community_id = c.id AND cm.status = 'approved') AS member_count,
+    EXISTS(SELECT 1 FROM public.community_members cm WHERE cm.community_id = c.id AND cm.user_id = current_user_id AND cm.status = 'approved') AS is_member,
+    EXISTS(SELECT 1 FROM public.community_members cm WHERE cm.community_id = c.id AND cm.user_id = current_user_id AND cm.role = 'admin') AS is_admin,
+    EXISTS(SELECT 1 FROM public.community_members cm WHERE cm.community_id = c.id AND cm.user_id = current_user_id AND cm.status = 'pending') AS has_pending_request,
+    c.access_type
+  FROM public.communities c
+  WHERE c.id = p_community_id;
+END;
 $$;
 
 
 ALTER FUNCTION "public"."get_community_details"("p_community_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."get_community_members"("p_community_id" "uuid") RETURNS TABLE("user_id" "uuid", "username" "text", "full_name" "text", "avatar_url" "text", "role" "text", "status" "text")
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        p.user_id, p.username, p.full_name, p.avatar_url, cm.role, cm.status
+    FROM
+        public.community_members cm
+    JOIN
+        public.profiles p ON cm.user_id = p.user_id
+    WHERE
+        cm.community_id = p_community_id;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."get_community_members"("p_community_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."get_conversations_for_user_v2"() RETURNS TABLE("conversation_id" "uuid", "name" "text", "type" "text", "participants" json, "last_message_content" "text", "last_message_at" timestamp with time zone, "last_message_sender_id" "uuid", "unread_count" bigint)
@@ -1939,6 +2010,32 @@ $$;
 ALTER FUNCTION "public"."get_search_recommendations"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."get_subcommunities"("p_parent_id" "uuid") RETURNS TABLE("id" "uuid", "name" "text", "description" "text", "avatar_url" "text", "access_type" "text", "member_count" bigint, "is_member" boolean, "has_pending_request" boolean, "conversation_id" "uuid")
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        sub.id,
+        sub.name,
+        sub.description,
+        sub.avatar_url,
+        sub.access_type,
+        (SELECT COUNT(*) FROM community_members cm WHERE cm.community_id = sub.id AND cm.status = 'approved') as member_count,
+        EXISTS(SELECT 1 FROM community_members cm WHERE cm.community_id = sub.id AND cm.user_id = auth.uid() AND cm.status = 'approved') as is_member,
+        EXISTS(SELECT 1 FROM community_members cm WHERE cm.community_id = sub.id AND cm.user_id = auth.uid() AND cm.status = 'pending') as has_pending_request,
+        conv.id as conversation_id
+    FROM communities sub
+    LEFT JOIN conversations conv ON conv.community_id = sub.id
+    WHERE sub.parent_community_id = p_parent_id
+    ORDER BY sub.name;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."get_subcommunities"("p_parent_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."get_unified_directory"() RETURNS TABLE("id" "text", "type" "text", "name" "text", "username" "text", "avatar_url" "text", "bio" "text", "is_following" boolean, "follower_count" integer, "member_count" bigint, "admission_year" integer, "branch" "text", "dual_degree_branch" "text", "gender" "text", "dorm_building" "text", "relationship_status" "text", "dining_hall" "text")
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
@@ -2011,6 +2108,29 @@ $$;
 
 
 ALTER FUNCTION "public"."handle_bits_coin_claim"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."handle_community_join_request"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+    admin_record RECORD;
+BEGIN
+    IF NEW.status = 'pending' THEN
+        FOR admin_record IN
+            SELECT user_id FROM public.community_members
+            WHERE community_id = NEW.community_id AND role = 'admin'
+        LOOP
+            INSERT INTO public.notifications (user_id, actor_id, type, entity_id, entity_type)
+            VALUES (admin_record.user_id, NEW.user_id, 'community_join_request', NEW.community_id, 'community');
+        END LOOP;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."handle_community_join_request"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."handle_new_comment"() RETURNS "trigger"
@@ -2190,6 +2310,42 @@ $$;
 ALTER FUNCTION "public"."is_participant"("convo_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."manage_join_request"("p_community_id" "uuid", "p_requester_id" "uuid", "p_action" "text") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+    target_conversation_id uuid;
+BEGIN
+    IF NOT public.is_community_admin(p_community_id, auth.uid()) THEN
+        RAISE EXCEPTION 'Permission denied: Only consuls can manage join requests.';
+    END IF;
+
+    IF p_action = 'approve' THEN
+        UPDATE public.community_members
+        SET status = 'approved'
+        WHERE community_id = p_community_id AND user_id = p_requester_id AND status = 'pending';
+
+        -- Also add the user to the associated conversation
+        SELECT id INTO target_conversation_id FROM public.conversations WHERE community_id = p_community_id;
+        IF target_conversation_id IS NOT NULL THEN
+            INSERT INTO public.conversation_participants (conversation_id, user_id)
+            VALUES (target_conversation_id, p_requester_id)
+            ON CONFLICT DO NOTHING;
+        END IF;
+
+    ELSIF p_action = 'deny' THEN
+        DELETE FROM public.community_members
+        WHERE community_id = p_community_id AND user_id = p_requester_id AND status = 'pending';
+    ELSE
+        RAISE EXCEPTION 'Invalid action. Must be "approve" or "deny".';
+    END IF;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."manage_join_request"("p_community_id" "uuid", "p_requester_id" "uuid", "p_action" "text") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."mark_conversation_as_read"("p_conversation_id" "uuid") RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
@@ -2249,6 +2405,24 @@ $$;
 
 
 ALTER FUNCTION "public"."mark_notifications_as_read"("notification_ids" "uuid"[]) OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."request_to_join_community"("p_community_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM public.community_members 
+    WHERE community_id = p_community_id AND user_id = auth.uid()
+  ) THEN
+    INSERT INTO public.community_members (community_id, user_id, status)
+    VALUES (p_community_id, auth.uid(), 'pending');
+  END IF;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."request_to_join_community"("p_community_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."search_all"("search_term" "text") RETURNS json
@@ -2705,7 +2879,9 @@ CREATE TABLE IF NOT EXISTS "public"."communities" (
     "campus" "text" NOT NULL,
     "avatar_url" "text",
     "banner_url" "text",
-    "created_by" "uuid" NOT NULL
+    "created_by" "uuid" NOT NULL,
+    "access_type" "text" DEFAULT 'public'::"text" NOT NULL,
+    "parent_community_id" "uuid"
 );
 
 
@@ -2716,7 +2892,8 @@ CREATE TABLE IF NOT EXISTS "public"."community_members" (
     "community_id" "uuid" NOT NULL,
     "user_id" "uuid" NOT NULL,
     "joined_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "role" "text" DEFAULT 'member'::"text" NOT NULL
+    "role" "text" DEFAULT 'member'::"text" NOT NULL,
+    "status" "text" DEFAULT 'approved'::"text" NOT NULL
 );
 
 
@@ -3441,6 +3618,10 @@ CREATE OR REPLACE TRIGGER "on_new_follow" AFTER INSERT ON "public"."followers" F
 
 
 
+CREATE OR REPLACE TRIGGER "on_new_join_request" AFTER INSERT ON "public"."community_members" FOR EACH ROW EXECUTE FUNCTION "public"."handle_community_join_request"();
+
+
+
 CREATE OR REPLACE TRIGGER "on_new_like" AFTER INSERT ON "public"."likes" FOR EACH ROW EXECUTE FUNCTION "public"."handle_new_like"();
 
 
@@ -3542,6 +3723,11 @@ ALTER TABLE ONLY "public"."comments"
 
 ALTER TABLE ONLY "public"."communities"
     ADD CONSTRAINT "communities_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."profiles"("user_id");
+
+
+
+ALTER TABLE ONLY "public"."communities"
+    ADD CONSTRAINT "communities_parent_community_id_fkey" FOREIGN KEY ("parent_community_id") REFERENCES "public"."communities"("id") ON DELETE CASCADE;
 
 
 
@@ -4458,10 +4644,6 @@ ALTER TABLE "public"."seller_ratings" ENABLE ROW LEVEL SECURITY;
 ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
 
 
-
-
-
-
 ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."bits_coin_requests";
 
 
@@ -4482,182 +4664,10 @@ ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."pinned_messages";
 
 
 
-
-
-
 GRANT USAGE ON SCHEMA "public" TO "postgres";
 GRANT USAGE ON SCHEMA "public" TO "anon";
 GRANT USAGE ON SCHEMA "public" TO "authenticated";
 GRANT USAGE ON SCHEMA "public" TO "service_role";
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -4688,9 +4698,9 @@ GRANT ALL ON FUNCTION "public"."create_bot_post"("post_content" "text") TO "serv
 
 
 
-GRANT ALL ON FUNCTION "public"."create_community"("p_name" "text", "p_description" "text", "p_campus" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."create_community"("p_name" "text", "p_description" "text", "p_campus" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."create_community"("p_name" "text", "p_description" "text", "p_campus" "text") TO "service_role";
+GRANT ALL ON FUNCTION "public"."create_community"("p_name" "text", "p_description" "text", "p_campus" "text", "p_access_type" "text", "p_avatar_url" "text", "p_banner_url" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."create_community"("p_name" "text", "p_description" "text", "p_campus" "text", "p_access_type" "text", "p_avatar_url" "text", "p_banner_url" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."create_community"("p_name" "text", "p_description" "text", "p_campus" "text", "p_access_type" "text", "p_avatar_url" "text", "p_banner_url" "text") TO "service_role";
 
 
 
@@ -4739,6 +4749,12 @@ GRANT ALL ON FUNCTION "public"."create_post_with_poll"("p_content" "text", "p_im
 GRANT ALL ON FUNCTION "public"."create_quote_post"("p_content" "text", "p_quoted_post_id" "uuid", "p_community_id" "uuid", "p_is_public" boolean) TO "anon";
 GRANT ALL ON FUNCTION "public"."create_quote_post"("p_content" "text", "p_quoted_post_id" "uuid", "p_community_id" "uuid", "p_is_public" boolean) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."create_quote_post"("p_content" "text", "p_quoted_post_id" "uuid", "p_community_id" "uuid", "p_is_public" boolean) TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."create_subcommunity"("p_parent_community_id" "uuid", "p_name" "text", "p_description" "text", "p_access_type" "text", "p_consul_ids" "uuid"[]) TO "anon";
+GRANT ALL ON FUNCTION "public"."create_subcommunity"("p_parent_community_id" "uuid", "p_name" "text", "p_description" "text", "p_access_type" "text", "p_consul_ids" "uuid"[]) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."create_subcommunity"("p_parent_community_id" "uuid", "p_name" "text", "p_description" "text", "p_access_type" "text", "p_consul_ids" "uuid"[]) TO "service_role";
 
 
 
@@ -4829,6 +4845,12 @@ GRANT ALL ON FUNCTION "public"."get_communities_list"("p_campus" "text") TO "ser
 GRANT ALL ON FUNCTION "public"."get_community_details"("p_community_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."get_community_details"("p_community_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_community_details"("p_community_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."get_community_members"("p_community_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_community_members"("p_community_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_community_members"("p_community_id" "uuid") TO "service_role";
 
 
 
@@ -4958,6 +4980,12 @@ GRANT ALL ON FUNCTION "public"."get_search_recommendations"() TO "service_role";
 
 
 
+GRANT ALL ON FUNCTION "public"."get_subcommunities"("p_parent_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_subcommunities"("p_parent_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_subcommunities"("p_parent_id" "uuid") TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."get_unified_directory"() TO "anon";
 GRANT ALL ON FUNCTION "public"."get_unified_directory"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_unified_directory"() TO "service_role";
@@ -4967,6 +4995,12 @@ GRANT ALL ON FUNCTION "public"."get_unified_directory"() TO "service_role";
 GRANT ALL ON FUNCTION "public"."handle_bits_coin_claim"() TO "anon";
 GRANT ALL ON FUNCTION "public"."handle_bits_coin_claim"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."handle_bits_coin_claim"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."handle_community_join_request"() TO "anon";
+GRANT ALL ON FUNCTION "public"."handle_community_join_request"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."handle_community_join_request"() TO "service_role";
 
 
 
@@ -5031,6 +5065,12 @@ GRANT ALL ON FUNCTION "public"."is_participant"("convo_id" "uuid") TO "service_r
 
 
 
+GRANT ALL ON FUNCTION "public"."manage_join_request"("p_community_id" "uuid", "p_requester_id" "uuid", "p_action" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."manage_join_request"("p_community_id" "uuid", "p_requester_id" "uuid", "p_action" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."manage_join_request"("p_community_id" "uuid", "p_requester_id" "uuid", "p_action" "text") TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."mark_conversation_as_read"("p_conversation_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."mark_conversation_as_read"("p_conversation_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."mark_conversation_as_read"("p_conversation_id" "uuid") TO "service_role";
@@ -5046,6 +5086,12 @@ GRANT ALL ON FUNCTION "public"."mark_message_notifications_as_read"() TO "servic
 GRANT ALL ON FUNCTION "public"."mark_notifications_as_read"("notification_ids" "uuid"[]) TO "anon";
 GRANT ALL ON FUNCTION "public"."mark_notifications_as_read"("notification_ids" "uuid"[]) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."mark_notifications_as_read"("notification_ids" "uuid"[]) TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."request_to_join_community"("p_community_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."request_to_join_community"("p_community_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."request_to_join_community"("p_community_id" "uuid") TO "service_role";
 
 
 
@@ -5112,28 +5158,6 @@ GRANT ALL ON FUNCTION "public"."update_post_repost_count"() TO "service_role";
 GRANT ALL ON FUNCTION "public"."update_seller_rating_on_profile"() TO "anon";
 GRANT ALL ON FUNCTION "public"."update_seller_rating_on_profile"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."update_seller_rating_on_profile"() TO "service_role";
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 GRANT ALL ON TABLE "public"."bits_coin_ratings" TO "anon";
@@ -5394,14 +5418,10 @@ GRANT ALL ON TABLE "public"."seller_ratings" TO "service_role";
 
 
 
-
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "postgres";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "service_role";
-
-
-
 
 
 
@@ -5419,7 +5439,6 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TAB
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
-
 
 
 

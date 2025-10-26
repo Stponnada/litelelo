@@ -243,9 +243,10 @@ const EventsPage: React.FC = () => {
                 <CalendarDaysIcon className="w-14 h-14 text-brand-green animate-pulse" />
                 <div className="absolute inset-0 blur-xl bg-brand-green/30 animate-pulse"></div>
               </div>
-              <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-brand-green via-blue-400 to-purple-400 bg-clip-text text-transparent">
-                Campus Events
-              </h1>
+                <h1 className="text-5xl md:text-6xl font-bold">
+                  <span className="text-brand-green">Campus</span>{" "}
+                  <span className="text-blue-500">Events</span>
+                </h1>
             </div>
             <p className="text-xl text-text-secondary-light dark:text-text-secondary">
               Discover what's happening at <span className="font-semibold text-brand-green">{profile?.campus}</span>

@@ -85,6 +85,20 @@ export interface Profile {
     avatar_url: string | null;
   } | null;
 }
+export interface CommunityDetails {
+    id: string;
+    name: string;
+    description: string;
+    campus: string;
+    avatar_url: string | null;
+    banner_url: string | null;
+    created_by: string;
+    member_count: number;
+    is_member: boolean;
+    is_admin: boolean;
+    access_type: 'public' | 'restricted';
+    has_pending_request: boolean;
+}
 export interface ConversationSummary {
 conversation_id: string;
 type: 'dm' | 'group';
@@ -362,14 +376,14 @@ export interface BitsCoinRequest {
     deadline: string | null; // Added
 }
 
-export type NotificationType = 'like' | 'comment' | 'follow' | 'mention' | 'bits_coin_claim' | 'new_message';
+export type NotificationType = 'like' | 'comment' | 'follow' | 'mention' | 'bits_coin_claim' | 'new_message' | 'community_join_request';
 
 export interface Notification {
     id: string;
     user_id: string;
     type: NotificationType;
     entity_id: string | null;
-    entity_type: 'post' | 'user' | 'bits_coin_request' | 'conversation' | null;
+    entity_type: 'post' | 'user' | 'bits_coin_request' | 'conversation' | 'community' | null;
     is_read: boolean;
     created_at: string;
     actor: {
