@@ -181,7 +181,7 @@ const CryptoHubWidget: React.FC<{ profile: Profile }> = ({ profile }) => {
 
 
 export const HomePage: React.FC = () => {
-    const { posts, loading: postsLoading, error: postsError, addPostToContext } = usePosts();
+    const { posts, loading: postsLoading, error: postsError, addPostToContext, feedType, setFeedType } = usePosts();
     const { user, profile: currentUserProfile } = useAuth();
     
     const [upcomingEvents, setUpcomingEvents] = useState<CampusEvent[]>([]);
@@ -275,6 +275,32 @@ export const HomePage: React.FC = () => {
                     {/* Create Post (Desktop) */}
                     <div className="mb-6 hidden lg:block">
                         <CreatePost onPostCreated={addPostToContext} profile={currentUserProfile} />
+                    </div>
+                    
+                    {/* Feed Toggle */}
+                    <div className="bg-secondary-light dark:bg-secondary rounded-t-lg border-b border-tertiary-light dark:border-tertiary sticky top-16 md:top-24 z-10">
+                        <div className="flex">
+                            <button
+                                onClick={() => setFeedType('foryou')}
+                                className={`flex-1 py-4 font-semibold text-center transition-all ${
+                                    feedType === 'foryou'
+                                    ? 'border-b-2 border-brand-green text-brand-green'
+                                    : 'text-text-tertiary-light dark:text-text-tertiary hover:bg-tertiary-light/30 dark:hover:bg-tertiary/30'
+                                }`}
+                            >
+                                For You
+                            </button>
+                            <button
+                                onClick={() => setFeedType('following')}
+                                className={`flex-1 py-4 font-semibold text-center transition-all ${
+                                    feedType === 'following'
+                                    ? 'border-b-2 border-brand-green text-brand-green'
+                                    : 'text-text-tertiary-light dark:text-text-tertiary hover:bg-tertiary-light/30 dark:hover:bg-tertiary/30'
+                                }`}
+                            >
+                                Following
+                            </button>
+                        </div>
                     </div>
                     
                     {/* Posts Feed */}
