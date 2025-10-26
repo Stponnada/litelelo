@@ -5,10 +5,14 @@ import { supabase } from '../services/supabase';
 import { Post as PostType } from '../types';
 import { useAuth } from '../hooks/useAuth';
 
+export type FeedType = 'foryou' | 'following';
+
 interface PostsContextType {
   posts: PostType[];
   loading: boolean;
   error: string | null;
+  feedType: FeedType;
+  setFeedType: (type: FeedType) => void;
   fetchPosts: () => void;
   addPostToContext: (newPost: any) => void;
   updatePostInContext: (updatedPost: Partial<PostType> & { id: string }) => void;
@@ -21,26 +25,22 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [posts, setPosts] = useState<PostType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [feedType, setFeedType] = useState<FeedType>('foryou');
 
   const fetchPosts = useCallback(async () => {
-    // --- THIS IS THE FIX: The hook now depends on the stable user ID ---
     if (!user?.id) {
       setPosts([]);
       setLoading(false);
       return;
     }
-    // Only set loading on the initial fetch
-    if (posts.length === 0) {
-        setLoading(true);
-    }
+    setLoading(true); // Always set loading on fetch
     setError(null);
     try {
-      const { data, error: fetchError } = await supabase.rpc('get_feed_posts');
+      const rpcToCall = feedType === 'foryou' ? 'get_public_feed_posts' : 'get_feed_posts';
+      const { data, error: fetchError } = await supabase.rpc(rpcToCall);
+      
       if (fetchError) throw fetchError;
       
-      // --- THIS IS THE RESTORED MAPPING LOGIC ---
-      // The RPC returns flat data, so we need to nest the author object
-      // to match our PostType interface.
       const formattedPosts = (data as any[]).map(p => ({
         ...p,
         author: {
@@ -49,7 +49,7 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           author_name: p.author_name,
           author_username: p.author_username,
           author_avatar_url: p.author_avatar_url,
-          author_flair_details: p.author_flair_details, // <-- THIS IS THE FIX
+          author_flair_details: p.author_flair_details, 
         }
       }));
 
@@ -60,14 +60,13 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } finally {
       setLoading(false);
     }
-  }, [user?.id]); // --- THE FIX IS HERE ---
+  }, [user?.id, feedType]); // <-- THE FIX: Added feedType to the dependency array
 
   useEffect(() => {
     fetchPosts();
   }, [fetchPosts]);
 
   const addPostToContext = (newPost: any) => {
-    // Also format the new post from the RPC call
     const formattedNewPost: PostType = {
       ...newPost,
       author: {
@@ -76,7 +75,7 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         author_name: newPost.author_name,
         author_username: newPost.author_username,
         author_avatar_url: newPost.author_avatar_url,
-        author_flair_details: newPost.author_flair_details, // Also add here for optimistic updates
+        author_flair_details: newPost.author_flair_details,
       }
     };
     
@@ -91,7 +90,7 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     );
   }, []);
 
-  const value = { posts, loading, error, addPostToContext, updatePostInContext, fetchPosts };
+  const value = { posts, loading, error, feedType, setFeedType, addPostToContext, updatePostInContext, fetchPosts };
 
   return (
     <PostsContext.Provider value={value}>
