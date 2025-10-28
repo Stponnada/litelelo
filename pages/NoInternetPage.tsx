@@ -7,7 +7,7 @@ const NoInternetPage: React.FC = () => {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-primary-light dark:bg-primary text-center p-4">
       <div className="relative mb-6">
-        <div className="w-32 h-32 rounded-3xl bg-red-500/10 dark:bg-red-500/20 flex items-center justify-center">
+        <div className="w-32 h-32 rounded-3xl bg-blue-1100/10 dark:bg-blue-1100/20 flex items-center justify-center">
           <WifiOffIcon className="w-16 h-16 text-red-500" />
         </div>
       </div>

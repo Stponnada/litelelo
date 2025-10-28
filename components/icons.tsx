@@ -441,54 +441,34 @@ export const GlobeIcon: React.FC<{ className?: string }> = ({ className = "w-6 h
 
 
 
-export const WifiOffIcon = ({
-  size = 48,
-  color = '#000000',
-  strokeWidth = 1.5,
-  background = 'transparent',
-  opacity = 1,
-  rotation = 0,
-  shadow = 0,
-  flipHorizontal = false,
-  flipVertical = false,
-  padding = 0
-}) => {
-  const transforms: string[] = [];
-  if (rotation !== 0) transforms.push(`rotate(${rotation}deg)`);
-  if (flipHorizontal) transforms.push('scaleX(-1)');
-  if (flipVertical) transforms.push('scaleY(-1)');
-
-  const viewBoxSize = 24 + padding * 2;
-  const viewBoxOffset = -padding;
-  const viewBox = `${viewBoxOffset} ${viewBoxOffset} ${viewBoxSize} ${viewBoxSize}`;
-
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox={viewBox}
-      width={size}
-      height={size}
-      fill="none"
-      stroke={color}
-      strokeWidth={strokeWidth}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      style={{
-        opacity,
-        transform: transforms.join(' ') || undefined,
-        filter:
-          shadow > 0
-            ? `drop-shadow(0 ${shadow}px ${shadow * 2}px rgba(0,0,0,0.3))`
-            : undefined,
-        backgroundColor: background !== 'transparent' ? background : undefined
-      }}
-    >
-      <path
-        d="M12 20h.01M8.5 16.429a5 5 0 0 1 7 0M5 12.859a10 10 0 0 1 5.17-2.69m8.83 2.69a10 10 0 0 0-2.007-1.523M2 8.82a15 15 0 0 1 4.177-2.643M22 8.82a15 15 0 0 0-11.288-3.764M2 2l20 20"
-      />
-    </svg>
+export const WifiOffIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    id="svg822"
+    fill="#00ff62"
+    stroke="#00ff62"
+    version="1.1"
+    viewBox="0 0 30 30"
+  >
+    <g id="SVGRepo_iconCarrier">
+      <g id="layer1" transform="translate(0 -289.063)">
+        <path
+          id="rect1854"
+          fill="#00ff91"
+          fillOpacity="1"
+          stroke="none"
+          strokeDasharray="none"
+          strokeMiterlimit="4"
+          strokeOpacity="1"
+          strokeWidth="2"
+          d="M25.607 4.393 4.393 25.607l1.414 1.414 6.095-6.095L15 25 27 9.21s-.732-.61-2.016-1.366l2.037-2.037zM15 5C8 5 3 9.21 3 9.21l6.46 8.5L21.114 6.06C19.357 5.453 17.29 5 15 5"
+          transform="translate(0 289.063)"
+        ></path>
+      </g>
+    </g>
+  </svg>
   );
-};
+
 
 
 export const QuestionMarkCircleIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" }) => (
