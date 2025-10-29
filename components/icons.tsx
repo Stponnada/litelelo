@@ -176,6 +176,22 @@ export const StarIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-
     </svg>
 );
 
+// New icon used to indicate community consulship
+export const ConsulIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    xmlSpace="preserve"
+    viewBox="-87.04 -87.04 686.06 686.06"
+    className={className}
+  >
+    <path
+      fill="gold"
+      d="M9.166.33a2.25 2.25 0 0 0-2.332 0l-5.25 3.182A2.25 2.25 0 0 0 .5 5.436v5.128a2.25 2.25 0 0 0 1.084 1.924l5.25 3.182a2.25 2.25 0 0 0 2.332 0l5.25-3.182a2.25 2.25 0 0 0 1.084-1.924V5.436a2.25 2.25 0 0 0-1.084-1.924z"
+      transform="translate(-87.04 -87.04)scale(42.87875)"
+    ></path>
+  </svg>
+);
+
 export const ArchiveBoxIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" }) => (
 
   <svg

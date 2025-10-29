@@ -8,7 +8,7 @@ import PostComponent from '../components/Post';
 import CreatePost from '../components/CreatePost';
 import { Post as PostType, Profile, Friend } from '../types';
 import Spinner from '../components/Spinner';
-import { CameraIcon, LogoutIcon, ChatIcon, UserGroupIcon, StarIcon, BookmarkIcon } from '../components/icons';
+import { CameraIcon, LogoutIcon, ChatIcon, UserGroupIcon, BookmarkIcon, ConsulIcon } from '../components/icons';
 import { isMscBranch, BITS_BRANCHES } from '../data/bitsBranches.ts';
 import ImageCropper from '../components/ImageCropper';
 import FollowListModal from '../components/FollowListModal';
@@ -87,17 +87,18 @@ const ProfilePage: React.FC = () => {
                 .single();
 
             if (error || !data) throw error || new Error("Profile not found");
+            const profileData: any = data;
             // Ensure phone is included even if RPC doesn't return it
             let phone: string | null = null;
-            if (data?.user_id) {
+            if (profileData?.user_id) {
                 const { data: profileRow } = await supabase
                     .from('profiles')
                     .select('phone')
-                    .eq('user_id', data.user_id)
+                    .eq('user_id', profileData.user_id)
                     .single();
                 phone = (profileRow as any)?.phone ?? null;
             }
-            setProfile({ ...data, phone });
+            setProfile({ ...(profileData as object), phone } as any);
         } catch (error) {
             console.error("Error fetching profile data:", error);
             setProfile(null);
@@ -514,8 +515,8 @@ const ProfilePage: React.FC = () => {
                                                                 className="w-16 h-16 rounded-xl object-cover ring-2 ring-transparent group-hover:ring-brand-green transition-all"
                                                             />
                                                             {community.role === 'admin' && (
-                                                                <div className="absolute -top-1 -right-1 bg-yellow-400 rounded-full p-1">
-                                                                    <StarIcon className="w-3 h-3 text-black" />
+                                                                <div className="absolute -top-1 -right-1">
+                                                                    <ConsulIcon className="w-4 h-4" />
                                                                 </div>
                                                             )}
                                                         </div>
@@ -768,7 +769,7 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
                     <h2 className="text-3xl font-bold text-brand-green mb-8">Edit Profile</h2>
                     
                     {/* Banner and Avatar Upload */}
-                    <div className="relative h-48 bg-gradient-to-br from-tertiary-light to-tertiary-light/50 dark:from-tertiary dark:to-tertiary/50 rounded-xl mb-20 overflow-hidden">
+                    <div className="relative h-48 bg-gradient-to-br from-tertiary-light to-tertiary-light/50 dark:from-tertiary dark:to-tertiary/50 rounded-xl mb-20 overflow-visible">
                         {bannerPreview && <img src={bannerPreview} className="w-full h-full object-cover" alt="Banner Preview"/>}
                         <button 
                             type="button" 
