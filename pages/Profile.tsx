@@ -87,7 +87,17 @@ const ProfilePage: React.FC = () => {
                 .single();
 
             if (error || !data) throw error || new Error("Profile not found");
-            setProfile(data);
+            // Ensure phone is included even if RPC doesn't return it
+            let phone: string | null = null;
+            if (data?.user_id) {
+                const { data: profileRow } = await supabase
+                    .from('profiles')
+                    .select('phone')
+                    .eq('user_id', data.user_id)
+                    .single();
+                phone = (profileRow as any)?.phone ?? null;
+            }
+            setProfile({ ...data, phone });
         } catch (error) {
             console.error("Error fetching profile data:", error);
             setProfile(null);
@@ -446,6 +456,7 @@ const ProfilePage: React.FC = () => {
                                         <ProfileDetail label="Relationship" value={profile.relationship_status} />
                                         <ProfileDetail label="Dorm" value={dormInfo} />
                                         <ProfileDetail label="Dining Hall" value={profile.dining_hall} />
+                                        <ProfileDetail label="Phone" value={profile.phone || null} />
                                     </div>
                                 </div>
 
@@ -724,6 +735,7 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
                 full_name: profileData.full_name, bio: profileData.bio, branch: profileData.branch,
                 dual_degree_branch: profileData.dual_degree_branch || null, relationship_status: profileData.relationship_status,
                 dorm_building: profileData.dorm_building, dorm_room: profileData.dorm_room, dining_hall: profileData.dining_hall,
+                phone: profileData.phone || null,
                 avatar_url, banner_url, updated_at: new Date().toISOString(),
                 displayed_community_flair: profileData.displayed_community_flair || null, // ADDED
             }).eq('user_id', user.id).select().single();
@@ -803,6 +815,21 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
                                 name="full_name" 
                                 value={profileData.full_name || ''} 
                                 onChange={handleChange} 
+                                className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none" 
+                            />
+                        </div>
+
+                        {/* Phone */}
+                        <div>
+                            <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                Phone <span className="text-text-tertiary-light dark:text-text-tertiary text-xs">(Optional)</span>
+                            </label>
+                            <input 
+                                type="tel" 
+                                name="phone" 
+                                value={profileData.phone || ''} 
+                                onChange={handleChange} 
+                                placeholder="e.g., +91 98765 43210" 
                                 className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none" 
                             />
                         </div>

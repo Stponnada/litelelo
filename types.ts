@@ -54,6 +54,7 @@ export interface Profile {
   avatar_url: string | null;
   banner_url: string | null;
   bio: string | null;
+  phone?: string | null;
   campus: string | null;
   admission_year: number | null;
   branch: string | null;

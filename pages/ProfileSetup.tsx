@@ -30,6 +30,7 @@ const ProfileSetup: React.FC = () => {
     full_name: '', campus: '', admission_year: '', branch: '',
     dual_degree_branch: '', relationship_status: '', dorm_building: '',
     dorm_room: '', dining_hall: '', bio: '',
+    phone: '',
     gender: '', birthday_year: '', birthday_month: '', birthday_day: '',
   });
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -156,6 +157,7 @@ const ProfileSetup: React.FC = () => {
           branch: formData.branch, dual_degree_branch: formData.dual_degree_branch || null,
           relationship_status: formData.relationship_status, dorm_building: formData.dorm_building,
           dorm_room: formData.dorm_room, dining_hall: formData.dining_hall, bio: formData.bio,
+          phone: formData.phone || null,
           avatar_url, banner_url, profile_complete: true, updated_at: new Date().toISOString(),
           gender: formData.gender || null,
           birthday: birthday
@@ -461,6 +463,19 @@ const ProfileSetup: React.FC = () => {
                     <option value="">Select Status</option>
                     {RELATIONSHIP_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
+                </div>
+
+                <div>
+                  <label htmlFor="phone" className="block text-text-secondary-light dark:text-text-secondary text-sm font-semibold mb-2">Phone <span className="text-text-tertiary-light dark:text-text-tertiary text-xs">(Optional)</span></label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    id="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    placeholder="e.g., +91 98765 43210"
+                    className="w-full p-4 bg-tertiary-light dark:bg-tertiary border-2 border-transparent focus:border-brand-green rounded-xl text-text-main-light dark:text-text-main transition-all duration-300 outline-none"
+                  />
                 </div>
 
                 <div>

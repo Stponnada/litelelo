@@ -11,33 +11,53 @@ import { ArchiveBoxIcon, ShoppingCartIcon, StarIcon, ClipboardDocumentListIcon, 
 
 
 
-const FeatureCard: React.FC<{ to: string; icon: React.ReactNode; title: string; description: string; gradient: string }> = ({ to, icon, title, description, gradient }) => (
-    <Link to={to} className="group relative block bg-gradient-to-br from-secondary-light to-secondary-light dark:from-secondary dark:to-secondary rounded-xl md:rounded-2xl p-3 md:p-6 shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border border-tertiary-light dark:border-tertiary hover:border-transparent">
-        <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
-        <div className={`absolute top-0 right-0 w-20 md:w-32 h-20 md:h-32 bg-gradient-to-br ${gradient} opacity-10 rounded-full blur-2xl -mr-10 md:-mr-16 -mt-10 md:-mt-16 group-hover:scale-150 transition-transform duration-500`}></div>
-        
-        <div className="relative z-10">
-            <div className="flex flex-col items-center text-center space-y-2 md:space-y-3">
-                <div className={`bg-gradient-to-br ${gradient} p-2.5 md:p-4 rounded-xl md:rounded-2xl shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-all duration-300`}>
-                    {icon}
-                </div>
-                <div className="flex-1">
-                    <h3 className="text-xs md:text-lg font-bold text-text-main-light dark:text-text-main group-hover:text-white transition-colors duration-300 leading-tight">
-                        {title}
-                    </h3>
-                    <p className="hidden md:block mt-2 text-xs md:text-sm text-text-secondary-light dark:text-text-secondary group-hover:text-white/90 leading-relaxed transition-colors duration-300">
-                        {description}
-                    </p>
-                </div>
-                <div className="hidden md:flex items-center text-brand-green group-hover:text-white font-bold text-sm opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
-                    <span>Explore</span>
-                    <svg className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                </div>
-            </div>
+const FeatureCard: React.FC<{ to: string; icon: React.ReactNode; title: string; description: string; gradient: string }> = ({
+  to,
+  icon,
+  title,
+  description,
+  gradient,
+}) => (
+  <Link
+    to={to}
+    className="group relative block bg-gradient-to-br from-secondary-light to-secondary-light dark:from-secondary dark:to-secondary rounded-xl md:rounded-2xl p-3 md:p-4 shadow-md hover:shadow-lg transition-all duration-500 overflow-hidden border border-tertiary-light dark:border-tertiary hover:border-transparent"
+  >
+    <div
+      className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`}
+    ></div>
+    <div
+      className={`absolute top-0 right-0 w-16 md:w-28 h-16 md:h-28 bg-gradient-to-br ${gradient} opacity-10 rounded-full blur-2xl -mr-8 md:-mr-14 -mt-8 md:-mt-14 group-hover:scale-150 transition-transform duration-500`}
+    ></div>
+
+    <div className="relative z-10">
+      <div className="flex flex-col items-center text-center space-y-1.5 md:space-y-2">
+        <div
+          className={`bg-gradient-to-br ${gradient} p-2 md:p-3 rounded-lg md:rounded-xl shadow-md group-hover:scale-105 group-hover:rotate-3 transition-all duration-300`}
+        >
+          {icon}
         </div>
-    </Link>
+        <div className="flex-1">
+          <h3 className="text-xs md:text-base font-bold text-text-main-light dark:text-text-main group-hover:text-white transition-colors duration-300 leading-snug">
+            {title}
+          </h3>
+          <p className="hidden md:block mt-1 text-xs md:text-sm text-text-secondary-light dark:text-text-secondary group-hover:text-white/90 leading-snug transition-colors duration-300">
+            {description}
+          </p>
+        </div>
+        <div className="hidden md:flex items-center text-brand-green group-hover:text-white font-semibold text-xs opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
+          <span>Explore</span>
+          <svg
+            className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform duration-300"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </div>
+      </div>
+    </div>
+  </Link>
 );
 
 const MiniPlaceCard: React.FC<{ place: CampusPlace }> = ({ place }) => (
@@ -187,21 +207,23 @@ const CampusPage: React.FC = () => {
                        <span className="text-sm font-bold text-brand-green uppercase tracking-wider">Your Campus Hub</span>
                     </div>*/}
                     
-                    <h1 className="text-xl md:text-7xl font-extrabold text-text-main-light dark:text-text-main leading-tight">
-                        Today at BITS{' '}
-                        <span className="relative inline-block">
-                            <span className="bg-gradient-to-r from-brand-green via-green-400 to-brand-green bg-clip-text text-transparent">
-                                {displayedText}
-                            </span>
-                            <span className={`text-brand-green ${isTyping ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}>
-                                |
-                            </span>
+                    <h1 className="text-3xl md:text-7xl font-black text-text-main-light dark:text-text-main leading-tight mb-8">
+                    Today at BITS{' '}
+                    <span className="relative inline-block">
+                        <span className="bg-gradient-to-r from-brand-green via-green-400 to-brand-green bg-clip-text text-transparent">
+                        {displayedText}
                         </span>
+                        <span className={`text-brand-green ${isTyping ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}>
+                        |
+                        </span>
+                    </span>
                     </h1>
+
                     
                     <p className="hidden md:block text-lg md:text-2xl text-text-secondary-light dark:text-text-secondary max-w-2xl mx-auto font-medium leading-relaxed mt-3">
                         Your one-stop destination for campus services, reviews, and community connections
                     </p>
+
                     {/* Stats bar - Hidden on mobile */}
                 </div>
             {/* </div>*/}
