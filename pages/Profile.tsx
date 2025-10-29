@@ -420,7 +420,7 @@ const ProfilePage: React.FC = () => {
                                         <div>
                                             {/*<UserGroupIcon className="w-5 h-5 text-brand-green flex-shrink-0" />*/}
                                             <h3 className="text-lg font-bold text-text-main-light dark:text-white mb-3">
-                                                Roommies with:
+                                                Roomies with:
                                             </h3>
                                             <div className="flex items-center gap-2 flex-wrap">
                                                 

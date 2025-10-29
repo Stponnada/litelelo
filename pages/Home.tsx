@@ -78,7 +78,7 @@ const CommunitiesWidget: React.FC = () => {
 const EventsWidget: React.FC<{ events: CampusEvent[] }> = ({ events }) => (
     <div className="bg-white dark:bg-secondary rounded-2xl border border-gray-200 dark:border-tertiary p-4">
         <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-text-main-light dark:text-text-main">Upcoming and Previous Events</h3>
+            <h3 className="font-semibold text-text-main-light dark:text-text-main">Events</h3>
             <CalendarDaysIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary"/>
         </div>
         {events.length > 0 ? (

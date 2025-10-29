@@ -23,6 +23,7 @@ import {
   QuestionMarkCircleIcon,
   ShieldCheckIcon,
   LockClosedIcon,
+  SettingsCogIcon,
 } from './icons';
 
 interface LeftSidebarProps {
@@ -44,6 +45,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const { theme, toggleTheme } = useTheme();
   const sidebarRef = React.useRef<HTMLElement | null>(null);
   const collapseTimerRef = React.useRef<number | null>(null);
+  const [sidebarMode, setSidebarMode] = React.useState<'hover' | 'expanded' | 'collapsed'>('hover');
 
   const handleSignOut = async () => {
     await supabase.auth.signOut({ scope: 'local' });
@@ -61,8 +63,8 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
     >
       {icon}
       <span
-        className={`whitespace-nowrap transform transition-all duration-300 ease-in-out
-          ${isExpanded ? 'opacity-100 translate-x-0 delay-200' : 'opacity-0 -translate-x-3 delay-0'}
+        className={`whitespace-nowrap transform transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform will-change-opacity
+          ${isExpanded ? 'opacity-100 translate-x-0 delay-150' : 'opacity-0 -translate-x-3 delay-0'}
         `}
       >
         {text}
@@ -80,7 +82,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
       // if the pointer is outside the expanded bounds, request collapse after a short debounce
       if (document.pointerLockElement) return; // ignore when pointer locked
       const outside = e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom;
-      if (outside) {
+      if (outside && sidebarMode === 'hover') {
         if (collapseTimerRef.current == null) {
           collapseTimerRef.current = window.setTimeout(() => {
             // dispatch a synthetic collapse event that the component listens for below
@@ -102,20 +104,48 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
         collapseTimerRef.current = null;
       }
     };
-  }, []);
+  }, [sidebarMode]);
 
   // listen for synthetic collapse events and collapse the sidebar
   React.useEffect(() => {
-    const handler = () => setIsExpanded(false);
+    const handler = () => { if (sidebarMode === 'hover') setIsExpanded(false); };
     window.addEventListener('litelelo:sidebar-collapse', handler as EventListener);
     return () => window.removeEventListener('litelelo:sidebar-collapse', handler as EventListener);
-  }, [setIsExpanded]);
+  }, [setIsExpanded, sidebarMode]);
+
+  // enforce mode on mounted/changes
+  React.useEffect(() => {
+    if (sidebarMode === 'expanded') setIsExpanded(true);
+    if (sidebarMode === 'collapsed') setIsExpanded(false);
+  }, [sidebarMode, setIsExpanded]);
+
+  // initialize from localStorage and react to changes
+  React.useEffect(() => {
+    const key = 'litelelo.sidebarMode';
+    const fromStorage = (localStorage.getItem(key) as 'hover' | 'expanded' | 'collapsed' | null) || 'hover';
+    setSidebarMode(fromStorage);
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === key && e.newValue) {
+        setSidebarMode(e.newValue as any);
+      }
+    };
+    const onCustom = (e: Event) => {
+      const value = (e as CustomEvent).detail as 'hover' | 'expanded' | 'collapsed';
+      if (value) setSidebarMode(value);
+    };
+    window.addEventListener('storage', onStorage);
+    window.addEventListener('litelelo:sidebar-mode-changed', onCustom as EventListener);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('litelelo:sidebar-mode-changed', onCustom as EventListener);
+    };
+  }, []);
 
   return (
-  <aside
+    <aside
       // --- THIS IS THE FIX ---
       // Added `hidden md:block` to ensure the sidebar only appears on medium screens and larger.
-      className={`hidden md:block fixed top-24 left-0 h-[calc(100vh-theme(space.24))] bg-gray-100 dark:bg-secondary border-r border-tertiary-light dark:border-tertiary z-30 overflow-hidden transition-all duration-300 ease-in-out ${
+      className={`hidden md:block fixed top-24 left-0 h-[calc(100vh-theme(space.24))] bg-gray-100 dark:bg-secondary border-r border-tertiary-light dark:border-tertiary z-30 overflow-visible transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
         isExpanded ? 'w-48' : 'w-20'
       }`}
       ref={(el) => (sidebarRef.current = el)}
@@ -125,11 +155,11 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
           window.clearTimeout(collapseTimerRef.current);
           collapseTimerRef.current = null;
         }
-        setIsExpanded(true);
+        if (sidebarMode === 'hover') setIsExpanded(true);
       }}
       onMouseLeave={() => {
-        // normal collapse behavior on mouse leave
-        setIsExpanded(false);
+        // normal collapse behavior on mouse leave unless pinned
+        if (sidebarMode === 'hover') setIsExpanded(false);
       }}
     >
       <div className="flex flex-col h-full p-3 pt-6">
@@ -164,6 +194,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
         {/* Profile + Settings */}
         <div className="relative mt-auto group">
+          {/* Removed inline sidebar controls; moved to Settings page */}
           <div className="absolute bottom-full left-0 w-full mb-2 bg-secondary-light dark:bg-primary border border-tertiary-light dark:border-tertiary rounded-lg shadow-lg py-1 transition-all duration-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible">
             {profile?.username && (
               <Link
@@ -179,7 +210,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
             >
               <span className="flex items-center gap-3">
                 {theme === 'light' ? <MoonIcon className="w-5 h-5" /> : <SunIcon className="w-5 h-5" />}
-                <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
+                <span>{theme === 'light' ? 'Dark Mode' : 'Lite Mode'}</span>
               </span>
             </button>
             <button
@@ -189,6 +220,9 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
               <InformationCircleIcon className="w-5 h-5" />
               <span>About</span>
             </button>
+            <Link to="/settings" className="flex items-center gap-3 px-4 py-2 text-sm text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary">
+              <SettingsCogIcon className="w-5 h-5" /> Settings
+            </Link>
             <div className="my-1 mx-2 h-px bg-tertiary-light/50 dark:bg-tertiary/50" />
             <Link to="/help" className="flex items-center gap-3 px-4 py-2 text-sm text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary">
               <QuestionMarkCircleIcon className="w-5 h-5" /> Help Center
@@ -217,8 +251,8 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
               className="w-9 h-9 rounded-full object-cover flex-shrink-0"
             />
             <div
-              className={`flex-1 text-left min-w-0 transform transition-all duration-300 ease-in-out ${
-                isExpanded ? 'opacity-100 translate-x-0 delay-200' : 'opacity-0 -translate-x-3 delay-0'
+              className={`flex-1 text-left min-w-0 transform transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                isExpanded ? 'opacity-100 translate-x-0 delay-150' : 'opacity-0 -translate-x-3 delay-0'
               }`}
             >
               <p className="font-bold text-sm text-text-main-light dark:text-text-main truncate">

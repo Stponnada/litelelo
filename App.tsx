@@ -42,6 +42,7 @@ import EasterEggPage from './pages/EasterEggPage';
 import RideSharePage from './pages/RideSharePage';
 import BlockchainPage from './pages/BlockchainPage';
 import PasswordResetPage from './pages/PasswordResetPage'; // <-- IMPORT THE NEW PAGE
+import SettingsPage from './pages/SettingsPage';
 
 const AppRoutes = () => {
   const { user, profile, isLoading } = useAuth();
@@ -112,6 +113,7 @@ const AppRoutes = () => {
         <Route path="/help" element={<HelpCenterPage />} />
         <Route path="/terms" element={<TermsPage />} /> 
         <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
       </Route>
 
       {/* Routes outside the main layout */}
