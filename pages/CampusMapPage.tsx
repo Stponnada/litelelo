@@ -35,7 +35,6 @@ const lightTheme = {
   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 };
 
-// Using the truly free CARTO dark map that requires no API key
 const darkTheme = {
   url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
@@ -71,19 +70,27 @@ const CampusMapPage = () => {
     };
   }, []);
 
-  // Effect to get and update the current user's location
+  // Effect to get and update the current user's location with high accuracy
   useEffect(() => {
-    if (!profile) return; // Don't run until the user profile is loaded
+    if (!profile) return;
+
+    const geolocationOptions = {
+      enableHighAccuracy: true, // Request the most accurate location possible
+      timeout: 5000,           // Give up after 5 seconds
+      maximumAge: 0,           // Do not use a cached position
+    };
 
     const updateLocation = () => {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
-          const { latitude, longitude } = position.coords;
+          const { latitude, longitude, accuracy } = position.coords;
+          console.log(`Location found with accuracy: ${accuracy} meters.`);
           await supabase.rpc('update_user_location', { latitude, longitude });
         },
         (error) => {
-          console.error('Error getting user location:', error);
-        }
+          console.error(`Error getting user location: ${error.message}`);
+        },
+        geolocationOptions // Pass the high-accuracy options
       );
     };
 
@@ -93,7 +100,7 @@ const CampusMapPage = () => {
     return () => {
       clearInterval(intervalId);
     };
-  }, [profile]); // Dependency ensures this runs after profile is available
+  }, [profile]);
 
   // Effect to imperatively update GeoJSON marker styles when the theme changes
   useEffect(() => {
@@ -102,7 +109,7 @@ const CampusMapPage = () => {
       geoJsonLayer.eachLayer((layer) => {
         if (layer instanceof L.CircleMarker && layer.feature) {
           layer.setStyle({
-            color: isDarkMode ? '#1f2937' : '#fff', // Border color
+            color: isDarkMode ? '#1f2937' : '#fff',
             weight: 1.5,
           });
         }
@@ -110,7 +117,6 @@ const CampusMapPage = () => {
     }
   }, [isDarkMode]);
 
-  // Shows a loading state until the user's profile and campus are loaded
   if (!userCampus || !campusCoordinates[userCampus]) {
     return <div>Loading campus information...</div>;
   }
@@ -143,7 +149,7 @@ const CampusMapPage = () => {
     return L.circleMarker(latlng, {
       radius: 8,
       fillColor: getCategoryColor(feature.properties?.category),
-      color: isDarkMode ? '#1f2937' : '#fff', // Set initial border color
+      color: isDarkMode ? '#1f2937' : '#fff',
       weight: 1.5,
       opacity: 1,
       fillOpacity: 0.9,

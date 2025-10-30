@@ -22,7 +22,6 @@ interface CommunityLink {
     role: 'member' | 'admin';
 }
 
-// --- THIS IS THE FIX ---
 const Flair: React.FC<{ flair: { id: string; name: string; avatar_url: string | null } }> = ({ flair }) => (
     <Link
       to={`/communities/${flair.id}`}
@@ -74,6 +73,8 @@ const ProfilePage: React.FC = () => {
     const [communitiesLoading, setCommunitiesLoading] = useState(true);
 
     const [followModalState, setFollowModalState] = useState<{ isOpen: boolean; listType: 'followers' | 'following' | null; }>({ isOpen: false, listType: null });
+    // --- THIS IS THE FIX (1/4): State for the new friends modal ---
+    const [isFriendsModalOpen, setIsFriendsModalOpen] = useState(false);
     const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
     const fetchProfileData = useCallback(async () => {
@@ -127,7 +128,7 @@ const ProfilePage: React.FC = () => {
                   author_name: p.author_name,
                   author_username: p.author_username,
                   author_avatar_url: p.author_avatar_url,
-                  author_flair_details: p.author_flair_details, // ADDED
+                  author_flair_details: p.author_flair_details,
                 }
             }));
             setPosts(fetchedPosts);
@@ -145,7 +146,7 @@ const ProfilePage: React.FC = () => {
                     author_name: p.author_name,
                     author_username: p.author_username,
                     author_avatar_url: p.author_avatar_url,
-                    author_flair_details: p.author_flair_details, // ADDED
+                    author_flair_details: p.author_flair_details,
                 }
             }));
             setMentions(fetchedMentions);
@@ -244,7 +245,6 @@ const ProfilePage: React.FC = () => {
     };
 
     const handleSignOut = async () => {
-        // --- FIX IS HERE: Specify 'local' scope for logout ---
         await supabase.auth.signOut({ scope: 'local' });
         navigate('/login');
     };
@@ -268,6 +268,8 @@ const ProfilePage: React.FC = () => {
         <>
             {isEditModalOpen && profile && <EditProfileModal userProfile={profile} onClose={() => setIsEditModalOpen(false)} onSave={fetchProfileData} />}
             {followModalState.isOpen && profile && followModalState.listType && <FollowListModal profile={profile} listType={followModalState.listType} onClose={() => setFollowModalState({ isOpen: false, listType: null })} />}
+            {/* --- THIS IS THE FIX (2/4): Render the new friends modal --- */}
+            {isFriendsModalOpen && profile && <FriendsListModal profile={profile} onClose={() => setIsFriendsModalOpen(false)} />}
             {lightboxUrl && <LightBox imageUrl={lightboxUrl} onClose={() => setLightboxUrl(null)} />}
 
             <div className="w-full max-w-7xl mx-auto pb-8">
@@ -309,7 +311,6 @@ const ProfilePage: React.FC = () => {
                                         <h1 className="text-3xl sm:text-4xl font-bold text-text-main-light dark:text-white">
                                             {profile.full_name}
                                         </h1>
-                                        {/* --- NEW: Display Flair --- */}
                                         {profile.flair_details && <Flair flair={profile.flair_details} />}
                                     </div>
                                     <p className="text-lg text-text-tertiary-light dark:text-text-tertiary mt-1">
@@ -466,9 +467,13 @@ const ProfilePage: React.FC = () => {
                                     <>
                                         <hr className="border-tertiary-light dark:border-tertiary" />
                                         <div>
-                                            <h3 className="text-lg font-bold text-text-main-light dark:text-white mb-4">
+                                            {/* --- THIS IS THE FIX (3/4): Make heading a button to open modal --- */}
+                                            <button 
+                                                onClick={() => setIsFriendsModalOpen(true)}
+                                                className="text-lg font-bold text-text-main-light dark:text-white mb-4 hover:underline text-left w-full"
+                                            >
                                                 Friends
-                                            </h3>
+                                            </button>
                                             <div className="grid grid-cols-3 gap-3">
                                                 {friends.slice(0, 9).map(friend => (
                                                     <Link 
@@ -630,6 +635,70 @@ const ProfilePage: React.FC = () => {
     );
 };
 
+// --- THIS IS THE FIX (4/4): New component for the friends list modal ---
+const FriendsListModal: React.FC<{ profile: Profile; onClose: () => void }> = ({ profile, onClose }) => {
+    const [fullFriendsList, setFullFriendsList] = useState<Friend[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchAllFriends = async () => {
+            if (!profile) return;
+            setLoading(true);
+            try {
+                const { data, error } = await supabase.rpc('get_mutual_followers', { p_user_id: profile.user_id });
+                if (error) throw error;
+                setFullFriendsList(data || []);
+            } catch (error) {
+                console.error("Error fetching full friends list:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchAllFriends();
+    }, [profile]);
+
+    return (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
+            <div 
+                className="bg-secondary-light dark:bg-secondary rounded-2xl shadow-2xl w-full max-w-md max-h-[70vh] flex flex-col" 
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="p-4 border-b border-tertiary-light dark:border-tertiary flex items-center justify-between sticky top-0 bg-secondary-light dark:bg-secondary rounded-t-2xl">
+                    <h2 className="text-xl font-bold text-text-main-light dark:text-white">Friends</h2>
+                    <button onClick={onClose} className="text-2xl text-text-tertiary-light dark:text-text-tertiary hover:text-text-main-light dark:hover:text-text-main">&times;</button>
+                </div>
+                <div className="overflow-y-auto p-4">
+                    {loading ? (
+                        <div className="flex justify-center p-8"><Spinner /></div>
+                    ) : fullFriendsList.length > 0 ? (
+                        <ul className="space-y-3">
+                            {fullFriendsList.map(friend => (
+                                <li key={friend.user_id}>
+                                    <Link to={`/profile/${friend.username}`} onClick={onClose} className="w-full flex items-center gap-4 p-2 rounded-lg hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors text-left">
+                                        <img 
+                                            src={friend.avatar_url || `https://ui-avatars.com/api/?name=${friend.full_name || friend.username}`} 
+                                            alt={friend.username} 
+                                            className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                                        />
+                                        <div className="overflow-hidden">
+                                            <p className="font-semibold text-text-main-light dark:text-text-main truncate">{friend.full_name || friend.username}</p>
+                                            <p className="text-sm text-text-tertiary-light dark:text-text-tertiary truncate">@{friend.username}</p>
+                                        </div>
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="text-center text-text-tertiary-light dark:text-text-tertiary p-8">{profile.full_name?.split(' ')[0]} has no friends yet.</p>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
 const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, onSave: () => void }> = ({ userProfile, onClose, onSave }) => {
     const { user, updateProfileContext } = useAuth();
     const [profileData, setProfileData] = useState(userProfile);
@@ -640,7 +709,6 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState('');
     
-    // --- NEW: State for flair selection ---
     const [joinedCommunities, setJoinedCommunities] = useState<CommunityLink[]>([]);
     
     const [cropperState, setCropperState] = useState<{
@@ -664,7 +732,6 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
         }
     }, [profileData.campus, profileData.branch]);
 
-    // --- NEW: Fetch user's communities for the flair dropdown ---
     useEffect(() => {
         if (!user) return;
         const fetchUserCommunities = async () => {
@@ -738,7 +805,7 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
                 dorm_building: profileData.dorm_building, dorm_room: profileData.dorm_room, dining_hall: profileData.dining_hall,
                 phone: profileData.phone || null,
                 avatar_url, banner_url, updated_at: new Date().toISOString(),
-                displayed_community_flair: profileData.displayed_community_flair || null, // ADDED
+                displayed_community_flair: profileData.displayed_community_flair || null,
             }).eq('user_id', user.id).select().single();
 
             if (updateError) throw updateError;
