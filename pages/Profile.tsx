@@ -944,11 +944,13 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
                                     Dorm Room
                                 </label>
                                 <input 
-                                    type="text" 
+                                    type="number" 
                                     name="dorm_room" 
                                     placeholder="e.g., 469" 
                                     value={profileData.dorm_room || ''} 
                                     onChange={handleChange} 
+                                    pattern="^[1-9][0-9]{2}$"
+                                    title="Please enter a 3-digit room number."
                                     className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none" 
                                 />
                             </div>

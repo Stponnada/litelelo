@@ -1,5 +1,5 @@
 // src/pages/Home.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { usePosts } from '../hooks/usePosts';
@@ -190,6 +190,9 @@ export const HomePage: React.FC = () => {
 
     const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
     const [isCreatePostModalOpen, setCreatePostModalOpen] = useState(false);
+    const [visibleCount, setVisibleCount] = useState(10);
+    const sentinelRef = useRef<HTMLDivElement | null>(null);
+    const isLoadingMoreRef = useRef(false);
 
     useEffect(() => {
         if (localStorage.getItem('discoveredBlockchain') === 'true') {
@@ -206,6 +209,30 @@ export const HomePage: React.FC = () => {
             }).catch(console.error);
         }
     }, [currentUserProfile?.campus]);
+
+    // Reset visible items when feed changes
+    useEffect(() => {
+        setVisibleCount(10);
+    }, [posts, feedType]);
+
+    // Infinite scroll via IntersectionObserver (client-side windowing)
+    useEffect(() => {
+        const sentinel = sentinelRef.current;
+        if (!sentinel) return;
+        const observer = new IntersectionObserver((entries) => {
+            const entry = entries[0];
+            if (entry.isIntersecting && !isLoadingMoreRef.current) {
+                isLoadingMoreRef.current = true;
+                // Increase render window; schedule in next frame for smoothness
+                requestAnimationFrame(() => {
+                    setVisibleCount((prev) => prev + 10);
+                    isLoadingMoreRef.current = false;
+                });
+            }
+        }, { rootMargin: '400px 0px' });
+        observer.observe(sentinel);
+        return () => observer.disconnect();
+    }, []);
 
     const handlePostCreatedInModal = (post: PostType) => {
         addPostToContext(post);
@@ -306,9 +333,15 @@ export const HomePage: React.FC = () => {
                     {/* Posts Feed */}
                     {posts.length > 0 ? (
                         <div className="space-y-3">
-                            {posts.map((post) => (
+                            {posts.slice(0, visibleCount).map((post) => (
                                 <PostComponent key={post.id} post={post} onImageClick={setLightboxUrl} />
                             ))}
+                            {/* Sentinel for infinite scroll */}
+                            {visibleCount < posts.length && (
+                              <div ref={sentinelRef} className="flex items-center justify-center py-6">
+                                <Spinner />
+                              </div>
+                            )}
                         </div>
                     ) : (
                         <div className="text-center py-16 bg-white dark:bg-secondary rounded-2xl border border-gray-200 dark:border-tertiary">

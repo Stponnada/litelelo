@@ -98,8 +98,10 @@ const ProfileSetup: React.FC = () => {
   }, [formData.campus, formData.gender]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
   };
+
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'banner') => {
       if (e.target.files && e.target.files[0]) {
@@ -535,12 +537,14 @@ const ProfileSetup: React.FC = () => {
                   <div>
                     <label htmlFor="dorm_room" className="block text-text-secondary-light dark:text-text-secondary text-sm font-semibold mb-2">Dorm Room</label>
                     <input 
-                      type="text" 
+                      type="number" 
                       name="dorm_room" 
                       id="dorm_room" 
                       value={formData.dorm_room} 
                       onChange={handleChange}
                       placeholder="e.g. 101"
+                      pattern="^[1-9][0-9]{2}$"
+                      title="Please enter a 3-digit room number."
                       className="w-full p-4 bg-tertiary-light dark:bg-tertiary border-2 border-transparent focus:border-brand-green rounded-xl text-text-main-light dark:text-text-main transition-all duration-300 outline-none"
                     />
                   </div>

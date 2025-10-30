@@ -1090,15 +1090,15 @@ BEGIN
         c.name,
         c.description,
         c.avatar_url,
-        (SELECT count(*) FROM community_members cm WHERE cm.community_id = c.id) as member_count,
+        (SELECT count(*) FROM community_members cm WHERE cm.community_id = c.id AND cm.status = 'approved') as member_count,
         EXISTS(
             SELECT 1 FROM community_members cm
-            WHERE cm.community_id = c.id AND cm.user_id = auth.uid()
+            WHERE cm.community_id = c.id AND cm.user_id = auth.uid() AND cm.status = 'approved'
         ) as is_member
     FROM
         communities c
     WHERE
-        c.campus = p_campus
+        c.campus = p_campus AND c.parent_community_id IS NULL
     ORDER BY
         member_count DESC,
         c.name;
@@ -1880,7 +1880,7 @@ CREATE OR REPLACE FUNCTION "public"."get_profile_details"("profile_username" "te
     (SELECT count(*) FROM public.followers WHERE following_id = p.user_id)::int as follower_count,
     EXISTS (SELECT 1 FROM public.followers WHERE follower_id = auth.uid() AND following_id = p.user_id) as is_following,
     EXISTS (SELECT 1 FROM public.followers WHERE follower_id = p.user_id AND following_id = auth.uid()) as is_followed_by,
-    (SELECT jsonb_agg(jsonb_build_object('user_id', r.user_id, 'username', r.username, 'full_name', r.full_name, 'avatar_url', r.avatar_url)) FROM public.profiles r WHERE r.user_id != p.user_id AND r.campus = p.campus AND r.dorm_building = p.dorm_building AND r.dorm_room = p.dorm_room AND p.dorm_building IS NOT NULL AND p.dorm_room IS NOT NULL AND p.campus IS NOT NULL) as roommates,
+    (SELECT jsonb_agg(jsonb_build_object('user_id', r.user_id, 'username', r.username, 'full_name', r.full_name, 'avatar_url', r.avatar_url)) FROM public.profiles r WHERE r.user_id != p.user_id AND r.campus = p.campus AND r.dorm_building = p.dorm_building AND r.dorm_room = p.dorm_room AND p.dorm_building IS NOT NULL AND p.dorm_room IS NOT NULL AND r.dorm_building IS NOT NULL AND r.dorm_room IS NOT NULL AND p.campus IS NOT NULL) as roommates,
     -- New flair details object
     (SELECT jsonb_build_object('id', fc.id, 'name', fc.name, 'avatar_url', fc.avatar_url) FROM public.communities fc WHERE fc.id = p.displayed_community_flair) as flair_details
   FROM public.profiles p
@@ -1889,6 +1889,54 @@ $$;
 
 
 ALTER FUNCTION "public"."get_profile_details"("profile_username" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."get_public_feed_posts"() RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "repost_count" integer, "user_vote" "text", "is_bookmarked" boolean, "user_has_reposted" boolean, "original_poster_username" "text", "author_id" "text", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "author_flair_details" "jsonb", "poll" "jsonb", "quoted_post" "jsonb", "reposted_by" "jsonb")
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    AS $$
+SELECT
+    p.id, p.user_id, p.content, p.image_url, p.created_at, p.is_edited, p.is_deleted, p.community_id, p.is_public,
+    p.like_count, p.dislike_count, p.comment_count, p.repost_count,
+    l.like_type AS user_vote,
+    b.post_id IS NOT NULL AS is_bookmarked,
+    r.post_id IS NOT NULL AS user_has_reposted,
+    op.username AS original_poster_username,
+    COALESCE(p.community_id::text, p.user_id::text) AS author_id,
+    CASE WHEN p.community_id IS NOT NULL THEN 'community' ELSE 'user' END AS author_type,
+    COALESCE(c.name, up.full_name) AS author_name,
+    COALESCE(c.id::text, up.username) AS author_username,
+    COALESCE(c.avatar_url, up.avatar_url) AS author_avatar_url,
+    (SELECT CASE WHEN p.community_id IS NULL THEN (SELECT jsonb_build_object('id', flair_comm.id, 'name', flair_comm.name, 'avatar_url', flair_comm.avatar_url) FROM public.communities flair_comm WHERE flair_comm.id = up.displayed_community_flair) ELSE NULL END) AS author_flair_details,
+    poll_details.poll,
+    (
+        SELECT jsonb_build_object(
+            'id', qp.id, 'content', qp.content, 'image_url', qp.image_url, 'created_at', qp.created_at,
+            'is_deleted', qp.is_deleted, 'author_name', qp_author.full_name, 'author_username', qp_author.username,
+            'author_avatar_url', qp_author.avatar_url
+        )
+        FROM posts qp JOIN profiles qp_author ON qp.user_id = qp_author.user_id WHERE qp.id = p.quoted_post_id
+    ) AS quoted_post,
+    NULL::jsonb as reposted_by
+FROM public.posts p
+LEFT JOIN public.likes l ON p.id = l.post_id AND l.user_id = auth.uid()
+LEFT JOIN public.bookmarks b ON p.id = b.post_id AND b.user_id = auth.uid()
+LEFT JOIN public.reposts r ON p.id = r.post_id AND r.user_id = auth.uid()
+LEFT JOIN public.profiles up ON p.user_id = up.user_id AND p.community_id IS NULL
+LEFT JOIN public.communities c ON p.community_id = c.id
+LEFT JOIN public.profiles op ON p.user_id = op.user_id AND p.community_id IS NOT NULL
+LEFT JOIN LATERAL (
+    SELECT jsonb_build_object('id', po.id, 'allow_multiple_answers', po.allow_multiple_answers, 'total_votes', COALESCE((SELECT SUM(opt.vote_count) FROM public.poll_options opt WHERE opt.poll_id = po.id), 0), 'user_votes', (SELECT jsonb_agg(pv.option_id) FROM public.poll_votes pv WHERE pv.poll_id = po.id AND pv.user_id = auth.uid()), 'options', (SELECT jsonb_agg(jsonb_build_object('id', opt.id, 'option_text', opt.option_text, 'vote_count', opt.vote_count) ORDER BY opt.id) FROM poll_options opt WHERE opt.poll_id = po.id)) AS poll
+    FROM polls po WHERE po.post_id = p.id
+) poll_details ON TRUE
+WHERE
+    p.is_deleted = false
+    AND (p.community_id IS NULL OR p.is_public = true) -- This is the public feed logic
+ORDER BY p.created_at DESC
+LIMIT 100;
+$$;
+
+
+ALTER FUNCTION "public"."get_public_feed_posts"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."get_ride_shares"("p_campus" "text") RETURNS TABLE("id" "uuid", "created_at" timestamp with time zone, "user_id" "uuid", "campus" "text", "type" "public"."ride_share_type", "origin" "text", "destination" "text", "departure_time" timestamp with time zone, "seats" integer, "description" "text", "status" "text", "user" "jsonb")
@@ -3264,6 +3312,7 @@ CREATE TABLE IF NOT EXISTS "public"."profiles" (
     "displayed_community_flair" "uuid",
     "avatar_file_id" "text",
     "banner_file_id" "text",
+    "phone" "text",
     CONSTRAINT "username_format_check" CHECK (("username" ~ '^[a-zA-Z0-9_.]+$'::"text"))
 );
 
@@ -4644,6 +4693,10 @@ ALTER TABLE "public"."seller_ratings" ENABLE ROW LEVEL SECURITY;
 ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
 
 
+
+
+
+
 ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."bits_coin_requests";
 
 
@@ -4664,10 +4717,182 @@ ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."pinned_messages";
 
 
 
+
+
+
 GRANT USAGE ON SCHEMA "public" TO "postgres";
 GRANT USAGE ON SCHEMA "public" TO "anon";
 GRANT USAGE ON SCHEMA "public" TO "authenticated";
 GRANT USAGE ON SCHEMA "public" TO "service_role";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4968,6 +5193,12 @@ GRANT ALL ON FUNCTION "public"."get_profile_details"("profile_username" "text") 
 
 
 
+GRANT ALL ON FUNCTION "public"."get_public_feed_posts"() TO "anon";
+GRANT ALL ON FUNCTION "public"."get_public_feed_posts"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_public_feed_posts"() TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."get_ride_shares"("p_campus" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."get_ride_shares"("p_campus" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_ride_shares"("p_campus" "text") TO "service_role";
@@ -5158,6 +5389,28 @@ GRANT ALL ON FUNCTION "public"."update_post_repost_count"() TO "service_role";
 GRANT ALL ON FUNCTION "public"."update_seller_rating_on_profile"() TO "anon";
 GRANT ALL ON FUNCTION "public"."update_seller_rating_on_profile"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."update_seller_rating_on_profile"() TO "service_role";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 GRANT ALL ON TABLE "public"."bits_coin_ratings" TO "anon";
@@ -5418,10 +5671,19 @@ GRANT ALL ON TABLE "public"."seller_ratings" TO "service_role";
 
 
 
+
+
+
+
+
+
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "postgres";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "service_role";
+
+
+
 
 
 
@@ -5439,6 +5701,34 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TAB
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

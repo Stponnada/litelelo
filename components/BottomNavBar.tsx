@@ -4,7 +4,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useChat } from '../hooks/useChat.ts';
 import { 
-  HomeIcon, BuildingLibraryIcon, ChatIcon, SearchIcon, GlobeIcon, UserGroupIcon
+  HomeIcon, BuildingLibraryIcon, ChatIcon, SearchIcon, GlobeIcon, UserGroupIcon, MapIcon
 } from './icons';
 
 
@@ -28,6 +28,12 @@ const BottomNavBar: React.FC = () => {
         className={({ isActive }) => `flex-1 flex flex-col items-center justify-center ${isActive ? activeLinkStyle : inactiveLinkStyle}`}
       >
         <BuildingLibraryIcon className="w-7 h-7" />
+      </NavLink>
+      <NavLink 
+        to="/campus/map" 
+        className={({ isActive }) => `flex-1 flex flex-col items-center justify-center ${isActive ? activeLinkStyle : inactiveLinkStyle}`}
+      >
+        <MapIcon className="w-7 h-7" />
       </NavLink>
       <NavLink 
         to="/communities" 

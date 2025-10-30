@@ -43,6 +43,7 @@ import RideSharePage from './pages/RideSharePage';
 import BlockchainPage from './pages/BlockchainPage';
 import PasswordResetPage from './pages/PasswordResetPage'; // <-- IMPORT THE NEW PAGE
 import SettingsPage from './pages/SettingsPage';
+import CampusMapPage from './pages/CampusMapPage';
 
 const AppRoutes = () => {
   const { user, profile, isLoading } = useAuth();
@@ -103,6 +104,7 @@ const AppRoutes = () => {
         <Route path="/campus/ride-share" element={<RideSharePage />} />
         <Route path="/campus/events" element={<EventsPage />} />
         <Route path="/campus/events/:eventId" element={<EventDetailPage />} />
+        <Route path="/campus/map" element={<CampusMapPage />} />
         <Route path="/reputation/:username" element={<ReputationPage />} />
         <Route path="/profile/:username" element={<ProfilePage />} />
         <Route path="/post/:postId" element={<PostPage />} />
