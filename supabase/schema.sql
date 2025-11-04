@@ -1404,6 +1404,38 @@ $$;
 ALTER FUNCTION "public"."get_follow_suggestions"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."get_friend_locations"() RETURNS TABLE("user_id" "uuid", "latitude" double precision, "longitude" double precision, "last_seen" timestamp with time zone, "username" "text", "full_name" "text", "avatar_url" "text")
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
+    AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    ul.user_id,
+    ul.latitude,
+    ul.longitude,
+    ul.last_seen,
+    p.username,
+    p.full_name,
+    p.avatar_url
+  FROM
+    public.user_locations ul
+  JOIN
+    public.profiles p ON ul.user_id = p.user_id
+  WHERE
+    ul.user_id IN (
+      -- Find mutual followers
+      SELECT f1.following_id
+      FROM public.followers f1
+      JOIN public.followers f2 ON f1.following_id = f2.follower_id AND f1.follower_id = f2.following_id
+      WHERE f1.follower_id = auth.uid()
+    );
+END;
+$$;
+
+
+ALTER FUNCTION "public"."get_friend_locations"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."get_images_for_place"("p_place_id" "uuid") RETURNS TABLE("image_url" "text")
     LANGUAGE "plpgsql"
     AS $$
@@ -1880,7 +1912,7 @@ CREATE OR REPLACE FUNCTION "public"."get_profile_details"("profile_username" "te
     (SELECT count(*) FROM public.followers WHERE following_id = p.user_id)::int as follower_count,
     EXISTS (SELECT 1 FROM public.followers WHERE follower_id = auth.uid() AND following_id = p.user_id) as is_following,
     EXISTS (SELECT 1 FROM public.followers WHERE follower_id = p.user_id AND following_id = auth.uid()) as is_followed_by,
-    (SELECT jsonb_agg(jsonb_build_object('user_id', r.user_id, 'username', r.username, 'full_name', r.full_name, 'avatar_url', r.avatar_url)) FROM public.profiles r WHERE r.user_id != p.user_id AND r.campus = p.campus AND r.dorm_building = p.dorm_building AND r.dorm_room = p.dorm_room AND p.dorm_building IS NOT NULL AND p.dorm_room IS NOT NULL AND r.dorm_building IS NOT NULL AND r.dorm_room IS NOT NULL AND p.campus IS NOT NULL) as roommates,
+    (SELECT jsonb_agg(jsonb_build_object('user_id', r.user_id, 'username', r.username, 'full_name', r.full_name, 'avatar_url', r.avatar_url)) FROM public.profiles r WHERE r.user_id != p.user_id AND r.campus = p.campus AND r.dorm_building = p.dorm_building AND r.dorm_room = p.dorm_room AND p.dorm_building IS NOT NULL AND p.dorm_building <> '' AND p.dorm_room IS NOT NULL AND p.dorm_room <> '' AND r.dorm_building IS NOT NULL AND r.dorm_building <> '' AND r.dorm_room IS NOT NULL AND r.dorm_room <> '' AND p.campus IS NOT NULL) as roommates,
     -- New flair details object
     (SELECT jsonb_build_object('id', fc.id, 'name', fc.name, 'avatar_url', fc.avatar_url) FROM public.communities fc WHERE fc.id = p.displayed_community_flair) as flair_details
   FROM public.profiles p
@@ -2774,6 +2806,24 @@ $$;
 ALTER FUNCTION "public"."update_seller_rating_on_profile"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."update_user_location"("latitude" double precision, "longitude" double precision) RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+BEGIN
+  INSERT INTO public.user_locations (user_id, latitude, longitude, last_seen)
+  VALUES (auth.uid(), latitude, longitude, now())
+  ON CONFLICT (user_id)
+  DO UPDATE SET
+    latitude = EXCLUDED.latitude,
+    longitude = EXCLUDED.longitude,
+    last_seen = now();
+END;
+$$;
+
+
+ALTER FUNCTION "public"."update_user_location"("latitude" double precision, "longitude" double precision) OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."bits_coin_ratings" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "request_id" "uuid" NOT NULL,
@@ -3388,6 +3438,17 @@ CREATE TABLE IF NOT EXISTS "public"."seller_ratings" (
 ALTER TABLE "public"."seller_ratings" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."user_locations" (
+    "user_id" "uuid" NOT NULL,
+    "latitude" double precision NOT NULL,
+    "longitude" double precision NOT NULL,
+    "last_seen" timestamp with time zone NOT NULL
+);
+
+
+ALTER TABLE "public"."user_locations" OWNER TO "postgres";
+
+
 ALTER TABLE ONLY "public"."bits_coin_ratings"
     ADD CONSTRAINT "bits_coin_ratings_pkey" PRIMARY KEY ("id");
 
@@ -3620,6 +3681,11 @@ ALTER TABLE ONLY "public"."seller_ratings"
 
 ALTER TABLE ONLY "public"."likes"
     ADD CONSTRAINT "unique_user_post_like" UNIQUE ("user_id", "post_id");
+
+
+
+ALTER TABLE ONLY "public"."user_locations"
+    ADD CONSTRAINT "user_locations_pkey" PRIMARY KEY ("user_id");
 
 
 
@@ -4037,6 +4103,11 @@ ALTER TABLE ONLY "public"."seller_ratings"
 
 ALTER TABLE ONLY "public"."seller_ratings"
     ADD CONSTRAINT "seller_ratings_seller_id_fkey" FOREIGN KEY ("seller_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."user_locations"
+    ADD CONSTRAINT "user_locations_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("user_id") ON DELETE CASCADE;
 
 
 
@@ -5103,6 +5174,12 @@ GRANT ALL ON FUNCTION "public"."get_follow_suggestions"() TO "service_role";
 
 
 
+GRANT ALL ON FUNCTION "public"."get_friend_locations"() TO "anon";
+GRANT ALL ON FUNCTION "public"."get_friend_locations"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_friend_locations"() TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."get_images_for_place"("p_place_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."get_images_for_place"("p_place_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_images_for_place"("p_place_id" "uuid") TO "service_role";
@@ -5392,6 +5469,12 @@ GRANT ALL ON FUNCTION "public"."update_seller_rating_on_profile"() TO "service_r
 
 
 
+GRANT ALL ON FUNCTION "public"."update_user_location"("latitude" double precision, "longitude" double precision) TO "anon";
+GRANT ALL ON FUNCTION "public"."update_user_location"("latitude" double precision, "longitude" double precision) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."update_user_location"("latitude" double precision, "longitude" double precision) TO "service_role";
+
+
+
 
 
 
@@ -5668,6 +5751,12 @@ GRANT ALL ON TABLE "public"."ride_shares" TO "service_role";
 GRANT ALL ON TABLE "public"."seller_ratings" TO "anon";
 GRANT ALL ON TABLE "public"."seller_ratings" TO "authenticated";
 GRANT ALL ON TABLE "public"."seller_ratings" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."user_locations" TO "anon";
+GRANT ALL ON TABLE "public"."user_locations" TO "authenticated";
+GRANT ALL ON TABLE "public"."user_locations" TO "service_role";
 
 
 
