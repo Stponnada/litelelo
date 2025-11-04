@@ -93,7 +93,7 @@ const ChatPage: React.FC = () => {
           <div className="p-5 border-b border-gray-200/50 dark:border-gray-800/50 bg-gradient-to-b from-white/50 to-transparent dark:from-gray-900/50">
             <div className="flex justify-between items-center mb-4">
               <div>
-                <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent font-raleway">
                   Messages
                 </h2>
                 <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
@@ -225,7 +225,7 @@ const ChatPage: React.FC = () => {
                 </div>
               </div>
               
-              <h3 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent mb-2">
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent mb-2 font-raleway">
                 Your Messages
               </h3>
               <p className="text-base text-gray-600 dark:text-gray-400 max-w-sm leading-relaxed">

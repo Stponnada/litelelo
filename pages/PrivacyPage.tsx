@@ -9,7 +9,7 @@ const PrivacySection: React.FC<{ title: string; children: React.ReactNode }> = (
   children,
 }) => (
   <section className="space-y-3">
-    <h2 className="text-xl font-bold text-text-main-light dark:text-text-main border-l-4 border-brand-green pl-3">
+    <h2 className="text-xl font-bold text-text-main-light dark:text-text-main border-l-4 border-brand-green pl-3 font-raleway">
       {title}
     </h2>
     <div className="pl-4 text-text-secondary-light dark:text-text-secondary leading-relaxed space-y-3">
@@ -26,7 +26,7 @@ const PrivacyPage: React.FC = () => {
         <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-green/20 to-emerald-500/20 flex items-center justify-center mx-auto mb-4">
           <LockClosedIcon className="w-8 h-8 text-brand-green" />
         </div>
-        <h1 className="text-4xl font-bold text-text-main-light dark:text-text-main">
+        <h1 className="text-4xl font-bold text-text-main-light dark:text-text-main font-raleway">
           Privacy Policy
         </h1>
         <p className="text-md text-text-tertiary-light dark:text-text-tertiary mt-2">
@@ -51,7 +51,7 @@ const PrivacyPage: React.FC = () => {
         </p>
 
         <PrivacySection title="1. Information We Collect">
-          <h3 className="text-lg font-semibold text-text-main-light dark:text-text-main">
+          <h3 className="text-lg font-semibold text-text-main-light dark:text-text-main font-raleway">
             Information You Provide to Us
           </h3>
           <ul className="list-disc pl-6 space-y-2">
@@ -71,7 +71,7 @@ const PrivacyPage: React.FC = () => {
             </li>
           </ul>
 
-          <h3 className="text-lg font-semibold text-text-main-light dark:text-text-main pt-2">
+          <h3 className="text-lg font-semibold text-text-main-light dark:text-text-main pt-2 font-raleway">
             Information We Collect Automatically
           </h3>
           <ul className="list-disc pl-6 space-y-2">

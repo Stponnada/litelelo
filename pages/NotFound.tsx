@@ -40,7 +40,7 @@ const NotFound = () => {
           
           {/* Message Card */}
           <div className="max-w-md mx-auto mt-6">
-            <h2 className="text-3xl md:text-4xl font-bold text-text-main-light dark:text-text-main" style={{ animation: 'fadeIn 1s 0.2s ease-out forwards', opacity: 0 }}>
+            <h2 className="text-3xl md:text-4xl font-bold text-text-main-light dark:text-text-main font-raleway" style={{ animation: 'fadeIn 1s 0.2s ease-out forwards', opacity: 0 }}>
               Page Not Found
             </h2>
             

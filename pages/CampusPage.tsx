@@ -37,7 +37,7 @@ const FeatureCard: React.FC<{ to: string; icon: React.ReactNode; title: string; 
           {icon}
         </div>
         <div className="flex-1">
-          <h3 className="text-xs md:text-base font-bold text-text-main-light dark:text-text-main group-hover:text-white transition-colors duration-300 leading-snug">
+          <h3 className="text-xs md:text-base font-bold text-text-main-light dark:text-text-main group-hover:text-white transition-colors duration-300 leading-snug font-raleway">
             {title}
           </h3>
           <p className="hidden md:block mt-1 text-xs md:text-sm text-text-secondary-light dark:text-text-secondary group-hover:text-white/90 leading-snug transition-colors duration-300">
@@ -207,7 +207,7 @@ const CampusPage: React.FC = () => {
                        <span className="text-sm font-bold text-brand-green uppercase tracking-wider">Your Campus Hub</span>
                     </div>*/}
                     
-                    <h1 className="text-3xl md:text-7xl font-black text-text-main-light dark:text-text-main leading-tight mb-8">
+                    <h1 className="text-3xl md:text-7xl font-black text-text-main-light dark:text-text-main leading-tight mb-8 font-raleway">
                     Today at BITS{' '}
                     <span className="relative inline-block">
                         <span className="bg-gradient-to-r from-brand-green via-green-400 to-brand-green bg-clip-text text-transparent">
@@ -232,7 +232,7 @@ const CampusPage: React.FC = () => {
             <div className="mb-8 md:mb-16">
                 <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-8">
                     <div className="h-0.5 md:h-1 w-8 md:w-16 bg-gradient-to-r from-brand-green to-transparent rounded-full"></div>
-                    <h2 className="text-xl md:text-3xl font-extrabold text-text-main-light dark:text-text-main">Services</h2>
+                    <h2 className="text-xl md:text-3xl font-extrabold text-text-main-light dark:text-text-main font-raleway">Services</h2>
                 </div>
                 
                 <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-2 md:gap-6">
@@ -287,7 +287,7 @@ const CampusPage: React.FC = () => {
                     <div>
                         <div className="flex items-center gap-2 md:gap-3 mb-1 md:mb-2">
                             <div className="h-0.5 md:h-1 w-8 md:w-16 bg-gradient-to-r from-brand-green to-transparent rounded-full"></div>
-                            <h2 className="text-xl md:text-3xl font-extrabold text-text-main-light dark:text-text-main">What's Happening</h2>
+                            <h2 className="text-xl md:text-3xl font-extrabold text-text-main-light dark:text-text-main font-raleway">What's Happening</h2>
                         </div>
                         <p className="hidden md:block text-text-secondary-light dark:text-text-secondary text-lg ml-20">
                             Latest updates from around campus
@@ -306,7 +306,7 @@ const CampusPage: React.FC = () => {
                             <div className="flex items-center space-x-2 md:space-x-3">
                                 <div className="w-1 md:w-1.5 h-6 md:h-8 bg-gradient-to-b from-blue-500 to-purple-600 rounded-full shadow-lg"></div>
                                 <div>
-                                    <h3 className="text-base md:text-xl font-bold text-text-main-light dark:text-text-main">Top Places</h3>
+                                    <h3 className="text-base md:text-xl font-bold text-text-main-light dark:text-text-main font-raleway">Top Places</h3>
                                     <p className="hidden md:block text-xs text-text-secondary-light dark:text-text-secondary">Best reviewed spots</p>
                                 </div>
                             </div>
@@ -331,7 +331,7 @@ const CampusPage: React.FC = () => {
                             <div className="flex items-center space-x-2 md:space-x-3">
                                 <div className="w-1 md:w-1.5 h-6 md:h-8 bg-gradient-to-b from-yellow-500 to-amber-600 rounded-full shadow-lg"></div>
                                 <div>
-                                    <h3 className="text-base md:text-xl font-bold text-text-main-light dark:text-text-main">Notices</h3>
+                                    <h3 className="text-base md:text-xl font-bold text-text-main-light dark:text-text-main font-raleway">Notices</h3>
                                     <p className="hidden md:block text-xs text-text-secondary-light dark:text-text-secondary">Campus announcements</p>
                                 </div>
                             </div>
@@ -356,7 +356,7 @@ const CampusPage: React.FC = () => {
                             <div className="flex items-center space-x-2 md:space-x-3">
                                 <div className="w-1 md:w-1.5 h-6 md:h-8 bg-gradient-to-b from-green-500 to-teal-600 rounded-full shadow-lg"></div>
                                 <div>
-                                    <h3 className="text-base md:text-xl font-bold text-text-main-light dark:text-text-main">Market</h3>
+                                    <h3 className="text-base md:text-xl font-bold text-text-main-light dark:text-text-main font-raleway">Market</h3>
                                     <p className="hidden md:block text-xs text-text-secondary-light dark:text-text-secondary">Latest listings</p>
                                 </div>
                             </div>
@@ -379,7 +379,7 @@ const CampusPage: React.FC = () => {
                             <div className="flex items-center space-x-2 md:space-x-3">
                                 <div className="w-1 md:w-1.5 h-6 md:h-8 bg-gradient-to-b from-orange-500 to-red-600 rounded-full shadow-lg"></div>
                                 <div>
-                                    <h3 className="text-base md:text-xl font-bold text-text-main-light dark:text-text-main">Lost & Found</h3>
+                                    <h3 className="text-base md:text-xl font-bold text-text-main-light dark:text-text-main font-raleway">Lost & Found</h3>
                                     <p className="hidden md:block text-xs text-text-secondary-light dark:text-text-secondary">Recent reports</p>
                                 </div>
                             </div>
@@ -404,7 +404,7 @@ const CampusPage: React.FC = () => {
             <div className="mt-8 md:mt-20 relative bg-gradient-to-r from-brand-green/20 via-brand-green/10 to-transparent dark:from-brand-green/10 dark:via-brand-green/5 dark:to-transparent p-6 md:p-12 rounded-2xl md:rounded-3xl border border-brand-green/30 overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 md:w-64 h-32 md:h-64 bg-brand-green/10 rounded-full blur-3xl -mr-16 md:-mr-32 -mt-16 md:-mt-32"></div>
                 <div className="relative z-10 text-center max-w-3xl mx-auto">
-                    <h2 className="text-xl md:text-4xl font-extrabold text-text-main-light dark:text-text-main mb-2 md:mb-4">
+                    <h2 className="text-xl md:text-4xl font-extrabold text-text-main-light dark:text-text-main mb-2 md:mb-4 font-raleway">
                         Ready to Contribute?
                     </h2>
                     <p className="text-sm md:text-lg text-text-secondary-light dark:text-text-secondary mb-4 md:mb-8">
