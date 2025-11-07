@@ -8,6 +8,7 @@ import PostComponent from '../components/Post';
 import CreatePost from '../components/CreatePost';
 import { Post as PostType, Profile, Friend } from '../types';
 import Spinner from '../components/Spinner';
+import ProfilePageSkeleton from '../components/ProfilePageSkeleton';
 import { CameraIcon, LogoutIcon, ChatIcon, UserGroupIcon, BookmarkIcon, ConsulIcon } from '../components/icons';
 import { isMscBranch, BITS_BRANCHES } from '../data/bitsBranches.ts';
 import ImageCropper from '../components/ImageCropper';
@@ -250,7 +251,7 @@ const ProfilePage: React.FC = () => {
     };
 
     if (profileLoading) {
-        return <div className="flex items-center justify-center h-screen"><Spinner /></div>;
+        return <ProfilePageSkeleton />;
     }
     
     if (!profile) {

@@ -1,5 +1,6 @@
 // src/App.tsx
 
+import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { useAuth } from './hooks/useAuth';
@@ -8,42 +9,52 @@ import { PostsProvider } from './contexts/PostsContext';
 import { ChatProvider } from './contexts/ChatContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { ThemeProvider } from './contexts/ThemeContext';
-import { HomePage as Home } from './pages/Home';
-import Login from './pages/Login';
-import ProfilePage from './pages/Profile';
-import PostPage from './pages/PostPage';
-import ProfileSetup from './pages/ProfileSetup';
-import DirectoryPage from './pages/DirectoryPage';
-import NotFound from './pages/NotFound';
-import NoInternetPage from './pages/NoInternetPage';
 import Layout from './components/Layout';
-import SearchPage from './pages/SearchPage';
-import ChatPage from './pages/ChatPage';
 import Spinner from './components/Spinner';
-import CampusPage from './pages/CampusPage';
-import CampusDirectoryPage from './pages/CampusDirectoryPage';
-import PlaceDetailPage from './pages/PlaceDetailPage';
-import LostAndFoundPage from './pages/LostAndFoundPage';
-import MarketplacePage from './pages/MarketplacePage';
-import BitsCoinPage from './pages/BitsCoinPage';
-import EventsPage from './pages/EventsPage';
-import EventDetailPage from './pages/EventDetailPage';
-import ReputationPage from './pages/ReputationPage';
-import GroupInfoPage from './pages/GroupInfoPage';
-import NoticeboardPage from './pages/NoticeboardPage'; 
-import CommunitiesListPage from './pages/CommunitiesListPage';
-import CommunityPage from './pages/CommunityPage';
-import CommunityMembersPage from './pages/CommunityMembersPage';
-import BookmarksPage from './pages/BookmarksPage';
-import HelpCenterPage from './pages/HelpCenterPage';
-import TermsPage from './pages/TermsPage'; 
-import PrivacyPage from './pages/PrivacyPage';
-import EasterEggPage from './pages/EasterEggPage';
-import RideSharePage from './pages/RideSharePage';
-import BlockchainPage from './pages/BlockchainPage';
-import PasswordResetPage from './pages/PasswordResetPage'; // <-- IMPORT THE NEW PAGE
-import SettingsPage from './pages/SettingsPage';
-import CampusMapPage from './pages/CampusMapPage';
+
+// --- LAZY-LOADED PAGES FOR CODE SPLITTING ---
+const Home = React.lazy(() => import('./pages/Home').then(module => ({ default: module.HomePage })));
+const Login = React.lazy(() => import('./pages/Login'));
+const ProfilePage = React.lazy(() => import('./pages/Profile'));
+const PostPage = React.lazy(() => import('./pages/PostPage'));
+const ProfileSetup = React.lazy(() => import('./pages/ProfileSetup'));
+const DirectoryPage = React.lazy(() => import('./pages/DirectoryPage'));
+const NotFound = React.lazy(() => import('./pages/NotFound'));
+const NoInternetPage = React.lazy(() => import('./pages/NoInternetPage'));
+const SearchPage = React.lazy(() => import('./pages/SearchPage'));
+const ChatPage = React.lazy(() => import('./pages/ChatPage'));
+const CampusPage = React.lazy(() => import('./pages/CampusPage'));
+const CampusDirectoryPage = React.lazy(() => import('./pages/CampusDirectoryPage'));
+const PlaceDetailPage = React.lazy(() => import('./pages/PlaceDetailPage'));
+const LostAndFoundPage = React.lazy(() => import('./pages/LostAndFoundPage'));
+const MarketplacePage = React.lazy(() => import('./pages/MarketplacePage'));
+const BitsCoinPage = React.lazy(() => import('./pages/BitsCoinPage'));
+const EventsPage = React.lazy(() => import('./pages/EventsPage'));
+const EventDetailPage = React.lazy(() => import('./pages/EventDetailPage'));
+const ReputationPage = React.lazy(() => import('./pages/ReputationPage'));
+const GroupInfoPage = React.lazy(() => import('./pages/GroupInfoPage'));
+const NoticeboardPage = React.lazy(() => import('./pages/NoticeboardPage'));
+const CommunitiesListPage = React.lazy(() => import('./pages/CommunitiesListPage'));
+const CommunityPage = React.lazy(() => import('./pages/CommunityPage'));
+const CommunityMembersPage = React.lazy(() => import('./pages/CommunityMembersPage'));
+const BookmarksPage = React.lazy(() => import('./pages/BookmarksPage'));
+const HelpCenterPage = React.lazy(() => import('./pages/HelpCenterPage'));
+const TermsPage = React.lazy(() => import('./pages/TermsPage'));
+const PrivacyPage = React.lazy(() => import('./pages/PrivacyPage'));
+const EasterEggPage = React.lazy(() => import('./pages/EasterEggPage'));
+const RideSharePage = React.lazy(() => import('./pages/RideSharePage'));
+const BlockchainPage = React.lazy(() => import('./pages/BlockchainPage'));
+const PasswordResetPage = React.lazy(() => import('./pages/PasswordResetPage'));
+const SettingsPage = React.lazy(() => import('./pages/SettingsPage'));
+const CampusMapPage = React.lazy(() => import('./pages/CampusMapPage'));
+// ------------------------------------------
+
+// Fallback component for Suspense
+const FullPageSpinner = () => (
+  <div className="flex items-center justify-center h-screen bg-primary-light dark:bg-primary">
+    <Spinner />
+  </div>
+);
 
 const AppRoutes = () => {
   const { user, profile, isLoading } = useAuth();
@@ -58,11 +69,7 @@ const AppRoutes = () => {
   }
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-primary-light dark:bg-primary">
-        <Spinner />
-      </div>
-    );
+    return <FullPageSpinner />;
   }
 
   if (!user) {
@@ -121,8 +128,6 @@ const AppRoutes = () => {
       {/* Routes outside the main layout */}
       <Route path="/easter-egg" element={<EasterEggPage />} />
       <Route path="/login" element={<Navigate to="/" replace />} />
-      {/* --- THIS IS THE FIX --- */}
-      {/* Instead of redirecting, render the component so the user can reset their password. */}
       <Route path="/password-reset" element={<PasswordResetPage />} />
       <Route path="/setup" element={<Navigate to="/" replace />} />
       <Route path="*" element={<NotFound />} />
@@ -138,7 +143,10 @@ const App = () => {
           <PostsProvider>
             <ChatProvider>
               <NotificationProvider>
-                <AppRoutes />
+                {/* Wrap the routes in Suspense to enable code-splitting */}
+                <Suspense fallback={<FullPageSpinner />}>
+                  <AppRoutes />
+                </Suspense>
               </NotificationProvider>
             </ChatProvider>
           </PostsProvider>

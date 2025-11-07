@@ -2,18 +2,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
-import { usePosts } from '../hooks/usePosts';
+import { usePosts, FeedType } from '../hooks/usePosts';
 import PostComponent from '../components/Post';
 import CreatePost from '../components/CreatePost';
 import { Profile, Post as PostType, CampusEvent, MarketplaceListing } from '../types';
 import Spinner from '../components/Spinner';
 import LightBox from '../components/lightbox';
+import PostSkeleton from '../components/PostSkeleton';
 import { XCircleIcon, PencilIcon, UserGroupIcon, CalendarDaysIcon, ShoppingCartIcon, CubeIcon } from '../components/icons';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import FollowSuggestions from '../components/FollowSuggestions';
 
-// --- Simplified Profile Card ---
+// --- All the small widget components (ProfileCard, CommunitiesWidget, etc.) remain unchanged ---
 const ProfileCard: React.FC<{ profile: Profile }> = ({ profile }) => (
     <div className="bg-white dark:bg-secondary rounded-2xl border border-gray-200 dark:border-tertiary p-4">
         <Link to={`/profile/${profile.username}`} className="flex items-center gap-3 group">
@@ -39,12 +40,9 @@ const ProfileCard: React.FC<{ profile: Profile }> = ({ profile }) => (
         </div>
     </div>
 );
-
-// --- Simplified Communities Widget ---
 const CommunitiesWidget: React.FC = () => {
     const { user } = useAuth();
     const [communities, setCommunities] = useState<{ id: string; name: string; avatar_url: string | null }[]>([]);
-
     useEffect(() => {
         if (!user) return;
         const fetchCommunities = async () => {
@@ -73,8 +71,6 @@ const CommunitiesWidget: React.FC = () => {
         </div>
     );
 };
-
-// --- Simplified Events Widget ---
 const EventsWidget: React.FC<{ events: CampusEvent[] }> = ({ events }) => (
     <div className="bg-white dark:bg-secondary rounded-2xl border border-gray-200 dark:border-tertiary p-4">
         <div className="flex items-center justify-between mb-3">
@@ -106,8 +102,6 @@ const EventsWidget: React.FC<{ events: CampusEvent[] }> = ({ events }) => (
         )}
     </div>
 );
-
-// --- Simplified Marketplace Widget ---
 const MarketplaceWidget: React.FC<{ listings: MarketplaceListing[] }> = ({ listings }) => (
     <div className="bg-white dark:bg-secondary rounded-2xl border border-gray-200 dark:border-tertiary p-4">
         <div className="flex items-center justify-between mb-3">
@@ -134,11 +128,8 @@ const MarketplaceWidget: React.FC<{ listings: MarketplaceListing[] }> = ({ listi
         )}
     </div>
 );
-
-// --- Minimal Crypto Widget (Collapsible) ---
 const CryptoHubWidget: React.FC<{ profile: Profile }> = ({ profile }) => {
     const [isExpanded, setIsExpanded] = useState(false);
-
     return (
         <div className="bg-white dark:bg-secondary rounded-2xl border border-gray-200 dark:border-tertiary p-4">
             <button 
@@ -181,7 +172,7 @@ const CryptoHubWidget: React.FC<{ profile: Profile }> = ({ profile }) => {
 
 
 export const HomePage: React.FC = () => {
-    const { posts, loading: postsLoading, error: postsError, addPostToContext, feedType, setFeedType } = usePosts();
+    const { posts, loading: postsLoading, error: postsError, addPostToContext, feedType, setFeedType, fetchPosts, hasMore } = usePosts();
     const { user, profile: currentUserProfile } = useAuth();
     
     const [upcomingEvents, setUpcomingEvents] = useState<CampusEvent[]>([]);
@@ -190,9 +181,10 @@ export const HomePage: React.FC = () => {
 
     const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
     const [isCreatePostModalOpen, setCreatePostModalOpen] = useState(false);
-    const [visibleCount, setVisibleCount] = useState(10);
+    
+    // --- THIS IS THE FIX (1/3): Remove client-side state for pagination ---
+    // const [visibleCount, setVisibleCount] = useState(10);
     const sentinelRef = useRef<HTMLDivElement | null>(null);
-    const isLoadingMoreRef = useRef(false);
 
     useEffect(() => {
         if (localStorage.getItem('discoveredBlockchain') === 'true') {
@@ -209,41 +201,48 @@ export const HomePage: React.FC = () => {
             }).catch(console.error);
         }
     }, [currentUserProfile?.campus]);
-
-    // Reset visible items when feed changes
-    useEffect(() => {
-        setVisibleCount(10);
-    }, [posts, feedType]);
-
-    // Infinite scroll via IntersectionObserver (client-side windowing)
+    
+    // --- THIS IS THE FIX (2/3): Update the IntersectionObserver ---
+    // It now calls fetchPosts(true) from the context.
     useEffect(() => {
         const sentinel = sentinelRef.current;
-        if (!sentinel) return;
+        if (!sentinel || postsLoading) return;
+
         const observer = new IntersectionObserver((entries) => {
             const entry = entries[0];
-            if (entry.isIntersecting && !isLoadingMoreRef.current) {
-                isLoadingMoreRef.current = true;
-                // Increase render window; schedule in next frame for smoothness
-                requestAnimationFrame(() => {
-                    setVisibleCount((prev) => prev + 10);
-                    isLoadingMoreRef.current = false;
-                });
+            if (entry.isIntersecting && hasMore) {
+                fetchPosts(true); // Fetch more posts from the context
             }
         }, { rootMargin: '400px 0px' });
+
         observer.observe(sentinel);
         return () => observer.disconnect();
-    }, []);
+    }, [postsLoading, hasMore, fetchPosts]);
 
     const handlePostCreatedInModal = (post: PostType) => {
         addPostToContext(post);
         setCreatePostModalOpen(false);
     };
-
-    if (postsLoading || !currentUserProfile) {
+    
+    // Skeleton loader for initial load
+    if (postsLoading && posts.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh]">
-                <Spinner />
-                <p className="mt-4 text-text-secondary-light dark:text-text-secondary">Loading your feed...</p>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <main className="col-span-1 lg:col-span-6 space-y-3">
+                    {[...Array(5)].map((_, i) => <PostSkeleton key={i} />)}
+                </main>
+                <aside className="hidden lg:block lg:col-span-3">
+                    <div className="sticky top-28 space-y-3">
+                        <div className="bg-white dark:bg-secondary rounded-2xl border border-gray-200 dark:border-tertiary p-4 h-36 animate-pulse"></div>
+                        <div className="bg-white dark:bg-secondary rounded-2xl border border-gray-200 dark:border-tertiary p-4 h-48 animate-pulse"></div>
+                    </div>
+                </aside>
+                 <aside className="hidden lg:block lg:col-span-3">
+                     <div className="sticky top-28 space-y-3">
+                        <div className="bg-white dark:bg-secondary rounded-2xl border border-gray-200 dark:border-tertiary p-4 h-48 animate-pulse"></div>
+                        <div className="bg-white dark:bg-secondary rounded-2xl border border-gray-200 dark:border-tertiary p-4 h-48 animate-pulse"></div>
+                    </div>
+                </aside>
             </div>
         );
     }
@@ -261,7 +260,6 @@ export const HomePage: React.FC = () => {
         <div className="w-full">
             {lightboxUrl && <LightBox imageUrl={lightboxUrl} onClose={() => setLightboxUrl(null)} />}
 
-            {/* Create Post Modal */}
             {isCreatePostModalOpen && currentUserProfile && (
                 <div 
                     className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-start justify-center p-4 pt-20 md:items-center md:pt-4"
@@ -283,28 +281,22 @@ export const HomePage: React.FC = () => {
             )}
             
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* --- LEFT SIDEBAR (Desktop Only) --- */}
                 <aside className="hidden lg:block lg:col-span-3">
-                    {/* This outer div becomes the sticky container */}
                     <div className="sticky top-28">
-                        {/* This inner div handles overflow and has the actual content */}
                         <div className="space-y-3 max-h-[calc(100vh-7rem)] overflow-y-auto scrollbar-hide">
-                            <ProfileCard profile={currentUserProfile} />
+                            {currentUserProfile && <ProfileCard profile={currentUserProfile} />}
                             <FollowSuggestions />
                             <CommunitiesWidget />
-                            {hasDiscoveredBlockchain && <CryptoHubWidget profile={currentUserProfile} />}
+                            {hasDiscoveredBlockchain && currentUserProfile && <CryptoHubWidget profile={currentUserProfile} />}
                         </div>
                     </div>
                 </aside>
 
-                {/* --- MAIN FEED --- */}
                 <main className="col-span-1 lg:col-span-6">
-                    {/* Create Post (Desktop) */}
                     <div className="mb-6 hidden lg:block">
-                        <CreatePost onPostCreated={addPostToContext} profile={currentUserProfile} />
+                        {currentUserProfile && <CreatePost onPostCreated={addPostToContext} profile={currentUserProfile} />}
                     </div>
                     
-                    {/* Feed Toggle */}
                     <div className="bg-secondary-light dark:bg-secondary rounded-t-lg border-b border-tertiary-light dark:border-tertiary sticky top-16 md:top-24 z-10">
                         <div className="flex">
                             <button
@@ -330,21 +322,21 @@ export const HomePage: React.FC = () => {
                         </div>
                     </div>
                     
-                    {/* Posts Feed */}
                     {posts.length > 0 ? (
                         <div className="space-y-3">
-                            {posts.slice(0, visibleCount).map((post) => (
+                            {/* --- THIS IS THE FIX (3/3): Map over all posts, not a slice --- */}
+                            {posts.map((post) => (
                                 <PostComponent key={post.id} post={post} onImageClick={setLightboxUrl} />
                             ))}
                             {/* Sentinel for infinite scroll */}
-                            {visibleCount < posts.length && (
+                            {hasMore && (
                               <div ref={sentinelRef} className="flex items-center justify-center py-6">
                                 <Spinner />
                               </div>
                             )}
                         </div>
                     ) : (
-                        <div className="text-center py-16 bg-white dark:bg-secondary rounded-2xl border border-gray-200 dark:border-tertiary">
+                         <div className="text-center py-16 bg-white dark:bg-secondary rounded-2xl border border-gray-200 dark:border-tertiary">
                             <div className="w-16 h-16 bg-gray-100 dark:bg-tertiary rounded-full flex items-center justify-center mx-auto mb-4">
                                 <svg className="w-8 h-8 text-text-tertiary-light dark:text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
@@ -360,11 +352,8 @@ export const HomePage: React.FC = () => {
                     )}
                 </main>
                 
-                {/* --- RIGHT SIDEBAR (Desktop Only) --- */}
                 <aside className="hidden lg:block lg:col-span-3">
-                    {/* This outer div becomes the sticky container */}
                     <div className="sticky top-28">
-                        {/* This inner div handles overflow and has the actual content */}
                         <div className="space-y-3 max-h-[calc(100vh-7rem)] overflow-y-auto scrollbar-hide">
                             <EventsWidget events={upcomingEvents} />
                             <MarketplaceWidget listings={latestListings} />
@@ -373,7 +362,6 @@ export const HomePage: React.FC = () => {
                 </aside>
             </div>
 
-            {/* Floating Action Button (Mobile) */}
             <button
                 onClick={() => setCreatePostModalOpen(true)}
                 className="lg:hidden fixed bottom-20 right-4 bg-brand-green text-black w-14 h-14 rounded-full flex items-center justify-center shadow-lg z-40 hover:scale-105 active:scale-95 transition-transform"

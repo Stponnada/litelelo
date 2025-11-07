@@ -8,6 +8,8 @@ import { useAuth } from '../hooks/useAuth';
 import { useChat } from '../hooks/useChat';
 import { ConversationSummary, Message, MessageReaction, Profile, PinnedMessage } from '../types';
 import Spinner from './Spinner';
+import MessageSkeleton from './MessageSkeleton';
+import ConversationSkeleton from './ConversationSkeleton';
 import { SendIcon, UserGroupIcon, PlusIcon, ImageIcon, XCircleIcon, PencilIcon, TrashIcon, CheckIcon, XMarkIcon, ReplyIcon, FaceSmileIcon, PinIcon } from './icons';
 import { formatMessageTime } from '../utils/timeUtils';
 
@@ -654,455 +656,444 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
     };
 
     return (
-        <div className="flex flex-col h-full w-full overflow-hidden">
-            {isGifPickerOpen && <GifPickerModal onClose={() => setGifPickerOpen(false)} onGifSelect={handleGifSelect} />}
-            {lightboxUrl && <LightBox imageUrl={lightboxUrl} onClose={() => setLightboxUrl(null)} />}
+    <div className="flex flex-col h-full w-full overflow-hidden">
+        {isGifPickerOpen && <GifPickerModal onClose={() => setGifPickerOpen(false)} onGifSelect={handleGifSelect} />}
+        {lightboxUrl && <LightBox imageUrl={lightboxUrl} onClose={() => setLightboxUrl(null)} />}
 
-                        {pinningOptions.messageId !== null && (
-                            // Backdrop uses pointer-events-none so it doesn't block the entire app if
-                            // the overlay somehow remains mounted. The inner dialog is pointer-events-auto
-                            // so it remains interactive.
-                            <div
-                                className="fixed inset-0 z-40 pointer-events-none"
-                                // clicking the backdrop should still close the picker; we listen on the
-                                // inner container for clicks so also handle global close on Escape elsewhere
-                            >
-                                <div
-                                    className="absolute bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden text-sm animate-fadeIn pointer-events-auto"
-                                    style={{ top: pinningOptions.y, left: pinningOptions.x }}
-                                    onClick={e => { e.stopPropagation(); }}
-                                >
-                                    <div className="p-2 font-semibold border-b border-gray-200 dark:border-gray-700">Pin message for...</div>
-                                    <button onClick={() => { handlePinMessage(pinningOptions.messageId!, 24); setPinningOptions({ messageId: null, x: 0, y: 0 }); }} className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">24 hours</button>
-                                    <button onClick={() => { handlePinMessage(pinningOptions.messageId!, 24 * 7); setPinningOptions({ messageId: null, x: 0, y: 0 }); }} className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">7 days</button>
-                                    <button onClick={() => { handlePinMessage(pinningOptions.messageId!, null); setPinningOptions({ messageId: null, x: 0, y: 0 }); }} className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">Forever</button>
-                                </div>
-                            </div>
-                        )}
-
-            {/* Global Emoji Picker Modal */}
-            {emojiPickerMessageId !== null && (
-                // Make backdrop non-blocking to avoid intercepting clicks outside the emoji
-                // picker; keep the picker itself interactive.
-                <div 
-                    className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 pointer-events-none"
-                    // clicking backdrop will not register here due to pointer-events-none;
-                    // the close button inside remains available to dismiss the picker.
+        {pinningOptions.messageId !== null && (
+            <div
+                className="fixed inset-0 z-40 pointer-events-none"
+            >
+                <div
+                    className="absolute bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden text-sm animate-fadeIn pointer-events-auto"
+                    style={{ top: pinningOptions.y, left: pinningOptions.x }}
+                    onClick={e => { e.stopPropagation(); }}
                 >
-                    <div 
-                        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden pointer-events-auto"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between">
-                            <h3 className="text-lg font-bold text-text-main-light dark:text-text-main">Choose Emoji</h3>
-                            <button 
-                                onClick={() => setEmojiPickerMessageId(null)}
-                                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-                            >
-                                <XCircleIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary" />
-                            </button>
-                        </div>
-                        <div className="overflow-y-auto max-h-[calc(80vh-80px)] p-4">
-                            {EMOJI_PICKER_EMOJIS.map(({ category, emojis }) => (
-                                <div key={category} className="mb-6">
-                                    <h4 className="text-sm font-semibold text-text-secondary-light dark:text-text-secondary mb-2 sticky top-0 bg-white dark:bg-gray-800 py-1">
-                                        {category}
-                                    </h4>
-                                    <div className="grid grid-cols-8 gap-2">
-                                        {emojis.map(emoji => (
-                                            <button
-                                                key={emoji}
-                                                onClick={() => handleReaction(emoji, emojiPickerMessageId)}
-                                                className="text-2xl p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all hover:scale-110 active:scale-95"
-                                            >
-                                                {emoji}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
+                    <div className="p-2 font-semibold border-b border-gray-200 dark:border-gray-700">Pin message for...</div>
+                    <button onClick={() => { handlePinMessage(pinningOptions.messageId!, 24); setPinningOptions({ messageId: null, x: 0, y: 0 }); }} className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">24 hours</button>
+                    <button onClick={() => { handlePinMessage(pinningOptions.messageId!, 24 * 7); setPinningOptions({ messageId: null, x: 0, y: 0 }); }} className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">7 days</button>
+                    <button onClick={() => { handlePinMessage(pinningOptions.messageId!, null); setPinningOptions({ messageId: null, x: 0, y: 0 }); }} className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">Forever</button>
                 </div>
-            )}
-
-            {/* Enhanced Header - Fixed positioning */}
-            <div className="px-4 md:px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center space-x-3 bg-white dark:bg-gray-900 shadow-sm flex-shrink-0">
-                {onBack && (
-                    <button 
-                        onClick={onBack} 
-                        className="md:hidden p-2 text-text-secondary dark:text-text-secondary hover:text-brand-green dark:hover:text-brand-green hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-all flex-shrink-0"
-                    >
-                        <BackIcon className="w-5 h-5" />
-                    </button>
-                )}
-                {renderHeader()}
             </div>
+        )}
 
-            {pinnedMessage && (
-              <div className="px-4 md:px-6 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-between gap-4 animate-fadeIn">
+        {emojiPickerMessageId !== null && (
+            <div 
+                className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 pointer-events-none"
+            >
                 <div 
-                    className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer"
-                    onClick={() => messageRefs.current.get(pinnedMessage.message_id)?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                    className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden pointer-events-auto"
+                    onClick={(e) => e.stopPropagation()}
                 >
-                    <PinIcon className="w-4 h-4 text-brand-green flex-shrink-0" />
-                    <div className="min-w-0">
-                        <p className="text-xs font-semibold text-brand-green">Pinned Message</p>
-                        <p className="text-sm truncate text-text-secondary-light dark:text-text-secondary">
-                            {pinnedMessage.message.content || 'Media'}
-                        </p>
+                    <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between">
+                        <h3 className="text-lg font-bold text-text-main-light dark:text-text-main">Choose Emoji</h3>
+                        <button 
+                            onClick={() => setEmojiPickerMessageId(null)}
+                            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                        >
+                            <XCircleIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary" />
+                        </button>
+                    </div>
+                    <div className="overflow-y-auto max-h-[calc(80vh-80px)] p-4">
+                        {EMOJI_PICKER_EMOJIS.map(({ category, emojis }) => (
+                            <div key={category} className="mb-6">
+                                <h4 className="text-sm font-semibold text-text-secondary-light dark:text-text-secondary mb-2 sticky top-0 bg-white dark:bg-gray-800 py-1">
+                                    {category}
+                                </h4>
+                                <div className="grid grid-cols-8 gap-2">
+                                    {emojis.map(emoji => (
+                                        <button
+                                            key={emoji}
+                                            onClick={() => handleReaction(emoji, emojiPickerMessageId)}
+                                            className="text-2xl p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all hover:scale-110 active:scale-95"
+                                        >
+                                            {emoji}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
-                <button onClick={handleUnpinMessage} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full flex-shrink-0">
-                    <XCircleIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary" />
-                </button>
-              </div>
-            )}
+            </div>
+        )}
 
-            {/* Messages Area - Constrained width with proper overflow */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 md:px-6 py-4 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950">
-                <div className="max-w-full space-y-3">
-                    {loading ? ( 
-                        <div className="flex justify-center items-center h-full min-h-[400px]">
-                            <div className="text-center">
-                                <Spinner />
-                                <p className="mt-3 text-sm text-text-tertiary-light dark:text-text-tertiary">Loading messages...</p>
+        <div className="px-4 md:px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center space-x-3 bg-white dark:bg-gray-900 shadow-sm flex-shrink-0">
+            {onBack && (
+                <button 
+                    onClick={onBack} 
+                    className="md:hidden p-2 text-text-secondary dark:text-text-secondary hover:text-brand-green dark:hover:text-brand-green hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-all flex-shrink-0"
+                >
+                    <BackIcon className="w-5 h-5" />
+                </button>
+            )}
+            {renderHeader()}
+        </div>
+
+        {pinnedMessage && (
+          <div className="px-4 md:px-6 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-between gap-4 animate-fadeIn">
+            <div 
+                className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer"
+                onClick={() => messageRefs.current.get(pinnedMessage.message_id)?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+            >
+                <PinIcon className="w-4 h-4 text-brand-green flex-shrink-0" />
+                <div className="min-w-0">
+                    <p className="text-xs font-semibold text-brand-green">Pinned Message</p>
+                    <p className="text-sm truncate text-text-secondary-light dark:text-text-secondary">
+                        {pinnedMessage.message.content || 'Media'}
+                    </p>
+                </div>
+            </div>
+            <button onClick={handleUnpinMessage} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full flex-shrink-0">
+                <XCircleIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary" />
+            </button>
+          </div>
+        )}
+
+        <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 md:px-6 py-4 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950">
+            <div className="max-w-full space-y-3">
+                {/* --- THIS IS THE MODIFIED PART --- */}
+                {loading ? ( 
+                    <div className="space-y-6 py-4">
+                        <MessageSkeleton align="left" />
+                        <MessageSkeleton align="right" />
+                        <MessageSkeleton align="left" />
+                        <MessageSkeleton align="right" />
+                        <MessageSkeleton align="left" />
+                    </div>
+                ) : messages.length === 0 ? (
+                    <div className="flex justify-center items-center h-full min-h-[400px]">
+                        <div className="text-center max-w-sm">
+                            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-tertiary-light dark:bg-tertiary flex items-center justify-center">
+                                <SendIcon className="w-10 h-10 text-brand-green" />
                             </div>
-                        </div> 
-                    ) : messages.length === 0 ? (
-                        <div className="flex justify-center items-center h-full min-h-[400px]">
-                            <div className="text-center max-w-sm">
-                                <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-tertiary-light dark:bg-tertiary flex items-center justify-center">
-                                    <SendIcon className="w-10 h-10 text-brand-green" />
-                                </div>
-                                <h3 className="text-lg font-semibold text-text-main-light dark:text-text-main mb-2">No messages yet</h3>
-                                <p className="text-sm text-text-secondary-light dark:text-text-secondary">Send a message to start the conversation</p>
-                            </div>
+                            <h3 className="text-lg font-semibold text-text-main-light dark:text-text-main mb-2">No messages yet</h3>
+                            <p className="text-sm text-text-secondary-light dark:text-text-secondary">Send a message to start the conversation</p>
                         </div>
-                    ) : (
-                        messages.map((msg) => {
-                            const isOwn = msg.sender_id === user?.id;
-                            const isEditing = editingMessage?.id === msg.id;
-                            const originalMessage = msg.reply_to_message_id ? messages.find(m => m.id === msg.reply_to_message_id) : null;
-                            const isSending = isOwn && msg.status === 'sending';
-                            const hasFailed = isOwn && msg.status === 'failed';
-                            
-                            return (
-                                <div 
-                                    key={msg.id} 
-                                    ref={el => messageRefs.current.set(msg.id, el)}
-                                    className={`group flex items-end gap-2 w-full ${isOwn ? 'justify-end' : 'justify-start'} ${isSending ? 'opacity-60' : ''}`}
-                                >
-                                    {!isOwn && msg.profiles && ( 
-                                        <img 
-                                            src={msg.profiles.avatar_url || `https://ui-avatars.com/api/?name=${msg.profiles.username}`} 
-                                            className="w-8 h-8 rounded-full mb-1 ring-2 ring-white dark:ring-gray-800 shadow-sm flex-shrink-0" 
-                                            alt="avatar"
-                                        /> 
-                                    )}
-                                    {isOwn && !hasFailed && (
-                                        <p className="text-xs text-text-tertiary-light dark:text-text-tertiary mb-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0">
-                                            {formatMessageTime(msg.created_at)}
-                                        </p>
-                                    )}
-                                    {hasFailed && (
-                                        <div className="text-red-500 mb-1.5 flex-shrink-0" title="Failed to send">
-                                            <ErrorIcon />
-                                        </div>
-                                    )}
-                                    
-                                    <div className={`relative flex items-center gap-1 max-w-[85%] sm:max-w-[75%] md:max-w-[65%] ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
-                                        <div className={`relative w-full rounded-2xl shadow-sm transition-all duration-200 hover:shadow-md ${
-                                            isOwn 
-                                                ? 'bg-gradient-to-br from-brand-green to-green-500 text-black rounded-br-md' 
-                                                : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-bl-md'
-                                        }`}>
-                                            {isEditing ? (
-                                                <div className="p-3 w-full">
-                                                    <textarea 
-                                                        value={editingContent} 
-                                                        onChange={e => setEditingContent(e.target.value)}
-                                                        className="w-full text-sm bg-black/10 dark:bg-white/10 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green resize-none text-black dark:text-white"
-                                                        rows={Math.max(2, editingContent.split('\n').length)} 
-                                                        autoFocus
-                                                        onKeyDown={(e) => { 
-                                                            if (e.key === 'Enter' && !e.shiftKey) { 
-                                                                e.preventDefault(); 
-                                                                handleSaveEdit(); 
-                                                            } 
-                                                            if (e.key === 'Escape') { 
-                                                                handleCancelEdit(); 
-                                                            } 
-                                                        }}
-                                                    />
-                                                    <div className="flex justify-end items-center mt-2 space-x-2">
-                                                        <button 
-                                                            type="button" 
-                                                            onClick={handleCancelEdit} 
-                                                            className="py-1.5 px-3 text-xs font-medium rounded-lg hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-                                                        >
-                                                            Cancel
-                                                        </button>
-                                                        <button 
-                                                            type="button" 
-                                                            onClick={handleSaveEdit} 
-                                                            className="py-1.5 px-3 text-xs font-medium rounded-lg bg-green-900/50 text-white hover:bg-green-900/70 transition-colors"
-                                                        >
-                                                            Save
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    {originalMessage && (
-                                                        <div className="px-3 pt-2 pb-1 opacity-80">
-                                                            <div className="border-l-3 border-green-700/60 dark:border-green-400/60 pl-2.5 py-1 text-xs bg-black/5 dark:bg-white/5 rounded-r">
-                                                                <p className="font-bold mb-0.5">{originalMessage.profiles?.full_name || 'User'}</p>
-                                                                <p className="truncate opacity-80">{originalMessage.content || 'Media'}</p>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                    {msg.is_deleted ? ( 
-                                                        <p className="px-4 py-2.5 text-[15px] italic text-gray-500 dark:text-gray-500">
-                                                            This message was deleted
-                                                        </p>
-                                                    ) : msg.message_type === 'text' ? (
-                                                        <div className="flex items-end px-4 py-2.5">
-                                                            <p className="text-[15px] leading-relaxed break-words whitespace-pre-wrap">{msg.content}</p>
-                                                            {msg.is_edited && (
-                                                                <span className="text-[10px] text-gray-600 dark:text-gray-400 ml-2 select-none self-end flex-shrink-0 opacity-70">
-                                                                    edited
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    ) : msg.message_type === 'image' && msg.attachment_url ? ( 
-                                                        <button 
-                                                            onClick={() => setLightboxUrl(msg.attachment_url!)} 
-                                                            className="block p-1.5 hover:opacity-95 transition-opacity w-full"
-                                                        >
-                                                            <img 
-                                                                src={msg.attachment_url} 
-                                                                alt="attachment" 
-                                                                className="rounded-xl w-full max-w-xs max-h-80 object-cover" 
-                                                            />
-                                                        </button>
-                                                    ) : msg.message_type === 'gif' && msg.attachment_url ? ( 
-                                                        <div className="p-1.5">
-                                                            <img 
-                                                                src={msg.attachment_url} 
-                                                                alt="gif" 
-                                                                className="rounded-xl w-full max-w-xs" 
-                                                            />
-                                                        </div>
-                                                    ) : null}
-                                                </>
-                                            )}
-                                            {msg.reactions && msg.reactions.length > 0 && (
-                                                <div className={`absolute -bottom-6 flex gap-1 flex-wrap ${isOwn ? 'right-2' : 'left-2'}`}>
-                                                    {Object.entries(groupedReactions(msg.reactions)).map(([emoji, count]) => (
-                                                        <button 
-                                                            key={emoji} 
-                                                            onClick={() => handleReaction(emoji, msg.id)} 
-                                                            className="px-2 py-0.5 bg-white dark:bg-gray-800 rounded-full text-xs font-medium shadow-lg border border-gray-200 dark:border-gray-700 hover:scale-110 transition-transform"
-                                                        >
-                                                            <span className="mr-1">{emoji}</span>
-                                                            <span className="text-text-secondary-light dark:text-text-secondary">{count}</span>
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                        {!isEditing && !msg.is_deleted && (
-                                            <div className={`flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0 ${isOwn ? '' : 'order-first'}`}>
-                                                <div className="relative group/react">
-                                                    <button className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                                                        <FaceSmileIcon className="w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" />
-                                                    </button>
-                                                    <div className={`absolute bottom-full mb-2 flex gap-1 bg-white dark:bg-gray-800 p-2 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 opacity-0 invisible group-hover/react:opacity-100 group-hover/react:visible z-10 transition-all ${isOwn ? 'right-0' : 'left-0'}`}>
-                                                        {REACTION_EMOJIS.map(emoji => (
-                                                            <button 
-                                                                key={emoji} 
-                                                                onClick={() => handleReaction(emoji, msg.id)} 
-                                                                className="p-1 text-xl hover:scale-125 transition-transform rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-                                                            >
-                                                                {emoji}
-                                                            </button>
-                                                        ))}
-                                                        <button 
-                                                            onClick={() => setEmojiPickerMessageId(msg.id)}
-                                                            className="p-1 text-xl hover:scale-125 transition-transform rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 border-l border-gray-200 dark:border-gray-600 pl-2"
-                                                        >
-                                                            <PlusIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <button 
-                                                    className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors" 
-                                                    onClick={() => setReplyingTo(msg)}
-                                                >
-                                                    <ReplyIcon className="w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" />
-                                                </button>
-                                                {isOwn && msg.message_type === 'text' && (
-                                                    <button 
-                                                        className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors" 
-                                                        onClick={() => handleStartEdit(msg)}
-                                                    >
-                                                        <PencilIcon className="w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" />
-                                                    </button>
-                                                )}
-                                                <button
-                                                    className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                                                    onClick={(e) => {
-                                                        const rect = e.currentTarget.getBoundingClientRect();
-                                                        setPinningOptions({ messageId: msg.id, x: rect.left - 150, y: rect.top - 120 });
+                    </div>
+                ) : (
+                    messages.map((msg) => {
+                        const isOwn = msg.sender_id === user?.id;
+                        const isEditing = editingMessage?.id === msg.id;
+                        const originalMessage = msg.reply_to_message_id ? messages.find(m => m.id === msg.reply_to_message_id) : null;
+                        const isSending = isOwn && msg.status === 'sending';
+                        const hasFailed = isOwn && msg.status === 'failed';
+                        
+                        return (
+                            <div 
+                                key={msg.id} 
+                                ref={el => messageRefs.current.set(msg.id, el)}
+                                className={`group flex items-end gap-2 w-full ${isOwn ? 'justify-end' : 'justify-start'} ${isSending ? 'opacity-60' : ''}`}
+                            >
+                                {!isOwn && msg.profiles && ( 
+                                    <img 
+                                        src={msg.profiles.avatar_url || `https://ui-avatars.com/api/?name=${msg.profiles.username}`} 
+                                        className="w-8 h-8 rounded-full mb-1 ring-2 ring-white dark:ring-gray-800 shadow-sm flex-shrink-0" 
+                                        alt="avatar"
+                                    /> 
+                                )}
+                                {isOwn && !hasFailed && (
+                                    <p className="text-xs text-text-tertiary-light dark:text-text-tertiary mb-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0">
+                                        {formatMessageTime(msg.created_at)}
+                                    </p>
+                                )}
+                                {hasFailed && (
+                                    <div className="text-red-500 mb-1.5 flex-shrink-0" title="Failed to send">
+                                        <ErrorIcon />
+                                    </div>
+                                )}
+                                
+                                <div className={`relative flex items-center gap-1 max-w-[85%] sm:max-w-[75%] md:max-w-[65%] ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
+                                    <div className={`relative w-full rounded-2xl shadow-sm transition-all duration-200 hover:shadow-md ${
+                                        isOwn 
+                                            ? 'bg-gradient-to-br from-brand-green to-green-500 text-black rounded-br-md' 
+                                            : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-bl-md'
+                                    }`}>
+                                        {isEditing ? (
+                                            <div className="p-3 w-full">
+                                                <textarea 
+                                                    value={editingContent} 
+                                                    onChange={e => setEditingContent(e.target.value)}
+                                                    className="w-full text-sm bg-black/10 dark:bg-white/10 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green resize-none text-black dark:text-white"
+                                                    rows={Math.max(2, editingContent.split('\n').length)} 
+                                                    autoFocus
+                                                    onKeyDown={(e) => { 
+                                                        if (e.key === 'Enter' && !e.shiftKey) { 
+                                                            e.preventDefault(); 
+                                                            handleSaveEdit(); 
+                                                        } 
+                                                        if (e.key === 'Escape') { 
+                                                            handleCancelEdit(); 
+                                                        } 
                                                     }}
-                                                >
-                                                    <PinIcon className="w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" />
-                                                </button>
-                                                {isOwn && (
+                                                />
+                                                <div className="flex justify-end items-center mt-2 space-x-2">
                                                     <button 
-                                                        className="p-1.5 rounded-full text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" 
-                                                        onClick={() => handleDeleteForEveryone(msg.id)}
+                                                        type="button" 
+                                                        onClick={handleCancelEdit} 
+                                                        className="py-1.5 px-3 text-xs font-medium rounded-lg hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
                                                     >
-                                                        <TrashIcon className="w-4 h-4" />
+                                                        Cancel
                                                     </button>
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={handleSaveEdit} 
+                                                        className="py-1.5 px-3 text-xs font-medium rounded-lg bg-green-900/50 text-white hover:bg-green-900/70 transition-colors"
+                                                    >
+                                                        Save
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                {originalMessage && (
+                                                    <div className="px-3 pt-2 pb-1 opacity-80">
+                                                        <div className="border-l-3 border-green-700/60 dark:border-green-400/60 pl-2.5 py-1 text-xs bg-black/5 dark:bg-white/5 rounded-r">
+                                                            <p className="font-bold mb-0.5">{originalMessage.profiles?.full_name || 'User'}</p>
+                                                            <p className="truncate opacity-80">{originalMessage.content || 'Media'}</p>
+                                                        </div>
+                                                    </div>
                                                 )}
+                                                {msg.is_deleted ? ( 
+                                                    <p className="px-4 py-2.5 text-[15px] italic text-gray-500 dark:text-gray-500">
+                                                        This message was deleted
+                                                    </p>
+                                                ) : msg.message_type === 'text' ? (
+                                                    <div className="flex items-end px-4 py-2.5">
+                                                        <p className="text-[15px] leading-relaxed break-words whitespace-pre-wrap">{msg.content}</p>
+                                                        {msg.is_edited && (
+                                                            <span className="text-[10px] text-gray-600 dark:text-gray-400 ml-2 select-none self-end flex-shrink-0 opacity-70">
+                                                                edited
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                ) : msg.message_type === 'image' && msg.attachment_url ? ( 
+                                                    <button 
+                                                        onClick={() => setLightboxUrl(msg.attachment_url!)} 
+                                                        className="block p-1.5 hover:opacity-95 transition-opacity w-full"
+                                                    >
+                                                        <img 
+                                                            src={msg.attachment_url} 
+                                                            alt="attachment" 
+                                                            className="rounded-xl w-full max-w-xs max-h-80 object-cover" 
+                                                        />
+                                                    </button>
+                                                ) : msg.message_type === 'gif' && msg.attachment_url ? ( 
+                                                    <div className="p-1.5">
+                                                        <img 
+                                                            src={msg.attachment_url} 
+                                                            alt="gif" 
+                                                            className="rounded-xl w-full max-w-xs" 
+                                                        />
+                                                    </div>
+                                                ) : null}
+                                            </>
+                                        )}
+                                        {msg.reactions && msg.reactions.length > 0 && (
+                                            <div className={`absolute -bottom-6 flex gap-1 flex-wrap ${isOwn ? 'right-2' : 'left-2'}`}>
+                                                {Object.entries(groupedReactions(msg.reactions)).map(([emoji, count]) => (
+                                                    <button 
+                                                        key={emoji} 
+                                                        onClick={() => handleReaction(emoji, msg.id)} 
+                                                        className="px-2 py-0.5 bg-white dark:bg-gray-800 rounded-full text-xs font-medium shadow-lg border border-gray-200 dark:border-gray-700 hover:scale-110 transition-transform"
+                                                    >
+                                                        <span className="mr-1">{emoji}</span>
+                                                        <span className="text-text-secondary-light dark:text-text-secondary">{count}</span>
+                                                    </button>
+                                                ))}
                                             </div>
                                         )}
                                     </div>
-                                    {!isOwn && (
-                                        <p className="text-xs text-text-tertiary-light dark:text-text-tertiary mb-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0">
-                                            {formatMessageTime(msg.created_at)}
-                                        </p>
+                                    {!isEditing && !msg.is_deleted && (
+                                        <div className={`flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0 ${isOwn ? '' : 'order-first'}`}>
+                                            <div className="relative group/react">
+                                                <button className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                                                    <FaceSmileIcon className="w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" />
+                                                </button>
+                                                <div className={`absolute bottom-full mb-2 flex gap-1 bg-white dark:bg-gray-800 p-2 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 opacity-0 invisible group-hover/react:opacity-100 group-hover/react:visible z-10 transition-all ${isOwn ? 'right-0' : 'left-0'}`}>
+                                                    {REACTION_EMOJIS.map(emoji => (
+                                                        <button 
+                                                            key={emoji} 
+                                                            onClick={() => handleReaction(emoji, msg.id)} 
+                                                            className="p-1 text-xl hover:scale-125 transition-transform rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                                                        >
+                                                            {emoji}
+                                                        </button>
+                                                    ))}
+                                                    <button 
+                                                        onClick={() => setEmojiPickerMessageId(msg.id)}
+                                                        className="p-1 text-xl hover:scale-125 transition-transform rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 border-l border-gray-200 dark:border-gray-600 pl-2"
+                                                    >
+                                                        <PlusIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <button 
+                                                className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors" 
+                                                onClick={() => setReplyingTo(msg)}
+                                            >
+                                                <ReplyIcon className="w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" />
+                                            </button>
+                                            {isOwn && msg.message_type === 'text' && (
+                                                <button 
+                                                    className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors" 
+                                                    onClick={() => handleStartEdit(msg)}
+                                                >
+                                                    <PencilIcon className="w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" />
+                                                </button>
+                                            )}
+                                            <button
+                                                className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                                                onClick={(e) => {
+                                                    const rect = e.currentTarget.getBoundingClientRect();
+                                                    setPinningOptions({ messageId: msg.id, x: rect.left - 150, y: rect.top - 120 });
+                                                }}
+                                            >
+                                                <PinIcon className="w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" />
+                                            </button>
+                                            {isOwn && (
+                                                <button 
+                                                    className="p-1.5 rounded-full text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" 
+                                                    onClick={() => handleDeleteForEveryone(msg.id)}
+                                                >
+                                                    <TrashIcon className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                        </div>
                                     )}
                                 </div>
-                            );
-                        })
-                    )}
-                    <div ref={messagesEndRef} />
-                    <TypingIndicator users={typingUsers} />
-                    
-                    <div className="flex justify-end pr-2 pt-1">
-                        {conversation.type === 'dm' && readersOfLastMessage.length > 0 && (
-                            <div className="text-xs text-text-tertiary-light dark:text-text-tertiary flex items-center gap-1">
-                                <CheckIcon className="w-4 h-4" />
-                                <span>Seen</span>
-                            </div>
-                        )}
-                        {conversation.type === 'group' && readersOfLastMessage.length > 0 && (
-                            <div className="flex items-center space-x-2">
-                                <span className="text-xs text-text-tertiary-light dark:text-text-tertiary">Seen by</span>
-                                <div className="flex -space-x-2">
-                                    {readersOfLastMessage.slice(0, 3).map(reader => (
-                                        <img
-                                            key={reader.user_id}
-                                            src={reader.avatar_url || `https://ui-avatars.com/api/?name=${reader.full_name}`}
-                                            alt={reader.full_name || ''}
-                                            title={reader.full_name || ''}
-                                            className="w-5 h-5 rounded-full object-cover ring-2 ring-secondary-light dark:ring-secondary"
-                                        />
-                                    ))}
-                                </div>
-                                {readersOfLastMessage.length > 3 && (
-                                     <span className="text-xs text-text-tertiary-light dark:text-text-tertiary">+{readersOfLastMessage.length - 3} more</span>
+                                {!isOwn && (
+                                    <p className="text-xs text-text-tertiary-light dark:text-text-tertiary mb-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0">
+                                        {formatMessageTime(msg.created_at)}
+                                    </p>
                                 )}
                             </div>
-                        )}
-                    </div>
+                        );
+                    })
+                )}
+                <div ref={messagesEndRef} />
+                <TypingIndicator users={typingUsers} />
+                
+                <div className="flex justify-end pr-2 pt-1">
+                    {conversation.type === 'dm' && readersOfLastMessage.length > 0 && (
+                        <div className="text-xs text-text-tertiary-light dark:text-text-tertiary flex items-center gap-1">
+                            <CheckIcon className="w-4 h-4" />
+                            <span>Seen</span>
+                        </div>
+                    )}
+                    {conversation.type === 'group' && readersOfLastMessage.length > 0 && (
+                        <div className="flex items-center space-x-2">
+                            <span className="text-xs text-text-tertiary-light dark:text-text-tertiary">Seen by</span>
+                            <div className="flex -space-x-2">
+                                {readersOfLastMessage.slice(0, 3).map(reader => (
+                                    <img
+                                        key={reader.user_id}
+                                        src={reader.avatar_url || `https://ui-avatars.com/api/?name=${reader.full_name}`}
+                                        alt={reader.full_name || ''}
+                                        title={reader.full_name || ''}
+                                        className="w-5 h-5 rounded-full object-cover ring-2 ring-secondary-light dark:ring-secondary"
+                                    />
+                                ))}
+                            </div>
+                            {readersOfLastMessage.length > 3 && (
+                                 <span className="text-xs text-text-tertiary-light dark:text-text-tertiary">+{readersOfLastMessage.length - 3} more</span>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
-            
-            {/* Enhanced Input Area - Fixed at bottom */}
-            <div className="px-4 md:px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex-shrink-0">
-                {replyingTo && (
-                    <div className="mb-3 px-4 py-3 bg-gradient-to-r from-brand-green/10 to-green-500/10 dark:from-brand-green/20 dark:to-green-500/20 rounded-xl text-sm border-l-4 border-brand-green">
-                        <div className="flex justify-between items-center">
-                            <div className="min-w-0 flex-1">
-                                <p className="font-bold text-brand-green mb-1">
-                                    <ReplyIcon className="w-3 h-3 inline mr-1" />
-                                    Replying to {replyingTo.profiles?.full_name}
-                                </p>
-                                <p className="text-text-secondary-light dark:text-text-secondary truncate">
-                                    {replyingTo.content || "Media"}
-                                </p>
-                            </div>
-                            <button 
-                                onClick={() => setReplyingTo(null)}
-                                className="ml-3 p-1.5 hover:bg-black/10 dark:hover:bg-white/10 rounded-full transition-colors flex-shrink-0"
-                            >
-                                <XCircleIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary" />
-                            </button>
+        </div>
+        
+        <div className="px-4 md:px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex-shrink-0">
+            {replyingTo && (
+                <div className="mb-3 px-4 py-3 bg-gradient-to-r from-brand-green/10 to-green-500/10 dark:from-brand-green/20 dark:to-green-500/20 rounded-xl text-sm border-l-4 border-brand-green">
+                    <div className="flex justify-between items-center">
+                        <div className="min-w-0 flex-1">
+                            <p className="font-bold text-brand-green mb-1">
+                                <ReplyIcon className="w-3 h-3 inline mr-1" />
+                                Replying to {replyingTo.profiles?.full_name}
+                            </p>
+                            <p className="text-text-secondary-light dark:text-text-secondary truncate">
+                                {replyingTo.content || "Media"}
+                            </p>
                         </div>
+                        <button 
+                            onClick={() => setReplyingTo(null)}
+                            className="ml-3 p-1.5 hover:bg-black/10 dark:hover:bg-white/10 rounded-full transition-colors flex-shrink-0"
+                        >
+                            <XCircleIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary" />
+                        </button>
                     </div>
-                )}
-                {imagePreview && (
-                    <div className="mb-3">
-                        <div className="relative inline-block w-32 h-32 rounded-xl overflow-hidden shadow-lg border-2 border-brand-green/30">
-                            <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                            <button 
-                                onClick={() => resetInput()} 
-                                className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-lg transform hover:scale-110 transition-transform"
-                            >
-                                <XCircleIcon className="w-5 h-5" />
-                            </button>
-                        </div>
+                </div>
+            )}
+            {imagePreview && (
+                <div className="mb-3">
+                    <div className="relative inline-block w-32 h-32 rounded-xl overflow-hidden shadow-lg border-2 border-brand-green/30">
+                        <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                        <button 
+                            onClick={() => resetInput()} 
+                            className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-lg transform hover:scale-110 transition-transform"
+                        >
+                            <XCircleIcon className="w-5 h-5" />
+                        </button>
                     </div>
-                )}
-                <form onSubmit={handleSendMessage} className="flex items-center space-x-2">
-                    <div className="group relative flex-shrink-0">
+                </div>
+            )}
+            <form onSubmit={handleSendMessage} className="flex items-center space-x-2">
+                <div className="group relative flex-shrink-0">
+                    <button 
+                        type="button" 
+                        className="p-2.5 text-text-tertiary-light dark:text-text-tertiary rounded-full hover:bg-brand-green/10 hover:text-brand-green dark:hover:bg-brand-green/20 dark:hover:text-brand-green transition-all"
+                    >
+                        <PlusIcon className="w-5 h-5" />
+                    </button>
+                    <div className="absolute bottom-full mb-2 left-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 whitespace-nowrap">
                         <button 
                             type="button" 
-                            className="p-2.5 text-text-tertiary-light dark:text-text-tertiary rounded-full hover:bg-brand-green/10 hover:text-brand-green dark:hover:bg-brand-green/20 dark:hover:text-brand-green transition-all"
+                            onClick={() => fileInputRef.current?.click()} 
+                            className="flex items-center w-full text-left space-x-3 px-4 py-3 hover:bg-brand-green/10 dark:hover:bg-brand-green/20 rounded-t-xl transition-colors"
                         >
-                            <PlusIcon className="w-5 h-5" />
+                            <div className="p-2 bg-brand-green/20 rounded-lg flex-shrink-0">
+                                <ImageIcon className="w-5 h-5 text-brand-green"/>
+                            </div>
+                            <span className="font-medium">Image</span>
                         </button>
-                        <div className="absolute bottom-full mb-2 left-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 whitespace-nowrap">
-                            <button 
-                                type="button" 
-                                onClick={() => fileInputRef.current?.click()} 
-                                className="flex items-center w-full text-left space-x-3 px-4 py-3 hover:bg-brand-green/10 dark:hover:bg-brand-green/20 rounded-t-xl transition-colors"
-                            >
-                                <div className="p-2 bg-brand-green/20 rounded-lg flex-shrink-0">
-                                    <ImageIcon className="w-5 h-5 text-brand-green"/>
-                                </div>
-                                <span className="font-medium">Image</span>
-                            </button>
-                            <button 
-                                type="button" 
-                                onClick={() => setGifPickerOpen(true)} 
-                                className="flex items-center w-full text-left space-x-3 px-4 py-3 hover:bg-brand-green/10 dark:hover:bg-brand-green/20 rounded-b-xl transition-colors"
-                            >
-                                <div className="p-2 bg-brand-green/20 rounded-lg flex-shrink-0">
-                                    <GifIcon className="w-5 h-5 text-brand-green"/>
-                                </div>
-                                <span className="font-medium">GIF</span>
-                            </button>
-                        </div>
+                        <button 
+                            type="button" 
+                            onClick={() => setGifPickerOpen(true)} 
+                            className="flex items-center w-full text-left space-x-3 px-4 py-3 hover:bg-brand-green/10 dark:hover:bg-brand-green/20 rounded-b-xl transition-colors"
+                        >
+                            <div className="p-2 bg-brand-green/20 rounded-lg flex-shrink-0">
+                                <GifIcon className="w-5 h-5 text-brand-green"/>
+                            </div>
+                            <span className="font-medium">GIF</span>
+                        </button>
                     </div>
-                    <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" hidden />
-                    
-                    <input
-                        type="text"
-                        value={newMessage}
-                        onChange={(e) => {
-                            setNewMessage(e.target.value);
-                            handleTyping();
-                        }}
-                        placeholder="Type a message..."
-                        disabled={!!imagePreview}
-                        className="flex-1 min-w-0 py-3 px-4 bg-gray-100 dark:bg-gray-800 border-2 border-transparent focus:border-brand-green rounded-full text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    />
-                    <button 
-                        type="submit" 
-                        disabled={!newMessage.trim() && !imageFile}
-                        className="p-3 bg-gradient-to-br from-brand-green to-green-500 text-black rounded-full hover:shadow-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex-shrink-0"
-                    >
-                        <SendIcon className="w-5 h-5" />
-                    </button>
-                </form>
-            </div>
+                </div>
+                <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" hidden />
+                
+                <input
+                    type="text"
+                    value={newMessage}
+                    onChange={(e) => {
+                        setNewMessage(e.target.value);
+                        handleTyping();
+                    }}
+                    placeholder="Type a message..."
+                    disabled={!!imagePreview}
+                    className="flex-1 min-w-0 py-3 px-4 bg-gray-100 dark:bg-gray-800 border-2 border-transparent focus:border-brand-green rounded-full text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                <button 
+                    type="submit" 
+                    disabled={!newMessage.trim() && !imageFile}
+                    className="p-3 bg-gradient-to-br from-brand-green to-green-500 text-black rounded-full hover:shadow-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex-shrink-0"
+                >
+                    <SendIcon className="w-5 h-5" />
+                </button>
+            </form>
         </div>
-    );
+    </div>
+  );
 };
 
 export default Conversation;

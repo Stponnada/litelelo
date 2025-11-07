@@ -9,6 +9,22 @@ interface ListingCardProps {
 }
 
 const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) => {
+    // --- THIS IS THE FIX ---
+    // Function to get a resized image URL from Supabase Storage
+    const getResizedImageUrl = (url: string | null, width: number, height: number) => {
+        if (!url) {
+            return `https://placehold.co/${width}x${height}/1e293b/3cfba2?text=No+Image`;
+        }
+        // Use Supabase's 'render' path for transformations
+        const urlObject = new URL(url);
+        const pathParts = urlObject.pathname.split('/');
+        const bucket = pathParts[3]; // e.g., 'marketplace-images'
+        const imagePath = pathParts.slice(4).join('/');
+        
+        return `${urlObject.origin}/storage/v1/render/image/public/${bucket}/${imagePath}?width=${width}&height=${height}&resize=cover`;
+    };
+    // ----------------------
+
     return (
         <div 
             onClick={onClick} 
@@ -16,7 +32,8 @@ const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) => {
         >
             <div className="relative w-full aspect-square overflow-hidden">
                 <img 
-                    src={listing.primary_image_url || 'https://placehold.co/400x400/1e293b/3cfba2?text=No+Image'} 
+                    // Use the new function to request a smaller, optimized image
+                    src={getResizedImageUrl(listing.primary_image_url, 400, 400)} 
                     alt={listing.title} 
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />

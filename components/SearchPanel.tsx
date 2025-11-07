@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { ScrollView, View, Text, StyleSheet, TextInput, Image, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../services/supabase';
 import { Profile } from '../types';
 import Spinner from './Spinner';
@@ -9,6 +10,7 @@ interface SearchPanelProps {
 }
 
 const SearchPanel: React.FC<SearchPanelProps> = ({ onNavigate }) => {
+    const navigation = useNavigation();
     const [searchTerm, setSearchTerm] = useState('');
     const [results, setResults] = useState<Profile[]>([]);
     const [loading, setLoading] = useState(false);
@@ -42,41 +44,123 @@ const SearchPanel: React.FC<SearchPanelProps> = ({ onNavigate }) => {
     }, [searchTerm]);
 
     return (
-        <div className="h-full flex flex-col">
-            <h2 className="text-2xl font-bold mb-6 px-3">Search</h2>
-            <div className="px-3">
-                <input
-                    type="text"
+        <View style={styles.container}>
+            <Text style={styles.title}>Search</Text>
+            <View style={styles.inputContainer}>
+                <TextInput
                     placeholder="Search"
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full p-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-500"
+                    onChangeText={setSearchTerm}
+                    style={styles.input}
                     autoFocus
+                    placeholderTextColor="#666"
                 />
-            </div>
-            <hr className="border-gray-700 my-6" />
-            <div className="flex-1 overflow-y-auto -mr-3 pr-3">
-                {loading && <div className="flex justify-center"><Spinner /></div>}
-                {!loading && results.length > 0 && (
-                    <div className="space-y-2">
+            </View>
+            <View style={styles.divider} />
+            <ScrollView style={styles.content}>
+                {loading ? (
+                    <View style={styles.spinnerContainer}>
+                        <Spinner />
+                    </View>
+                ) : results.length > 0 ? (
+                    <View style={styles.resultsList}>
                         {results.map(profile => (
-                            // FIX: Use `user_id` as the key, as `id` does not exist on the Profile type. `user_id` is a unique identifier for the profile.
-                            <Link to={`/${profile.username}`} onClick={onNavigate} key={profile.user_id} className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-800">
-                                <img src={profile.avatar_url || `https://ui-avatars.com/api/?name=${profile.username}&background=0D8ABC&color=fff&size=50`} alt={profile.username} className="w-11 h-11 rounded-full object-cover" />
-                                <div>
-                                    <p className="font-semibold text-sm">{profile.username}</p>
-                                    <p className="text-xs text-gray-400">{profile.full_name}</p>
-                                </div>
-                            </Link>
+                            <TouchableOpacity
+                                key={profile.user_id}
+                                style={styles.suggestionCard}
+                                onPress={() => {
+                                    onNavigate();
+                                    navigation.navigate('Profile', { username: profile.username });
+                                }}
+                            >
+                                <Image
+                                    source={{ uri: profile.avatar_url || `https://ui-avatars.com/api/?name=${profile.username}&background=0D8ABC&color=fff&size=50` }}
+                                    style={styles.avatar}
+                                />
+                                <View>
+                                    <Text style={styles.username}>{profile.username}</Text>
+                                    <Text style={styles.fullName}>{profile.full_name}</Text>
+                                </View>
+                            </TouchableOpacity>
                         ))}
-                    </div>
+                    </View>
+                ) : searchTerm.length > 1 && (
+                    <Text style={styles.noResults}>No results found.</Text>
                 )}
-                {!loading && searchTerm.length > 1 && results.length === 0 && (
-                     <p className="text-gray-500 text-center px-3">No results found.</p>
-                )}
-            </div>
-        </div>
+            </ScrollView>
+        </View>
     );
 };
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#fff'
+    },
+    title: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        marginBottom: 24,
+        paddingHorizontal: 12
+    },
+    inputContainer: {
+        paddingHorizontal: 12
+    },
+    input: {
+        width: '100%',
+        padding: 8,
+        backgroundColor: '#f5f5f5',
+        borderWidth: 1,
+        borderColor: '#ddd',
+        borderRadius: 8,
+        fontSize: 16,
+        color: '#222'
+    },
+    divider: {
+        height: 1,
+        backgroundColor: '#eee',
+        marginVertical: 24
+    },
+    content: {
+        flex: 1,
+        marginRight: -12,
+        paddingRight: 12
+    },
+    spinnerContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    resultsList: {
+        gap: 8
+    },
+    suggestionCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        padding: 8,
+        borderRadius: 8,
+        backgroundColor: '#fff'
+    },
+    avatar: {
+        width: 44,
+        height: 44,
+        borderRadius: 22
+    },
+    username: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#222'
+    },
+    fullName: {
+        fontSize: 12,
+        color: '#666'
+    },
+    noResults: {
+        textAlign: 'center',
+        color: '#666',
+        paddingHorizontal: 12
+    }
+});
 
 export default SearchPanel;

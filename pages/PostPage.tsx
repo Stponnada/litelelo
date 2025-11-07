@@ -16,7 +16,6 @@ const getAvatarUrl = (profile: Profile | null) => {
   return profile.avatar_url || `https://ui-avatars.com/api/?name=${profile.full_name || profile.username}&background=E53E3E&color=fff`;
 };
 
-// --- THIS IS THE FIX: New Flair component ---
 const Flair: React.FC<{ flair: { id: string; name: string; avatar_url: string | null } }> = ({ flair }) => (
     <Link
       to={`/communities/${flair.id}`}
@@ -32,8 +31,6 @@ const Flair: React.FC<{ flair: { id: string; name: string; avatar_url: string | 
     </Link>
 );
 
-
-// Comment Component with the correct renderer
 const Comment: React.FC<{ comment: CommentType }> = ({ comment }) => {
   const author = comment.profiles;
   return (
@@ -42,11 +39,9 @@ const Comment: React.FC<{ comment: CommentType }> = ({ comment }) => {
         <img src={getAvatarUrl(author)} alt={author?.username || 'avatar'} className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 object-cover" />
       </Link>
       <div className="flex-1 min-w-0">
-        {/* --- THIS IS THE FIX --- */}
         <div>
             <div className="flex items-baseline md:space-x-2 flex-wrap md:flex-nowrap">
                 <Link to={`/profile/${author?.username}`} className="font-semibold text-text-main-light dark:text-text-main hover:underline leading-tight truncate">{author?.full_name || author?.username}</Link>
-                {/* --- Display Flair on Comments --- */}
                 {author?.flair_details && <Flair flair={author.flair_details} />}
                 <span className="text-sm text-text-tertiary-light dark:text-text-tertiary truncate hidden md:inline">@{author?.username}</span>
                 <span className="text-sm text-text-tertiary-light dark:text-text-tertiary hidden md:inline">&middot;</span>
@@ -66,7 +61,6 @@ const Comment: React.FC<{ comment: CommentType }> = ({ comment }) => {
   );
 };
 
-// The full, restored PostPage component
 const PostPage: React.FC = () => {
   const { postId } = useParams<{ postId: string }>();
   const { user } = useAuth();
@@ -83,7 +77,6 @@ const PostPage: React.FC = () => {
     const fetchPageSpecificData = async () => {
         if (!postId) return;
         setCommentsLoading(true);
-        // --- UPDATED to use new RPC function ---
         const { data: commentsData, error } = await supabase.rpc('get_comments_for_post', { p_post_id: postId });
         if (error) {
           console.error("Error fetching comments with flair:", error);
@@ -103,19 +96,48 @@ const PostPage: React.FC = () => {
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !post || !newComment.trim() || !currentUserProfile) return;
+    
+    // --- OPTIMISTIC UPDATE ---
+    const tempCommentId = Date.now();
+    const optimisticComment: CommentType = {
+      id: tempCommentId,
+      content: newComment.trim(),
+      user_id: user.id,
+      post_id: post.id,
+      created_at: new Date().toISOString(),
+      profiles: currentUserProfile,
+    };
+    
+    // 1. Immediately update the UI
+    setComments(prev => [...prev, optimisticComment]);
+    const originalCommentCount = post.comment_count || 0;
+    updatePostInContext({ id: post.id, comment_count: originalCommentCount + 1 });
+    const submittedCommentText = newComment;
+    setNewComment('');
     setIsSubmitting(true);
+    
     try {
-        const { data: commentData, error } = await supabase.from('comments').insert({ post_id: post.id, user_id: user.id, content: newComment.trim() }).select().single();
-        if (error) throw error;
-        const newCommentForUI: CommentType = { ...commentData, profiles: currentUserProfile };
-        setComments(prev => [...prev, newCommentForUI]);
-        const newCommentCount = (post.comment_count || 0) + 1;
-        updatePostInContext({ id: post.id, comment_count: newCommentCount });
-        setNewComment('');
+      // 2. Send the actual request to the server
+      const { data: commentData, error } = await supabase
+        .from('comments')
+        .insert({ post_id: post.id, user_id: user.id, content: optimisticComment.content })
+        .select()
+        .single();
+        
+      if (error) throw error;
+      
+      // 3. Replace the temporary comment with the real one from the DB
+      setComments(prev => prev.map(c => c.id === tempCommentId ? { ...c, ...commentData } : c));
+
     } catch (error) {
-        console.error("Error submitting comment:", error);
+      console.error("Error submitting comment:", error);
+      // 4. On failure, revert the UI changes
+      alert('Failed to post comment. Please try again.');
+      setComments(prev => prev.filter(c => c.id !== tempCommentId));
+      updatePostInContext({ id: post.id, comment_count: originalCommentCount });
+      setNewComment(submittedCommentText); // Restore user's text
     } finally {
-        setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
