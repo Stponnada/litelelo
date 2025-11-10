@@ -28,3 +28,6 @@ dist-ssr
 redirect/
 sql
 liteleloMobile/
+__tests__/
+__mocks__/
+src/__tests__/
