@@ -13,6 +13,8 @@ interface PollProps {
 }
 
 const PollComponent: React.FC<PollProps> = ({ poll, postId }) => {
+    // Ensure poll content stays behind search overlay
+    const containerClasses = "relative z-[1]";
     const { updatePostInContext } = usePosts();
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -62,7 +64,7 @@ const PollComponent: React.FC<PollProps> = ({ poll, postId }) => {
     const totalVotes = poll.total_votes || 0;
 
     return (
-        <div className="mt-4 space-y-2">
+        <div className={`mt-4 space-y-2 ${containerClasses}`}>
             {poll.options.map(option => {
                 const percentage = totalVotes > 0 ? (option.vote_count / totalVotes) * 100 : 0;
                 const isVotedByUser = poll.user_votes?.includes(option.id);

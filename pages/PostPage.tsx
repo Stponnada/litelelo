@@ -64,40 +64,71 @@ const Comment: React.FC<{ comment: CommentType }> = ({ comment }) => {
 const PostPage: React.FC = () => {
   const { postId } = useParams<{ postId: string }>();
   const { user } = useAuth();
-  const { posts, loading: postsLoading, updatePostInContext } = usePosts();
+  const { posts, updatePostInContext, addPostToContext } = usePosts();
+
+  const [localPost, setLocalPost] = useState<PostType | null>(null);
+  const [pageLoading, setPageLoading] = useState(true);
+
   const [comments, setComments] = useState<CommentType[]>([]);
-  const [commentsLoading, setCommentsLoading] = useState(true);
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentUserProfile, setCurrentUserProfile] = useState<Profile | null>(null);
 
-  const post = posts.find(p => p.id === postId);
+  const postFromContext = posts.find(p => p.id === postId);
+  const post = localPost || postFromContext;
 
   useEffect(() => {
-    const fetchPageSpecificData = async () => {
-        if (!postId) return;
-        setCommentsLoading(true);
-        const { data: commentsData, error } = await supabase.rpc('get_comments_for_post', { p_post_id: postId });
-        if (error) {
-          console.error("Error fetching comments with flair:", error);
-        } else {
-          setComments((commentsData as any) || []);
-        }
+    const fetchPostAndComments = async () => {
+      if (!postId) return;
+      setPageLoading(true);
 
-        if (user) {
-          const { data: profileData } = await supabase.from('profiles').select('*, flair_details:displayed_community_flair(id, name, avatar_url)').eq('user_id', user.id).single();
-          setCurrentUserProfile(profileData as Profile);
+      if (postFromContext) {
+        setLocalPost(null);
+      } else {
+        // --- THIS IS THE FIX: Call the new, correct RPC function ---
+        const { data: postData, error: postError } = await supabase
+            .rpc('get_post_details_by_id', { p_post_id: postId })
+            .single();
+        
+        if (postError || !postData) {
+            console.error("Error fetching post:", postError);
+            setPageLoading(false);
+            return;
         }
-        setCommentsLoading(false);
+        
+        const formattedPost = { ...postData, 
+          author: { author_id: postData.author_id,
+                    author_type: postData.author_type,
+                    author_name: postData.author_name,
+                    author_username: postData.author_username,
+                    author_avatar_url: postData.author_avatar_url, 
+                    author_flair_details: postData.author_flair_details 
+                  }
+                };
+        setLocalPost(formattedPost as PostType);
+      }
+      
+      const { data: commentsData, error: commentsError } = await supabase.rpc('get_comments_for_post', { p_post_id: postId });
+      if (commentsError) {
+        console.error("Error fetching comments with flair:", commentsError);
+      } else {
+        setComments((commentsData as any) || []);
+      }
+
+      if (user) {
+        const { data: profileData } = await supabase.from('profiles').select('*, flair_details:displayed_community_flair(id, name, avatar_url)').eq('user_id', user.id).single();
+        setCurrentUserProfile(profileData as Profile);
+      }
+      
+      setPageLoading(false);
     }
-    fetchPageSpecificData();
-  }, [postId, user]);
+    fetchPostAndComments();
+  }, [postId, postFromContext, user, addPostToContext]);
 
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !post || !newComment.trim() || !currentUserProfile) return;
     
-    // --- OPTIMISTIC UPDATE ---
     const tempCommentId = Date.now();
     const optimisticComment: CommentType = {
       id: tempCommentId,
@@ -108,7 +139,6 @@ const PostPage: React.FC = () => {
       profiles: currentUserProfile,
     };
     
-    // 1. Immediately update the UI
     setComments(prev => [...prev, optimisticComment]);
     const originalCommentCount = post.comment_count || 0;
     updatePostInContext({ id: post.id, comment_count: originalCommentCount + 1 });
@@ -117,7 +147,6 @@ const PostPage: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      // 2. Send the actual request to the server
       const { data: commentData, error } = await supabase
         .from('comments')
         .insert({ post_id: post.id, user_id: user.id, content: optimisticComment.content })
@@ -126,22 +155,20 @@ const PostPage: React.FC = () => {
         
       if (error) throw error;
       
-      // 3. Replace the temporary comment with the real one from the DB
       setComments(prev => prev.map(c => c.id === tempCommentId ? { ...c, ...commentData } : c));
 
     } catch (error) {
       console.error("Error submitting comment:", error);
-      // 4. On failure, revert the UI changes
       alert('Failed to post comment. Please try again.');
       setComments(prev => prev.filter(c => c.id !== tempCommentId));
       updatePostInContext({ id: post.id, comment_count: originalCommentCount });
-      setNewComment(submittedCommentText); // Restore user's text
+      setNewComment(submittedCommentText);
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  if (postsLoading) {
+  
+  if (pageLoading) {
     return <div className="text-center py-10"><Spinner /></div>;
   }
 
@@ -174,8 +201,7 @@ const PostPage: React.FC = () => {
       )}
       
       <div className='bg-secondary-light dark:bg-secondary rounded-b-lg'>
-        {commentsLoading ? <div className="text-center py-8"><Spinner/></div> :
-         comments.length > 0 ? (
+        {comments.length > 0 ? (
           comments.map(comment => <Comment key={comment.id} comment={comment} />)
         ) : (
           <div className="text-center text-text-tertiary-light dark:text-text-tertiary py-8">

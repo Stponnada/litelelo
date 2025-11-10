@@ -15,8 +15,8 @@ const SearchResults: React.FC<SearchResultsProps> = ({ results, loading, onNavig
   const hasUsers = results && results.users.length > 0;
   const hasPosts = results && results.posts.length > 0;
 
-  // --- FIX: Using a nearly opaque background with a backdrop blur for readability and style ---
-  const containerClasses = "absolute top-full mt-2 w-full max-w-md bg-secondary-light/95 dark:bg-secondary/95 backdrop-blur-sm border border-tertiary-light dark:border-tertiary rounded-lg shadow-lg max-h-96 overflow-y-auto";
+  // Container with hidden scrollbar for a cleaner look
+  const containerClasses = "max-h-[60vh] overflow-y-auto scrollbar-hide";
 
   if (loading) {
     return (
@@ -44,10 +44,9 @@ const SearchResults: React.FC<SearchResultsProps> = ({ results, loading, onNavig
           <ul>
             {results.users.map(user => (
               <li key={user.username}>
-                <Link to={`/profile/${user.username}`} onClick={onNavigate} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-tertiary-light/60 dark:hover:bg-tertiary">
-                  <img src={user.avatar_url || `https://ui-avatars.com/api/?name=${user.full_name}`} alt={user.username} className="w-10 h-10 rounded-full object-cover" />
+                <Link to={`/profile/${user.username}`} onClick={onNavigate} className="flex items-center space-x-3 p-3 hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors">
+                  <img src={user.avatar_url || `https://ui-avatars.com/api/?name=${user.full_name}`} alt={user.username} className="w-10 h-10 rounded-full object-cover border border-tertiary-light dark:border-tertiary" />
                   <div>
-                    {/* FIX: Ensured text colors work for both light and dark modes */}
                     <p className="font-semibold text-text-main-light dark:text-text-main text-sm">{user.full_name}</p>
                     <p className="text-xs text-text-secondary-light dark:text-text-secondary">@{user.username}</p>
                   </div>
@@ -63,9 +62,8 @@ const SearchResults: React.FC<SearchResultsProps> = ({ results, loading, onNavig
           <ul>
             {results.posts.map(post => (
               <li key={post.id}>
-                <Link to={`/post/${post.id}`} onClick={onNavigate} className="block p-3 rounded-lg hover:bg-tertiary-light/60 dark:hover:bg-tertiary">
-                   {/* FIX: Ensured text colors work for both light and dark modes */}
-                  <p className="text-sm text-text-secondary-light dark:text-text-secondary truncate">"{post.content}"</p>
+                <Link to={`/post/${post.id}`} onClick={onNavigate} className="block p-3 hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors">
+                  <p className="text-sm text-text-secondary-light dark:text-text-secondary line-clamp-2">"{post.content}"</p>
                   <p className="text-xs text-text-tertiary-light dark:text-text-tertiary mt-1">by {post.author_full_name}</p>
                 </Link>
               </li>

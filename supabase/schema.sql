@@ -952,6 +952,111 @@ $$;
 ALTER FUNCTION "public"."get_campus_events"("p_campus" "text") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."get_campus_feed"("p_campus" "text") RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "repost_count" integer, "user_vote" "text", "is_bookmarked" boolean, "user_has_reposted" boolean, "original_poster_username" "text", "author_id" "text", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "author_flair_details" "jsonb", "poll" "jsonb", "quoted_post" "jsonb", "reposted_by" "jsonb", "item_type" "text", "item_data" "jsonb")
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+    RETURN QUERY
+    WITH feed_items AS (
+        -- 1. Public Community Posts from this campus
+        SELECT
+            p.id,
+            p.created_at,
+            'post' AS item_type,
+            NULL::jsonb AS item_data
+        FROM public.posts p
+        JOIN public.communities c ON p.community_id = c.id
+        WHERE p.is_deleted = false AND p.is_public = true AND c.campus = p_campus
+
+        UNION ALL
+
+        -- 2. New Marketplace Listings from this campus
+        SELECT
+            ml.id,
+            ml.created_at,
+            'listing' AS item_type,
+            jsonb_build_object(
+                'id', ml.id,
+                'title', ml.title,
+                'price', ml.price,
+                'category', ml.category,
+                'primary_image_url', (SELECT mi.image_url FROM marketplace_images mi WHERE mi.listing_id = ml.id ORDER BY mi.created_at LIMIT 1),
+                'seller_profile', (SELECT jsonb_build_object('user_id', p.user_id, 'username', p.username, 'full_name', p.full_name, 'avatar_url', p.avatar_url) FROM profiles p WHERE p.user_id = ml.seller_id),
+                -- Add other fields needed by the modal, even if null, to maintain shape
+                'seller_id', ml.seller_id,
+                'all_images', (SELECT jsonb_agg(mi.image_url ORDER BY mi.created_at) FROM marketplace_images mi WHERE mi.listing_id = ml.id)
+            ) AS item_data
+        FROM public.marketplace_listings ml
+        WHERE ml.campus = p_campus AND ml.status = 'available'
+
+        UNION ALL
+
+        -- 3. Upcoming Events from this campus
+        SELECT
+            e.id,
+            e.start_time AS created_at, -- Use start_time for ordering events
+            'event' AS item_type,
+            jsonb_build_object(
+                'id', e.id, -- Pass the ID inside item_data
+                'name', e.name,
+                'start_time', e.start_time,
+                'end_time', e.end_time,
+                'location', e.location,
+                'going_count', (SELECT count(*) FROM event_rsvps WHERE event_id = e.id AND rsvp_status = 'going'),
+                'interested_count', (SELECT count(*) FROM event_rsvps WHERE event_id = e.id AND rsvp_status = 'interested')
+            ) AS item_data
+        FROM public.events e
+        WHERE e.campus = p_campus AND e.start_time > now()
+        
+        UNION ALL
+        
+        -- 4. Active Lost & Found Items
+        SELECT
+            laf.id,
+            laf.created_at,
+            'lost_found' AS item_type,
+            jsonb_build_object(
+                'id', laf.id, -- Pass the ID inside item_data
+                'title', laf.title,
+                'item_type', laf.item_type,
+                'location_found', laf.location_found,
+                'image_url', laf.image_url
+            ) AS item_data
+        FROM public.lost_and_found_items laf
+        WHERE laf.campus = p_campus AND laf.status = 'active'
+    )
+    SELECT
+        p.id, p.user_id, p.content, p.image_url, p.created_at, p.is_edited, p.is_deleted, p.community_id, p.is_public,
+        p.like_count, p.dislike_count, p.comment_count, p.repost_count, l.like_type AS user_vote, b.post_id IS NOT NULL AS is_bookmarked,
+        r.post_id IS NOT NULL AS user_has_reposted, op.username AS original_poster_username,
+        COALESCE(p.community_id::text, p.user_id::text) AS author_id,
+        CASE WHEN p.community_id IS NOT NULL THEN 'community' ELSE 'user' END AS author_type,
+        COALESCE(c.name, up.full_name) AS author_name,
+        COALESCE(c.id::text, up.username) AS author_username,
+        COALESCE(c.avatar_url, up.avatar_url) AS author_avatar_url,
+        (SELECT CASE WHEN p.community_id IS NULL THEN (SELECT jsonb_build_object('id', flair_comm.id, 'name', flair_comm.name, 'avatar_url', flair_comm.avatar_url) FROM public.communities flair_comm WHERE flair_comm.id = up.displayed_community_flair) ELSE NULL END) AS author_flair_details,
+        poll_details.poll,
+        (SELECT jsonb_build_object('id', qp.id, 'content', qp.content, 'image_url', qp.image_url, 'created_at', qp.created_at, 'is_deleted', qp.is_deleted, 'author_name', qp_author.full_name, 'author_username', qp_author.username, 'author_avatar_url', qp_author.avatar_url) FROM posts qp JOIN profiles qp_author ON qp.user_id = qp_author.user_id WHERE qp.id = p.quoted_post_id) AS quoted_post,
+        NULL::jsonb as reposted_by,
+        fi.item_type,
+        fi.item_data
+    FROM feed_items fi
+    LEFT JOIN public.posts p ON fi.id = p.id AND fi.item_type = 'post'
+    LEFT JOIN public.likes l ON p.id = l.post_id AND l.user_id = auth.uid()
+    LEFT JOIN public.bookmarks b ON p.id = b.post_id AND b.user_id = auth.uid()
+    LEFT JOIN public.reposts r ON p.id = r.post_id AND r.user_id = auth.uid()
+    LEFT JOIN public.profiles up ON p.user_id = up.user_id AND p.community_id IS NULL
+    LEFT JOIN public.communities c ON p.community_id = c.id
+    LEFT JOIN public.profiles op ON p.user_id = op.user_id AND p.community_id IS NOT NULL
+    LEFT JOIN LATERAL (SELECT jsonb_build_object('id', po.id, 'allow_multiple_answers', po.allow_multiple_answers, 'total_votes', COALESCE((SELECT SUM(opt.vote_count) FROM public.poll_options opt WHERE opt.poll_id = po.id), 0), 'user_votes', (SELECT jsonb_agg(pv.option_id) FROM public.poll_votes pv WHERE pv.poll_id = po.id AND pv.user_id = auth.uid()), 'options', (SELECT jsonb_agg(jsonb_build_object('id', opt.id, 'option_text', opt.option_text, 'vote_count', opt.vote_count) ORDER BY opt.id) FROM poll_options opt WHERE opt.poll_id = po.id)) AS poll FROM polls po WHERE po.post_id = p.id) poll_details ON TRUE
+    ORDER BY fi.created_at DESC;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."get_campus_feed"("p_campus" "text") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."get_campus_notices_with_files"("p_campus" "text") RETURNS TABLE("id" "uuid", "user_id" "uuid", "campus" "text", "title" "text", "description" "text", "created_at" timestamp with time zone, "profiles" "jsonb", "files" "jsonb")
     LANGUAGE "plpgsql"
     AS $$
@@ -1761,6 +1866,40 @@ $$;
 ALTER FUNCTION "public"."get_pinned_message_for_conversation"("p_conversation_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."get_post_details_by_id"("p_post_id" "uuid") RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "repost_count" integer, "user_vote" "text", "is_bookmarked" boolean, "user_has_reposted" boolean, "original_poster_username" "text", "author_id" "text", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "author_flair_details" "jsonb", "poll" "jsonb", "quoted_post" "jsonb", "reposted_by" "jsonb")
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    AS $$
+SELECT
+    p.id, p.user_id, p.content, p.image_url, p.created_at, p.is_edited, p.is_deleted, p.community_id, p.is_public,
+    p.like_count, p.dislike_count, p.comment_count, p.repost_count,
+    l.like_type AS user_vote,
+    b.post_id IS NOT NULL AS is_bookmarked,
+    r.post_id IS NOT NULL AS user_has_reposted,
+    op.username AS original_poster_username,
+    COALESCE(p.community_id::text, p.user_id::text) AS author_id,
+    CASE WHEN p.community_id IS NOT NULL THEN 'community' ELSE 'user' END AS author_type,
+    COALESCE(c.name, up.full_name) AS author_name,
+    COALESCE(c.id::text, up.username) AS author_username,
+    COALESCE(c.avatar_url, up.avatar_url) AS author_avatar_url,
+    (SELECT CASE WHEN p.community_id IS NULL THEN (SELECT jsonb_build_object('id', flair_comm.id, 'name', flair_comm.name, 'avatar_url', flair_comm.avatar_url) FROM public.communities flair_comm WHERE flair_comm.id = up.displayed_community_flair) ELSE NULL END) AS author_flair_details,
+    poll_details.poll,
+    (SELECT jsonb_build_object('id', qp.id, 'content', qp.content, 'image_url', qp.image_url, 'created_at', qp.created_at, 'is_deleted', qp.is_deleted, 'author_name', qp_author.full_name, 'author_username', qp_author.username, 'author_avatar_url', qp_author.avatar_url) FROM posts qp JOIN profiles qp_author ON qp.user_id = qp_author.user_id WHERE qp.id = p.quoted_post_id) AS quoted_post,
+    NULL::jsonb as reposted_by -- A single post view doesn't have a reposter context
+FROM public.posts p
+LEFT JOIN public.likes l ON p.id = l.post_id AND l.user_id = auth.uid()
+LEFT JOIN public.bookmarks b ON p.id = b.post_id AND b.user_id = auth.uid()
+LEFT JOIN public.reposts r ON p.id = r.post_id AND r.user_id = auth.uid()
+LEFT JOIN public.profiles up ON p.user_id = up.user_id AND p.community_id IS NULL
+LEFT JOIN public.communities c ON p.community_id = c.id
+LEFT JOIN public.profiles op ON p.user_id = op.user_id AND p.community_id IS NOT NULL
+LEFT JOIN LATERAL (SELECT jsonb_build_object('id', po.id, 'allow_multiple_answers', po.allow_multiple_answers, 'total_votes', COALESCE((SELECT SUM(opt.vote_count) FROM public.poll_options opt WHERE opt.poll_id = po.id), 0), 'user_votes', (SELECT jsonb_agg(pv.option_id) FROM public.poll_votes pv WHERE pv.poll_id = po.id AND pv.user_id = auth.uid()), 'options', (SELECT jsonb_agg(jsonb_build_object('id', opt.id, 'option_text', opt.option_text, 'vote_count', opt.vote_count) ORDER BY opt.id) FROM poll_options opt WHERE opt.poll_id = po.id)) AS poll FROM polls po WHERE po.post_id = p.id) poll_details ON TRUE
+WHERE p.id = p_post_id;
+$$;
+
+
+ALTER FUNCTION "public"."get_post_details_by_id"("p_post_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."get_posts_for_community"("p_community_id" "uuid") RETURNS TABLE("id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "like_count" bigint, "comment_count" bigint, "user_vote" "text", "community_id" "uuid", "is_public" boolean, "author" json, "original_poster_user_id" "uuid", "original_poster_username" "text", "original_poster_full_name" "text", "original_poster_avatar_url" "text")
     LANGUAGE "plpgsql"
     AS $$
@@ -2509,52 +2648,59 @@ CREATE OR REPLACE FUNCTION "public"."search_all"("search_term" "text") RETURNS j
     LANGUAGE "plpgsql"
     AS $$
 DECLARE
-    -- Prepare the search term for ILIKE matching
     cleaned_search_term TEXT := '%' || search_term || '%';
 BEGIN
     RETURN json_build_object(
         'users', (
             SELECT COALESCE(json_agg(u), '[]') FROM (
-                SELECT
-                    p.username,
-                    p.full_name,
-                    p.avatar_url
+                SELECT p.username, p.full_name, p.avatar_url
                 FROM profiles p
-                WHERE p.username ILIKE cleaned_search_term
-                   OR p.full_name ILIKE cleaned_search_term
+                WHERE (p.username ILIKE cleaned_search_term OR p.full_name ILIKE cleaned_search_term)
                 LIMIT 5
             ) u
         ),
         'posts', (
             SELECT COALESCE(json_agg(pc), '[]') FROM (
-                -- Use a subquery to combine and limit posts and comments
-                SELECT id, content, author_full_name, author_username FROM (
-                    -- Search in Posts (including Poll questions)
-                    SELECT
-                        p.id,
-                        p.content,
-                        -- Use COALESCE to handle community posts gracefully if author is null
-                        COALESCE(author.full_name, comm.name) AS author_full_name,
-                        author.username AS author_username
-                    FROM posts p
-                    LEFT JOIN profiles author ON p.user_id = author.user_id
-                    LEFT JOIN communities comm ON p.community_id = comm.id
-                    WHERE p.content ILIKE cleaned_search_term AND p.is_deleted = false
-                    
-                    UNION ALL
-                    
-                    -- Search in Comments
-                    SELECT
-                        c.post_id AS id, -- IMPORTANT: Link to the post, not the comment itself
-                        c.content,
-                        author.full_name AS author_full_name,
-                        author.username AS author_username
-                    FROM comments c
-                    JOIN profiles author ON c.user_id = author.user_id
-                    WHERE c.content ILIKE cleaned_search_term
-                ) AS combined_results
-                LIMIT 10 -- Limit the combined post/comment results
+                SELECT p.id, p.content, COALESCE(author.full_name, comm.name) AS author_full_name, author.username AS author_username
+                FROM posts p
+                LEFT JOIN profiles author ON p.user_id = author.user_id
+                LEFT JOIN communities comm ON p.community_id = comm.id
+                WHERE p.content ILIKE cleaned_search_term AND p.is_deleted = false
+                LIMIT 10
             ) pc
+        ),
+        'communities', (
+            SELECT COALESCE(json_agg(c), '[]') FROM (
+                SELECT 
+                    com.id, 
+                    com.name, 
+                    com.avatar_url,
+                    (SELECT count(*) FROM community_members cm WHERE cm.community_id = com.id) as member_count
+                FROM communities com
+                WHERE com.name ILIKE cleaned_search_term OR com.description ILIKE cleaned_search_term
+                LIMIT 5
+            ) c
+        ),
+        'listings', (
+            SELECT COALESCE(json_agg(l), '[]') FROM (
+                SELECT 
+                    ml.id, 
+                    ml.title, 
+                    ml.price,
+                    (SELECT mi.image_url FROM marketplace_images mi WHERE mi.listing_id = ml.id ORDER BY mi.created_at LIMIT 1) as primary_image_url
+                FROM marketplace_listings ml
+                WHERE ml.status = 'available' AND (ml.title ILIKE cleaned_search_term OR ml.description ILIKE cleaned_search_term)
+                LIMIT 5
+            ) l
+        ),
+        'events', (
+             SELECT COALESCE(json_agg(e), '[]') FROM (
+                SELECT ev.id, ev.name, ev.start_time
+                FROM events ev
+                WHERE ev.start_time >= now() AND (ev.name ILIKE cleaned_search_term OR ev.description ILIKE cleaned_search_term)
+                ORDER BY ev.start_time ASC
+                LIMIT 5
+            ) e
         )
     );
 END;
@@ -5108,6 +5254,12 @@ GRANT ALL ON FUNCTION "public"."get_campus_events"("p_campus" "text") TO "servic
 
 
 
+GRANT ALL ON FUNCTION "public"."get_campus_feed"("p_campus" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_campus_feed"("p_campus" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_campus_feed"("p_campus" "text") TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."get_campus_notices_with_files"("p_campus" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."get_campus_notices_with_files"("p_campus" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_campus_notices_with_files"("p_campus" "text") TO "service_role";
@@ -5243,6 +5395,12 @@ GRANT ALL ON FUNCTION "public"."get_non_community_members"("p_community_id" "uui
 GRANT ALL ON FUNCTION "public"."get_pinned_message_for_conversation"("p_conversation_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."get_pinned_message_for_conversation"("p_conversation_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_pinned_message_for_conversation"("p_conversation_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."get_post_details_by_id"("p_post_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_post_details_by_id"("p_post_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_post_details_by_id"("p_post_id" "uuid") TO "service_role";
 
 
 

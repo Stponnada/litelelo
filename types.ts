@@ -1,5 +1,5 @@
 // src/types.ts
-// --- NEW: Interface for a roommate ---
+
 export interface Roommate {
     user_id: string;
     username: string;
@@ -7,7 +7,6 @@ export interface Roommate {
     avatar_url: string | null;
 }
 
-// --- NEW: A polymorphic "Author" type that can be a user OR a community ---
 export interface AuthorProfile {
   author_id: string;
   author_type: 'user' | 'community';
@@ -20,7 +19,7 @@ export interface AuthorProfile {
     avatar_url: string | null;
   } | null;
 }
-// --- NEW: A polymorphic "Directory" entry ---
+
 export interface DirectoryProfile {
   id: string;
   type: 'user' | 'community';
@@ -86,6 +85,7 @@ export interface Profile {
     avatar_url: string | null;
   } | null;
 }
+
 export interface CommunityDetails {
     id: string;
     name: string;
@@ -100,6 +100,7 @@ export interface CommunityDetails {
     access_type: 'public' | 'restricted';
     has_pending_request: boolean;
 }
+
 export interface ConversationSummary {
 conversation_id: string;
 type: 'dm' | 'group';
@@ -119,10 +120,10 @@ export interface Post {
     like_count: number;
     dislike_count: number;
     comment_count: number;
-    repost_count: number; // <-- ADD THIS
+    repost_count: number; 
     user_vote: 'like' | 'dislike' | null;
     is_bookmarked: boolean;
-    user_has_reposted: boolean; // <-- ADD THIS
+    user_has_reposted: boolean; 
     community_id: string | null;
     is_public: boolean;
     author: AuthorProfile;
@@ -132,7 +133,7 @@ export interface Post {
     is_deleted: boolean;
     user_id: string;
     quoted_post: QuotedPost | null;
-    reposted_by: { // <-- ADD THIS OBJECT
+    reposted_by: { 
         user_id: string;
         username: string;
         full_name: string | null;
@@ -174,10 +175,36 @@ content: string;
 author_username: string;
 author_full_name: string;
 }
-export interface SearchResults {
-users: UserSearchResult[];
-posts: PostSearchResult[];
+
+export interface CommunitySearchResult {
+  id: string;
+  name: string;
+  avatar_url: string | null;
+  member_count: number;
 }
+
+export interface ListingSearchResult {
+  id:string;
+  title: string;
+  price: number;
+  primary_image_url: string | null;
+}
+
+export interface EventSearchResult {
+  id: string;
+  name: string;
+  start_time: string;
+}
+
+
+export interface SearchResults {
+  users: UserSearchResult[];
+  posts: PostSearchResult[];
+  communities: CommunitySearchResult[];
+  listings: ListingSearchResult[];
+  events: EventSearchResult[];
+}
+
 export interface CampusPlace {
   id: string;
   name: string;
@@ -396,9 +423,6 @@ export interface Notification {
 
 }
 
-// src/types.ts
-
-// ... (other types)
 
 export interface QuotedPost {
     id: string;
@@ -410,7 +434,6 @@ export interface QuotedPost {
     author_username: string | null;
     author_avatar_url: string | null;
 }
-
 
 export interface RideShare {
     id: string;

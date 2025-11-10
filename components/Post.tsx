@@ -22,7 +22,7 @@ import PollComponent from './Poll';
 import QuotePostDisplay from './QuotePostDisplay';
 import QuotePostModal from './QuotePostModal';
 
-// --- THIS IS THE FIX ---
+
 const Flair: React.FC<{ flair: { id: string; name: string; avatar_url: string | null } }> = ({ flair }) => (
     <Link
       to={`/communities/${flair.id}`}
@@ -48,15 +48,14 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => 
     const navigate = useNavigate();
     const { user } = useAuth();
     const { updatePostInContext, addPostToContext, fetchPosts } = usePosts();
+    const viewCountedRef = useRef(false);
     const { author } = post;
-
     const [isMenuOpen, setMenuOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editedContent, setEditedContent] = useState(post.content);
     const menuRef = useRef<HTMLDivElement>(null);
     const [isTallImage, setIsTallImage] = useState(false);
     const [isQuoteModalOpen, setQuoteModalOpen] = useState(false);
-
     const isOwner = user?.id === post.user_id;
     
     useEffect(() => {
@@ -211,6 +210,7 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => 
               />
             )}
             <div 
+                id={`post-${post.id}`}
                 className={`bg-secondary-light dark:bg-secondary rounded-xl shadow-lg border border-tertiary-light dark:border-tertiary transition-all duration-200 ${!post.is_deleted ? 'hover:border-brand-green/20 dark:hover:border-brand-green/30 hover:bg-tertiary-light/20 dark:hover:bg-tertiary/20' : ''}`}
             >
                 {post.reposted_by && (
@@ -339,6 +339,7 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => 
                             </div>
                             <span className="text-sm group-hover:text-blue-500">{post.comment_count}</span>
                         </Link>
+
                         
                         <div className="flex items-center space-x-1 group" onClick={(e) => { e.stopPropagation(); handleRepostToggle(); }}>
                             <button className="p-1.5 rounded-full group-hover:bg-green-500/10 transition-colors">
