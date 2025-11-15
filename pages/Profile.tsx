@@ -531,7 +531,7 @@ const ProfilePage: React.FC = () => {
                                                     >
                                                         <div className="relative">
                                                             <img 
-                                                                src={community.avatar_url || `https://ui-avatars.com/api/?name=${community.name}&background=3cfba2&color=000`} 
+                                                                src={community.avatar_url || `https://ui-avatars.com/api/?name=${community.name}&background=random&color=fff&bold=true`} 
                                                                 alt={community.name} 
                                                                 className="w-16 h-16 rounded-xl object-cover ring-2 ring-transparent group-hover:ring-brand-green transition-all"
                                                             />
