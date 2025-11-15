@@ -7,7 +7,7 @@ import { supabase } from '../services/supabase';
 import { CampusPlace, MarketplaceListing, LostAndFoundItem, CampusNotice } from '../types';
 import ListingCard from '../components/ListingCard';
 import Spinner from '../components/Spinner';
-import { ArchiveBoxIcon, ShoppingCartIcon, StarIcon, ClipboardDocumentListIcon, CurrencyDollarIcon, CarIcon, CampusPlacesIcon, SpaceInvaderIcon, CalendarDaysIcon, CalendarIcon } from '../components/icons';
+import { ArchiveBoxIcon, ShoppingCartIcon, StarIcon, ClipboardDocumentListIcon, CurrencyDollarIcon, CarIcon, CampusPlacesIcon, SpaceInvaderIcon, CalendarDaysIcon, CalendarIcon, MapIcon } from '../components/icons';
 
 // Add Press Start 2P font to the document
 if (typeof document !== 'undefined') {
@@ -238,14 +238,14 @@ const CampusPage: React.FC = () => {
                         icon={<CampusPlacesIcon className="w-5 h-5 md:w-8 md:h-8 text-white" />} 
                         title="Places" 
                         description="Review eateries, shops, and hangout spots around campus"
-                        gradient="from-blue-500 to-purple-600"
+                        gradient="from-red-400 to-red-400"
                     />
                     <FeatureCard 
                         to="/campus/noticeboard" 
                         icon={<ClipboardDocumentListIcon className="w-5 h-5 md:w-8 md:h-8 text-white" />} 
                         title="Notices" 
                         description="View and post campus announcements and posters"
-                        gradient="from-yellow-500 to-amber-600"
+                        gradient="from-orange-400 to-orange-400"
                     />
                     <FeatureCard 
                         to="/campus/bits-coin" 
@@ -266,7 +266,7 @@ const CampusPage: React.FC = () => {
                         icon={<ArchiveBoxIcon className="w-5 h-5 md:w-8 md:h-8 text-white" />} 
                         title="Lost & Found" 
                         description="Report or find lost items on campus"
-                        gradient="from-orange-500 to-red-600"
+                        gradient="from-gray-500 to-gray-400"
                     />
                     <FeatureCard 
                         to="/campus/marketplace" 
@@ -288,7 +288,15 @@ const CampusPage: React.FC = () => {
                         icon={<CalendarIcon className="w-5 h-5 md:w-8 md:h-8 text-white" />} 
                         title="Events" 
                         description="Find out whats coming up on cammpus"
-                        gradient="from-sky-500 to-indigogreen-600"
+                        gradient="from-blue-500 to-blue-400"
+                    />
+
+                    <FeatureCard 
+                        to="/campus/map" 
+                        icon={<MapIcon className="w-5 h-5 md:w-8 md:h-8 text-white" />} 
+                        title="FriendFinder" 
+                        description="Locate your friends on campus"
+                        gradient="from-red-400 to-red-700"
                     />
                 </div>
             </div>
