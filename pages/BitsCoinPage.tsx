@@ -122,11 +122,11 @@ const BitsCoinPage: React.FC = () => {
                                     onClick={handleTitleClick}
                                     title="What are you clicking at?"
                                 >
-                                    Bits₹Coin Board
+                                    Request Board
                                 </h1>
                             </div>
                             <p className="text-lg text-text-secondary-light dark:text-text-secondary max-w-xl">
-                                Earn rewards by helping fellow BITSians. Post tasks or claim open requests.
+                                Collect my package from CP for ₹20 please ...
                             </p>
                             <div className="flex items-center gap-4 text-sm">
                                 <div className="flex items-center gap-2 bg-blue-500/10 text-blue-400 px-3 py-1.5 rounded-full">

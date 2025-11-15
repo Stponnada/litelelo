@@ -101,7 +101,7 @@ const RideSharePage: React.FC = () => {
                                 : 'text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50'
                         }`}
                     >
-                        🚗 Offering Rides
+                        🚗 From BPHC
                     </button>
                     <button 
                         onClick={() => setActiveTab('request')} 
@@ -111,7 +111,7 @@ const RideSharePage: React.FC = () => {
                                 : 'text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50'
                         }`}
                     >
-                        🙋 Looking for Rides
+                        🚀 To BPHC
                     </button>
                 </div>
             </div>
@@ -160,7 +160,7 @@ const RideCard: React.FC<{ ride: RideShare }> = ({ ride }) => {
                             </svg>
                         </div>
                         <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500/20 to-indigo-500/10 rounded-xl border border-indigo-500/30">
-                            <span className="text-xl">🎯</span>
+                            <span className="text-xl"></span>
                             <span>{ride.destination}</span>
                         </div>
                     </div>
@@ -294,7 +294,7 @@ const CreateRideModal: React.FC<{ campus: string; onClose: () => void; onRideCre
                                             : 'text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50'
                                     }`}
                                 >
-                                    🚗 Offer a Ride
+                                    🚗 From BPHC
                                 </button>
                                 <button 
                                     type="button" 
@@ -305,7 +305,7 @@ const CreateRideModal: React.FC<{ campus: string; onClose: () => void; onRideCre
                                             : 'text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50'
                                     }`}
                                 >
-                                    🙋 Request a Ride
+                                    🚀 To BPHC
                                 </button>
                             </div>
                         </div>
@@ -315,25 +315,27 @@ const CreateRideModal: React.FC<{ campus: string; onClose: () => void; onRideCre
                             <div>
                                 <label className="block text-sm font-bold mb-2 text-text-main-light dark:text-text-main">From</label>
                                 <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg">📍</span>
-                                    <input 
-                                        type="text" 
-                                        value={campus} 
-                                        disabled 
-                                        className="w-full pl-10 pr-3 py-3 bg-tertiary-light dark:bg-tertiary rounded-xl opacity-70 font-semibold border-2 border-tertiary-light dark:border-gray-600"
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-bold mb-2 text-text-main-light dark:text-text-main">To*</label>
-                                <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg">🎯</span>
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg"></span>
                                     <input 
                                         type="text" 
                                         value={destination} 
                                         onChange={e => setDestination(e.target.value)} 
                                         required 
-                                        placeholder="e.g., Hyderabad Airport"
+                                        placeholder="Start Location"
+                                        className="w-full pl-10 pr-3 py-3 bg-tertiary-light dark:bg-tertiary rounded-xl border-2 border-tertiary-light dark:border-gray-600 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-all outline-none"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold mb-2 text-text-main-light dark:text-text-main">To</label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg"></span>
+                                    <input 
+                                        type="text" 
+                                        value={destination} 
+                                        onChange={e => setDestination(e.target.value)} 
+                                        required 
+                                        placeholder="Destination"
                                         className="w-full pl-10 pr-3 py-3 bg-tertiary-light dark:bg-tertiary rounded-xl border-2 border-tertiary-light dark:border-gray-600 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-all outline-none"
                                     />
                                 </div>
@@ -343,7 +345,7 @@ const CreateRideModal: React.FC<{ campus: string; onClose: () => void; onRideCre
                         {/* Date/Time and Seats */}
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-bold mb-2 text-text-main-light dark:text-text-main">Departure*</label>
+                                <label className="block text-sm font-bold mb-2 text-text-main-light dark:text-text-main">Departure</label>
                                 <input 
                                     type="datetime-local" 
                                     value={departureTime} 
@@ -354,7 +356,7 @@ const CreateRideModal: React.FC<{ campus: string; onClose: () => void; onRideCre
                             </div>
                             <div>
                                 <label className="block text-sm font-bold mb-2 text-text-main-light dark:text-text-main">
-                                    {type === 'offer' ? 'Seats Available*' : 'Seats Needed*'}
+                                    {type === 'offer' ? 'Seats Available' : 'Seats Available'}
                                 </label>
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg">💺</span>
