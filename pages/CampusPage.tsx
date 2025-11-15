@@ -295,7 +295,7 @@ const CampusPage: React.FC = () => {
                         icon={<CalendarIcon className="w-5 h-5 md:w-8 md:h-8 text-white" />} 
                         title="Events" 
                         description="Find out whats coming up on cammpus"
-                        gradient="from-orange-500 to-green-600"
+                        gradient="from-sky-500 to-indigogreen-600"
                     />
 
                 </div>

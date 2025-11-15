@@ -167,7 +167,6 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
         <nav className="flex-grow">
           <NavLink to="/" icon={<HomeIcon className="w-7 h-7 flex-shrink-0" />} text="Home" />
           <NavLink to="/campus" icon={<BuildingLibraryIcon className="w-7 h-7 flex-shrink-0" />} text="Campus" />
-          <NavLink to="/campus/events" icon={<CalendarDaysIcon className="w-7 h-7 flex-shrink-0" />} text="Events" />
           <NavLink to="/campus/map" icon={<MapIcon className="w-7 h-7 flex-shrink-0" />} text="Map" />
           <NavLink to="/communities" icon={<UserGroupIcon className="w-7 h-7 flex-shrink-0" />} text="Communities" />
           <NavLink to="/search" icon={<SearchIcon className="w-7 h-7 flex-shrink-0" />} text="Search" />
