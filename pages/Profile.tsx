@@ -1,7 +1,8 @@
 // src/pages/Profile.tsx
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+// --- FIX: Added useLocation import ---
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
 import PostComponent from '../components/Post';
@@ -55,9 +56,14 @@ const ProfilePage: React.FC = () => {
     const { username } = useParams<{ username: string }>();
     const { user: currentUser, profile: currentUserProfile, updateProfileContext } = useAuth();
     const navigate = useNavigate();
+    // --- FIX: Get the location object to access navigation state ---
+    const location = useLocation();
 
-    const [profile, setProfile] = useState<Profile | null>(null);
-    const [profileLoading, setProfileLoading] = useState(true);
+    // --- FIX: Initialize state from location if available, otherwise null. ---
+    const [profile, setProfile] = useState<Profile | null>(location.state?.profileData || null);
+    // --- FIX: Start in loading state only if we don't have the profile data already. ---
+    const [profileLoading, setProfileLoading] = useState(!location.state?.profileData);
+
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isTogglingFollow, setIsTogglingFollow] = useState(false);
     
@@ -74,7 +80,6 @@ const ProfilePage: React.FC = () => {
     const [communitiesLoading, setCommunitiesLoading] = useState(true);
 
     const [followModalState, setFollowModalState] = useState<{ isOpen: boolean; listType: 'followers' | 'following' | null; }>({ isOpen: false, listType: null });
-    // --- THIS IS THE FIX (1/4): State for the new friends modal ---
     const [isFriendsModalOpen, setIsFriendsModalOpen] = useState(false);
     const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
@@ -90,7 +95,6 @@ const ProfilePage: React.FC = () => {
 
             if (error || !data) throw error || new Error("Profile not found");
             const profileData: any = data;
-            // Ensure phone is included even if RPC doesn't return it
             let phone: string | null = null;
             if (profileData?.user_id) {
                 const { data: profileRow } = await supabase
@@ -170,7 +174,7 @@ const ProfilePage: React.FC = () => {
                 author_name: authorProfile?.full_name || '',
                 author_username: authorProfile?.username || '',
                 author_avatar_url: authorProfile?.avatar_url || '',
-                author_flair_details: null, // Flair won't be available on optimistic creation, but that's ok
+                author_flair_details: null,
             },
             original_poster_username: null,
             // @ts-ignore
@@ -209,9 +213,17 @@ const ProfilePage: React.FC = () => {
     }, [profile]);
 
 
+    // --- FIX: Modified data fetching effect to handle navigation state ---
     useEffect(() => {
-        fetchProfileData();
-    }, [fetchProfileData]);
+        // If profile data was passed via navigation state, we don't need to re-fetch it.
+        if (location.state?.profileData) {
+            // Clear the state to prevent issues on page refresh.
+            window.history.replaceState(null, '');
+        } else {
+            // Otherwise, perform the fetch as normal.
+            fetchProfileData();
+        }
+    }, [username, fetchProfileData, location.state]); 
     
     useEffect(() => {
         if (profile) {
@@ -269,7 +281,6 @@ const ProfilePage: React.FC = () => {
         <>
             {isEditModalOpen && profile && <EditProfileModal userProfile={profile} onClose={() => setIsEditModalOpen(false)} onSave={fetchProfileData} />}
             {followModalState.isOpen && profile && followModalState.listType && <FollowListModal profile={profile} listType={followModalState.listType} onClose={() => setFollowModalState({ isOpen: false, listType: null })} />}
-            {/* --- THIS IS THE FIX (2/4): Render the new friends modal --- */}
             {isFriendsModalOpen && profile && <FriendsListModal profile={profile} onClose={() => setIsFriendsModalOpen(false)} />}
             {lightboxUrl && <LightBox imageUrl={lightboxUrl} onClose={() => setLightboxUrl(null)} />}
 
@@ -427,7 +438,6 @@ const ProfilePage: React.FC = () => {
                                     <>
                                         {profile.bio && <hr className="border-tertiary-light dark:border-tertiary" />}
                                         <div>
-                                            {/*<UserGroupIcon className="w-5 h-5 text-brand-green flex-shrink-0" />*/}
                                             <h3 className="text-lg font-bold text-text-main-light dark:text-white mb-3">
                                                 Roomies with:
                                             </h3>
@@ -474,7 +484,6 @@ const ProfilePage: React.FC = () => {
                                     <>
                                         <hr className="border-tertiary-light dark:border-tertiary" />
                                         <div>
-                                            {/* --- THIS IS THE FIX (3/4): Make heading a button to open modal --- */}
                                             <button 
                                                 onClick={() => setIsFriendsModalOpen(true)}
                                                 className="text-lg font-bold text-text-main-light dark:text-white mb-4 hover:underline text-left w-full"
@@ -642,7 +651,6 @@ const ProfilePage: React.FC = () => {
     );
 };
 
-// --- THIS IS THE FIX (4/4): New component for the friends list modal ---
 const FriendsListModal: React.FC<{ profile: Profile; onClose: () => void }> = ({ profile, onClose }) => {
     const [fullFriendsList, setFullFriendsList] = useState<Friend[]>([]);
     const [loading, setLoading] = useState(true);
@@ -708,6 +716,8 @@ const FriendsListModal: React.FC<{ profile: Profile; onClose: () => void }> = ({
 
 const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, onSave: () => void }> = ({ userProfile, onClose, onSave }) => {
     const { user, updateProfileContext } = useAuth();
+    // --- FIX: Initialize useNavigate hook ---
+    const navigate = useNavigate();
     const [profileData, setProfileData] = useState(userProfile);
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [bannerFile, setBannerFile] = useState<File | null>(null);
@@ -785,6 +795,7 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
         });
     };
     
+    // --- FIX: Updated handleSubmit function with navigation logic ---
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
@@ -807,6 +818,7 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
             }
 
             const { data: updatedProfile, error: updateError } = await supabase.from('profiles').update({
+                username: profileData.username, // Send the new username
                 full_name: profileData.full_name, bio: profileData.bio, branch: profileData.branch,
                 dual_degree_branch: profileData.dual_degree_branch || null, relationship_status: profileData.relationship_status,
                 dorm_building: profileData.dorm_building, dorm_room: profileData.dorm_room, dining_hall: profileData.dining_hall,
@@ -815,11 +827,30 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
                 displayed_community_flair: profileData.displayed_community_flair || null,
             }).eq('user_id', user.id).select().single();
 
-            if (updateError) throw updateError;
+            if (updateError) {
+                if (updateError.message.includes('profiles_username_key')) {
+                    throw new Error('That username is already taken. Please choose another.');
+                }
+                throw updateError;
+            }
             
             updateProfileContext(updatedProfile);
-            onSave();
-            onClose();
+            
+            const usernameChanged = profileData.username !== userProfile.username;
+            
+            onClose(); // Close the modal
+
+            if (usernameChanged) {
+                // If username changed, navigate to the new URL and pass the fresh data in the state
+                // to avoid the "User not found" race condition.
+                navigate(`/profile/${updatedProfile.username}`, { 
+                    replace: true, 
+                    state: { profileData: updatedProfile } 
+                });
+            } else {
+                // Otherwise, just refresh the data on the current page
+                onSave();
+            }
         } catch (err: any) { setError(err.message); } finally { setIsSaving(false); }
     };
     
@@ -894,6 +925,20 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
                             />
                         </div>
 
+                        {/* User Name */}
+                        <div>
+                            <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                UserTag
+                            </label>
+                            <input 
+                                type="text" 
+                                name="username" 
+                                value={profileData.username || ''} 
+                                onChange={handleChange} 
+                                className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none" 
+                            />
+                        </div>
+
                         {/* Phone */}
                         <div>
                             <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
@@ -909,7 +954,7 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
                             />
                         </div>
                         
-                        {/* --- NEW: Flair Selection Dropdown --- */}
+                        {/* Flair Selection Dropdown */}
                         <div>
                             <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
                                 Display Flair
