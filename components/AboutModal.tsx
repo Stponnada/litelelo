@@ -111,7 +111,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ onClose }) => {
                     Sriniketh Ponnada
                   </p>
                   <p className="text-sm text-text-tertiary-light dark:text-text-tertiary">
-                    Founder & CEO
+                    Founder & Creator of Bugs
                   </p>
                 </div>
               </div>
@@ -122,7 +122,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ onClose }) => {
                     Saathvik Manikandan
                   </p>
                   <p className="text-sm text-text-tertiary-light dark:text-text-tertiary">
-                    Co-Founder & President
+                    Co-Founder & Discoverer of Bugs
                   </p>
                 </div>
               </div>

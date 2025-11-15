@@ -499,9 +499,9 @@ const ProfilePage: React.FC = () => {
                                                         title={friend.full_name || friend.username}
                                                     >
                                                         <img 
-                                                            src={friend.avatar_url || `https://ui-avatars.com/api/?name=${friend.full_name || friend.username}`} 
+                                                            src={friend.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.full_name || friend.username)}&background=random&color=fff&bold=true`} 
                                                             alt={friend.username} 
-                                                            className="w-16 h-16 rounded-full object-cover ring-2 ring-transparent group-hover:ring-brand-green transition-all"
+                                                            className="w-16 h-16 rounded-full object-cover ring-2 ring-transparent group-hover:ring-brand-green transition-all bg-tertiary"
                                                         />
                                                         <p className="text-xs text-center text-text-tertiary-light dark:text-text-tertiary group-hover:text-brand-green transition-colors truncate w-full">
                                                             {friend.full_name?.split(' ')[0] || friend.username}
@@ -567,8 +567,9 @@ const ProfilePage: React.FC = () => {
                                 {/* Tabs */}
                                 <div className="flex border-b border-tertiary-light dark:border-tertiary">
                                     <TabButton label="Posts" isActive={activeTab === 'posts'} onClick={() => setActiveTab('posts')} />
+                                    <TabButton label="Photos" isActive={activeTab === 'media'} onClick={() => setActiveTab('media')} />
                                     <TabButton label="Mentions" isActive={activeTab === 'mentions'} onClick={() => setActiveTab('mentions')} />
-                                    <TabButton label="Media" isActive={activeTab === 'media'} onClick={() => setActiveTab('media')} />
+                                    
                                 </div>
 
                                 {/* Tab Content */}
@@ -651,6 +652,7 @@ const ProfilePage: React.FC = () => {
     );
 };
 
+
 const FriendsListModal: React.FC<{ profile: Profile; onClose: () => void }> = ({ profile, onClose }) => {
     const [fullFriendsList, setFullFriendsList] = useState<Friend[]>([]);
     const [loading, setLoading] = useState(true);
@@ -676,7 +678,8 @@ const FriendsListModal: React.FC<{ profile: Profile; onClose: () => void }> = ({
     return (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
             <div 
-                className="bg-secondary-light dark:bg-secondary rounded-2xl shadow-2xl w-full max-w-md max-h-[70vh] flex flex-col" 
+                className="bg-secondary-light dark:bg-secondary rounded-2xl shadow-2xl w-full flex flex-col
+                           max-w-md md:max-w-2xl lg:max-w-4xl max-h-[85vh]" // -> Updated responsive width
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="p-4 border-b border-tertiary-light dark:border-tertiary flex items-center justify-between sticky top-0 bg-secondary-light dark:bg-secondary rounded-t-2xl">
@@ -687,23 +690,26 @@ const FriendsListModal: React.FC<{ profile: Profile; onClose: () => void }> = ({
                     {loading ? (
                         <div className="flex justify-center p-8"><Spinner /></div>
                     ) : fullFriendsList.length > 0 ? (
-                        <ul className="space-y-3">
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-4"> {/* -> Updated responsive columns */}
                             {fullFriendsList.map(friend => (
-                                <li key={friend.user_id}>
-                                    <Link to={`/profile/${friend.username}`} onClick={onClose} className="w-full flex items-center gap-4 p-2 rounded-lg hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors text-left">
-                                        <img 
-                                            src={friend.avatar_url || `https://ui-avatars.com/api/?name=${friend.full_name || friend.username}`} 
-                                            alt={friend.username} 
-                                            className="w-12 h-12 rounded-full object-cover flex-shrink-0"
-                                        />
-                                        <div className="overflow-hidden">
-                                            <p className="font-semibold text-text-main-light dark:text-text-main truncate">{friend.full_name || friend.username}</p>
-                                            <p className="text-sm text-text-tertiary-light dark:text-text-tertiary truncate">@{friend.username}</p>
-                                        </div>
-                                    </Link>
-                                </li>
+                                <Link 
+                                    to={`/profile/${friend.username}`} 
+                                    onClick={onClose} 
+                                    key={friend.user_id} 
+                                    className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors text-center"
+                                >
+                                    <img 
+                                        src={friend.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.full_name || friend.username)}&background=random&color=fff&bold=true`} 
+                                        alt={friend.username} 
+                                        className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover" // -> Slightly smaller base avatar
+                                    />
+                                    <div className="w-full">
+                                        <p className="font-semibold text-sm text-text-main-light dark:text-text-main truncate">{friend.full_name || friend.username}</p>
+                                        <p className="text-xs text-text-tertiary-light dark:text-text-tertiary truncate">@{friend.username}</p>
+                                    </div>
+                                </Link>
                             ))}
-                        </ul>
+                        </div>
                     ) : (
                         <p className="text-center text-text-tertiary-light dark:text-text-tertiary p-8">{profile.full_name?.split(' ')[0]} has no friends yet.</p>
                     )}

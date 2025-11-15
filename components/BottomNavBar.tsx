@@ -30,12 +30,6 @@ const BottomNavBar: React.FC = () => {
         <BuildingLibraryIcon className="w-7 h-7" />
       </NavLink>
       <NavLink 
-        to="/campus/map" 
-        className={({ isActive }) => `flex-1 flex flex-col items-center justify-center ${isActive ? activeLinkStyle : inactiveLinkStyle}`}
-      >
-        <MapIcon className="w-7 h-7" />
-      </NavLink>
-      <NavLink 
         to="/communities" 
         className={({ isActive }) => `flex-1 flex flex-col items-center justify-center ${isActive ? activeLinkStyle : inactiveLinkStyle}`}
       >
