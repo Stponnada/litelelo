@@ -278,12 +278,14 @@ const ProfilePage: React.FC = () => {
                 <div className="relative mb-6">
                     {/* Banner */}
                     <div className="h-56 sm:h-72 bg-gradient-to-br from-tertiary-light to-tertiary-light/50 dark:from-tertiary dark:to-tertiary/50 relative overflow-hidden">
-                        {profile.banner_url && (
+                        {profile.banner_url ? (
                             <img 
                                 src={profile.banner_url} 
                                 alt="Banner" 
                                 className="w-full h-full object-cover"
                             />
+                        ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-brand-green/20 to-blue-500/20"></div>
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
                     </div>
@@ -293,13 +295,17 @@ const ProfilePage: React.FC = () => {
                         <div className="relative -mt-20 sm:-mt-24">
                             {/* Avatar */}
                             <div className="relative inline-block">
-                                <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-full border-4 border-primary-light dark:border-primary bg-gradient-to-br from-gray-600 to-gray-700 overflow-hidden shadow-xl">
-                                    {profile.avatar_url && (
+                                <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-full border-4 border-primary-light dark:border-primary bg-tertiary overflow-hidden shadow-xl">
+                                    {profile.avatar_url ? (
                                         <img 
                                             src={profile.avatar_url} 
                                             alt={profile.full_name || ''} 
                                             className="w-full h-full object-cover"
                                         />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-green/20 to-blue-500/20">
+                                            <span className="text-6xl font-bold text-brand-green">{profile.full_name ? profile.full_name.split(' ').map(n => n[0]).join('') : profile.username[0]}</span>
+                                        </div>
                                     )}
                                 </div>
                             </div>

@@ -18,7 +18,8 @@ const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) => {
         }
         if (url.includes('/object/public/')) {
             const transformedUrl = url.replace('/object/public/', '/render/image/public/');
-            return `${transformedUrl}?width=${width}&height=${height}&resize=cover`;
+            const separator = transformedUrl.includes('?') ? '&' : '?';
+            return `${transformedUrl}${separator}width=${width}&height=${height}&resize=cover`;
         }
         return url;
     };

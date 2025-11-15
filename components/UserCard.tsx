@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { DirectoryProfile, Profile } from '../types';
 import Spinner from './Spinner';
 import { UserGroupIcon } from './icons';
+import { getResizedAvatarUrl } from '../utils/imageUtils';
 
 // --- Icon Components ---
 const PaperAirplaneIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -53,9 +54,10 @@ const UserCard: React.FC<UserCardProps> = ({ profile, isCurrentUser, isToggling,
       {/* --- PFP is now even smaller --- */}
       <Link to={linkTo} className="flex-shrink-0">
         <img
-          src={profile.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name || ' ')}&background=random`}
+          src={getResizedAvatarUrl(profile.avatar_url, 80, 80)}
           alt={profile.name || 'avatar'}
           className="w-10 h-10 rounded-full object-cover border-2 border-tertiary-light dark:border-tertiary"
+          loading="lazy"
         />
       </Link>
 

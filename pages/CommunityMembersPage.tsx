@@ -34,9 +34,9 @@ const MemberCard: React.FC<{
         <div className="bg-secondary-light dark:bg-secondary p-4 rounded-lg flex items-center space-x-4 hover:bg-tertiary-light/60 dark:hover:bg-tertiary transition-colors border border-tertiary-light dark:border-tertiary relative">
             <Link to={`/profile/${member.username}`}>
                 <img 
-                    src={member.avatar_url || `https://ui-avatars.com/api/?name=${member.full_name || member.username}`} 
+                    src={member.avatar_url || `https://ui-avatars.com/api/?name=${member.full_name || member.username}&background=random&color=fff&bold=true`} 
                     alt={member.username}
-                    className="w-12 h-12 rounded-full object-cover"
+                    className="w-12 h-12 rounded-full object-cover bg-tertiary"
                 />
             </Link>
             <div className="flex-grow overflow-hidden">

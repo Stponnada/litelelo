@@ -622,7 +622,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                             className="w-11 h-11 rounded-full object-cover ring-2 ring-brand-green/20 group-hover:ring-brand-green/40 transition-all"
                             alt="avatar"
                         />
-                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"></div>
+                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-secondary-light dark:border-secondary"></div>
                     </div>
                     <div className="min-w-0 flex-1">
                         <h3 className="font-bold text-lg text-text-main-light dark:text-text-main group-hover:text-brand-green dark:group-hover:text-brand-green transition-colors truncate">
@@ -665,14 +665,14 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                 className="fixed inset-0 z-40 pointer-events-none"
             >
                 <div
-                    className="absolute bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden text-sm animate-fadeIn pointer-events-auto"
+                    className="absolute bg-secondary-light dark:bg-secondary rounded-lg shadow-2xl border border-tertiary-light dark:border-tertiary overflow-hidden text-sm animate-fadeIn pointer-events-auto"
                     style={{ top: pinningOptions.y, left: pinningOptions.x }}
                     onClick={e => { e.stopPropagation(); }}
                 >
-                    <div className="p-2 font-semibold border-b border-gray-200 dark:border-gray-700">Pin message for...</div>
-                    <button onClick={() => { handlePinMessage(pinningOptions.messageId!, 24); setPinningOptions({ messageId: null, x: 0, y: 0 }); }} className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">24 hours</button>
-                    <button onClick={() => { handlePinMessage(pinningOptions.messageId!, 24 * 7); setPinningOptions({ messageId: null, x: 0, y: 0 }); }} className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">7 days</button>
-                    <button onClick={() => { handlePinMessage(pinningOptions.messageId!, null); setPinningOptions({ messageId: null, x: 0, y: 0 }); }} className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">Forever</button>
+                    <div className="p-2 font-semibold border-b border-tertiary-light dark:border-tertiary">Pin message for...</div>
+                    <button onClick={() => { handlePinMessage(pinningOptions.messageId!, 24); setPinningOptions({ messageId: null, x: 0, y: 0 }); }} className="block w-full text-left px-4 py-2 hover:bg-tertiary-light dark:hover:bg-tertiary">24 hours</button>
+                    <button onClick={() => { handlePinMessage(pinningOptions.messageId!, 24 * 7); setPinningOptions({ messageId: null, x: 0, y: 0 }); }} className="block w-full text-left px-4 py-2 hover:bg-tertiary-light dark:hover:bg-tertiary">7 days</button>
+                    <button onClick={() => { handlePinMessage(pinningOptions.messageId!, null); setPinningOptions({ messageId: null, x: 0, y: 0 }); }} className="block w-full text-left px-4 py-2 hover:bg-tertiary-light dark:hover:bg-tertiary">Forever</button>
                 </div>
             </div>
         )}
@@ -682,14 +682,14 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                 className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 pointer-events-none"
             >
                 <div 
-                    className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden pointer-events-auto"
+                    className="bg-secondary-light dark:bg-secondary rounded-2xl shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden pointer-events-auto"
                     onClick={(e) => e.stopPropagation()}
                 >
-                    <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between">
+                    <div className="sticky top-0 bg-secondary-light dark:bg-secondary border-b border-tertiary-light dark:border-tertiary p-4 flex items-center justify-between">
                         <h3 className="text-lg font-bold text-text-main-light dark:text-text-main">Choose Emoji</h3>
                         <button 
                             onClick={() => setEmojiPickerMessageId(null)}
-                            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                            className="p-2 hover:bg-tertiary-light dark:hover:bg-tertiary rounded-full transition-colors"
                         >
                             <XCircleIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary" />
                         </button>
@@ -697,7 +697,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                     <div className="overflow-y-auto max-h-[calc(80vh-80px)] p-4">
                         {EMOJI_PICKER_EMOJIS.map(({ category, emojis }) => (
                             <div key={category} className="mb-6">
-                                <h4 className="text-sm font-semibold text-text-secondary-light dark:text-text-secondary mb-2 sticky top-0 bg-white dark:bg-gray-800 py-1">
+                                <h4 className="text-sm font-semibold text-text-secondary-light dark:text-text-secondary mb-2 sticky top-0 bg-secondary-light dark:bg-secondary py-1">
                                     {category}
                                 </h4>
                                 <div className="grid grid-cols-8 gap-2">
@@ -705,7 +705,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                                         <button
                                             key={emoji}
                                             onClick={() => handleReaction(emoji, emojiPickerMessageId)}
-                                            className="text-2xl p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all hover:scale-110 active:scale-95"
+                                            className="text-2xl p-2 hover:bg-tertiary-light dark:hover:bg-tertiary rounded-lg transition-all hover:scale-110 active:scale-95"
                                         >
                                             {emoji}
                                         </button>
@@ -718,11 +718,11 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
             </div>
         )}
 
-        <div className="px-4 md:px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center space-x-3 bg-white dark:bg-gray-900 shadow-sm flex-shrink-0">
+        <div className="px-4 md:px-6 py-4 border-b border-tertiary-light dark:border-tertiary flex items-center space-x-3 bg-secondary-light dark:bg-secondary shadow-sm flex-shrink-0">
             {onBack && (
                 <button 
                     onClick={onBack} 
-                    className="md:hidden p-2 text-text-secondary dark:text-text-secondary hover:text-brand-green dark:hover:text-brand-green hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-all flex-shrink-0"
+                    className="md:hidden p-2 text-text-secondary-light dark:text-text-secondary hover:text-brand-green dark:hover:text-brand-green hover:bg-tertiary-light dark:hover:bg-tertiary rounded-full transition-all flex-shrink-0"
                 >
                     <BackIcon className="w-5 h-5" />
                 </button>
@@ -731,7 +731,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
         </div>
 
         {pinnedMessage && (
-          <div className="px-4 md:px-6 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-between gap-4 animate-fadeIn">
+          <div className="px-4 md:px-6 py-2 border-b border-tertiary-light dark:border-tertiary bg-tertiary-light/30 dark:bg-tertiary/30 flex items-center justify-between gap-4 animate-fadeIn">
             <div 
                 className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer"
                 onClick={() => messageRefs.current.get(pinnedMessage.message_id)?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
@@ -744,15 +744,14 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                     </p>
                 </div>
             </div>
-            <button onClick={handleUnpinMessage} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full flex-shrink-0">
+            <button onClick={handleUnpinMessage} className="p-1.5 hover:bg-tertiary-light dark:hover:bg-tertiary rounded-full flex-shrink-0">
                 <XCircleIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary" />
             </button>
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 md:px-6 py-4 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 md:px-6 py-4 bg-primary-light dark:bg-primary">
             <div className="max-w-full space-y-3">
-                {/* --- THIS IS THE MODIFIED PART --- */}
                 {loading ? ( 
                     <div className="space-y-6 py-4">
                         <MessageSkeleton align="left" />
@@ -788,7 +787,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                                 {!isOwn && msg.profiles && ( 
                                     <img 
                                         src={msg.profiles.avatar_url || `https://ui-avatars.com/api/?name=${msg.profiles.username}`} 
-                                        className="w-8 h-8 rounded-full mb-1 ring-2 ring-white dark:ring-gray-800 shadow-sm flex-shrink-0" 
+                                        className="w-8 h-8 rounded-full mb-1 ring-2 ring-secondary-light dark:ring-secondary shadow-sm flex-shrink-0" 
                                         alt="avatar"
                                     /> 
                                 )}
@@ -807,7 +806,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                                     <div className={`relative w-full rounded-2xl shadow-sm transition-all duration-200 hover:shadow-md ${
                                         isOwn 
                                             ? 'bg-gradient-to-br from-brand-green to-green-500 text-black rounded-br-md' 
-                                            : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-bl-md'
+                                            : 'bg-secondary-light dark:bg-secondary text-text-main-light dark:text-text-main border border-tertiary-light dark:border-tertiary rounded-bl-md'
                                     }`}>
                                         {isEditing ? (
                                             <div className="p-3 w-full">
@@ -855,7 +854,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                                                     </div>
                                                 )}
                                                 {msg.is_deleted ? ( 
-                                                    <p className="px-4 py-2.5 text-[15px] italic text-gray-500 dark:text-gray-500">
+                                                    <p className="px-4 py-2.5 text-[15px] italic text-text-tertiary-light dark:text-text-tertiary">
                                                         This message was deleted
                                                     </p>
                                                 ) : msg.message_type === 'text' ? (
@@ -895,7 +894,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                                                     <button 
                                                         key={emoji} 
                                                         onClick={() => handleReaction(emoji, msg.id)} 
-                                                        className="px-2 py-0.5 bg-white dark:bg-gray-800 rounded-full text-xs font-medium shadow-lg border border-gray-200 dark:border-gray-700 hover:scale-110 transition-transform"
+                                                        className="px-2 py-0.5 bg-secondary-light dark:bg-secondary rounded-full text-xs font-medium shadow-lg border border-tertiary-light dark:border-tertiary hover:scale-110 transition-transform"
                                                     >
                                                         <span className="mr-1">{emoji}</span>
                                                         <span className="text-text-secondary-light dark:text-text-secondary">{count}</span>
@@ -907,43 +906,43 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                                     {!isEditing && !msg.is_deleted && (
                                         <div className={`flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0 ${isOwn ? '' : 'order-first'}`}>
                                             <div className="relative group/react">
-                                                <button className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                                                <button className="p-1.5 rounded-full hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors">
                                                     <FaceSmileIcon className="w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" />
                                                 </button>
-                                                <div className={`absolute bottom-full mb-2 flex gap-1 bg-white dark:bg-gray-800 p-2 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 opacity-0 invisible group-hover/react:opacity-100 group-hover/react:visible z-10 transition-all ${isOwn ? 'right-0' : 'left-0'}`}>
+                                                <div className={`absolute bottom-full mb-2 flex gap-1 bg-secondary-light dark:bg-secondary p-2 rounded-xl shadow-xl border border-tertiary-light dark:border-tertiary opacity-0 invisible group-hover/react:opacity-100 group-hover/react:visible z-10 transition-all ${isOwn ? 'right-0' : 'left-0'}`}>
                                                     {REACTION_EMOJIS.map(emoji => (
                                                         <button 
                                                             key={emoji} 
                                                             onClick={() => handleReaction(emoji, msg.id)} 
-                                                            className="p-1 text-xl hover:scale-125 transition-transform rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                                                            className="p-1 text-xl hover:scale-125 transition-transform rounded-lg hover:bg-tertiary-light dark:hover:bg-tertiary"
                                                         >
                                                             {emoji}
                                                         </button>
                                                     ))}
                                                     <button 
                                                         onClick={() => setEmojiPickerMessageId(msg.id)}
-                                                        className="p-1 text-xl hover:scale-125 transition-transform rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 border-l border-gray-200 dark:border-gray-600 pl-2"
+                                                        className="p-1 text-xl hover:scale-125 transition-transform rounded-lg hover:bg-tertiary-light dark:hover:bg-tertiary border-l border-tertiary-light dark:border-tertiary pl-2"
                                                     >
                                                         <PlusIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary" />
                                                     </button>
                                                 </div>
                                             </div>
                                             <button 
-                                                className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors" 
+                                                className="p-1.5 rounded-full hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors" 
                                                 onClick={() => setReplyingTo(msg)}
                                             >
                                                 <ReplyIcon className="w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" />
                                             </button>
                                             {isOwn && msg.message_type === 'text' && (
                                                 <button 
-                                                    className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors" 
+                                                    className="p-1.5 rounded-full hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors" 
                                                     onClick={() => handleStartEdit(msg)}
                                                 >
                                                     <PencilIcon className="w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" />
                                                 </button>
                                             )}
                                             <button
-                                                className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                                                className="p-1.5 rounded-full hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors"
                                                 onClick={(e) => {
                                                     const rect = e.currentTarget.getBoundingClientRect();
                                                     setPinningOptions({ messageId: msg.id, x: rect.left - 150, y: rect.top - 120 });
@@ -1004,7 +1003,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
             </div>
         </div>
         
-        <div className="px-4 md:px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex-shrink-0">
+        <div className="px-4 md:px-6 py-4 border-t border-tertiary-light dark:border-tertiary bg-secondary-light dark:bg-secondary flex-shrink-0">
             {replyingTo && (
                 <div className="mb-3 px-4 py-3 bg-gradient-to-r from-brand-green/10 to-green-500/10 dark:from-brand-green/20 dark:to-green-500/20 rounded-xl text-sm border-l-4 border-brand-green">
                     <div className="flex justify-between items-center">
@@ -1047,7 +1046,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                     >
                         <PlusIcon className="w-5 h-5" />
                     </button>
-                    <div className="absolute bottom-full mb-2 left-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 whitespace-nowrap">
+                    <div className="absolute bottom-full mb-2 left-0 bg-secondary-light dark:bg-secondary border border-tertiary-light dark:border-tertiary rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 whitespace-nowrap">
                         <button 
                             type="button" 
                             onClick={() => fileInputRef.current?.click()} 
@@ -1081,7 +1080,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                     }}
                     placeholder="Type a message..."
                     disabled={!!imagePreview}
-                    className="flex-1 min-w-0 py-3 px-4 bg-gray-100 dark:bg-gray-800 border-2 border-transparent focus:border-brand-green rounded-full text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 min-w-0 py-3 px-4 bg-tertiary-light dark:bg-tertiary border-2 border-transparent focus:border-brand-green rounded-full text-text-main-light dark:text-text-main placeholder-text-tertiary-light dark:placeholder-text-tertiary focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <button 
                     type="submit" 

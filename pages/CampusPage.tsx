@@ -89,7 +89,8 @@ const MiniPlaceCard: React.FC<{ place: CampusPlace }> = ({ place }) => (
 const MiniLostItemCard: React.FC<{ item: LostAndFoundItem }> = ({ item }) => {
     const isLost = item.item_type === 'lost';
     return (
-        <div className="group bg-gradient-to-br from-secondary-light to-tertiary-light/30 dark:from-secondary dark:to-tertiary/30 rounded-xl md:rounded-2xl p-3 md:p-4 shadow-md border border-tertiary-light dark:border-tertiary hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
+        // CHANGED: This link now points to the specific item's detail page
+        <Link to={`/campus/lost-and-found/${item.id}`} className="group block bg-gradient-to-br from-secondary-light to-tertiary-light/30 dark:from-secondary dark:to-tertiary/30 rounded-xl md:rounded-2xl p-3 md:p-4 shadow-md border border-tertiary-light dark:border-tertiary hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
             <div className={`absolute top-0 right-0 w-16 md:w-24 h-16 md:h-24 ${isLost ? 'bg-red-500/5' : 'bg-green-500/5'} rounded-full blur-2xl -mr-8 md:-mr-12 -mt-8 md:-mt-12 group-hover:scale-150 transition-transform duration-500`}></div>
             <div className="relative z-10 flex items-center space-x-3 md:space-x-4">
                 <div className="relative overflow-hidden rounded-lg md:rounded-xl ring-2 ring-tertiary-light dark:ring-tertiary transition-all duration-300 flex-shrink-0">
@@ -109,11 +110,14 @@ const MiniLostItemCard: React.FC<{ item: LostAndFoundItem }> = ({ item }) => {
                     </div>
                 </div>
             </div>
-        </div>
+        </Link>
     );
 };
 
 const MiniNoticeCard: React.FC<{ notice: CampusNotice }> = ({ notice }) => (
+    // NOTE: This still links to the general noticeboard.
+    // If you want it to link to a specific notice, change it to:
+    // to={`/campus/noticeboard/${notice.id}`}
     <Link to="/campus/noticeboard" className="group block bg-gradient-to-br from-yellow-50 to-amber-50/50 dark:from-yellow-900/20 dark:to-amber-900/10 rounded-xl md:rounded-2xl p-3 md:p-4 shadow-md hover:shadow-2xl transition-all duration-300 border border-yellow-200/50 dark:border-yellow-800/50 hover:border-yellow-400 hover:-translate-y-1 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-16 md:w-24 h-16 md:h-24 bg-yellow-400/10 rounded-full blur-2xl -mr-8 md:-mr-12 -mt-8 md:-mt-12 group-hover:scale-150 transition-transform duration-500"></div>
         <div className="relative z-10 flex items-center space-x-3 md:space-x-4">
@@ -361,7 +365,10 @@ const CampusPage: React.FC = () => {
                                 </div>
                             </div>
                             {newestListings.length > 0 ? (
-                                <ListingCard listing={newestListings[0]} onClick={() => {}} />
+                                // CHANGED: This link now points to the specific listing's detail page
+                                <Link to={`/campus/marketplace/${newestListings[0].id}`} className="block">
+                                    <ListingCard listing={newestListings[0]} onClick={() => {}} />
+                                </Link>
                             ) : (
                                 <div className="bg-gradient-to-br from-secondary-light to-tertiary-light/30 dark:from-secondary dark:to-tertiary/30 rounded-xl md:rounded-2xl p-6 md:p-10 text-center border-2 border-dashed border-tertiary-light dark:border-tertiary h-full flex flex-col justify-center">
                                     <div className="inline-block p-3 md:p-5 bg-green-500/10 rounded-full mb-3 md:mb-4 mx-auto">

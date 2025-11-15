@@ -28,42 +28,6 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose, onGroupCre
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Generate consistent color based on user ID
-  const getAvatarColor = (userId: string) => {
-    const colors = [
-      'bg-gradient-to-br from-red-400 to-red-600',
-      'bg-gradient-to-br from-orange-400 to-orange-600',
-      'bg-gradient-to-br from-amber-400 to-amber-600',
-      'bg-gradient-to-br from-yellow-400 to-yellow-600',
-      'bg-gradient-to-br from-lime-400 to-lime-600',
-      'bg-gradient-to-br from-green-400 to-green-600',
-      'bg-gradient-to-br from-emerald-400 to-emerald-600',
-      'bg-gradient-to-br from-teal-400 to-teal-600',
-      'bg-gradient-to-br from-cyan-400 to-cyan-600',
-      'bg-gradient-to-br from-sky-400 to-sky-600',
-      'bg-gradient-to-br from-blue-400 to-blue-600',
-      'bg-gradient-to-br from-indigo-400 to-indigo-600',
-      'bg-gradient-to-br from-violet-400 to-violet-600',
-      'bg-gradient-to-br from-purple-400 to-purple-600',
-      'bg-gradient-to-br from-fuchsia-400 to-fuchsia-600',
-      'bg-gradient-to-br from-pink-400 to-pink-600'
-    ];
-    const index = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
-    return colors[index];
-  };
-
-  // Get initials from name
-  const getInitials = (name: string | null | undefined, username: string) => {
-    if (name && name.trim()) {
-      const parts = name.trim().split(' ');
-      if (parts.length >= 2) {
-        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-      }
-      return name.trim()[0].toUpperCase();
-    }
-    return username[0].toUpperCase();
-  };
-
   useEffect(() => {
     const fetchUsers = async () => {
       setLoading(true);
@@ -181,17 +145,11 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose, onGroupCre
                     key={user.id}
                     className="group flex items-center gap-2.5 pl-1 pr-3 py-1 bg-white dark:bg-gray-800 rounded-full border-2 border-emerald-200 dark:border-emerald-800 hover:border-emerald-400 dark:hover:border-emerald-600 transition-all duration-200 shadow-sm hover:shadow-md"
                   >
-                    {user.avatar_url ? (
-                      <img
-                        src={user.avatar_url}
-                        alt={user.username!}
-                        className="w-7 h-7 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-md ${getAvatarColor(user.id)}`}>
-                        {getInitials(user.name, user.username!)}
-                      </div>
-                    )}
+                    <img
+                      src={user.avatar_url || `https://ui-avatars.com/api/?name=${user.name || user.username}&background=random&color=fff&bold=true`}
+                      alt={user.username!}
+                      className="w-7 h-7 rounded-full object-cover"
+                    />
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
                       {user.name || user.username}
                     </span>
@@ -264,21 +222,13 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose, onGroupCre
                         </div>
                       </div>
                       
-                      {profile.avatar_url ? (
-                        <img
-                          src={profile.avatar_url}
-                          alt={profile.username!}
-                          className={`w-11 h-11 rounded-xl object-cover shadow-sm transition-all duration-200 ${
-                            isSelected ? 'ring-2 ring-emerald-400 shadow-emerald-200 dark:shadow-emerald-900/50' : ''
-                          }`}
-                        />
-                      ) : (
-                        <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-white text-sm font-bold shadow-md transition-all duration-200 ${getAvatarColor(profile.id)} ${
-                          isSelected ? 'ring-2 ring-emerald-400 shadow-emerald-200 dark:shadow-emerald-900/50 scale-105' : ''
-                        }`}>
-                          {getInitials(profile.name, profile.username!)}
-                        </div>
-                      )}
+                      <img
+                        src={profile.avatar_url || `https://ui-avatars.com/api/?name=${profile.name || profile.username}&background=random&color=fff&bold=true`}
+                        alt={profile.username!}
+                        className={`w-11 h-11 rounded-xl object-cover shadow-sm transition-all duration-200 ${
+                          isSelected ? 'ring-2 ring-emerald-400 shadow-emerald-200 dark:shadow-emerald-900/50' : ''
+                        }`}
+                      />
                       
                       <div className="flex-1 text-left min-w-0">
                         <p className={`font-semibold truncate transition-colors ${

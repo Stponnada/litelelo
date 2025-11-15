@@ -10,8 +10,8 @@ import Spinner from './Spinner';
 const FollowSuggestionCard: React.FC<{ user: FollowSuggestion; onFollow: (userId: string) => void }> = ({ user, onFollow }) => (
   <div className="flex items-center space-x-2 p-2 group">
     <Link to={`/profile/${user.username}`}>
-      <img 
-        src={user.avatar_url || `https://ui-avatars.com/api/?name=${user.full_name}&background=10b981&color=fff`} 
+      <img
+        src={user.avatar_url || `https://ui-avatars.com/api/?name=${user.full_name || user.username}&background=random&color=fff&bold=true`}
         alt={user.username} 
         className="w-10 h-10 rounded-full object-cover ring-2 ring-transparent group-hover:ring-brand-green transition-all" 
       />

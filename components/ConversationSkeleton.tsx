@@ -12,10 +12,10 @@ const ConversationSkeleton: React.FC<ConversationSkeletonProps> = ({ onBack }) =
   return (
     <>
       {/* Header Skeleton */}
-      <div className="px-4 md:px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center space-x-3 bg-white dark:bg-gray-900 shadow-sm flex-shrink-0">
+      <div className="px-4 md:px-6 py-4 border-b border-tertiary-light dark:border-tertiary flex items-center space-x-3 bg-secondary-light dark:bg-secondary shadow-sm flex-shrink-0">
         {onBack && (
           <div className="md:hidden p-2 rounded-full flex-shrink-0">
-            <BackIcon className="w-5 h-5 text-gray-400" />
+            <BackIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary" />
           </div>
         )}
         <Skeleton className="w-11 h-11 rounded-full" />
@@ -60,7 +60,7 @@ const ConversationSkeleton: React.FC<ConversationSkeletonProps> = ({ onBack }) =
       </div>
 
       {/* Input Area Skeleton */}
-      <div className="px-4 md:px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex-shrink-0">
+      <div className="px-4 md:px-6 py-4 border-t border-tertiary-light dark:border-tertiary bg-secondary-light dark:bg-secondary flex-shrink-0">
         <div className="flex items-center space-x-2">
           <Skeleton className="w-10 h-10 rounded-full" />
           <Skeleton className="flex-1 h-12 rounded-full" />

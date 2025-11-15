@@ -21,6 +21,8 @@ import { HeartIcon as HeartSolid, BookmarkIcon as BookmarkSolid } from '@heroico
 import PollComponent from './Poll';
 import QuotePostDisplay from './QuotePostDisplay';
 import QuotePostModal from './QuotePostModal';
+import { getResizedAvatarUrl } from '../utils/imageUtils';
+
 
 
 const Flair: React.FC<{ flair: { id: string; name: string; avatar_url: string | null } }> = ({ flair }) => (
@@ -228,10 +230,11 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => 
                 >
                     <div className="flex items-start space-x-3">
                         <Link to={authorLink} onClick={e => e.stopPropagation()} className="flex-shrink-0">
-                            <img 
-                                src={author.author_avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(author.author_name || ' ')}&background=3cfba2&color=000`} 
+                            <img
+                                src={author.author_avatar_url ? getResizedAvatarUrl(author.author_avatar_url, 80, 80) : `https://ui-avatars.com/api/?name=${author.author_name || author.author_username}&background=random&color=fff&bold=true`}
                                 alt={author.author_name || ''} 
-                                className="w-10 h-10 rounded-full object-cover bg-gray-700" 
+                                className="w-10 h-10 rounded-full object-cover bg-tertiary"
+                                loading="lazy"
                             />
                         </Link>
                         <div className="flex-1 min-w-0">

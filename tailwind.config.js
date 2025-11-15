@@ -19,26 +19,26 @@ export default {
         'rubik-glitch': ['"Rubik Glitch"', 'cursive'],
       },
       colors: {
-        'brand-green': '#3cfba2',
-        'brand-green-darker': '#2fae85',
+        'brand-green': 'rgb(var(--color-brand-green) / <alpha-value>)',
+        'brand-green-darker': 'rgb(var(--color-brand-green-darker) / <alpha-value>)',
         
         // Backgrounds
-        'primary': '#020617',
-        'secondary': '#0f172a',
-        'tertiary': '#1e293b',
+        'primary': 'rgb(var(--color-primary) / <alpha-value>)',
+        'secondary': 'rgb(var(--color-secondary) / <alpha-value>)',
+        'tertiary': 'rgb(var(--color-tertiary) / <alpha-value>)',
 
-        'primary-light': '#F8FAFC',
-        'secondary-light': '#FFFFFF',
-        'tertiary-light': '#E2E8F0',
+        'primary-light': 'rgb(var(--color-primary-light) / <alpha-value>)',
+        'secondary-light': 'rgb(var(--color-secondary-light) / <alpha-value>)',
+        'tertiary-light': 'rgb(var(--color-tertiary-light) / <alpha-value>)',
 
         // Text
-        'text-main': '#e2e8f0',
-        'text-secondary': '#94a3b8',
-        'text-tertiary': '#64748b',
+        'text-main': 'rgb(var(--color-text-main) / <alpha-value>)',
+        'text-secondary': 'rgb(var(--color-text-secondary) / <alpha-value>)',
+        'text-tertiary': 'rgb(var(--color-text-tertiary) / <alpha-value>)',
 
-        'text-main-light': '#0F172A',
-        'text-secondary-light': '#334155',
-        'text-tertiary-light': '#64748B',
+        'text-main-light': 'rgb(var(--color-text-main-light) / <alpha-value>)',
+        'text-secondary-light': 'rgb(var(--color-text-secondary-light) / <alpha-value>)',
+        'text-tertiary-light': 'rgb(var(--color-text-tertiary-light) / <alpha-value>)',
       }
     },
   },

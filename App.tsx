@@ -47,6 +47,10 @@ const BlockchainPage = React.lazy(() => import('./pages/BlockchainPage'));
 const PasswordResetPage = React.lazy(() => import('./pages/PasswordResetPage'));
 const SettingsPage = React.lazy(() => import('./pages/SettingsPage'));
 const CampusMapPage = React.lazy(() => import('./pages/CampusMapPage'));
+
+// --- NEWLY ADDED IMPORTS ---
+const MarketplaceItemPage = React.lazy(() => import('./pages/MarketplaceItemPage'));
+const LostAndFoundItemPage = React.lazy(() => import('./pages/LostAndFoundItemPage'));
 // ------------------------------------------
 
 // Fallback component for Suspense
@@ -104,8 +108,15 @@ const AppRoutes = () => {
         <Route path="/campus/reviews" element={<CampusDirectoryPage />} />
         <Route path="/campus/reviews/:placeId" element={<PlaceDetailPage />} />
         <Route path="/campus/noticeboard" element={<NoticeboardPage />} />
+        
+        {/* --- MODIFIED ROUTES SECTION --- */}
         <Route path="/campus/lost-and-found" element={<LostAndFoundPage />} />
+        <Route path="/campus/lost-and-found/:itemId" element={<LostAndFoundItemPage />} /> {/* NEW */}
+        
         <Route path="/campus/marketplace" element={<MarketplacePage />} />
+        <Route path="/campus/marketplace/:listingId" element={<MarketplaceItemPage />} /> {/* NEW */}
+        {/* ----------------------------- */}
+
         <Route path="/campus/bits-coin" element={<BitsCoinPage />} />
         <Route path="/easter-egg/blockchain" element={<BlockchainPage />} />
         <Route path="/campus/ride-share" element={<RideSharePage />} />

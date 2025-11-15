@@ -11,11 +11,6 @@ import Spinner from '../components/Spinner';
 import { formatTimestamp, formatExactTimestamp } from '../utils/timeUtils';
 import { renderContentWithEmbeds } from '../utils/renderEmbeds';
 
-const getAvatarUrl = (profile: Profile | null) => {
-  if (!profile) return '';
-  return profile.avatar_url || `https://ui-avatars.com/api/?name=${profile.full_name || profile.username}&background=E53E3E&color=fff`;
-};
-
 const Flair: React.FC<{ flair: { id: string; name: string; avatar_url: string | null } }> = ({ flair }) => (
     <Link
       to={`/communities/${flair.id}`}
@@ -36,7 +31,11 @@ const Comment: React.FC<{ comment: CommentType }> = ({ comment }) => {
   return (
     <div className="flex items-start space-x-3 p-4 border-b border-tertiary-light dark:border-tertiary">
       <Link to={`/profile/${author?.username}`} className="flex-shrink-0">
-        <img src={getAvatarUrl(author)} alt={author?.username || 'avatar'} className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 object-cover" />
+        <img
+          src={author?.avatar_url || `https://ui-avatars.com/api/?name=${author?.full_name || author?.username}&background=random&color=fff&bold=true`}
+          alt={author?.username || 'avatar'}
+          className="w-10 h-10 rounded-full bg-tertiary object-cover"
+        />
       </Link>
       <div className="flex-1 min-w-0">
         <div>
@@ -187,7 +186,10 @@ const PostPage: React.FC = () => {
       {currentUserProfile && (
         <div className="p-4 border-b border-tertiary-light dark:border-tertiary bg-secondary-light dark:bg-secondary">
           <form onSubmit={handleCommentSubmit} className="flex items-start space-x-3">
-            <img src={getAvatarUrl(currentUserProfile)} alt="Your avatar" className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 object-cover" />
+            <img
+              src={currentUserProfile.avatar_url || `https://ui-avatars.com/api/?name=${currentUserProfile.full_name || currentUserProfile.username}&background=random&color=fff&bold=true`}
+              alt="Your avatar" className="w-10 h-10 rounded-full bg-tertiary object-cover"
+            />
             <div className="flex-1">
               <textarea value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Post your reply" className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-2 text-text-main-light dark:text-text-main placeholder-text-tertiary-light dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-brand-green" rows={2} />
               <div className="flex justify-end mt-2">

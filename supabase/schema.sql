@@ -213,12 +213,13 @@ $$;
 ALTER FUNCTION "public"."add_mined_block"("new_block_index" bigint, "new_block_timestamp" timestamp with time zone, "transactions_in_block" "jsonb", "new_block_previous_hash" "text", "new_block_hash" "text", "new_block_nonce" integer) OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."cast_poll_vote"("p_option_id" "uuid") RETURNS "void"
+CREATE OR REPLACE FUNCTION "public"."cast_poll_vote"("p_option_id" "uuid") RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
 DECLARE
     target_poll_id uuid;
     target_poll_allow_multiple boolean;
+    existing_vote_id uuid;
 BEGIN
     -- Get poll info from the option ID
     SELECT poll_id, p.allow_multiple_answers 
@@ -227,19 +228,49 @@ BEGIN
     JOIN public.polls p ON po.poll_id = p.id
     WHERE po.id = p_option_id;
 
-    -- If it's a single choice poll, remove any previous vote from this user on this poll
+    -- Check for an existing vote on the *same option*
+    SELECT id INTO existing_vote_id 
+    FROM public.poll_votes 
+    WHERE user_id = auth.uid() AND option_id = p_option_id;
+
+    -- If it's a single choice poll, and the user is voting for a *different* option, remove their previous vote on this poll.
     IF NOT target_poll_allow_multiple THEN
         DELETE FROM public.poll_votes 
-        WHERE user_id = auth.uid() AND poll_id = target_poll_id;
+        WHERE user_id = auth.uid() AND poll_id = target_poll_id AND option_id <> p_option_id;
     END IF;
 
-    -- Insert or delete the vote (allows toggling a vote)
-    IF EXISTS (SELECT 1 FROM public.poll_votes WHERE user_id = auth.uid() AND option_id = p_option_id) THEN
-        DELETE FROM public.poll_votes WHERE user_id = auth.uid() AND option_id = p_option_id;
+    -- Toggle the vote on the specific option
+    IF existing_vote_id IS NOT NULL THEN
+        -- User is undoing their vote
+        DELETE FROM public.poll_votes WHERE id = existing_vote_id;
     ELSE
+        -- User is casting a new vote
         INSERT INTO public.poll_votes (user_id, option_id, poll_id)
         VALUES (auth.uid(), p_option_id, target_poll_id);
     END IF;
+
+    -- After modification, return the updated poll state
+    RETURN (
+        SELECT jsonb_build_object(
+            'id', p.id,
+            'allow_multiple_answers', p.allow_multiple_answers,
+            'total_votes', (SELECT count(*) FROM public.poll_votes pv WHERE pv.poll_id = target_poll_id),
+            'user_votes', (SELECT jsonb_agg(pv.option_id) FROM public.poll_votes pv WHERE pv.poll_id = target_poll_id AND pv.user_id = auth.uid()),
+            'options', (
+                SELECT jsonb_agg(
+                    jsonb_build_object(
+                        'id', po.id, 
+                        'option_text', po.option_text, 
+                        'vote_count', (SELECT count(*) FROM public.poll_votes pv WHERE pv.option_id = po.id)
+                    ) ORDER BY po.id
+                ) 
+                FROM public.poll_options po 
+                WHERE po.poll_id = target_poll_id
+            )
+        )
+        FROM public.polls p
+        WHERE p.id = target_poll_id
+    );
 END;
 $$;
 
@@ -1395,7 +1426,35 @@ LEFT JOIN public.profiles up ON p.user_id = up.user_id AND p.community_id IS NUL
 LEFT JOIN public.communities c ON p.community_id = c.id
 LEFT JOIN public.profiles op ON p.user_id = op.user_id AND p.community_id IS NOT NULL
 LEFT JOIN LATERAL (
-    SELECT jsonb_build_object('id', po.id, 'allow_multiple_answers', po.allow_multiple_answers, 'total_votes', COALESCE((SELECT SUM(opt.vote_count) FROM public.poll_options opt WHERE opt.poll_id = po.id), 0), 'user_votes', (SELECT jsonb_agg(pv.option_id) FROM public.poll_votes pv WHERE pv.poll_id = po.id AND pv.user_id = auth.uid()), 'options', (SELECT jsonb_agg(jsonb_build_object('id', opt.id, 'option_text', opt.option_text, 'vote_count', opt.vote_count) ORDER BY opt.id) FROM poll_options opt WHERE opt.poll_id = po.id)) AS poll
+    SELECT jsonb_build_object(
+        'id', po.id, 
+        'allow_multiple_answers', po.allow_multiple_answers, 
+        'total_votes', COALESCE((SELECT count(*) FROM public.poll_votes pv WHERE pv.poll_id = po.id), 0), 
+        'user_votes', (SELECT jsonb_agg(pv.option_id) FROM public.poll_votes pv WHERE pv.poll_id = po.id AND pv.user_id = auth.uid()), 
+        'options', (
+            SELECT jsonb_agg(
+                jsonb_build_object(
+                    'id', opt.id, 
+                    'option_text', opt.option_text, 
+                    'vote_count', (SELECT count(*) FROM public.poll_votes pv WHERE pv.option_id = opt.id),
+                    'voters', (
+                        SELECT jsonb_agg(
+                            jsonb_build_object(
+                                'user_id', voter_profile.user_id,
+                                'username', voter_profile.username,
+                                'full_name', voter_profile.full_name,
+                                'avatar_url', voter_profile.avatar_url
+                            )
+                        )
+                        FROM public.poll_votes pv
+                        JOIN public.profiles voter_profile ON pv.user_id = voter_profile.user_id
+                        WHERE pv.option_id = opt.id
+                    )
+                ) ORDER BY opt.id
+            ) 
+            FROM poll_options opt WHERE opt.poll_id = po.id
+        )
+    ) AS poll
     FROM polls po WHERE po.post_id = p.id
 ) poll_details ON TRUE
 WHERE p.is_deleted = false

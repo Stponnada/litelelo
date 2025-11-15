@@ -296,6 +296,12 @@ export interface PollOption {
     id: string;
     option_text: string;
     vote_count: number;
+    voters?: {
+        user_id: string;
+        username: string;
+        full_name: string;
+        avatar_url: string;
+    }[];
 }
 
 export interface Poll {

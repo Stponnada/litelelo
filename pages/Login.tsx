@@ -360,7 +360,7 @@ const Login: React.FC = () => {
         <button onClick={toggleMusic} title={isPlaying ? 'Pause Music' : 'Play Music'} className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 ${isPlaying ? 'bg-brand-green/20 border border-brand-green/30 text-brand-green' : 'bg-secondary-light dark:bg-secondary border border-tertiary-light dark:border-tertiary text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary'}`}>
             {isPlaying ? <PauseIcon className="w-5 h-5 sm:w-6 sm:h-6" /> : <MusicIcon className="w-5 h-5 sm:w-6 sm:h-6" />}
         </button>
-        <button onClick={toggleTheme} title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`} className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-secondary-light dark:bg-secondary border border-tertiary-light dark:border-tertiary shadow-lg flex items-center justify-center text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors">
+        <button onClick={toggleTheme} title={`Switch to ${theme === 'light' ? 'Dark' : theme === 'dark' ? 'Monochrome' : 'Light'} Mode`} className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-secondary-light dark:bg-secondary border border-tertiary-light dark:border-tertiary shadow-lg flex items-center justify-center text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors">
           {theme === 'light' ? <MoonIcon className="w-5 h-5 sm:w-6 sm:h-6" /> : <SunIcon className="w-5 h-5 sm:w-6 sm:h-6" />}
         </button>
       </div>

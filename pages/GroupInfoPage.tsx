@@ -19,9 +19,9 @@ const MemberCard: React.FC<{ profile: Profile }> = ({ profile }) => (
       className="bg-secondary-light dark:bg-secondary p-4 rounded-lg flex items-center space-x-4 hover:bg-tertiary-light/60 dark:hover:bg-tertiary transition-colors border border-tertiary-light dark:border-tertiary"
     >
         <img 
-            src={profile.avatar_url || `https://ui-avatars.com/api/?name=${profile.full_name || profile.username}`} 
+            src={profile.avatar_url || `https://ui-avatars.com/api/?name=${profile.full_name || profile.username}&background=random&color=fff&bold=true`} 
             alt={profile.username}
-            className="w-12 h-12 rounded-full object-cover"
+            className="w-12 h-12 rounded-full object-cover bg-tertiary"
         />
         <div className="flex-grow overflow-hidden">
             <h3 className="font-bold text-text-main-light dark:text-text-main text-md truncate">{profile.full_name || profile.username}</h3>

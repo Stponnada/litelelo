@@ -116,46 +116,20 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [feedType, user?.id, feedData, fetchPosts]);
 
+  // --- THIS IS THE FIX ---
+  // Instead of optimistically adding the post, we now force a clean refetch of the current feed.
+  // This is more robust and guarantees no duplicates.
   const addPostToContext = (newPost: any) => {
-    // --- FIX: This logic correctly formats the new post and adds it only to the relevant, already-loaded feeds. ---
-    const formattedNewPost = {
-        ...newPost,
-        author: newPost.author || { // Construct author object if it's not already nested
-            author_id: newPost.author_id,
-            author_type: newPost.author_type,
-            author_name: newPost.author_name,
-            author_username: newPost.author_username,
-            author_avatar_url: newPost.author_avatar_url,
-            author_flair_details: newPost.author_flair_details,
-        }
-    } as PostType;
-    
-    setFeedData(prev => {
-        const next = { ...prev };
-
-        // A post can be personal or for a community.
-        if (newPost.community_id) {
-            // Community Post
-            if (next.campus.page > -1) {
-                next.campus.posts = [formattedNewPost, ...next.campus.posts];
-            }
-            if (next.following.page > -1) { // Appears in 'following' as you're a member
-                next.following.posts = [formattedNewPost, ...next.following.posts];
-            }
-            if (newPost.is_public && next.foryou.page > -1) { // Appears in 'foryou' if public
-                next.foryou.posts = [formattedNewPost, ...next.foryou.posts];
-            }
-        } else {
-            // Personal Post
-            if (next.foryou.page > -1) {
-                next.foryou.posts = [formattedNewPost, ...next.foryou.posts];
-            }
-            if (next.following.page > -1) { // Appears in 'following' as you follow yourself
-                next.following.posts = [formattedNewPost, ...next.following.posts];
-            }
-        }
-        return next;
-    });
+    // To give immediate feedback, we can clear the posts for the current feed
+    // and reset its page count, which will trigger a fresh load.
+    setFeedData(prev => ({
+      ...prev,
+      foryou: { ...prev.foryou, posts: [], page: -1 },
+      following: { ...prev.following, posts: [], page: -1 },
+      campus: { ...prev.campus, posts: [], page: -1 },
+    }));
+    // The useEffect will now automatically trigger fetchPosts(false)
+    // because the page for the active feed is -1.
   };
 
   const updatePostInContext = useCallback((updatedPost: Partial<PostType> & { id: string }) => {
@@ -176,7 +150,8 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   
   const posts = feedData[feedType].posts;
   const hasMore = feedData[feedType].hasMore;
-  const isCurrentlyLoading = loading || (isFetching && posts.length > 0);
+  // Make sure loading is true if posts are empty and we're fetching
+  const isCurrentlyLoading = loading || (isFetching && posts.length === 0);
 
   const value = { posts, loading: isCurrentlyLoading, error, feedType, setFeedType, addPostToContext, updatePostInContext, fetchPosts, hasMore };
 

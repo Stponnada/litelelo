@@ -1,4 +1,3 @@
-
 // src/components/LeftSidebar.tsx
 
 import React from 'react';
@@ -212,7 +211,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
             >
               <span className="flex items-center gap-3">
                 {theme === 'light' ? <MoonIcon className="w-5 h-5" /> : <SunIcon className="w-5 h-5" />}
-                <span>{theme === 'light' ? 'Dark Mode' : 'Lite Mode'}</span>
+                <span>{theme === 'light' ? 'Dark Mode' : theme === 'dark' ? 'Monochrome' : 'Lite Mode'}</span>
               </span>
             </button>
             <button

@@ -41,6 +41,7 @@ export const BITS_BRANCHES: Record<string, Record<string, string[]>> = {
       'Chemical Engineering',
       'Civil Engineering',
       'Computer Science',
+      'Environmental & Sustainability Engineering',
       'Electrical & Electronics Engineering',
       'Electronics & Communication Engineering',
       'Electronics & Instrumentation Engineering',
