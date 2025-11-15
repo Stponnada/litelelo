@@ -10,6 +10,7 @@ import UserCard from '../components/UserCard';
 import { GlobeIcon } from '../components/icons';
 
 type TabType = 'users' | 'communities';
+type UserFilterTab = 'all' | 'following' | 'followers' | 'friends';
 
 // --- Helper Icons ---
 const FilterIcon: React.FC<{ className?: string }> = ({ className }) => (
@@ -35,6 +36,10 @@ const DirectoryPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('users');
   const [followStats, setFollowStats] = useState({ following: 0, followers: 0 });
+
+  // --- New State for User Filters ---
+  const [userFilterTab, setUserFilterTab] = useState<UserFilterTab>('all');
+  const [followerIds, setFollowerIds] = useState<Set<string>>(new Set());
 
   // --- New State for Filters ---
   const [showFilters, setShowFilters] = useState(false);
@@ -91,6 +96,36 @@ const DirectoryPage: React.FC = () => {
 
     fetchFollowStats();
   }, [currentUser]);
+  
+  useEffect(() => {
+    const fetchFollowerIds = async () => {
+        if (!currentUser) {
+            setFollowerIds(new Set()); // Clear if user logs out
+            return;
+        }
+        try {
+            const { data, error } = await supabase
+                .from('followers')
+                .select('follower_id')
+                .eq('following_id', currentUser.id);
+
+            if (error) throw error;
+
+            const ids = new Set(data.map(item => item.follower_id));
+            setFollowerIds(ids);
+        } catch (err) {
+            console.error("Failed to fetch follower IDs:", err);
+        }
+    };
+
+    fetchFollowerIds();
+  }, [currentUser]);
+
+  useEffect(() => {
+    // Reset user filter tab when switching main tabs for a cleaner UX
+    setUserFilterTab('all');
+  }, [activeTab]);
+
 
   const handleFollowToggle = async (profileToToggle: DirectoryProfile) => {
     if (!currentUser || profileToToggle.type !== 'user') return;
@@ -182,9 +217,26 @@ const DirectoryPage: React.FC = () => {
           p.bio?.toLowerCase().includes(query)
       );
     }
-
-    // --- Apply dropdown filters ---
+    
     if (activeTab === 'users') {
+       // --- Apply sub-tab filters (following, followers, etc.) ---
+       switch (userFilterTab) {
+        case 'following':
+          // is_following comes directly from the RPC
+          filtered = filtered.filter(p => p.is_following);
+          break;
+        case 'followers':
+          // We use our fetched set of follower IDs
+          filtered = filtered.filter(p => followerIds.has(p.id));
+          break;
+        case 'friends':
+          // Mutual follow: I follow them (is_following) AND they follow me (followerIds.has(p.id))
+          filtered = filtered.filter(p => p.is_following && followerIds.has(p.id));
+          break;
+        // 'all' is the default and requires no extra filtering
+      }
+
+      // --- Apply dropdown filters ---
       filtered = filtered.filter(p => 
         (!filters.admission_year || p.admission_year === parseInt(filters.admission_year)) &&
         (!filters.branch || p.branch === filters.branch) &&
@@ -194,10 +246,9 @@ const DirectoryPage: React.FC = () => {
         (!filters.dining_hall || p.dining_hall === filters.dining_hall)
       );
     }
-    // ----------------------------
 
     return filtered;
-  }, [allProfiles, searchQuery, activeTab, filters]);
+  }, [allProfiles, searchQuery, activeTab, filters, userFilterTab, followerIds]);
 
   const userCount = useMemo(
     () => allProfiles.filter((p) => p.type === 'user').length,
@@ -275,135 +326,53 @@ const DirectoryPage: React.FC = () => {
             {currentUser && (
               <div className="flex flex-wrap gap-2 bg-secondary-light dark:bg-secondary rounded-xl p-2 border border-tertiary-light/50 dark:border-tertiary/50">
                 <div className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-green/10 rounded-lg">
-                  <svg
-                    className="w-4 h-4 text-brand-green"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                    />
+                  <svg className="w-4 h-4 text-brand-green" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
                   <div className="text-left">
-                    <div className="text-base font-bold text-text-main-light dark:text-text-main leading-none">
-                      {followStats.following}
-                    </div>
-                    <div className="text-[10px] text-text-secondary-light dark:text-text-secondary font-medium">
-                      Following
-                    </div>
+                    <div className="text-base font-bold text-text-main-light dark:text-text-main leading-none">{followStats.following}</div>
+                    <div className="text-[10px] text-text-secondary-light dark:text-text-secondary font-medium">Following</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-green/10 rounded-lg">
-                  <svg
-                    className="w-4 h-4 text-brand-green"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-                    />
+                  <svg className="w-4 h-4 text-brand-green" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                   </svg>
                   <div className="text-left">
-                    <div className="text-base font-bold text-text-main-light dark:text-text-main leading-none">
-                      {followStats.followers}
-                    </div>
-                    <div className="text-[10px] text-text-secondary-light dark:text-text-secondary font-medium">
-                      Followers
-                    </div>
+                    <div className="text-base font-bold text-text-main-light dark:text-text-main leading-none">{followStats.followers}</div>
+                    <div className="text-[10px] text-text-secondary-light dark:text-text-secondary font-medium">Followers</div>
                   </div>
                 </div>
               </div>
             )}
-
-            {/* Tabs */}
             <div className="inline-flex bg-secondary-light dark:bg-secondary rounded-xl p-1.5 border border-tertiary-light/50 dark:border-tertiary/50 flex-wrap">
-              <button
-                onClick={() => setActiveTab('users')}
-                className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-200 ${
-                  activeTab === 'users'
-                    ? 'bg-brand-green text-black shadow-md'
-                    : 'text-text-secondary-light dark:text-text-secondary hover:text-text-main-light dark:hover:text-text-main'
-                }`}
-              >
+              <button onClick={() => setActiveTab('users')} className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-200 ${ activeTab === 'users' ? 'bg-brand-green text-black shadow-md' : 'text-text-secondary-light dark:text-text-secondary hover:text-text-main-light dark:hover:text-text-main'}`}>
                 <div className="flex items-center gap-1.5 flex-nowrap">
-                  <svg
-                    className="w-4 h-4 flex-shrink-0"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-                    />
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                   </svg>
                   <span>Users</span>
-                  <span
-                    className={`text-xs px-1.5 py-0.5 rounded-full ${
-                      activeTab === 'users'
-                        ? 'bg-black/20 text-white'
-                        : 'bg-brand-green/20 text-brand-green'
-                    }`}
-                  >
-                    {userCount}
-                  </span>
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${ activeTab === 'users' ? 'bg-black/20 text-white' : 'bg-brand-green/20 text-brand-green'}`}>{userCount}</span>
                 </div>
               </button>
-              <button
-                onClick={() => setActiveTab('communities')}
-                className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-200 ${
-                  activeTab === 'communities'
-                    ? 'bg-brand-green text-black shadow-md'
-                    : 'text-text-secondary-light dark:text-text-secondary hover:text-text-main-light dark:hover:text-text-main'
-                }`}
-              >
+              <button onClick={() => setActiveTab('communities')} className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-200 ${ activeTab === 'communities' ? 'bg-brand-green text-black shadow-md' : 'text-text-secondary-light dark:text-text-secondary hover:text-text-main-light dark:hover:text-text-main'}`}>
                 <div className="flex items-center gap-1.5 flex-nowrap">
-                  <svg
-                    className="w-4 h-4 flex-shrink-0"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                    />
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
                   <span>Communities</span>
-                  <span
-                    className={`text-xs px-1.5 py-0.5 rounded-full ${
-                      activeTab === 'communities'
-                        ? 'bg-black/20 text-white'
-                        : 'bg-brand-green/20 text-brand-green'
-                    }`}
-                  >
-                    {communityCount}
-                  </span>
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${ activeTab === 'communities' ? 'bg-black/20 text-white' : 'bg-brand-green/20 text-brand-green'}`}>{communityCount}</span>
                 </div>
               </button>
             </div>
           </div>
         </div>
 
-        {/* --- New Filter Controls --- */}
+        {/* --- Filter Controls --- */}
         <div className="mb-6 space-y-4">
           <div className="flex flex-wrap items-center gap-4">
             <div className="relative flex-1 min-w-[200px]">
-              <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-tertiary-light dark:text-text-tertiary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+              <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-tertiary-light dark:text-text-tertiary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
               <input type="text" placeholder={`Search ${activeTab === 'users' ? 'users' : 'communities'}...`} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full max-w-full pl-12 pr-4 py-3 bg-secondary-light dark:bg-secondary border border-tertiary-light/50 dark:border-tertiary/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-green/50 focus:border-brand-green/50 transition-all" />
               {searchQuery && <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-tertiary-light/50 dark:bg-tertiary/50 hover:bg-tertiary-light dark:hover:bg-tertiary flex items-center justify-center transition-colors"><XMarkIcon className="w-4 h-4" /></button>}
             </div>
@@ -429,6 +398,27 @@ const DirectoryPage: React.FC = () => {
               {activeFilterCount > 0 && <button onClick={resetFilters} className="text-sm text-brand-green hover:underline">Reset Filters</button>}
             </div>
           )}
+
+          {/* --- NEW User Sub-Tabs --- */}
+          {activeTab === 'users' && currentUser && (
+            <div className="border-b border-tertiary-light/50 dark:border-tertiary/50">
+                <nav className="-mb-px flex space-x-6" aria-label="Tabs">
+                    {(['all', 'following', 'followers', 'friends'] as UserFilterTab[]).map((tab) => (
+                        <button
+                            key={tab}
+                            onClick={() => setUserFilterTab(tab)}
+                            className={`capitalize whitespace-nowrap py-3 px-1 border-b-2 font-semibold text-sm transition-colors duration-200 ${
+                                userFilterTab === tab
+                                    ? 'border-brand-green text-brand-green'
+                                    : 'border-transparent text-text-secondary-light dark:text-text-secondary hover:text-text-main-light dark:hover:text-text-main hover:border-gray-300 dark:hover:border-gray-600'
+                            }`}
+                        >
+                            {tab}
+                        </button>
+                    ))}
+                </nav>
+            </div>
+           )}
         </div>
 
         {/* Directory List */}
@@ -439,10 +429,7 @@ const DirectoryPage: React.FC = () => {
                 <div
                   key={profile.id}
                   className="animate-in fade-in slide-in-from-bottom-2 duration-300 min-w-0 w-full"
-                  style={{
-                    animationDelay: `${index * 30}ms`,
-                    animationFillMode: 'backwards',
-                  }}
+                  style={{ animationDelay: `${index * 30}ms`, animationFillMode: 'backwards' }}
                 >
                   <UserCard
                     profile={profile}
@@ -457,28 +444,20 @@ const DirectoryPage: React.FC = () => {
           ) : (
             <div className="text-center py-20 px-6">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-secondary-light dark:bg-secondary border-2 border-tertiary-light dark:border-tertiary flex items-center justify-center">
-                <svg className="w-8 h-8 text-text-tertiary-light dark:text-text-tertiary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+                <svg className="w-8 h-8 text-text-tertiary-light dark:text-text-tertiary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
               </div>
-              <p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">
-                No matches found
-              </p>
+              <p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No matches found</p>
               <p className="text-text-secondary-light dark:text-text-secondary text-sm max-w-md mx-auto mb-4">
                 {(searchQuery || activeFilterCount > 0) ? (
                   <>We couldn't find any results matching your criteria.</>
+                ) : activeTab === 'users' && userFilterTab !== 'all' ? (
+                  <>No users found in your "{userFilterTab}" list.</>
                 ) : (
                   <>No {activeTab === 'users' ? 'users' : 'communities'} to display.</>
                 )}
               </p>
               {(searchQuery || activeFilterCount > 0) && (
-                <button
-                  onClick={() => {
-                    setSearchQuery('');
-                    resetFilters();
-                  }}
-                  className="px-5 py-2.5 bg-brand-green hover:bg-brand-green/90 text-black font-semibold rounded-lg transition-colors text-sm"
-                >
+                <button onClick={() => { setSearchQuery(''); resetFilters(); }} className="px-5 py-2.5 bg-brand-green hover:bg-brand-green/90 text-black font-semibold rounded-lg transition-colors text-sm">
                   Clear Search & Filters
                 </button>
               )}
