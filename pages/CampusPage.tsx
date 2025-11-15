@@ -9,14 +9,21 @@ import ListingCard from '../components/ListingCard';
 import Spinner from '../components/Spinner';
 import { ArchiveBoxIcon, ShoppingCartIcon, StarIcon, ClipboardDocumentListIcon, CurrencyDollarIcon, CarIcon, CampusPlacesIcon, SpaceInvaderIcon, CalendarDaysIcon, CalendarIcon } from '../components/icons';
 
+// Add Press Start 2P font to the document
+if (typeof document !== 'undefined') {
+  const linkElement = document.createElement('link');
+  linkElement.rel = 'stylesheet';
+  linkElement.href = 'https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap';
+  document.head.appendChild(linkElement);
+}
 
-
-const FeatureCard: React.FC<{ to: string; icon: React.ReactNode; title: string; description: string; gradient: string }> = ({
+const FeatureCard: React.FC<{ to: string; icon: React.ReactNode; title: string; description: string; gradient: string; usePixelFont?: boolean }> = ({
   to,
   icon,
   title,
   description,
   gradient,
+  usePixelFont = false,
 }) => (
   <Link
     to={to}
@@ -37,7 +44,10 @@ const FeatureCard: React.FC<{ to: string; icon: React.ReactNode; title: string; 
           {icon}
         </div>
         <div className="flex-1">
-          <h3 className="text-xs md:text-base font-bold text-text-main-light dark:text-text-main group-hover:text-white transition-colors duration-300 leading-snug font-raleway">
+          <h3 
+            className={`text-xs md:text-base font-bold text-text-main-light dark:text-text-main group-hover:text-white transition-colors duration-300 leading-snug ${!usePixelFont ? 'font-raleway' : ''}`}
+            style={usePixelFont ? { fontFamily: "'Press Start 2P', cursive", fontSize: '0.75rem', lineHeight: '1.2' } : {}}
+          >
             {title}
           </h3>
           <p className="hidden md:block mt-1 text-xs md:text-sm text-text-secondary-light dark:text-text-secondary group-hover:text-white/90 leading-snug transition-colors duration-300">
@@ -89,7 +99,6 @@ const MiniPlaceCard: React.FC<{ place: CampusPlace }> = ({ place }) => (
 const MiniLostItemCard: React.FC<{ item: LostAndFoundItem }> = ({ item }) => {
     const isLost = item.item_type === 'lost';
     return (
-        // CHANGED: This link now points to the specific item's detail page
         <Link to={`/campus/lost-and-found/${item.id}`} className="group block bg-gradient-to-br from-secondary-light to-tertiary-light/30 dark:from-secondary dark:to-tertiary/30 rounded-xl md:rounded-2xl p-3 md:p-4 shadow-md border border-tertiary-light dark:border-tertiary hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
             <div className={`absolute top-0 right-0 w-16 md:w-24 h-16 md:h-24 ${isLost ? 'bg-red-500/5' : 'bg-green-500/5'} rounded-full blur-2xl -mr-8 md:-mr-12 -mt-8 md:-mt-12 group-hover:scale-150 transition-transform duration-500`}></div>
             <div className="relative z-10 flex items-center space-x-3 md:space-x-4">
@@ -115,9 +124,6 @@ const MiniLostItemCard: React.FC<{ item: LostAndFoundItem }> = ({ item }) => {
 };
 
 const MiniNoticeCard: React.FC<{ notice: CampusNotice }> = ({ notice }) => (
-    // NOTE: This still links to the general noticeboard.
-    // If you want it to link to a specific notice, change it to:
-    // to={`/campus/noticeboard/${notice.id}`}
     <Link to="/campus/noticeboard" className="group block bg-gradient-to-br from-yellow-50 to-amber-50/50 dark:from-yellow-900/20 dark:to-amber-900/10 rounded-xl md:rounded-2xl p-3 md:p-4 shadow-md hover:shadow-2xl transition-all duration-300 border border-yellow-200/50 dark:border-yellow-800/50 hover:border-yellow-400 hover:-translate-y-1 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-16 md:w-24 h-16 md:h-24 bg-yellow-400/10 rounded-full blur-2xl -mr-8 md:-mr-12 -mt-8 md:-mt-12 group-hover:scale-150 transition-transform duration-500"></div>
         <div className="relative z-10 flex items-center space-x-3 md:space-x-4">
@@ -199,40 +205,27 @@ const CampusPage: React.FC = () => {
 
     return (
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 md:py-8">
-            {/* Compact Hero Section */}
-            {/* <div className="relative bg-gradient-to-br from-brand-green/20 via-blue-500/10 to-purple-500/10 dark:from-brand-green/10 dark:via-blue-500/5 dark:to-purple-500/5 p-4 md:p-16 rounded-xl md:rounded-3xl shadow-xl md:shadow-2xl border border-brand-green/20 mb-4 md:mb-16 overflow-hidden">*/}
-                {/* Animated background blobs */}
-                <div className="absolute top-0 right-0 w-48 md:w-96 h-48 md:h-96 bg-brand-green/20 rounded-full blur-3xl animate-pulse"></div>
-                <div className="absolute bottom-0 left-0 w-40 md:w-80 h-40 md:h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-                
-                <div className="relative text-center">
-                     {/*<div className="hidden md:inline-flex items-center gap-2 mb-6 px-5 py-2.5 bg-gradient-to-r from-brand-green/30 to-brand-green/20 backdrop-blur-sm rounded-full border border-brand-green/30 shadow-lg">
-                        <div className="w-2 h-2 bg-brand-green rounded-full animate-pulse"></div>
-                       <span className="text-sm font-bold text-brand-green uppercase tracking-wider">Your Campus Hub</span>
-                    </div>*/}
-                    
-                    <h1 className="text-3xl md:text-7xl font-black text-text-main-light dark:text-text-main leading-tight mb-8 font-raleway">
-                    Today at BITS{' '}
-                    <span className="relative inline-block">
-                        <span className="bg-gradient-to-r from-brand-green via-green-400 to-brand-green bg-clip-text text-transparent">
-                        {displayedText}
-                        </span>
-                        <span className={`text-brand-green ${isTyping ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}>
-                        |
-                        </span>
+            <div className="absolute top-0 right-0 w-48 md:w-96 h-48 md:h-96 bg-brand-green/20 rounded-full blur-3xl animate-pulse"></div>
+            <div className="absolute bottom-0 left-0 w-40 md:w-80 h-40 md:h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+            
+            <div className="relative text-center">
+                <h1 className="text-3xl md:text-7xl font-black text-text-main-light dark:text-text-main leading-tight mb-8 font-raleway">
+                Today at BITS{' '}
+                <span className="relative inline-block">
+                    <span className="bg-gradient-to-r from-brand-green via-green-400 to-brand-green bg-clip-text text-transparent">
+                    {displayedText}
                     </span>
-                    </h1>
+                    <span className={`text-brand-green ${isTyping ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}>
+                    |
+                    </span>
+                </span>
+                </h1>
+                
+                <p className="hidden md:block text-lg md:text-2xl text-text-secondary-light dark:text-text-secondary max-w-2xl mx-auto font-medium leading-relaxed mt-3">
+                    Your one-stop destination for campus services, reviews, and community connections
+                </p>
+            </div>
 
-                    
-                    <p className="hidden md:block text-lg md:text-2xl text-text-secondary-light dark:text-text-secondary max-w-2xl mx-auto font-medium leading-relaxed mt-3">
-                        Your one-stop destination for campus services, reviews, and community connections
-                    </p>
-
-                    {/* Stats bar - Hidden on mobile */}
-                </div>
-            {/* </div>*/}
-
-            {/* Compact Services Grid */}
             <div className="mb-8 md:mb-16">
                 <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-8">
                     <div className="h-0.5 md:h-1 w-8 md:w-16 bg-gradient-to-r from-brand-green to-transparent rounded-full"></div>
@@ -285,11 +278,11 @@ const CampusPage: React.FC = () => {
                     <FeatureCard 
                         to="https://quietspace-mu.vercel.app/" 
                         icon={<SpaceInvaderIcon className="w-5 h-5 md:w-8 md:h-8 text-white" />} 
-                        title="Quiet Spaces" 
-                        description="Find Empty Classrooms on Campus"
+                        title="QuietSpace" 
+                        description="This application helps students find vacant classrooms at BPHC"
                         gradient="from-red-500 to-orange-600"
+                        usePixelFont={true}
                     />
-
                     <FeatureCard 
                         to="/campus/events" 
                         icon={<CalendarIcon className="w-5 h-5 md:w-8 md:h-8 text-white" />} 
@@ -297,7 +290,6 @@ const CampusPage: React.FC = () => {
                         description="Find out whats coming up on cammpus"
                         gradient="from-sky-500 to-indigogreen-600"
                     />
-
                 </div>
             </div>
 
