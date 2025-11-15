@@ -7,7 +7,7 @@ import { supabase } from '../services/supabase';
 import { CampusPlace, MarketplaceListing, LostAndFoundItem, CampusNotice } from '../types';
 import ListingCard from '../components/ListingCard';
 import Spinner from '../components/Spinner';
-import { ArchiveBoxIcon, ShoppingCartIcon, StarIcon, ClipboardDocumentListIcon, CurrencyDollarIcon, CarIcon, CampusPlacesIcon } from '../components/icons';
+import { ArchiveBoxIcon, ShoppingCartIcon, StarIcon, ClipboardDocumentListIcon, CurrencyDollarIcon, CarIcon, CampusPlacesIcon, SpaceInvaderIcon, CalendarDaysIcon, CalendarIcon } from '../components/icons';
 
 
 
@@ -282,6 +282,22 @@ const CampusPage: React.FC = () => {
                         description="Buy, sell, and trade items with students"
                         gradient="from-green-500 to-teal-600"
                     />
+                    <FeatureCard 
+                        to="https://quietspace-mu.vercel.app/" 
+                        icon={<SpaceInvaderIcon className="w-5 h-5 md:w-8 md:h-8 text-white" />} 
+                        title="Quiet Spaces" 
+                        description="Find Empty Classrooms on Campus"
+                        gradient="from-red-500 to-orange-600"
+                    />
+
+                    <FeatureCard 
+                        to="/campus/events" 
+                        icon={<CalendarIcon className="w-5 h-5 md:w-8 md:h-8 text-white" />} 
+                        title="Events" 
+                        description="Find out whats coming up on cammpus"
+                        gradient="from-orange-500 to-green-600"
+                    />
+
                 </div>
             </div>
 
