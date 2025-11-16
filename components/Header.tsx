@@ -103,7 +103,7 @@ const Header: React.FC<HeaderProps> = ({ isSidebarExpanded, onOpenAboutModal }) 
             <div className="hidden md:flex h-full w-full items-center justify-between px-6">
                 <Link to="/" className="flex items-center gap-3 text-brand-green relative z-10">
                     {/*<LogoGraphicIcon className="w-10 h-10" />*/}
-                    <span className="text-5xl font-raleway font-black">litelelo.</span>
+                    <span className="text-[52px] font-raleway font-black">litelelo.</span>
                 </Link>
                 <div ref={notificationRef} className="relative">
                     <button onClick={() => setNotificationsOpen(p => !p)} className="p-2 relative rounded-full hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors">
