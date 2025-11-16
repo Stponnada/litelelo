@@ -229,7 +229,7 @@ const ChatPage: React.FC = () => {
                 </div>
               </div>
               
-              <h3 className="text-2xl font-bold bg-gradient-to-r from-text-main-light to-text-secondary-light dark:from-text-main dark:to-text-secondary bg-clip-text text-transparent mb-2 font-raleway">
+              <h3 className="text-2xl font-bold font-raleway">
                 Your Messages
               </h3>
               <p className="text-base text-text-secondary-light dark:text-text-secondary max-w-sm leading-relaxed">
