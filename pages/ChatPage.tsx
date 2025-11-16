@@ -83,12 +83,12 @@ const ChatPage: React.FC = () => {
   }
 
   return (
-    <div className="relative h-[calc(100vh-144px)] md:h-[calc(100vh-96px)] w-full overflow-hidden bg-primary-light dark:bg-primary md:rounded-2xl shadow-2xl">
+    <div className="relative h-[calc(100vh-144px)] md:h-[calc(100vh-96px)] w-full overflow-hidden bg-primary-light dark:bg-primary shadow-2xl">
       {isGroupModalOpen && <CreateGroupModal onClose={() => setGroupModalOpen(false)} onGroupCreated={handleGroupCreated} />}
       
       <div className={`relative w-full h-full flex transition-transform duration-300 ease-in-out md:transform-none ${selectedConversationId ? '-translate-x-full' : 'translate-x-0'}`}>
         {/* Sidebar */}
-        <div className="w-full h-full flex-shrink-0 md:w-[420px] md:border-r md:border-tertiary-light/50 dark:md:border-tertiary/50 flex flex-col bg-secondary-light/80 dark:bg-secondary/80 backdrop-blur-xl">
+        <div className="w-full h-full flex-shrink-0 md:w-[420px] md:border-r md:border-tertiary-light/50 dark:md:border-tertiary/50 flex flex-col bg-primary-light/60 dark:bg-primary/60 backdrop-blur-xl">
           {/* Header */}
           <div className="p-5 border-b border-tertiary-light/50 dark:border-tertiary/50 bg-gradient-to-b from-secondary-light/50 to-transparent dark:from-secondary/50">
             <div className="flex justify-between items-center mb-4">
@@ -102,7 +102,7 @@ const ChatPage: React.FC = () => {
               </div>
               <button 
                 onClick={() => setGroupModalOpen(true)} 
-                className="group relative p-2.5 rounded-full bg-gradient-to-br from-brand-green to-brand-green/80 hover:from-brand-green/90 hover:to-brand-green/70 text-black shadow-lg shadow-brand-green/20 hover:shadow-xl hover:shadow-brand-green/30 transition-all duration-200 hover:scale-105 active:scale-95" 
+                className="group relative p-2.5 rounded-xl bg-gradient-to-br from-brand-green to-brand-green/80 hover:from-brand-green/90 hover:to-brand-green/70 text-black shadow-lg shadow-brand-green/20 hover:shadow-xl hover:shadow-brand-green/30 transition-all duration-200 hover:scale-105 active:scale-95" 
                 title="Create a group"
               >
                 <UserGroupIcon className="w-5 h-5" />
@@ -134,7 +134,7 @@ const ChatPage: React.FC = () => {
                   <ChatIcon className="w-10 h-10 text-text-tertiary-light dark:text-text-tertiary" />
                 </div>
                 <p className="text-base text-text-secondary-light dark:text-text-secondary font-semibold mb-1">No conversations yet</p>
-                <p className="text-base text-text-tertiary-light dark:text-text-tertiary">Start a new chat to get connected</p>
+                <p className="text-sm text-text-tertiary-light dark:text-text-tertiary">Start a new chat to get connected</p>
               </div>
             ) : (
               filteredConversations.map((conv, idx) => {
