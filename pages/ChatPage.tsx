@@ -88,13 +88,13 @@ const ChatPage: React.FC = () => {
       
       <div className={`relative w-full h-full flex transition-transform duration-300 ease-in-out md:transform-none ${selectedConversationId ? '-translate-x-full' : 'translate-x-0'}`}>
         {/* Sidebar */}
-        <div className="w-full h-full flex-shrink-0 md:w-[360px] md:border-r md:border-tertiary-light/50 dark:md:border-tertiary/50 flex flex-col bg-secondary-light/80 dark:bg-secondary/80 backdrop-blur-xl">
+        <div className="w-full h-full flex-shrink-0 md:w-[420px] md:border-r md:border-tertiary-light/50 dark:md:border-tertiary/50 flex flex-col bg-secondary-light/80 dark:bg-secondary/80 backdrop-blur-xl">
           {/* Header */}
           <div className="p-5 border-b border-tertiary-light/50 dark:border-tertiary/50 bg-gradient-to-b from-secondary-light/50 to-transparent dark:from-secondary/50">
             <div className="flex justify-between items-center mb-4">
               <div>
-                <h2 className="text-2xl font-bold bg-gradient-to-r from-text-main-light to-text-secondary-light dark:from-text-main dark:to-text-secondary bg-clip-text text-transparent font-raleway">
-                  Messages
+                <h2 className="text-3xl font-bold font-poppins">
+                  Chat
                 </h2>
                 <p className="text-xs text-text-tertiary-light dark:text-text-tertiary mt-0.5">
                   {conversations.length} conversation{conversations.length !== 1 ? 's' : ''}
@@ -102,7 +102,7 @@ const ChatPage: React.FC = () => {
               </div>
               <button 
                 onClick={() => setGroupModalOpen(true)} 
-                className="group relative p-2.5 rounded-xl bg-gradient-to-br from-brand-green to-brand-green/80 hover:from-brand-green/90 hover:to-brand-green/70 text-black shadow-lg shadow-brand-green/20 hover:shadow-xl hover:shadow-brand-green/30 transition-all duration-200 hover:scale-105 active:scale-95" 
+                className="group relative p-2.5 rounded-full bg-gradient-to-br from-brand-green to-brand-green/80 hover:from-brand-green/90 hover:to-brand-green/70 text-black shadow-lg shadow-brand-green/20 hover:shadow-xl hover:shadow-brand-green/30 transition-all duration-200 hover:scale-105 active:scale-95" 
                 title="Create a group"
               >
                 <UserGroupIcon className="w-5 h-5" />
@@ -121,20 +121,20 @@ const ChatPage: React.FC = () => {
                 placeholder="Search conversations..." 
                 value={searchTerm} 
                 onChange={e => setSearchTerm(e.target.value)} 
-                className="w-full pl-10 pr-4 py-2.5 bg-tertiary-light/80 dark:bg-tertiary/80 border-0 rounded-xl text-sm text-text-main-light dark:text-text-main placeholder-text-tertiary-light dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-brand-green/40 focus:bg-secondary-light dark:focus:bg-secondary transition-all duration-200 shadow-sm"
+                className="w-full pl-10 pr-4 py-2.5 bg-tertiary-light/80 dark:bg-tertiary/80 border-0 rounded-full text-sm text-text-main-light dark:text-text-main placeholder-text-tertiary-light dark:placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-brand-green/40 focus:bg-secondary-light dark:focus:bg-secondary transition-all duration-200 shadow-sm"
               />
             </div>
           </div>
 
           {/* Conversations List */}
-          <ul className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700 scrollbar-track-transparent">
+          <ul className="flex-1 overflow-y-auto scrollbar-hide">
             {filteredConversations.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center p-8">
                 <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-tertiary-light to-tertiary-light/50 dark:from-tertiary to-tertiary/50 flex items-center justify-center mb-4 shadow-inner">
                   <ChatIcon className="w-10 h-10 text-text-tertiary-light dark:text-text-tertiary" />
                 </div>
                 <p className="text-base text-text-secondary-light dark:text-text-secondary font-semibold mb-1">No conversations yet</p>
-                <p className="text-sm text-text-tertiary-light dark:text-text-tertiary">Start a new chat to get connected</p>
+                <p className="text-base text-text-tertiary-light dark:text-text-tertiary">Start a new chat to get connected</p>
               </div>
             ) : (
               filteredConversations.map((conv, idx) => {
@@ -158,14 +158,14 @@ const ChatPage: React.FC = () => {
                   >
                     <div className="relative flex-shrink-0">
                       {conv.type === 'group' ? (
-                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/30 dark:to-purple-800/30 flex items-center justify-center shadow-lg ring-2 ring-white dark:ring-secondary">
+                        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/30 dark:to-purple-800/30 flex items-center justify-center shadow-lg ring-2 ring-white dark:ring-secondary">
                           <UserGroupIcon className="w-7 h-7 text-purple-600 dark:text-purple-400"/>
                         </div>
                       ) : (
                         <img 
                           src={avatarSrc} 
                           alt={displayName || ''} 
-                          className="w-14 h-14 rounded-2xl object-cover shadow-lg ring-2 ring-white dark:ring-secondary"
+                          className="w-14 h-14 rounded-full object-cover shadow-lg ring-2 ring-white dark:ring-secondary"
                         />
                       )}
                       {isOnline && conv.type === 'dm' && (
@@ -180,7 +180,7 @@ const ChatPage: React.FC = () => {
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-baseline mb-1">
-                        <p className={`font-semibold truncate text-sm ${
+                        <p className={`font-semibold truncate text-base ${
                           isSelected 
                             ? 'text-brand-green dark:text-brand-green' 
                             : 'text-text-main-light dark:text-text-main'

@@ -179,7 +179,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 )}
               </div>
             }
-            text="Messages"
+            text="Chat"
           />
           <NavLink to="/directory" icon={<GlobeIcon className="w-7 h-7 flex-shrink-0" />} text="Directory" />
           {username && (
