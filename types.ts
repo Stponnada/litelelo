@@ -71,6 +71,8 @@ export interface Profile {
   is_following: boolean;
   is_followed_by?: boolean;
   roommates: Roommate[] | null;
+  has_sent_request: boolean;
+  has_received_request: boolean;
   gender: string | null;
   birthday: string | null;
   avg_seller_rating?: number;
@@ -78,8 +80,8 @@ export interface Profile {
   avg_bits_coin_rating?: number;
   total_bits_coin_ratings?: number;
   bits_coin_balance?: number; // Added for CryptoHubWidget
-  displayed_community_flair: string | null; // <-- THIS IS NEW
-  flair_details: { // <-- THIS IS NEW
+  displayed_community_flair: string | null; 
+  flair_details: {
     id: string;
     name: string;
     avatar_url: string | null;
@@ -410,7 +412,7 @@ export interface BitsCoinRequest {
     deadline: string | null; // Added
 }
 
-export type NotificationType = 'like' | 'comment' | 'follow' | 'mention' | 'bits_coin_claim' | 'new_message' | 'community_join_request';
+export type NotificationType = 'like' | 'comment' | 'follow' | 'mention' | 'bits_coin_claim' | 'new_message' | 'community_join_request' | 'friend_request';
 
 export interface Notification {
     id: string;

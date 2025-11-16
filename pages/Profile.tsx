@@ -1,7 +1,6 @@
 // src/pages/Profile.tsx
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-// --- FIX: Added useLocation import ---
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
@@ -10,7 +9,7 @@ import CreatePost from '../components/CreatePost';
 import { Post as PostType, Profile, Friend } from '../types';
 import Spinner from '../components/Spinner';
 import ProfilePageSkeleton from '../components/ProfilePageSkeleton';
-import { CameraIcon, LogoutIcon, ChatIcon, UserGroupIcon, BookmarkIcon, ConsulIcon } from '../components/icons';
+import { CameraIcon, LogoutIcon, ChatIcon, UserGroupIcon, BookmarkIcon, ConsulIcon, UserPlusIcon, CheckIcon, XMarkIcon } from '../components/icons';
 import { isMscBranch, BITS_BRANCHES } from '../data/bitsBranches.ts';
 import ImageCropper from '../components/ImageCropper';
 import FollowListModal from '../components/FollowListModal';
@@ -52,16 +51,119 @@ const TabButton: React.FC<{ label: string, isActive: boolean, onClick: () => voi
     </button>
 );
 
+// --- NEW: Friendship Button Logic Component ---
+const FriendshipButton: React.FC<{
+  profile: Profile;
+  isOwnProfile: boolean;
+  isToggling: boolean;
+  onFollowToggle: () => void;
+  onMessage: () => void;
+  onSendRequest: () => void;
+  onAcceptRequest: () => void;
+  onCancelOrDenyRequest: () => void;
+}> = ({
+  profile, isOwnProfile, isToggling, onFollowToggle, onMessage,
+  onSendRequest, onAcceptRequest, onCancelOrDenyRequest
+}) => {
+  if (isOwnProfile) {
+    return null; // The Edit/Logout buttons are handled separately
+  }
+
+  const isFriends = profile.is_following && profile.is_followed_by;
+
+  if (isFriends) {
+    return (
+      <>
+        <button
+          onClick={onMessage}
+          className="p-3 rounded-full bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main hover:bg-tertiary-light/80 dark:hover:bg-tertiary/80 transition-colors"
+          title="Message"
+        >
+          <ChatIcon className="w-5 h-5" />
+        </button>
+        <button
+          onClick={onFollowToggle}
+          disabled={isToggling}
+          className="font-bold py-2.5 px-6 rounded-full bg-transparent border-2 border-tertiary-light dark:border-tertiary text-text-main-light dark:text-text-main hover:border-red-500 hover:text-red-500 hover:bg-red-500/5 transition-all flex items-center gap-2"
+        >
+          {isToggling ? <Spinner /> : <> <CheckIcon className="w-5 h-5"/> Friends </>}
+        </button>
+      </>
+    );
+  }
+
+  if (profile.has_received_request) {
+    return (
+      <>
+        <button
+          onClick={onAcceptRequest}
+          disabled={isToggling}
+          className="font-bold py-2.5 px-6 rounded-full bg-brand-green text-black hover:bg-brand-green-darker shadow-lg shadow-brand-green/20 transition-all"
+        >
+          Accept Request
+        </button>
+        <button
+          onClick={onCancelOrDenyRequest}
+          disabled={isToggling}
+          className="p-3 rounded-full bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
+          title="Deny Request"
+        >
+          <XMarkIcon className="w-5 h-5" />
+        </button>
+      </>
+    );
+  }
+
+  if (profile.has_sent_request) {
+    return (
+      <>
+        <button
+          disabled
+          className="font-bold py-2.5 px-6 rounded-full bg-tertiary-light dark:bg-tertiary text-text-secondary-light dark:text-text-secondary cursor-not-allowed"
+        >
+          Request Sent
+        </button>
+        <button
+          onClick={onCancelOrDenyRequest}
+          disabled={isToggling}
+          className="p-3 rounded-full bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
+          title="Cancel Request"
+        >
+          <XMarkIcon className="w-5 h-5" />
+        </button>
+      </>
+    );
+  }
+  
+  // Default case: Not friends, no pending requests
+  return (
+    <>
+      <button
+        onClick={onMessage}
+        className="p-3 rounded-full bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main hover:bg-tertiary-light/80 dark:hover:bg-tertiary/80 transition-colors"
+        title="Message"
+      >
+        <ChatIcon className="w-5 h-5" />
+      </button>
+      <button
+        onClick={onSendRequest}
+        disabled={isToggling}
+        className="font-bold py-2.5 px-8 rounded-full bg-brand-green text-black hover:bg-brand-green-darker shadow-lg shadow-brand-green/20 transition-all flex items-center gap-2"
+      >
+        <UserPlusIcon className="w-5 h-5" /> Add Friend
+      </button>
+    </>
+  );
+};
+// --- END NEW COMPONENT ---
+
 const ProfilePage: React.FC = () => {
     const { username } = useParams<{ username: string }>();
     const { user: currentUser, profile: currentUserProfile, updateProfileContext } = useAuth();
     const navigate = useNavigate();
-    // --- FIX: Get the location object to access navigation state ---
     const location = useLocation();
 
-    // --- FIX: Initialize state from location if available, otherwise null. ---
     const [profile, setProfile] = useState<Profile | null>(location.state?.profileData || null);
-    // --- FIX: Start in loading state only if we don't have the profile data already. ---
     const [profileLoading, setProfileLoading] = useState(!location.state?.profileData);
 
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -212,15 +314,10 @@ const ProfilePage: React.FC = () => {
         }
     }, [profile]);
 
-
-    // --- FIX: Modified data fetching effect to handle navigation state ---
     useEffect(() => {
-        // If profile data was passed via navigation state, we don't need to re-fetch it.
         if (location.state?.profileData) {
-            // Clear the state to prevent issues on page refresh.
             window.history.replaceState(null, '');
         } else {
-            // Otherwise, perform the fetch as normal.
             fetchProfileData();
         }
     }, [username, fetchProfileData, location.state]); 
@@ -233,20 +330,24 @@ const ProfilePage: React.FC = () => {
         }
     }, [profile, fetchPostsAndMentions, fetchFriends, fetchCommunities]);
     
+    // Unfriend logic (by toggling 'following' status)
     const handleFollowToggle = async () => {
       if (!currentUser || !profile || isTogglingFollow) return;
       setIsTogglingFollow(true);
       const isCurrentlyFollowing = profile.is_following;
+      // Optimistically update UI
       setProfile({ ...profile, is_following: !isCurrentlyFollowing, follower_count: isCurrentlyFollowing ? profile.follower_count - 1 : profile.follower_count + 1 });
       try {
         if (isCurrentlyFollowing) {
+          // This also serves as the "unfriend" action
           await supabase.from('followers').delete().match({ follower_id: currentUser.id, following_id: profile.user_id });
         } else {
+          // This should not happen in "Friends" state, but included for robustness
           await supabase.from('followers').insert({ follower_id: currentUser.id, following_id: profile.user_id });
         }
       } catch (error) {
         console.error('Failed to toggle follow:', error);
-        setProfile({ ...profile, is_following: isCurrentlyFollowing, follower_count: profile.follower_count });
+        setProfile({ ...profile, is_following: isCurrentlyFollowing, follower_count: profile.follower_count }); // Revert on error
       } finally {
         setIsTogglingFollow(false);
       }
@@ -261,6 +362,51 @@ const ProfilePage: React.FC = () => {
         await supabase.auth.signOut({ scope: 'local' });
         navigate('/login');
     };
+    
+    // --- NEW: Friend Request Handlers ---
+    const handleSendRequest = async () => {
+      if (!currentUser || !profile || isTogglingFollow) return;
+      setIsTogglingFollow(true);
+      setProfile({ ...profile, has_sent_request: true });
+      const { error } = await supabase.rpc('send_friend_request', { recipient_id: profile.user_id });
+      if (error) {
+        console.error("Error sending request:", error);
+        setProfile({ ...profile, has_sent_request: false }); // Revert on error
+      }
+      setIsTogglingFollow(false);
+    };
+
+    const handleAcceptRequest = async () => {
+      if (!currentUser || !profile || isTogglingFollow) return;
+      setIsTogglingFollow(true);
+      setProfile({ 
+        ...profile, 
+        has_received_request: false,
+        is_following: true, // You are now following them
+        is_followed_by: true, // They were already following you
+        follower_count: profile.follower_count + 1,
+      });
+      const { error } = await supabase.rpc('accept_friend_request', { requester_id: profile.user_id });
+      if (error) {
+        console.error("Error accepting request:", error);
+        fetchProfileData(); // Revert fully on error
+      }
+      setIsTogglingFollow(false);
+    };
+
+    const handleCancelOrDenyRequest = async () => {
+      if (!currentUser || !profile || isTogglingFollow) return;
+      setIsTogglingFollow(true);
+      const wasRequestSent = profile.has_sent_request;
+      setProfile({ ...profile, has_sent_request: false, has_received_request: false });
+      const { error } = await supabase.rpc('cancel_or_deny_friend_request', { other_user_id: profile.user_id });
+      if (error) {
+        console.error("Error cancelling/denying request:", error);
+        setProfile({ ...profile, has_sent_request: wasRequestSent, has_received_request: !wasRequestSent }); // Revert
+      }
+      setIsTogglingFollow(false);
+    };
+    // --- END: New Handlers ---
 
     if (profileLoading) {
         return <ProfilePageSkeleton />;
@@ -388,26 +534,16 @@ const ProfilePage: React.FC = () => {
                                             </button>
                                         </>
                                     ) : (
-                                        <>
-                                            <button 
-                                                onClick={handleMessageUser} 
-                                                className="p-3 rounded-full bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main hover:bg-tertiary-light/80 dark:hover:bg-tertiary/80 transition-colors"
-                                                title="Message"
-                                            >
-                                                <ChatIcon className="w-5 h-5" />
-                                            </button>
-                                            <button 
-                                                onClick={handleFollowToggle} 
-                                                disabled={isTogglingFollow} 
-                                                className={`font-bold py-2.5 px-8 rounded-full transition-all disabled:opacity-50 min-w-[120px] ${
-                                                    profile.is_following 
-                                                    ? 'bg-transparent border-2 border-tertiary-light dark:border-tertiary text-text-main-light dark:text-text-main hover:border-red-500 hover:text-red-500 hover:bg-red-500/5' 
-                                                    : 'bg-brand-green text-black hover:bg-brand-green-darker shadow-lg shadow-brand-green/20'
-                                                }`}
-                                            >
-                                                {isTogglingFollow ? <Spinner /> : (profile.is_following ? 'Following' : 'Follow')}
-                                            </button>
-                                        </>
+                                        <FriendshipButton
+                                            profile={profile}
+                                            isOwnProfile={isOwnProfile}
+                                            isToggling={isTogglingFollow}
+                                            onFollowToggle={handleFollowToggle}
+                                            onMessage={handleMessageUser}
+                                            onSendRequest={handleSendRequest}
+                                            onAcceptRequest={handleAcceptRequest}
+                                            onCancelOrDenyRequest={handleCancelOrDenyRequest}
+                                        />
                                     )}
                                 </div>
                             </div>
@@ -722,7 +858,6 @@ const FriendsListModal: React.FC<{ profile: Profile; onClose: () => void }> = ({
 
 const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, onSave: () => void }> = ({ userProfile, onClose, onSave }) => {
     const { user, updateProfileContext } = useAuth();
-    // --- FIX: Initialize useNavigate hook ---
     const navigate = useNavigate();
     const [profileData, setProfileData] = useState(userProfile);
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -801,7 +936,6 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
         });
     };
     
-    // --- FIX: Updated handleSubmit function with navigation logic ---
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
@@ -824,7 +958,7 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
             }
 
             const { data: updatedProfile, error: updateError } = await supabase.from('profiles').update({
-                username: profileData.username, // Send the new username
+                username: profileData.username,
                 full_name: profileData.full_name, bio: profileData.bio, branch: profileData.branch,
                 dual_degree_branch: profileData.dual_degree_branch || null, relationship_status: profileData.relationship_status,
                 dorm_building: profileData.dorm_building, dorm_room: profileData.dorm_room, dining_hall: profileData.dining_hall,
@@ -844,17 +978,14 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
             
             const usernameChanged = profileData.username !== userProfile.username;
             
-            onClose(); // Close the modal
+            onClose();
 
             if (usernameChanged) {
-                // If username changed, navigate to the new URL and pass the fresh data in the state
-                // to avoid the "User not found" race condition.
                 navigate(`/profile/${updatedProfile.username}`, { 
                     replace: true, 
                     state: { profileData: updatedProfile } 
                 });
             } else {
-                // Otherwise, just refresh the data on the current page
                 onSave();
             }
         } catch (err: any) { setError(err.message); } finally { setIsSaving(false); }

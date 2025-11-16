@@ -243,7 +243,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
           </div>
 
           {/* Profile Summary */}
-          <div className="flex items-center w-full p-2 space-x-3 rounded-lg hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors cursor-pointer">
+          <div className="flex items-center w-full p-2 space-x-3 rounded-full hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors cursor-pointer">
             <img
               src={profile?.avatar_url || ''}
               alt="profile"
