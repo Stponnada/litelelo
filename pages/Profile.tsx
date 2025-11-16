@@ -439,7 +439,7 @@ const ProfilePage: React.FC = () => {
 
             <div className="w-full max-w-7xl mx-auto pb-8">
                 <div className="relative mb-6">
-                    <div className="h-56 sm:h-72 bg-gradient-to-br from-tertiary-light to-tertiary-light/50 dark:from-tertiary dark:to-tertiary/50 relative overflow-hidden">
+                    <div className="h-64 sm:h-72 bg-gradient-to-br from-tertiary-light to-tertiary-light/50 dark:from-tertiary dark:to-tertiary/50 relative overflow-hidden">
                         {profile.banner_url ? (
                             <img 
                                 src={profile.banner_url} 
@@ -449,90 +449,90 @@ const ProfilePage: React.FC = () => {
                         ) : (
                             <div className="w-full h-full bg-gradient-to-br from-brand-green/20 to-blue-500/20"></div>
                         )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-                    </div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
+                        
+                        <div className="absolute bottom-0 left-0 right-0 px-4 sm:px-6 pb-6">
+                            <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+                                <div className="relative">
+                                    <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full border-4 border-white/20 bg-tertiary overflow-hidden shadow-2xl">
+                                        {profile.avatar_url ? (
+                                            <img 
+                                                src={profile.avatar_url} 
+                                                alt={profile.full_name || ''} 
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-green/20 to-blue-500/20">
+                                                <span className="text-5xl font-bold text-brand-green">{profile.full_name ? profile.full_name.split(' ').map(n => n[0]).join('') : profile.username[0]}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
 
-                    <div className="px-4 sm:px-6">
-                        <div className="relative -mt-20 sm:-mt-24">
-                            <div className="relative inline-block">
-                                <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-full border-4 border-primary-light dark:border-primary bg-tertiary overflow-hidden shadow-xl">
-                                    {profile.avatar_url ? (
-                                        <img 
-                                            src={profile.avatar_url} 
-                                            alt={profile.full_name || ''} 
-                                            className="w-full h-full object-cover"
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-green/20 to-blue-500/20">
-                                            <span className="text-6xl font-bold text-brand-green">{profile.full_name ? profile.full_name.split(' ').map(n => n[0]).join('') : profile.username[0]}</span>
+                                <div className="flex-1 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+                                    <div className="text-white">
+                                        <div className="flex items-center gap-3">
+                                            <h1 className="text-2xl sm:text-3xl font-bold drop-shadow-lg">
+                                                {profile.full_name}
+                                            </h1>
+                                            {profile.flair_details && <Flair flair={profile.flair_details} />}
                                         </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="mt-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                                <div>
-                                    <div className="flex items-center gap-3">
-                                        <h1 className="text-3xl sm:text-4xl font-bold text-text-main-light dark:text-white">
-                                            {profile.full_name}
-                                        </h1>
-                                        {profile.flair_details && <Flair flair={profile.flair_details} />}
-                                    </div>
-                                    <p className="text-lg text-text-tertiary-light dark:text-text-tertiary mt-1">
-                                        @{profile.username}
-                                    </p>
-                                    
-                                    <div className="flex items-center gap-6 mt-4 text-sm">
-                                        <button 
-                                            onClick={() => setFollowModalState({ isOpen: true, listType: 'following' })} 
-                                            className="hover:underline transition-all"
-                                        >
-                                            <span className="font-bold text-text-main-light dark:text-white text-base">
-                                                {profile.following_count}
-                                            </span>
-                                            <span className="text-text-tertiary-light dark:text-text-tertiary ml-1">
-                                                Following
-                                            </span>
-                                        </button>
-                                        <button 
-                                            onClick={() => setFollowModalState({ isOpen: true, listType: 'followers' })} 
-                                            className="hover:underline transition-all"
-                                        >
-                                            <span className="font-bold text-text-main-light dark:text-white text-base">
-                                                {profile.follower_count}
-                                            </span>
-                                            <span className="text-text-tertiary-light dark:text-text-tertiary ml-1">
-                                                Followers
-                                            </span>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-2 flex-shrink-0">
-                                    {isOwnProfile ? (
-                                        <>
-                                            <Link to="/bookmarks" className="p-3 rounded-full bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main hover:bg-tertiary-light/80 dark:hover:bg-tertiary/80 transition-colors" title="Bookmarks">
-                                                <BookmarkIcon className="w-5 h-5"/>
-                                            </Link>
-                                            <button onClick={() => setIsEditModalOpen(true)} className="font-semibold py-2.5 px-6 rounded-full bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main hover:bg-tertiary-light/80 dark:hover:bg-tertiary/80 transition-colors">
-                                                Edit Profile
+                                        <p className="text-base text-white/80 mt-1 drop-shadow">
+                                            @{profile.username}
+                                        </p>
+                                        
+                                        <div className="flex items-center gap-6 mt-3 text-sm">
+                                            <button 
+                                                onClick={() => setFollowModalState({ isOpen: true, listType: 'following' })} 
+                                                className="hover:underline transition-all"
+                                            >
+                                                <span className="font-bold text-white text-base">
+                                                    {profile.following_count}
+                                                </span>
+                                                <span className="text-white/70 ml-1">
+                                                    Following
+                                                </span>
                                             </button>
-                                            <button onClick={handleSignOut} className="p-3 text-red-400 rounded-full hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors" title="Sign Out">
-                                                <LogoutIcon className="w-5 h-5" />
+                                            <button 
+                                                onClick={() => setFollowModalState({ isOpen: true, listType: 'followers' })} 
+                                                className="hover:underline transition-all"
+                                            >
+                                                <span className="font-bold text-white text-base">
+                                                    {profile.follower_count}
+                                                </span>
+                                                <span className="text-white/70 ml-1">
+                                                    Followers
+                                                </span>
                                             </button>
-                                        </>
-                                    ) : (
-                                        <FriendshipButtons
-                                            profile={profile}
-                                            isToggling={isTogglingFollow}
-                                            onFollow={handleFollow}
-                                            onUnfollow={handleUnfollow}
-                                            onMessage={handleMessageUser}
-                                            onSendRequest={handleSendRequest}
-                                            onAcceptRequest={handleAcceptRequest}
-                                            onCancelOrDenyRequest={handleCancelOrDenyRequest}
-                                        />
-                                    )}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                        {isOwnProfile ? (
+                                            <>
+                                                <Link to="/bookmarks" className="p-3 rounded-full bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 transition-colors" title="Bookmarks">
+                                                    <BookmarkIcon className="w-5 h-5"/>
+                                                </Link>
+                                                <button onClick={() => setIsEditModalOpen(true)} className="font-semibold py-2.5 px-6 rounded-full bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 transition-colors">
+                                                    Edit Profile
+                                                </button>
+                                                <button onClick={handleSignOut} className="p-3 text-red-400 rounded-full bg-white/10 backdrop-blur-sm hover:bg-white/20 transition-colors" title="Sign Out">
+                                                    <LogoutIcon className="w-5 h-5" />
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <FriendshipButtons
+                                                profile={profile}
+                                                isToggling={isTogglingFollow}
+                                                onFollow={handleFollow}
+                                                onUnfollow={handleUnfollow}
+                                                onMessage={handleMessageUser}
+                                                onSendRequest={handleSendRequest}
+                                                onAcceptRequest={handleAcceptRequest}
+                                                onCancelOrDenyRequest={handleCancelOrDenyRequest}
+                                            />
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -575,7 +575,7 @@ const ProfilePage: React.FC = () => {
                                         <>
                                             {activeTab === 'posts' && (<div className="space-y-4">{posts.length > 0 ? (posts.map(post => <PostComponent key={post.id} post={post} onImageClick={setLightboxUrl} />)) : (<div className="text-center py-16"><p className="text-text-tertiary-light dark:text-text-tertiary text-lg">No posts yet</p></div>)}</div>)}
                                             {activeTab === 'mentions' && (<div className="space-y-4">{mentions.length > 0 ? (mentions.map(post => <PostComponent key={post.id} post={post} onImageClick={setLightboxUrl} />)) : (<div className="text-center py-16"><p className="text-text-tertiary-light dark:text-text-tertiary text-lg">No mentions yet</p></div>)}</div>)}
-                                            {activeTab === 'media' && (mediaPosts.length > 0 ? (<div className="grid grid-cols-2 sm:grid-cols-3 gap-2">{mediaPosts.map(post => (<Link to={`/post/${post.id}`} key={post.id} className="group relative aspect-square rounded-lg overflow-hidden"><img src={post.image_url!} alt="Post media" className="w-full h-full object-cover"/><div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" onClick={(e) => { e.preventDefault(); setLightboxUrl(post.image_url!); }}><span className="text-white text-sm font-medium">View</span></div></Link>))}</div>) : (<div className="text-center py-16"><p className="text-text-tertiary-light dark:text-text-tertiary text-lg">No media posted yet</p></div>))}
+                                            {activeTab === 'media' && (mediaPosts.length > 0 ? (<div className="grid grid-cols-2 sm:grid-cols-3 gap-1">{mediaPosts.map(post => (<Link to={`/post/${post.id}`} key={post.id} className="group relative aspect-square rounded overflow-hidden"><img src={post.image_url!} alt="Post media" className="w-full h-full object-cover"/><div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" onClick={(e) => { e.preventDefault(); setLightboxUrl(post.image_url!); }}><span className="text-white text-sm font-medium">View</span></div></Link>))}</div>) : (<div className="text-center py-16"><p className="text-text-tertiary-light dark:text-text-tertiary text-lg">No media posted yet</p></div>))}
                                         </>
                                     )}
                                 </div>

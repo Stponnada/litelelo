@@ -44,7 +44,9 @@ const LostFoundFeedCard: React.FC<{ item: any }> = ({ item }) => {
 };
 
 const ProfileCard: React.FC<{ profile: Profile }> = ({ profile }) => ( <div className="bg-white dark:bg-secondary rounded-2xl border border-gray-200 dark:border-tertiary p-4"> <Link to={`/profile/${profile.username}`} className="flex items-center gap-3 group"> <img src={profile.avatar_url || ''} alt="Your avatar" className="w-11 h-11 rounded-full object-cover border-2 border-gray-200 dark:border-tertiary"/> <div className="flex-1 min-w-0"> <h3 className="font-semibold text-text-main-light dark:text-text-main truncate group-hover:text-brand-green transition-colors">{profile.full_name}</h3> <p className="text-sm text-text-tertiary-light dark:text-text-tertiary">@{profile.username}</p> </div> </Link> <div className="flex gap-4 mt-3 pt-3 border-t border-gray-200 dark:border-tertiary"> <div> <p className="font-bold text-text-main-light dark:text-text-main">{profile.follower_count}</p> <p className="text-xs text-text-tertiary-light dark:text-text-tertiary">Followers</p> </div> <div> <p className="font-bold text-text-main-light dark:text-text-main">{profile.following_count}</p> <p className="text-xs text-text-tertiary-light dark:text-text-tertiary">Following</p> </div> </div> </div> );
-const CommunitiesWidget: React.FC = () => { const { user } = useAuth(); const [communities, setCommunities] = useState<{ id: string; name: string; avatar_url: string | null }[]>([]); useEffect(() => { if (!user) return; const fetchCommunities = async () => { const { data } = await supabase.rpc('get_communities_for_user', { p_user_id: user.id }).limit(5); if (data) setCommunities(data); }; fetchCommunities(); }, [user]); return ( <div className="bg-white dark:bg-secondary rounded-2xl border border-gray-200 dark:border-tertiary p-4"> <div className="flex items-center justify-between mb-3"> <h3 className="font-semibold text-text-main-light dark:text-text-main">Communities</h3> <UserGroupIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary"/> </div> {communities.length > 0 ? ( <div className="space-y-2"> {communities.map(c => ( <Link key={c.id} to={`/communities/${c.id}`} className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-tertiary transition-colors"> <img src={c.avatar_url || `https://ui-avatars.com/api/?name=${c.name}`} alt={c.name} className="w-8 h-8 rounded-lg object-cover" /> <span className="text-sm text-text-secondary-light dark:text-text-secondary truncate flex-1">{c.name}</span> </Link> ))} </div> ) : <p className="text-sm text-text-tertiary-light dark:text-text-tertiary">No communities yet</p>} </div> ); };
+
+const CommunitiesWidget: React.FC = () => { const { user } = useAuth(); const [communities, setCommunities] = useState<{ id: string; name: string; avatar_url: string | null }[]>([]); useEffect(() => { if (!user) return; const fetchCommunities = async () => { const { data } = await supabase.rpc('get_communities_for_user', { p_user_id: user.id }).limit(5); if (data) setCommunities(data); }; fetchCommunities(); }, [user]); return ( <div className="bg-white dark:bg-secondary rounded-2xl border border-gray-200 dark:border-tertiary p-4"> <div className="flex items-center justify-between mb-3"> <h3 className="font-semibold text-text-main-light dark:text-text-main">Communities</h3> <UserGroupIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary"/> </div> {communities.length > 0 ? ( <div className="space-y-2"> {communities.map(c => ( <Link key={c.id} to={`/communities/${c.id}`} className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-tertiary transition-colors"> <img src={c.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name)}&background=random&color=fff&bold=true`} alt={c.name} className="w-8 h-8 rounded-lg object-cover" /> <span className="text-sm text-text-secondary-light dark:text-text-secondary truncate flex-1">{c.name}</span> </Link> ))} </div> ) : <p className="text-sm text-text-tertiary-light dark:text-text-tertiary">No communities yet</p>} </div> ); };
+
 const CryptoHubWidget: React.FC<{ profile: Profile }> = ({ profile }) => { const [isExpanded, setIsExpanded] = useState(false); return ( <div className="bg-white dark:bg-secondary rounded-2xl border border-gray-200 dark:border-tertiary p-4"> <button onClick={() => setIsExpanded(!isExpanded)} className="w-full flex items-center justify-between"> <div className="flex items-center gap-2"> <CubeIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary"/> <h3 className="font-semibold text-text-main-light dark:text-text-main">Bits-Coin</h3> </div> <svg className={`w-5 h-5 text-text-tertiary-light dark:text-text-tertiary transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /> </svg> </button> {isExpanded && ( <div className="mt-4 pt-4 border-t border-gray-200 dark:border-tertiary"> <div className="text-center py-4"> <p className="text-xs text-text-tertiary-light dark:text-text-tertiary mb-1">Balance</p> <p className="text-2xl font-bold text-brand-green"> {profile.bits_coin_balance?.toFixed(2) || '0.00'} BC </p> </div> <Link to="/easter-egg/blockchain" className="block text-center text-sm text-brand-green hover:text-brand-green/80 py-2"> View Blockchain → </Link> </div> )} </div> ); };
 
 export const HomePage: React.FC = () => {
@@ -86,6 +88,10 @@ export const HomePage: React.FC = () => {
     if (postsLoading && posts.length === 0) {
         return (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <main className="col-span-1 lg:col-span-9 space-y-3">
+                    <div className="bg-white dark:bg-secondary rounded-2xl border border-gray-200 dark:border-tertiary p-4 h-48 animate-pulse"></div>
+                    {[...Array(4)].map((_, i) => <PostSkeleton key={i} />)}
+                </main>
                 <aside className="hidden lg:block lg:col-span-3">
                     <div className="sticky top-28 space-y-3">
                         <div className="bg-white dark:bg-secondary rounded-2xl border border-gray-200 dark:border-tertiary p-4 h-24 animate-pulse"></div>
@@ -93,10 +99,6 @@ export const HomePage: React.FC = () => {
                         <div className="bg-white dark:bg-secondary rounded-2xl border border-gray-200 dark:border-tertiary p-4 h-48 animate-pulse"></div>
                     </div>
                 </aside>
-                <main className="col-span-1 lg:col-span-9 space-y-3">
-                    <div className="bg-white dark:bg-secondary rounded-2xl border border-gray-200 dark:border-tertiary p-4 h-48 animate-pulse"></div>
-                    {[...Array(4)].map((_, i) => <PostSkeleton key={i} />)}
-                </main>
             </div>
         );
     }
@@ -117,18 +119,6 @@ export const HomePage: React.FC = () => {
             {isCreatePostModalOpen && currentUserProfile && ( <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-start justify-center p-4 pt-20 md:items-center md:pt-4" onClick={() => setCreatePostModalOpen(false)}> <div className="w-full max-w-2xl relative" onClick={(e) => e.stopPropagation()}> <button onClick={() => setCreatePostModalOpen(false)} className="absolute -top-12 right-0 text-white/80 hover:text-white transition-colors"> <XCircleIcon className="w-8 h-8"/> </button> <CreatePost onPostCreated={handlePostCreatedInModal} profile={currentUserProfile} /> </div> </div> )}
             
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <aside className="hidden lg:block lg:col-span-3">
-                    <div className="sticky top-28">
-                        <div className="space-y-3 max-h-[calc(100vh-7rem)] overflow-y-auto scrollbar-hide">
-                            <GlobalSearchBar />
-                            {currentUserProfile && <ProfileCard profile={currentUserProfile} />}
-                            <FollowSuggestions />
-                            <CommunitiesWidget />
-                            {hasDiscoveredBlockchain && currentUserProfile && <CryptoHubWidget profile={currentUserProfile} />}
-                        </div>
-                    </div>
-                </aside>
-
                 <main className="col-span-1 lg:col-span-9">
                     <div className="mb-6 lg:hidden">
                         <GlobalSearchBar />
@@ -149,8 +139,6 @@ export const HomePage: React.FC = () => {
                     {posts.length > 0 ? (
                         <div className="space-y-3">
                             {posts.map((item: any) => {
-                                // --- FIX: This logic now correctly handles the different item shapes from the 'campus' feed. ---
-                                // It uses the ID from `item.item_data` for keys and only renders <PostComponent> for actual posts.
                                 switch (item.item_type) {
                                     case 'listing':
                                         return <ListingCard key={`listing-${item.item_data.id}`} listing={item.item_data as MarketplaceListing} onClick={() => setSelectedListing(item.item_data)} />;
@@ -161,11 +149,9 @@ export const HomePage: React.FC = () => {
                                     case 'post':
                                         return <PostComponent key={`post-${item.id}`} post={item} onImageClick={setLightboxUrl} />;
                                     default:
-                                        // This handles posts from the 'foryou' and 'following' feeds which don't have an `item_type`.
                                         if (item.id && !item.item_type) {
                                            return <PostComponent key={`post-${item.id}`} post={item} onImageClick={setLightboxUrl} />;
                                         }
-                                        // Render nothing if the type is unknown, preventing errors.
                                         return null;
                                 }
                             })}
@@ -173,10 +159,22 @@ export const HomePage: React.FC = () => {
                         </div>
                     ) : (
                          <div className="text-center py-16 bg-white dark:bg-secondary rounded-2xl border border-gray-200 dark:border-tertiary">
-                            {/* ... empty feed message ... */}
+                            <p className="text-text-tertiary-light dark:text-text-tertiary">No posts to show yet. Start following people or join communities!</p>
                          </div>
                     )}
                 </main>
+
+                <aside className="hidden lg:block lg:col-span-3">
+                    <div className="sticky top-28">
+                        <div className="space-y-3 max-h-[calc(100vh-7rem)] overflow-y-auto scrollbar-hide">
+                            <GlobalSearchBar />
+                            {currentUserProfile && <ProfileCard profile={currentUserProfile} />}
+                            <FollowSuggestions />
+                            <CommunitiesWidget />
+                            {hasDiscoveredBlockchain && currentUserProfile && <CryptoHubWidget profile={currentUserProfile} />}
+                        </div>
+                    </div>
+                </aside>
             </div>
 
             <button onClick={() => setCreatePostModalOpen(true)} className="lg:hidden fixed bottom-20 right-4 bg-brand-green text-black w-14 h-14 rounded-full flex items-center justify-center shadow-lg z-40 hover:scale-105 active:scale-95 transition-transform" aria-label="Create Post">
@@ -185,5 +183,3 @@ export const HomePage: React.FC = () => {
         </div>
     );
 };
-
-
