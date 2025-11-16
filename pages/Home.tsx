@@ -141,7 +141,7 @@ export const HomePage: React.FC = () => {
                     <div className="bg-secondary-light dark:bg-secondary rounded-t-lg border-b border-tertiary-light dark:border-tertiary sticky top-16 md:top-24 z-10">
                         <div className="flex">
                             <button onClick={() => setFeedType('foryou')} className={`flex-1 py-4 font-semibold text-center transition-all ${ feedType === 'foryou' ? 'border-b-2 border-brand-green text-brand-green' : 'text-text-tertiary-light dark:text-text-tertiary hover:bg-tertiary-light/30 dark:hover:bg-tertiary/30' }`}> For You </button>
-                            <button onClick={() => setFeedType('following')} className={`flex-1 py-4 font-semibold text-center transition-all ${ feedType === 'following' ? 'border-b-2 border-brand-green text-brand-green' : 'text-text-tertiary-light dark:text-text-tertiary hover:bg-tertiary-light/30 dark:hover:bg-tertiary/30' }`}> Following </button>
+                            <button onClick={() => setFeedType('following')} className={`flex-1 py-4 font-semibold text-center transition-all ${ feedType === 'following' ? 'border-b-2 border-brand-green text-brand-green' : 'text-text-tertiary-light dark:text-text-tertiary hover:bg-tertiary-light/30 dark:hover:bg-tertiary/30' }`}> Friends and Following </button>
                             <button onClick={() => setFeedType('campus')} className={`flex-1 py-4 font-semibold text-center transition-all ${ feedType === 'campus' ? 'border-b-2 border-brand-green text-brand-green' : 'text-text-tertiary-light dark:text-text-tertiary hover:bg-tertiary-light/30 dark:hover:bg-tertiary/30' }`}> Campus </button>
                         </div>
                     </div>
