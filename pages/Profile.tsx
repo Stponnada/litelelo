@@ -655,9 +655,8 @@ const FriendsListModal: React.FC<{ profile: Profile; onClose: () => void }> = ({
 };
 
 const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, onSave: () => void }> = ({ userProfile, onClose, onSave }) => {
-    // This component's code remains unchanged from your previous version.
-    // It's included here for completeness of the file.
     const { user, updateProfileContext } = useAuth();
+    // --- FIX: Initialize useNavigate hook ---
     const navigate = useNavigate();
     const [profileData, setProfileData] = useState(userProfile);
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -666,12 +665,20 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
     const [bannerPreview, setBannerPreview] = useState<string | null>(userProfile.banner_url);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState('');
+    
     const [joinedCommunities, setJoinedCommunities] = useState<CommunityLink[]>([]);
-    const [cropperState, setCropperState] = useState<{ isOpen: boolean; type: 'avatar' | 'banner' | null; src: string | null; }>({ isOpen: false, type: null, src: null });
+    
+    const [cropperState, setCropperState] = useState<{
+      isOpen: boolean;
+      type: 'avatar' | 'banner' | null;
+      src: string | null;
+    }>({ isOpen: false, type: null, src: null });
+
     const [availableBranches, setAvailableBranches] = useState<string[]>([]);
     const [isDualDegreeStudent, setIsDualDegreeStudent] = useState(false);
     const avatarInputRef = useRef<HTMLInputElement>(null);
     const bannerInputRef = useRef<HTMLInputElement>(null);
+
     useEffect(() => {
         const campus = profileData.campus;
         if (campus && BITS_BRANCHES[campus]) {
@@ -681,6 +688,7 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
             setIsDualDegreeStudent(isMsc);
         }
     }, [profileData.campus, profileData.branch]);
+
     useEffect(() => {
         if (!user) return;
         const fetchUserCommunities = async () => {
@@ -690,21 +698,32 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
         };
         fetchUserCommunities();
     }, [user]);
+
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'banner') => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             const reader = new FileReader();
-            reader.onloadend = () => { setCropperState({ isOpen: true, type, src: reader.result as string }); };
+            reader.onloadend = () => {
+                setCropperState({ isOpen: true, type, src: reader.result as string });
+            };
             reader.readAsDataURL(file);
         }
         e.target.value = '';
     };
+    
     const handleCropSave = (croppedImageFile: File) => {
         const previewUrl = URL.createObjectURL(croppedImageFile);
-        if (cropperState.type === 'avatar') { setAvatarFile(croppedImageFile); setAvatarPreview(previewUrl); } 
-        else if (cropperState.type === 'banner') { setBannerFile(croppedImageFile); setBannerPreview(previewUrl); }
+        if (cropperState.type === 'avatar') {
+            setAvatarFile(croppedImageFile);
+            setAvatarPreview(previewUrl);
+        } else if (cropperState.type === 'banner') {
+            setBannerFile(croppedImageFile);
+            setBannerPreview(previewUrl);
+        }
         setCropperState({ isOpen: false, type: null, src: null });
     };
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setProfileData(prev => {
@@ -715,6 +734,8 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
             return updated;
         });
     };
+    
+    // --- FIX: Updated handleSubmit function with navigation logic ---
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
@@ -722,6 +743,7 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
         try {
             let avatar_url = profileData.avatar_url;
             let banner_url = profileData.banner_url;
+
             if (avatarFile) {
                 const filePath = `${user.id}/avatar.${avatarFile.name.split('.').pop()}`;
                 await supabase.storage.from('avatars').upload(filePath, avatarFile, { upsert: true });
@@ -734,8 +756,9 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
                 const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
                 banner_url = `${publicUrl}?t=${new Date().getTime()}`;
             }
+
             const { data: updatedProfile, error: updateError } = await supabase.from('profiles').update({
-                username: profileData.username,
+                username: profileData.username, // Send the new username
                 full_name: profileData.full_name, bio: profileData.bio, branch: profileData.branch,
                 dual_degree_branch: profileData.dual_degree_branch || null, relationship_status: profileData.relationship_status,
                 dorm_building: profileData.dorm_building, dorm_room: profileData.dorm_room, dining_hall: profileData.dining_hall,
@@ -743,22 +766,293 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
                 avatar_url, banner_url, updated_at: new Date().toISOString(),
                 displayed_community_flair: profileData.displayed_community_flair || null,
             }).eq('user_id', user.id).select().single();
+
             if (updateError) {
-                if (updateError.message.includes('profiles_username_key')) throw new Error('That username is already taken. Please choose another.');
+                if (updateError.message.includes('profiles_username_key')) {
+                    throw new Error('That username is already taken. Please choose another.');
+                }
                 throw updateError;
             }
+            
             updateProfileContext(updatedProfile);
+            
             const usernameChanged = profileData.username !== userProfile.username;
-            onClose();
+            
+            onClose(); // Close the modal
+
             if (usernameChanged) {
-                navigate(`/profile/${updatedProfile.username}`, { replace: true, state: { profileData: updatedProfile } });
+                // If username changed, navigate to the new URL and pass the fresh data in the state
+                // to avoid the "User not found" race condition.
+                navigate(`/profile/${updatedProfile.username}`, { 
+                    replace: true, 
+                    state: { profileData: updatedProfile } 
+                });
             } else {
+                // Otherwise, just refresh the data on the current page
                 onSave();
             }
         } catch (err: any) { setError(err.message); } finally { setIsSaving(false); }
     };
-    if (cropperState.isOpen && cropperState.src) return <ImageCropper imageSrc={cropperState.src} aspect={cropperState.type === 'avatar' ? 1 : 16/9} cropShape={cropperState.type === 'avatar' ? 'round' : 'rect'} onSave={handleCropSave} onClose={() => setCropperState({ isOpen: false, type: null, src: null })} isSaving={isSaving} />;
-    return <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"><div className="bg-secondary-light dark:bg-secondary rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"><form onSubmit={handleSubmit} className="p-6 sm:p-8">{/* ... form JSX from previous step ... */}</form></div></div>
+    
+    if (cropperState.isOpen && cropperState.src) {
+        return (
+            <ImageCropper
+                imageSrc={cropperState.src}
+                aspect={cropperState.type === 'avatar' ? 1 : 16 / 9}
+                cropShape={cropperState.type === 'avatar' ? 'round' : 'rect'}
+                onSave={handleCropSave}
+                onClose={() => setCropperState({ isOpen: false, type: null, src: null })}
+                isSaving={isSaving}
+            />
+        );
+    }
+    
+    return (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+            <div className="bg-secondary-light dark:bg-secondary rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                <form onSubmit={handleSubmit} className="p-6 sm:p-8">
+                    <h2 className="text-3xl font-bold text-brand-green mb-8">Edit Profile</h2>
+                    
+                    {/* Banner and Avatar Upload */}
+                    <div className="relative h-48 bg-gradient-to-br from-tertiary-light to-tertiary-light/50 dark:from-tertiary dark:to-tertiary/50 rounded-xl mb-20 overflow-visible">
+                        {bannerPreview && <img src={bannerPreview} className="w-full h-full object-cover" alt="Banner Preview"/>}
+                        <button 
+                            type="button" 
+                            onClick={() => bannerInputRef.current?.click()} 
+                            className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+                        >
+                            <div className="flex flex-col items-center gap-2 text-white">
+                                <CameraIcon className="w-8 h-8" />
+                                <span className="text-sm font-medium">Change Banner</span>
+                            </div>
+                        </button>
+                        <input type="file" ref={bannerInputRef} onChange={(e) => handleFileChange(e, 'banner')} accept="image/*" hidden />
+                        
+                        <div className="absolute -bottom-16 left-6 w-32 h-32 rounded-full border-4 border-secondary-light dark:border-secondary bg-gradient-to-br from-gray-600 to-gray-700 overflow-hidden shadow-xl">
+                            {avatarPreview && <img src={avatarPreview} className="w-full h-full object-cover" alt="Avatar Preview"/>}
+                            <button 
+                                type="button" 
+                                onClick={() => avatarInputRef.current?.click()} 
+                                className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 rounded-full transition-opacity"
+                            >
+                                <div className="flex flex-col items-center gap-1 text-white">
+                                    <CameraIcon className="w-6 h-6" />
+                                    <span className="text-xs font-medium">Change</span>
+                                </div>
+                            </button>
+                            <input type="file" ref={avatarInputRef} onChange={(e) => handleFileChange(e, 'avatar')} accept="image/*" hidden />
+                        </div>
+                    </div>
+                    
+                    {error && (
+                        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+                            <p className="text-red-400 text-sm">{error}</p>
+                        </div>
+                    )}
+                    
+                    <div className="space-y-6">
+                        {/* Full Name */}
+                        <div>
+                            <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                Full Name
+                            </label>
+                            <input 
+                                type="text" 
+                                name="full_name" 
+                                value={profileData.full_name || ''} 
+                                onChange={handleChange} 
+                                className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none" 
+                            />
+                        </div>
+
+                        {/* User Name */}
+                        <div>
+                            <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                UserTag
+                            </label>
+                            <input 
+                                type="text" 
+                                name="username" 
+                                value={profileData.username || ''} 
+                                onChange={handleChange} 
+                                className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none" 
+                            />
+                        </div>
+
+                        {/* Phone */}
+                        <div>
+                            <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                Phone <span className="text-text-tertiary-light dark:text-text-tertiary text-xs">(Optional)</span>
+                            </label>
+                            <input 
+                                type="tel" 
+                                name="phone" 
+                                value={profileData.phone || ''} 
+                                onChange={handleChange} 
+                                placeholder="e.g., +91 98765 43210" 
+                                className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none" 
+                            />
+                        </div>
+                        
+                        {/* Flair Selection Dropdown */}
+                        <div>
+                            <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                Display Flair
+                            </label>
+                            <select
+                                name="displayed_community_flair"
+                                value={profileData.displayed_community_flair || ''}
+                                onChange={handleChange}
+                                className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none"
+                            >
+                                <option value="">No Flair</option>
+                                {joinedCommunities.map(community => (
+                                    <option key={community.id} value={community.id}>
+                                        {community.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        
+                        {/* Bio */}
+                        <div>
+                            <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                Bio
+                            </label>
+                            <textarea 
+                                name="bio" 
+                                value={profileData.bio || ''} 
+                                onChange={handleChange} 
+                                rows={4} 
+                                className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none resize-none" 
+                                placeholder="Tell us about yourself..."
+                            />
+                        </div>
+                        
+                        {/* Degrees */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                    Primary Degree
+                                </label>
+                                <select 
+                                    name="branch" 
+                                    value={profileData.branch || ''} 
+                                    onChange={handleChange} 
+                                    className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none"
+                                >
+                                    <option value="">Select Branch</option>
+                                    {availableBranches.map(b => <option key={b} value={b}>{b}</option>)}
+                                </select>
+                            </div>
+                            
+                            {isDualDegreeStudent && (
+                                <div>
+                                    <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                        B.E. Degree
+                                    </label>
+                                    <select 
+                                        name="dual_degree_branch" 
+                                        value={profileData.dual_degree_branch || ''} 
+                                        onChange={handleChange} 
+                                        className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none"
+                                    >
+                                        <option value="">Select B.E. Branch</option>
+                                        {profileData.campus && BITS_BRANCHES[profileData.campus]['B.E.'].map(b => <option key={b} value={b}>{b}</option>)}
+                                    </select>
+                                </div>
+                            )}
+                        </div>
+                        
+                        {/* Other Details */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                    Relationship Status
+                                </label>
+                                <select 
+                                    name="relationship_status" 
+                                    value={profileData.relationship_status || ''} 
+                                    onChange={handleChange} 
+                                    className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none"
+                                >
+                                    <option value="">Select Status</option>
+                                    <option value="Single">Single</option>
+                                    <option value="In a relationship">In a relationship</option>
+                                    <option value="It's complicated">It's complicated</option>
+                                    <option value="Married">Married</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                    Dorm Building
+                                </label>
+                                <input 
+                                    type="text" 
+                                    name="dorm_building" 
+                                    placeholder="e.g., Valmiki" 
+                                    value={profileData.dorm_building || ''} 
+                                    onChange={handleChange} 
+                                    className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none" 
+                                />
+                            </div>
+                            
+                            <div>
+                                <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                    Dorm Room
+                                </label>
+                                <input 
+                                    type="number" 
+                                    name="dorm_room" 
+                                    placeholder="e.g., 469" 
+                                    value={profileData.dorm_room || ''} 
+                                    onChange={handleChange} 
+                                    pattern="^[1-9][0-9]{2}$"
+                                    title="Please enter a 3-digit room number."
+                                    className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none" 
+                                />
+                            </div>
+                            
+                            <div>
+                                <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                    Dining Hall
+                                </label>
+                                <select 
+                                    name="dining_hall" 
+                                    value={profileData.dining_hall || ''} 
+                                    onChange={handleChange} 
+                                    className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none"
+                                >
+                                    <option value="">Select Mess</option>
+                                    <option value="Mess 1">Mess 1</option>
+                                    <option value="Mess 2">Mess 2</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Action Buttons */}
+                    <div className="flex justify-end gap-3 pt-8">
+                        <button 
+                            type="button" 
+                            onClick={onClose} 
+                            className="py-2.5 px-6 rounded-full text-text-main-light dark:text-text-main hover:bg-tertiary-light/60 dark:hover:bg-tertiary transition-colors font-medium"
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            type="submit" 
+                            disabled={isSaving} 
+                            className="py-2.5 px-8 rounded-full text-black bg-brand-green hover:bg-brand-green-darker disabled:opacity-50 transition-all font-bold shadow-lg shadow-brand-green/20"
+                        >
+                            {isSaving ? <Spinner /> : 'Save Changes'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
 };
 
 const ProfileDetail: React.FC<{ label: string; value?: string | number | null }> = ({ label, value }) => {
