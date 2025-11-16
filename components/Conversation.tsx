@@ -79,7 +79,7 @@ interface ConversationProps {
 
 const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onConversationCreated }) => {
     const { user, profile } = useAuth();
-    const { latestMessage } = useChat();
+    const { latestMessage, onlineUsers } = useChat();
     const [messages, setMessages] = useState<Message[]>([]);
     const messagesRef = useRef<Message[]>([]);
     useEffect(() => { messagesRef.current = messages; }, [messages]);
@@ -175,6 +175,12 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
     const otherParticipant = conversation.type === 'dm'
       ? conversation.participants.find(p => p.user_id !== user?.id)
       : null;
+      
+    // --- THIS IS THE FIX ---
+    // A user is "online" if they are globally present OR currently typing in this chat.
+    const isPresent = otherParticipant ? onlineUsers.has(otherParticipant.user_id) : false;
+    const isTyping = otherParticipant ? typingUsers.some(u => u.userId === otherParticipant.user_id) : false;
+    const isEffectivelyOnline = isPresent || isTyping;
 
     useEffect(() => {
         // Ensure any conversation-specific overlays are closed when conversation changes
@@ -622,13 +628,13 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                             className="w-11 h-11 rounded-full object-cover ring-2 ring-brand-green/20 group-hover:ring-brand-green/40 transition-all"
                             alt="avatar"
                         />
-                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-secondary-light dark:border-secondary"></div>
+                        {isEffectivelyOnline && <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-secondary-light dark:border-secondary"></div>}
                     </div>
                     <div className="min-w-0 flex-1">
                         <h3 className="font-bold text-lg text-text-main-light dark:text-text-main group-hover:text-brand-green dark:group-hover:text-brand-green transition-colors truncate">
                             {otherParticipant.full_name || otherParticipant.username}
                         </h3>
-                        {/*<p className="text-xs text-text-tertiary-light dark:text-text-tertiary">Active now</p>*/}
+                        <p className="text-xs text-text-tertiary-light dark:text-text-tertiary">{isEffectivelyOnline ? 'Active now' : 'Offline'}</p>
                     </div>
                 </Link>
             );

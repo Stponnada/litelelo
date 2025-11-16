@@ -13,7 +13,7 @@ const ChatPage: React.FC = () => {
   const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const { conversations, loading, markConversationAsRead, fetchConversations, updateConversationId } = useChat();
+  const { conversations, loading, markConversationAsRead, fetchConversations, updateConversationId, onlineUsers } = useChat();
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isGroupModalOpen, setGroupModalOpen] = useState(false);
@@ -141,7 +141,8 @@ const ChatPage: React.FC = () => {
                 const otherParticipant = conv.type === 'dm' ? getOtherParticipant(conv) : null;
                 const displayName = conv.type === 'group' ? conv.name : otherParticipant?.full_name || 'User';
                 const avatar = conv.type === 'dm' ? otherParticipant?.avatar_url : null;
-                const avatarSrc = avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName || ' ')}&background=random`;
+                const avatarSrc = avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName || ' ')}&background=random&color=fff&bold=true`;
+                const isOnline = otherParticipant ? onlineUsers.has(otherParticipant.user_id) : false;
                 const isSelected = selectedConversationId === conv.conversation_id;
 
                 return (
@@ -166,6 +167,9 @@ const ChatPage: React.FC = () => {
                           alt={displayName || ''} 
                           className="w-14 h-14 rounded-2xl object-cover shadow-lg ring-2 ring-white dark:ring-secondary"
                         />
+                      )}
+                      {isOnline && conv.type === 'dm' && (
+                        <span className="absolute bottom-0.5 right-0.5 block h-3.5 w-3.5 rounded-full bg-green-500 ring-2 ring-secondary-light/80 dark:ring-secondary/80" title="Online" />
                       )}
                       {conv.unread_count > 0 && (
                         <span className="absolute -top-1.5 -right-1.5 bg-gradient-to-br from-red-500 to-red-600 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center shadow-lg shadow-red-500/50 ring-2 ring-white dark:ring-secondary animate-pulse">

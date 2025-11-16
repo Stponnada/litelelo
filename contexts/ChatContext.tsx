@@ -11,6 +11,7 @@ interface ChatContextType {
   loading: boolean;
   markConversationAsRead: (conversationId: string) => Promise<void>;
   updateConversationId: (placeholderId: string, newId: string) => void;
+  onlineUsers: Set<string>;
   fetchConversations: () => void;
   latestMessage: Message | null;
 }
@@ -22,6 +23,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [latestMessage, setLatestMessage] = useState<Message | null>(null);
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
 
   const fetchConversations = useCallback(async () => {
     // --- THIS IS THE FIX: The hook now depends on the stable user ID ---
@@ -121,6 +123,47 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (!user) return;
 
+    const presenceChannel = supabase.channel('online-users');
+
+    presenceChannel
+      .on('presence', { event: 'sync' }, () => {
+        const newState = presenceChannel.presenceState();
+        const userIds = new Set<string>();
+        for (const id in newState) {
+          (newState[id] as any[]).forEach(presence => {
+            userIds.add(presence.user_id);
+          });
+        }
+        setOnlineUsers(userIds);
+      })
+      .on('presence', { event: 'join' }, ({ newPresences }) => {
+        setOnlineUsers(prev => {
+          const newSet = new Set(prev);
+          (newPresences as any[]).forEach(p => newSet.add(p.user_id));
+          return newSet;
+        });
+      })
+      .on('presence', { event: 'leave' }, ({ leftPresences }) => {
+        setOnlineUsers(prev => {
+          const newSet = new Set(prev);
+          (leftPresences as any[]).forEach(p => newSet.delete(p.user_id));
+          return newSet;
+        });
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await presenceChannel.track({ user_id: user.id, online_at: new Date().toISOString() });
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(presenceChannel);
+    };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+
     // --- THE FIX: Use a unique, abstract channel name ---
     const channel = supabase
       .channel('chat-feed-channel')
@@ -189,7 +232,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setConversations(prev => prev.map(c => c.conversation_id === placeholderId ? { ...c, conversation_id: newId } : c));
   };
 
-  const value = { conversations, totalUnreadCount, loading, markConversationAsRead, fetchConversations, updateConversationId, latestMessage };
+  const value = { conversations, totalUnreadCount, loading, markConversationAsRead, fetchConversations, updateConversationId, latestMessage, onlineUsers };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
 };
