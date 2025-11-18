@@ -27,15 +27,15 @@ const Flair: React.FC<{ flair: { id: string; name: string; avatar_url: string | 
     <Link
       to={`/communities/${flair.id}`}
       onClick={(e) => e.stopPropagation()}
-      className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-brand-green/10 border border-brand-green/20 hover:bg-brand-green/20 transition-colors group ml-2"
+      className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-brand-green/10 border border-brand-green/20 hover:bg-brand-green/20 transition-colors group ml-1.5"
       title={flair.name}
     >
         <img 
             src={flair.avatar_url || `https://ui-avatars.com/api/?name=${flair.name}`} 
             alt={flair.name} 
-            className="w-3.5 h-3.5 rounded-full object-cover" 
+            className="w-3 h-3 rounded-full object-cover" 
         />
-        <span className="text-[10px] font-bold text-brand-green uppercase tracking-wide leading-none">{flair.name}</span>
+        <span className="text-[9px] font-bold text-brand-green uppercase tracking-wide leading-none">{flair.name}</span>
     </Link>
 );
 
@@ -195,34 +195,33 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => 
             <div 
                 id={`post-${post.id}`}
                 className={`
-                    group relative 
-                    bg-secondary-light/70 dark:bg-secondary/70 backdrop-blur-md
-                    rounded-2xl shadow-sm hover:shadow-xl 
+                    group relative bg-secondary-light/70 dark:bg-secondary/70 backdrop-blur-md
+                    rounded-xl shadow-sm hover:shadow-md
                     border border-tertiary-light/60 dark:border-white/5 hover:border-brand-green/20 dark:hover:border-brand-green/20 
-                    transition-all duration-300 ease-out mb-5 overflow-hidden
+                    transition-all duration-200 ease-out mb-2 overflow-hidden
                     ${!post.is_deleted ? 'cursor-pointer' : ''}
                 `}
                 onClick={() => !post.is_deleted && navigate(`/post/${post.id}`)}
             >
                 {/* Repost Header */}
                 {post.reposted_by && (
-                    <div className="bg-tertiary-light/30 dark:bg-white/5 px-5 py-2 text-xs font-semibold text-text-tertiary-light dark:text-text-tertiary flex items-center gap-2 border-b border-transparent dark:border-white/5">
-                        <ArrowPathRoundedSquareIcon className="w-3.5 h-3.5" />
+                    <div className="bg-tertiary-light/30 dark:bg-white/5 px-3.5 py-1.5 text-[11px] font-semibold text-text-tertiary-light dark:text-text-tertiary flex items-center gap-2 border-b border-transparent dark:border-white/5">
+                        <ArrowPathRoundedSquareIcon className="w-3 h-3" />
                         <Link to={`/profile/${post.reposted_by.username}`} className="hover:text-brand-green transition-colors" onClick={e => e.stopPropagation()}>
                             {post.reposted_by.user_id === user?.id ? 'You' : post.reposted_by.full_name} reposted
                         </Link>
                     </div>
                 )}
                 
-                <div className={`p-5 ${post.reposted_by ? 'pt-4' : ''}`}>
-                    <div className="flex items-start gap-4">
-                        {/* Avatar */}
+                {/* Main Post Content - Reduced Padding */}
+                <div className={`p-3.5 ${post.reposted_by ? 'pt-2.5' : ''}`}>
+                    <div className="flex items-start gap-3">
+                        {/* Avatar - Smaller Size */}
                         <Link to={authorLink} onClick={e => e.stopPropagation()} className="flex-shrink-0 relative group/avatar">
-                            <div className="absolute -inset-0.5 bg-brand-green/30 rounded-full blur opacity-0 group-hover/avatar:opacity-50 transition duration-300"></div>
                             <img
                                 src={author.author_avatar_url ? getResizedAvatarUrl(author.author_avatar_url, 80, 80) : `https://ui-avatars.com/api/?name=${author.author_name || author.author_username}&background=random&color=fff&bold=true`}
                                 alt={author.author_name || ''} 
-                                className="relative w-12 h-12 rounded-full object-cover ring-2 ring-white dark:ring-tertiary shadow-sm"
+                                className="relative w-10 h-10 rounded-full object-cover ring-1 ring-white dark:ring-white/10 shadow-sm"
                                 loading="lazy"
                             />
                         </Link>
@@ -231,12 +230,19 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => 
                             {/* Header: Author & Meta */}
                             <div className="flex justify-between items-start">
                                 <div className="flex flex-col min-w-0">
-                                    <div className="flex items-center flex-wrap gap-x-2">
-                                        <Link to={authorLink} onClick={e => e.stopPropagation()} className="font-bold text-base text-text-main-light dark:text-text-main hover:underline truncate">
+                                    <div className="flex items-center flex-wrap gap-x-1.5">
+                                        {/* Name - Reduced Size */}
+                                        <Link to={authorLink} onClick={e => e.stopPropagation()} className="font-bold text-sm text-text-main-light dark:text-text-main hover:underline truncate">
                                             {author.author_name}
                                         </Link>
                                         
                                         {author.author_flair_details && <Flair flair={author.author_flair_details} />}
+                                        
+                                        {/* Username & Time */}
+                                        <span className="text-xs text-text-tertiary-light dark:text-text-tertiary">
+                                            @{author.author_username} • <span className="hover:underline">{formatTimestamp(post.created_at)}</span>
+                                            {post.is_edited && <span className="ml-1">(edited)</span>}
+                                        </span>
                                         
                                         {author.author_type === 'community' && post.original_poster_username && (
                                             <span className="text-xs text-text-tertiary-light dark:text-text-tertiary flex items-center gap-1">
@@ -244,31 +250,24 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => 
                                             </span>
                                         )}
                                     </div>
-                                    
-                                    <div className="flex items-center gap-2 text-xs text-text-tertiary-light dark:text-text-tertiary mt-0.5">
-                                        {author.author_type === 'user' && <span>@{author.author_username}</span>}
-                                        <span>•</span>
-                                        <span className="hover:underline">{formatTimestamp(post.created_at)}</span>
-                                        {post.is_edited && <span>(edited)</span>}
-                                    </div>
                                 </div>
 
                                 {/* Ellipsis Menu */}
                                 {isOwner && !post.is_deleted && (
-                                    <div className="relative -mr-2 -mt-2" ref={menuRef}>
+                                    <div className="relative -mr-1 -mt-1" ref={menuRef}>
                                         <button 
                                             onClick={(e) => { e.stopPropagation(); setMenuOpen(prev => !prev); }} 
-                                            className="p-2 rounded-full text-text-tertiary-light dark:text-text-tertiary hover:bg-tertiary-light dark:hover:bg-white/10 transition-colors"
+                                            className="p-1.5 rounded-full text-text-tertiary-light dark:text-text-tertiary hover:bg-tertiary-light dark:hover:bg-white/10 transition-colors"
                                         >
-                                            <EllipsisVerticalIcon className="w-5 h-5" />
+                                            <EllipsisVerticalIcon className="w-4 h-4" />
                                         </button>
                                         {isMenuOpen && (
-                                            <div className="absolute top-full right-0 mt-1 w-40 bg-white dark:bg-tertiary border border-tertiary-light dark:border-white/10 rounded-xl shadow-2xl z-20 overflow-hidden animate-fadeIn">
-                                                <button onClick={(e) => { e.stopPropagation(); handleStartEdit(); }} className="w-full text-left flex items-center gap-3 px-4 py-3 text-sm hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                                                    <PencilIcon className="w-4 h-4" /> Edit
+                                            <div className="absolute top-full right-0 mt-1 w-36 bg-white dark:bg-tertiary border border-tertiary-light dark:border-white/10 rounded-lg shadow-xl z-20 overflow-hidden animate-fadeIn">
+                                                <button onClick={(e) => { e.stopPropagation(); handleStartEdit(); }} className="w-full text-left flex items-center gap-2 px-3 py-2.5 text-xs hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                                    <PencilIcon className="w-3.5 h-3.5" /> Edit
                                                 </button>
-                                                <button onClick={(e) => { e.stopPropagation(); handleDelete(); }} className="w-full text-left flex items-center gap-3 px-4 py-3 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-                                                    <TrashIcon className="w-4 h-4" /> Delete
+                                                <button onClick={(e) => { e.stopPropagation(); handleDelete(); }} className="w-full text-left flex items-center gap-2 px-3 py-2.5 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                                                    <TrashIcon className="w-3.5 h-3.5" /> Delete
                                                 </button>
                                             </div>
                                         )}
@@ -278,35 +277,35 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => 
                             
                             {/* Content */}
                             {isEditing ? (
-                                <div className="mt-3" onClick={e => e.stopPropagation()}>
+                                <div className="mt-2" onClick={e => e.stopPropagation()}>
                                     <textarea 
                                         value={editedContent}
                                         onChange={(e) => setEditedContent(e.target.value)}
-                                        className="w-full bg-tertiary-light dark:bg-tertiary p-3 rounded-xl border-2 border-transparent focus:border-brand-green/50 outline-none transition-all"
-                                        rows={4}
+                                        className="w-full bg-tertiary-light dark:bg-tertiary p-2 rounded-lg border-2 border-transparent focus:border-brand-green/50 outline-none transition-all text-sm"
+                                        rows={3}
                                         autoFocus
                                     />
-                                    <div className="flex justify-end gap-2 mt-3">
-                                        <button onClick={handleCancelEdit} className="px-4 py-2 text-sm font-medium rounded-lg hover:bg-tertiary-light dark:hover:bg-white/10">Cancel</button>
-                                        <button onClick={handleSaveEdit} className="px-4 py-2 text-sm font-bold rounded-lg bg-brand-green text-black hover:bg-brand-green-darker shadow-lg shadow-brand-green/20">Save</button>
+                                    <div className="flex justify-end gap-2 mt-2">
+                                        <button onClick={handleCancelEdit} className="px-3 py-1.5 text-xs font-medium rounded-lg hover:bg-tertiary-light dark:hover:bg-white/10">Cancel</button>
+                                        <button onClick={handleSaveEdit} className="px-3 py-1.5 text-xs font-bold rounded-lg bg-brand-green text-black hover:bg-brand-green-darker">Save</button>
                                     </div>
                                 </div>
                             ) : (
-                                <div className="mt-3">
+                                <div className="mt-1.5">
                                     {post.is_deleted ? (
-                                        <div className="p-4 rounded-xl bg-tertiary-light/30 dark:bg-white/5 border border-dashed border-tertiary-light dark:border-white/10">
-                                            <p className="italic text-sm text-text-tertiary-light dark:text-text-tertiary text-center">{post.content}</p>
+                                        <div className="p-3 rounded-lg bg-tertiary-light/30 dark:bg-white/5 border border-dashed border-tertiary-light dark:border-white/10">
+                                            <p className="italic text-xs text-text-tertiary-light dark:text-text-tertiary text-center">{post.content}</p>
                                         </div>
                                     ) : (
                                         <>
-                                            <div className="text-text-main-light dark:text-text-main text-[15px] leading-relaxed whitespace-pre-wrap font-normal">
+                                            <div className="text-text-main-light dark:text-text-main text-sm leading-relaxed whitespace-pre-wrap font-normal">
                                                 {renderContentWithEmbeds(post.content)}
                                             </div>
                                             
                                             {post.quoted_post && <QuotePostDisplay post={post.quoted_post} />}
 
                                             {post.image_url && (
-                                                <div className={`mt-4 rounded-xl overflow-hidden border border-tertiary-light dark:border-white/10 shadow-inner bg-black/5 dark:bg-black/20 ${isTallImage ? 'max-w-sm' : 'w-full'}`}>
+                                                <div className={`mt-2.5 rounded-lg overflow-hidden border border-tertiary-light dark:border-white/10 shadow-sm bg-black/5 dark:bg-black/20 ${isTallImage ? 'max-w-xs' : 'w-full'}`}>
                                                     <button 
                                                         onClick={(e) => { e.stopPropagation(); if (onImageClick) { onImageClick(post.image_url!); } }} 
                                                         className="w-full block cursor-zoom-in"
@@ -314,7 +313,7 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => 
                                                         <img 
                                                             src={post.image_url} 
                                                             alt="Post content" 
-                                                            className="w-full h-auto object-contain max-h-[500px]" 
+                                                            className="w-full h-auto object-contain max-h-[400px]" 
                                                             loading="lazy"
                                                         />
                                                     </button>
@@ -329,15 +328,15 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => 
                         </div>
                     </div>
 
-                    {/* Action Bar */}
+                    {/* Action Bar - Compact & Fixed Icons */}
                     {!isEditing && !post.is_deleted && (
-                        <div className="flex items-center justify-between mt-4 pt-3 border-t border-tertiary-light/50 dark:border-white/5">
+                        <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-tertiary-light/50 dark:border-white/5 max-w-md">
                             <Link 
                                 to={`/post/${post.id}`} 
                                 onClick={(e) => e.stopPropagation()} 
                                 className="group/btn flex items-center gap-1.5 text-text-tertiary-light dark:text-text-tertiary hover:text-blue-500 transition-colors"
                             >
-                                <div className="p-2 rounded-full group-hover/btn:bg-blue-500/10 transition-colors">
+                                <div className="p-1.5 rounded-full group-hover/btn:bg-blue-500/10 transition-colors">
                                     <ChatBubbleOvalLeftEllipsisIcon className="w-5 h-5" />
                                 </div>
                                 <span className="text-xs font-medium">{post.comment_count || 0}</span>
@@ -347,7 +346,7 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => 
                                 className={`group/btn flex items-center gap-1.5 transition-colors ${post.user_has_reposted ? 'text-green-500' : 'text-text-tertiary-light dark:text-text-tertiary hover:text-green-500'}`}
                                 onClick={(e) => { e.stopPropagation(); handleRepostToggle(); }}
                             >
-                                <div className="p-2 rounded-full group-hover/btn:bg-green-500/10 transition-colors">
+                                <div className="p-1.5 rounded-full group-hover/btn:bg-green-500/10 transition-colors">
                                     <ArrowPathRoundedSquareIcon className="w-5 h-5" />
                                 </div>
                                 <span className="text-xs font-medium">{post.repost_count || 0}</span>
@@ -357,14 +356,14 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => 
                                 className={`group/btn flex items-center gap-1.5 transition-colors ${post.user_vote === 'like' ? 'text-red-500' : 'text-text-tertiary-light dark:text-text-tertiary hover:text-red-500'}`}
                                 onClick={(e) => { e.stopPropagation(); handleVote('like'); }}
                             >
-                                <div className="p-2 rounded-full group-hover/btn:bg-red-500/10 transition-colors">
+                                <div className="p-1.5 rounded-full group-hover/btn:bg-red-500/10 transition-colors">
                                     {post.user_vote === 'like' ? <HeartSolid className="w-5 h-5" /> : <HeartOutline className="w-5 h-5" />}
                                 </div>
                                 <span className="text-xs font-medium">{post.like_count || 0}</span>
                             </button>
                             
                             <button 
-                                className="group/btn flex items-center justify-center p-2 rounded-full text-text-tertiary-light dark:text-text-tertiary hover:text-blue-500 hover:bg-blue-500/10 transition-all" 
+                                className="group/btn flex items-center justify-center p-1.5 rounded-full text-text-tertiary-light dark:text-text-tertiary hover:text-blue-500 hover:bg-blue-500/10 transition-all" 
                                 onClick={(e) => { e.stopPropagation(); setQuoteModalOpen(true); }}
                                 title="Quote Post"
                             >
@@ -374,7 +373,7 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => 
                             </button>
                             
                             <button 
-                                className={`group/btn flex items-center justify-center p-2 rounded-full transition-all ${post.is_bookmarked ? 'text-brand-green' : 'text-text-tertiary-light dark:text-text-tertiary hover:text-brand-green hover:bg-brand-green/10'}`}
+                                className={`group/btn flex items-center justify-center p-1.5 rounded-full transition-all ${post.is_bookmarked ? 'text-brand-green' : 'text-text-tertiary-light dark:text-text-tertiary hover:text-brand-green hover:bg-brand-green/10'}`}
                                 onClick={(e) => { e.stopPropagation(); handleBookmarkToggle(); }}
                             >
                                 {post.is_bookmarked ? <BookmarkSolid className="w-5 h-5" /> : <BookmarkIcon className="w-5 h-5" />}
