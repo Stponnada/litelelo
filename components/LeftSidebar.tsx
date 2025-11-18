@@ -1,6 +1,6 @@
 // src/components/LeftSidebar.tsx
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useChat } from '../hooks/useChat';
@@ -18,12 +18,10 @@ import {
   GlobeIcon,
   SearchIcon,
   InformationCircleIcon,
-  CalendarDaysIcon,
   QuestionMarkCircleIcon,
   ShieldCheckIcon,
   LockClosedIcon,
   SettingsCogIcon,
-  MapIcon,
 } from './icons';
 
 interface LeftSidebarProps {
@@ -43,9 +41,8 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const { profile } = useAuth();
   const { totalUnreadCount } = useChat();
   const { theme, toggleTheme } = useTheme();
-  const sidebarRef = React.useRef<HTMLElement | null>(null);
-  const collapseTimerRef = React.useRef<number | null>(null);
-  const [sidebarMode, setSidebarMode] = React.useState<'hover' | 'expanded' | 'collapsed'>('hover');
+  
+  const [sidebarMode, setSidebarMode] = useState<'hover' | 'expanded' | 'collapsed'>('hover');
 
   const handleSignOut = async () => {
     await supabase.auth.signOut({ scope: 'local' });
@@ -59,12 +56,14 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
   }) => (
     <Link
       to={to}
-      className="flex items-center p-3 my-1 space-x-4 rounded-lg text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary hover:text-text-main-light dark:hover:text-text-main transition-colors duration-200"
+      className="group flex items-center p-3 my-1 space-x-4 rounded-xl text-text-secondary-light dark:text-text-secondary hover:bg-brand-green/10 hover:text-brand-green transition-all duration-200"
     >
-      {icon}
+      <div className="flex-shrink-0 transition-colors duration-200 group-hover:text-brand-green">
+        {icon}
+      </div>
       <span
-        className={`whitespace-nowrap transform transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform will-change-opacity
-          ${isExpanded ? 'opacity-100 translate-x-0 delay-150' : 'opacity-0 -translate-x-3 delay-0'}
+        className={`whitespace-nowrap font-medium transition-all duration-300 origin-left
+          ${isExpanded ? 'opacity-100 translate-x-0 scale-100' : 'opacity-0 -translate-x-4 scale-95 w-0 overflow-hidden'}
         `}
       >
         {text}
@@ -72,196 +71,158 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
     </Link>
   );
 
-  // pointermove fallback: collapse sidebar if pointer leaves the visual bounds
-  // This helps when a full-screen overlay intercepts mouseleave events.
-  React.useEffect(() => {
-    const onPointerMove = (e: PointerEvent) => {
-      const el = sidebarRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      // if the pointer is outside the expanded bounds, request collapse after a short debounce
-      if (document.pointerLockElement) return; // ignore when pointer locked
-      const outside = e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom;
-      if (outside && sidebarMode === 'hover') {
-        if (collapseTimerRef.current == null) {
-          collapseTimerRef.current = window.setTimeout(() => {
-            // dispatch a synthetic collapse event that the component listens for below
-            window.dispatchEvent(new CustomEvent('litelelo:sidebar-collapse'));
-            collapseTimerRef.current = null;
-          }, 120) as unknown as number;
-        }
-      } else if (collapseTimerRef.current) {
-        window.clearTimeout(collapseTimerRef.current);
-        collapseTimerRef.current = null;
-      }
-    };
-
-    window.addEventListener('pointermove', onPointerMove);
-    return () => {
-      window.removeEventListener('pointermove', onPointerMove);
-      if (collapseTimerRef.current) {
-        window.clearTimeout(collapseTimerRef.current);
-        collapseTimerRef.current = null;
-      }
-    };
-  }, [sidebarMode]);
-
-  // listen for synthetic collapse events and collapse the sidebar
-  React.useEffect(() => {
-    const handler = () => { if (sidebarMode === 'hover') setIsExpanded(false); };
-    window.addEventListener('litelelo:sidebar-collapse', handler as EventListener);
-    return () => window.removeEventListener('litelelo:sidebar-collapse', handler as EventListener);
-  }, [setIsExpanded, sidebarMode]);
-
-  // enforce mode on mounted/changes
-  React.useEffect(() => {
-    if (sidebarMode === 'expanded') setIsExpanded(true);
-    if (sidebarMode === 'collapsed') setIsExpanded(false);
-  }, [sidebarMode, setIsExpanded]);
-
-  // initialize from localStorage and react to changes
-  React.useEffect(() => {
+  useEffect(() => {
     const key = 'litelelo.sidebarMode';
-    const fromStorage = (localStorage.getItem(key) as 'hover' | 'expanded' | 'collapsed' | null) || 'hover';
-    setSidebarMode(fromStorage);
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === key && e.newValue) {
-        setSidebarMode(e.newValue as any);
-      }
+    const fromStorage = localStorage.getItem(key) as 'hover' | 'expanded' | 'collapsed' | null;
+    if (fromStorage) {
+        setSidebarMode(fromStorage);
+        if (fromStorage === 'expanded') setIsExpanded(true);
+        if (fromStorage === 'collapsed') setIsExpanded(false);
+    }
+
+    const handleStorageChange = (e: StorageEvent) => {
+        if (e.key === key && e.newValue) setSidebarMode(e.newValue as any);
     };
-    const onCustom = (e: Event) => {
-      const value = (e as CustomEvent).detail as 'hover' | 'expanded' | 'collapsed';
-      if (value) setSidebarMode(value);
+    
+    const handleCustomChange = (e: Event) => {
+        const mode = (e as CustomEvent).detail;
+        setSidebarMode(mode);
+        if (mode === 'expanded') setIsExpanded(true);
+        if (mode === 'collapsed') setIsExpanded(false);
     };
-    window.addEventListener('storage', onStorage);
-    window.addEventListener('litelelo:sidebar-mode-changed', onCustom as EventListener);
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('litelelo:sidebar-mode-changed', handleCustomChange);
     return () => {
-      window.removeEventListener('storage', onStorage);
-      window.removeEventListener('litelelo:sidebar-mode-changed', onCustom as EventListener);
+        window.removeEventListener('storage', handleStorageChange);
+        window.removeEventListener('litelelo:sidebar-mode-changed', handleCustomChange);
     };
-  }, []);
+  }, [setIsExpanded]);
+
+  const handleMouseEnter = () => {
+    if (sidebarMode === 'hover') setIsExpanded(true);
+  };
+
+  const handleMouseLeave = () => {
+    if (sidebarMode === 'hover') setIsExpanded(false);
+  };
 
   return (
     <aside
-      // --- THIS IS THE FIX ---
-      // Added `hidden md:block` to ensure the sidebar only appears on medium screens and larger.
-      className={`hidden md:block fixed top-24 left-0 h-[calc(100vh-theme(space.24))] bg-gray-100 dark:bg-secondary border-r border-tertiary-light dark:border-tertiary z-30 overflow-visible transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-        isExpanded ? 'w-48' : 'w-20'
-      }`}
-      ref={(el) => (sidebarRef.current = el)}
-      onMouseEnter={() => {
-        // clear any pending collapse timer and expand
-        if (collapseTimerRef.current) {
-          window.clearTimeout(collapseTimerRef.current);
-          collapseTimerRef.current = null;
-        }
-        if (sidebarMode === 'hover') setIsExpanded(true);
-      }}
-      onMouseLeave={() => {
-        // normal collapse behavior on mouse leave unless pinned
-        if (sidebarMode === 'hover') setIsExpanded(false);
-      }}
+      className={`hidden md:flex flex-col fixed top-0 left-0 h-screen pt-20
+      bg-secondary-light/70 dark:bg-secondary/70 backdrop-blur-xl 
+      border-r border-tertiary-light/50 dark:border-tertiary/50 z-40
+      transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]
+      overflow-visible
+      ${isExpanded ? 'w-64 shadow-2xl' : 'w-20'}
+      `}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
-      <div className="flex flex-col h-full p-3 pt-6">
-        {/* Navigation Links */}
-        <nav className="flex-grow">
-          <NavLink to="/" icon={<HomeIcon className="w-7 h-7 flex-shrink-0" />} text="Home" />
-          <NavLink to="/campus" icon={<BuildingLibraryIcon className="w-7 h-7 flex-shrink-0" />} text="Campus" />
-          <NavLink to="/communities" icon={<UserGroupIcon className="w-7 h-7 flex-shrink-0" />} text="Communities" />
-          <NavLink to="/search" icon={<SearchIcon className="w-7 h-7 flex-shrink-0" />} text="Search" />
+      <div className="flex flex-col h-full p-3 overflow-visible">
+        {/* Navigation Links - Scrollable Area */}
+        <nav className="flex-grow space-y-1 overflow-y-auto overflow-x-hidden scrollbar-hide">
+          <NavLink to="/" icon={<HomeIcon className="w-7 h-7" />} text="Home" />
+          <NavLink to="/campus" icon={<BuildingLibraryIcon className="w-7 h-7" />} text="Campus" />
+          <NavLink to="/communities" icon={<UserGroupIcon className="w-7 h-7" />} text="Communities" />
+          <NavLink to="/search" icon={<SearchIcon className="w-7 h-7" />} text="Search" />
           <NavLink
             to="/chat"
             icon={
               <div className="relative">
-                <ChatIcon className="w-7 h-7 flex-shrink-0" />
+                <ChatIcon className="w-7 h-7" />
                 {totalUnreadCount > 0 && (
-                  <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-brand-green ring-2 ring-secondary-light dark:ring-secondary" />
+                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-green opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-brand-green"></span>
+                  </span>
                 )}
               </div>
             }
             text="Chat"
           />
-          <NavLink to="/directory" icon={<GlobeIcon className="w-7 h-7 flex-shrink-0" />} text="Directory" />
+          <NavLink to="/directory" icon={<GlobeIcon className="w-7 h-7" />} text="Directory" />
           {username && (
             <NavLink
               to={`/profile/${username}`}
-              icon={<UserIcon className="w-7 h-7 flex-shrink-0" />}
+              icon={<UserIcon className="w-7 h-7" />}
               text="Profile"
             />
           )}
         </nav>
 
-        {/* Profile + Settings */}
-        <div className="relative mt-auto group">
-          {/* Removed inline sidebar controls; moved to Settings page */}
-          <div className="absolute bottom-full left-0 w-full mb-2 bg-secondary-light dark:bg-primary border border-tertiary-light dark:border-tertiary rounded-lg shadow-lg py-1 transition-all duration-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible">
-            {profile?.username && (
-              <Link
-                to={`/profile/${profile.username}`}
-                className="flex items-center gap-3 px-4 py-2 text-sm text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary"
-              >
-                <UserIcon className="w-5 h-5" /> Profile
-              </Link>
-            )}
-            <button
-              onClick={toggleTheme}
-              className="w-full flex items-center justify-between px-4 py-2 text-sm text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary"
-            >
-              <span className="flex items-center gap-3">
-                {theme === 'light' ? <MoonIcon className="w-5 h-5" /> : <SunIcon className="w-5 h-5" />}
-                <span>{theme === 'light' ? 'Dark Mode' : theme === 'dark' ? 'Monochrome' : 'Lite Mode'}</span>
-              </span>
-            </button>
-            <button
-              onClick={onOpenAboutModal}
-              className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary"
-            >
-              <InformationCircleIcon className="w-5 h-5" />
-              <span>About</span>
-            </button>
-            <Link to="/settings" className="flex items-center gap-3 px-4 py-2 text-sm text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary">
-              <SettingsCogIcon className="w-5 h-5" /> Settings
-            </Link>
-            <div className="my-1 mx-2 h-px bg-tertiary-light/50 dark:bg-tertiary/50" />
-            <Link to="/help" className="flex items-center gap-3 px-4 py-2 text-sm text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary">
-              <QuestionMarkCircleIcon className="w-5 h-5" /> Help Center
-            </Link>
-            <Link to="/terms" className="flex items-center gap-3 px-4 py-2 text-sm text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary">
-              <ShieldCheckIcon className="w-5 h-5" /> Terms
-            </Link>
-            <Link to="/privacy" className="flex items-center gap-3 px-4 py-2 text-sm text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary">
-              <LockClosedIcon className="w-5 h-5" /> Privacy
-            </Link>
-            <div className="my-1 mx-2 h-px bg-tertiary-light/50 dark:bg-tertiary/50" />
-            <button
-              onClick={handleSignOut}
-              className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-red-500 hover:bg-red-500/10"
-            >
-              <LogoutIcon className="w-5 h-5" />
-              <span>Logout</span>
-            </button>
-          </div>
+        {/* Bottom Section - Profile & Menu */}
+        <div className="mt-auto pt-4 border-t border-tertiary-light/50 dark:border-white/5 pb-4">
+            <div className="relative group">
+                {/* Popover Menu - Adaptive Positioning */}
+                <div className={`
+                    absolute w-64 mb-2 p-2 z-50
+                    bg-secondary-light/95 dark:bg-[#0B101B]/95 backdrop-blur-xl
+                    border border-tertiary-light dark:border-white/10 
+                    rounded-2xl shadow-2xl 
+                    transition-all duration-200 
+                    opacity-0 invisible scale-95
+                    group-hover:opacity-100 group-hover:visible group-hover:scale-100
+                    ${!isExpanded 
+                        ? 'left-full bottom-0 ml-4 origin-bottom-left' // Collapsed: Pop Right
+                        : 'bottom-full left-0 mb-2 origin-bottom'      // Expanded: Pop Up
+                    }
+                `}>
+                    {profile?.username && (
+                        <Link to={`/profile/${profile.username}`} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-tertiary-light dark:hover:bg-white/5 transition-colors mb-1">
+                            <div className="w-10 h-10 rounded-full overflow-hidden border border-brand-green/30">
+                                <img src={profile.avatar_url || ''} alt="Profile" className="w-full h-full object-cover" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-bold text-text-main-light dark:text-text-main truncate">{profile.full_name}</p>
+                                <p className="text-xs text-text-tertiary-light dark:text-text-tertiary truncate">@{profile.username}</p>
+                            </div>
+                        </Link>
+                    )}
+                    
+                    <div className="space-y-1">
+                        <button onClick={toggleTheme} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-white/5 rounded-lg transition-colors">
+                            {theme === 'light' ? <MoonIcon className="w-5 h-5" /> : <SunIcon className="w-5 h-5" />}
+                            <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
+                        </button>
+                        <Link to="/settings" className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-white/5 rounded-lg transition-colors">
+                            <SettingsCogIcon className="w-5 h-5" /> Settings
+                        </Link>
+                        <Link to="/help" className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-white/5 rounded-lg transition-colors">
+                            <QuestionMarkCircleIcon className="w-5 h-5" /> Help Center
+                        </Link>
+                        <button onClick={onOpenAboutModal} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-white/5 rounded-lg transition-colors">
+                            <InformationCircleIcon className="w-5 h-5" /> About
+                        </button>
+                        <Link to="/terms" className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-white/5 rounded-lg transition-colors">
+                            <ShieldCheckIcon className="w-5 h-5" /> Terms
+                        </Link>
+                        <Link to="/privacy" className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-white/5 rounded-lg transition-colors">
+                            <LockClosedIcon className="w-5 h-5" /> Privacy
+                        </Link>
+                        <div className="h-px bg-tertiary-light dark:bg-white/10 my-1" />
+                        <button onClick={handleSignOut} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 rounded-lg transition-colors font-medium">
+                            <LogoutIcon className="w-5 h-5" /> Sign Out
+                        </button>
+                    </div>
+                </div>
 
-          {/* Profile Summary */}
-          <div className="flex items-center w-full p-2 space-x-3 rounded-full hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors cursor-pointer">
-            <img
-              src={profile?.avatar_url || ''}
-              alt="profile"
-              className="w-9 h-9 rounded-full object-cover flex-shrink-0"
-            />
-            <div
-              className={`flex-1 text-left min-w-0 transform transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-                isExpanded ? 'opacity-100 translate-x-0 delay-150' : 'opacity-0 -translate-x-3 delay-0'
-              }`}
-            >
-              <p className="font-bold text-sm text-text-main-light dark:text-text-main truncate">
-                {profile?.full_name}
-              </p>
-              <p className="text-xs text-text-tertiary-light dark:text-text-tertiary truncate">
-                @{profile?.username}
-              </p>
+                {/* User Avatar Button */}
+                <div className={`flex items-center p-2 rounded-xl hover:bg-brand-green/10 dark:hover:bg-white/5 cursor-pointer transition-all duration-300 ${!isExpanded ? 'justify-center' : ''}`}>
+                    <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-transparent group-hover:border-brand-green transition-all">
+                         <img
+                            src={profile?.avatar_url || ''}
+                            alt="profile"
+                            className="w-full h-full object-cover"
+                        />
+                    </div>
+                    
+                    <div className={`ml-3 overflow-hidden transition-all duration-300 ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}`}>
+                        <p className="text-sm font-bold text-text-main-light dark:text-text-main truncate max-w-[150px]">{profile?.full_name}</p>
+                        <p className="text-xs text-text-tertiary-light dark:text-text-tertiary truncate">@{profile?.username}</p>
+                    </div>
+                </div>
             </div>
-          </div>
         </div>
       </div>
     </aside>

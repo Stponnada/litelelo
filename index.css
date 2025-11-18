@@ -5,27 +5,34 @@
 
 @layer base {
   :root {
-    /* Light Theme (default) */
-    --color-brand-green: 0 255 155;
+    /* --- Refined Light Theme --- */
+    /* Signature Green #3cfba2 */
+    --color-brand-green: 60 251 162;
     --color-brand-green-darker: 47 174 133;
-    --color-primary-light: 248 250 252;
+    
+    /* Softer background (Slate-100) instead of harsh white */
+    --color-primary-light: 241 245 249;
     --color-secondary-light: 255 255 255;
     --color-tertiary-light: 226 232 240;
+    
+    /* High contrast text */
     --color-text-main-light: 15 23 42;
-    --color-text-secondary-light: 51 65 85;
-    --color-text-tertiary-light: 100 116 139;
+    --color-text-secondary-light: 71 85 105;
+    --color-text-tertiary-light: 148 163 184;
 
-    /* Dark variables (used in .dark) */
-    --color-primary: 2 6 23;
+    /* --- Deep Space Dark Theme --- */
+    /* Richer, deeper background (Almost black with blue tint) */
+    --color-primary: 3 7 18; 
     --color-secondary: 15 23 42;
     --color-tertiary: 30 41 59;
-    --color-text-main: 226 232 240;
+    
+    /* Softer text for dark mode */
+    --color-text-main: 248 250 252;
     --color-text-secondary: 148 163 184;
     --color-text-tertiary: 100 116 139;
   }
 
   html.dark.bw {
-    /* --- THIS IS THE UPDATED PART --- */
     /* Ultradark Monotone Overrides */
     --color-brand-green: 255 255 255; /* White */
     --color-brand-green-darker: 229 231 235; /* Gray-200 */
@@ -52,6 +59,8 @@ body {
   /* Use theme() to access config values */
   background-color: theme('colors.primary-light');
   color: theme('colors.text-main-light');
+  /* Smooth scrolling for the whole app */
+  scroll-behavior: smooth;
 }
 
 .dark body {
@@ -63,60 +72,73 @@ body {
 /* --- THEME-AWARE TEXT SELECTION --- */
 
 /* 1. Default Style (for Light Mode) */
-/* High-contrast, solid green background with dark text */
 ::selection {
-  background-color: #3cfba2; /* Solid brand-green */
-  color: #0f172a;             /* Dark text (from your theme) */
-  text-shadow: none;           /* No glow in light mode */
+  background-color: rgba(60, 251, 162, 0.3); /* Brand green with opacity */
+  color: #0f172a;
+  text-shadow: none;
 }
 ::-moz-selection {
-  background-color: #3cfba2;
+  background-color: rgba(60, 251, 162, 0.3);
   color: #0f172a;
   text-shadow: none;
 }
 
 /* 2. Dark Mode Override */
-/* This brings back the neon glow effect only when .dark is active */
-
 .dark ::selection {
-  background-color: rgba(132, 144, 160, 0.04); /* Visible grey box */
-  color: #3cfba2; /* Neon green text */
-  text-shadow: 
-    0 0 5px #3cfba2,
-    0 0 10px #3cfba2,
-    0 0 25px rgba(60, 251, 162, 0.252);
+  background-color: rgba(60, 251, 162, 0.15);
+  color: #3cfba2;
+  text-shadow: 0 0 10px rgba(60, 251, 162, 0.4);
 }
 .dark ::-moz-selection {
-  background-color: rgba(148, 163, 184, 0.3);
+  background-color: rgba(60, 251, 162, 0.15);
   color: #3cfba2;
-  text-shadow: 
-    0 0 5px #3cfba2,
-    0 0 10px #3cfba2,
-    0 0 25px rgba(60, 251, 162, 0.3);
+  text-shadow: 0 0 10px rgba(60, 251, 162, 0.4);
 }
 
 /* 3. Black & White Mode Override */
 .dark.bw ::selection {
-  background-color: #ffffff; /* White */
-  color: #000000;             /* Black */
-  text-shadow: none;
-}
-.dark.bw ::-moz-selection {
-  background-color: #ffffff;
-  color: #000000;
+  background-color: #333;
+  color: #fff;
   text-shadow: none;
 }
 
-
-/* FIX for images disappearing on selection (works for both themes) */
+/* FIX for images disappearing on selection */
 img::selection, img::-moz-selection {
   background-color: transparent;
   text-shadow: none;
 }
-/* ------------------------------------- */
 
+/* --- UTILITIES --- */
+@layer utilities {
+  /* Hide scrollbar but allow scrolling */
+  .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+  }
+  .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+  }
 
-/* --- NEW: FullCalendar Theming --- */
+  /* Standardized Glassmorphism Panel */
+  .glass-panel {
+    @apply bg-secondary-light/70 dark:bg-secondary/70 backdrop-blur-xl border border-white/20 dark:border-white/5 shadow-xl;
+  }
+}
+
+/* --- BACKGROUND TEXTURE (The "Magic Fix") --- */
+.bg-texture {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  opacity: 0.4; /* Subtle grain */
+}
+
+/* --- FULLCALENDAR THEMING --- */
 :root {
   --fc-border-color: theme('colors.tertiary-light');
   --fc-daygrid-event-dot-width: 8px;
@@ -144,28 +166,15 @@ img::selection, img::-moz-selection {
   --fc-button-active-bg-color: #4b5563;
   --fc-today-bg-color: rgba(60, 251, 162, 0.05);
 }
-/* --- END NEW --- */
 
-
+/* --- ANIMATIONS --- */
 @keyframes circuitFlowSmooth {
-  0% {
-    background-position: 0% 0%;
-    opacity: 0.6;
-  }
-  50% {
-    background-position: 100% 100%;
-    opacity: 0.8;
-  }
-  100% {
-    background-position: 0% 0%;
-    opacity: 0.6;
-  }
+  0% { background-position: 0% 0%; opacity: 0.6; }
+  50% { background-position: 100% 100%; opacity: 0.8; }
+  100% { background-position: 0% 0%; opacity: 0.6; }
 }
 
-/* --- UPDATED ANIMATION STYLES --- */
-.text-neon-green {
-  color: #00ff96;
-}
+.text-neon-green { color: #00ff96; }
 
 @keyframes neon-glitch-pulse {
   0%, 100% {
@@ -191,16 +200,10 @@ img::selection, img::-moz-selection {
 .animate-neon-glitch {
   animation: neon-glitch-pulse 1.5s infinite alternate;
 }
-/* --- END OF CHANGES --- */
 
-/* --- NEW SPINNER ANIMATION --- */
 @keyframes swing {
-  0% {
-    transform: rotate(-15deg);
-  }
-  100% {
-    transform: rotate(15deg);
-  }
+  0% { transform: rotate(-15deg); }
+  100% { transform: rotate(15deg); }
 }
 
 .animate-swing {
@@ -208,26 +211,11 @@ img::selection, img::-moz-selection {
   transform-origin: center 40%;
 }
 
-/* --- THIS IS THE FIX --- */
-@layer utilities {
-  /* Hide scrollbar for Chrome, Safari and Opera */
-  .scrollbar-hide::-webkit-scrollbar {
-      display: none;
-  }
-
-  /* Hide scrollbar for IE, Edge and Firefox */
-  .scrollbar-hide {
-      -ms-overflow-style: none;  /* IE and Edge */
-      scrollbar-width: none;  /* Firefox */
-  }
-}
-
 @keyframes pulse-subtle {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
-  50% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(60, 251, 162, 0.4); }
+  50% { box-shadow: 0 0 0 10px rgba(60, 251, 162, 0); }
 }
+
 .animate-pulse-subtle {
   animation: pulse-subtle 2s infinite;
 }
-
-

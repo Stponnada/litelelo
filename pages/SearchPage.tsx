@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import { SearchResults as SearchResultsType, UserSearchResult, PostSearchResult, CommunitySearchResult, ListingSearchResult, EventSearchResult } from '../types';
+import { LockClosedIcon } from '../components/icons';
 import Spinner from '../components/Spinner';
 import { format } from 'date-fns';
 
@@ -162,24 +163,21 @@ const SearchPage: React.FC = () => {
     };
 
     return (
-        <div className="max-w-4xl mx-auto">
-            <h1 className="text-3xl font-bold mb-4 text-text-main-light dark:text-text-main">Search</h1>
-            <div className="relative mb-4">
-                <input
-                    type="text"
-                    placeholder="Search for anything..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-secondary-light dark:bg-secondary border border-tertiary-light dark:border-tertiary rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green"
-                    autoFocus
-                />
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+        <div className="max-w-3xl mx-auto py-12 px-6">
+            <div className="text-center mb-12">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-brand-green/10 text-brand-green mb-6 rotate-3">
+                    <LockClosedIcon className="w-10 h-10" />
                 </div>
+                <h1 className="text-5xl font-black font-raleway text-text-main-light dark:text-text-main tracking-tight">
+                    Privacy Policy
+                </h1>
+                <div className="h-1 w-20 bg-brand-green mx-auto mt-6 rounded-full"></div>
             </div>
 
-            <div className="bg-secondary-light dark:bg-secondary rounded-lg border border-tertiary-light dark:border-tertiary">
-                {renderResults()}
+            <div className="bg-secondary-light/50 dark:bg-secondary/50 backdrop-blur-sm rounded-3xl p-8 md:p-12 border border-tertiary-light dark:border-tertiary shadow-2xl">
+                <div className="prose prose-lg dark:prose-invert max-w-none">
+                    {/* Your existing content goes here, styled with Tailwind typography plugin if available, or standard tags */}
+                </div>
             </div>
         </div>
     );

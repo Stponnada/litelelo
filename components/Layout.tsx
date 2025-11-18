@@ -20,32 +20,6 @@ const Layout = () => {
   const isChatPage = location.pathname.startsWith('/chat');
 
   useEffect(() => {
-    if (!isChatPage) return;
-    // Diagnostic: list all elements that might block interactions
-    try {
-      const candidates = Array.from(document.querySelectorAll('body *'))
-        .filter(el => {
-          const style = window.getComputedStyle(el as Element);
-          return (style.position === 'fixed' || style.position === 'absolute') && (style.zIndex && parseInt(style.zIndex || '0') >= 20);
-        })
-        .map(el => {
-          const rect = (el as Element).getBoundingClientRect();
-          const style = window.getComputedStyle(el as Element);
-          return {
-            tag: (el as Element).tagName,
-            class: (el as Element).className,
-            z: style.zIndex,
-            pointerEvents: style.pointerEvents,
-            rect: { x: rect.x, y: rect.y, w: rect.width, h: rect.height }
-          };
-        });
-      console.info('Overlay diagnostics (mounted on /chat):', candidates);
-    } catch (e) {
-      console.error('Overlay diagnostics failed:', e);
-    }
-  }, [isChatPage]);
-
-  useEffect(() => {
     const fetchUsername = async () => {
       if (user) {
         const { data } = await supabase.from('profiles').select('username').eq('user_id', user.id).single();
@@ -56,13 +30,14 @@ const Layout = () => {
   }, [user]);
 
   return (
-    <div>
+    <div className="min-h-screen bg-primary-light dark:bg-primary">
+      {/* Background Texture */}
+      <div className="bg-texture"></div>
+
       {isAboutModalOpen && <AboutModal onClose={() => setIsAboutModalOpen(false)} />}
       
-      {/* A single Header component handles both mobile and desktop */}
       <Header isSidebarExpanded={isSidebarExpanded} onOpenAboutModal={() => setIsAboutModalOpen(true)} />
       
-      {/* Sidebar is hidden on mobile by default */}
       <LeftSidebar 
         isExpanded={isSidebarExpanded} 
         setIsExpanded={setIsSidebarExpanded} 
@@ -70,18 +45,26 @@ const Layout = () => {
         onOpenAboutModal={() => setIsAboutModalOpen(true)}
       />
 
+      {/* 
+         FIXED: Padding logic 
+         - Mobile: pt-16 (for header) pb-20 (for bottom nav)
+         - Desktop: pt-20 (header). pl-20 (collapsed sidebar) or pl-64 (expanded sidebar)
+      */}
       <main 
-        className={`pt-16 md:pt-24 transition-all duration-300 ease-in-out 
-                    pb-20 md:pb-0
-                    ${isSidebarExpanded ? 'md:pl-48' : 'md:pl-20'}`}
+        className={`
+          min-h-screen
+          pt-16 md:pt-20 
+          pb-20 md:pb-0
+          transition-all duration-300 ease-in-out 
+          ${isSidebarExpanded ? 'md:pl-64' : 'md:pl-20'}
+        `}
       >
-        <div className={isChatPage ? '' : 'p-4 md:p-6'}> {/* Adjusted padding for consistency */}
+        <div className={isChatPage ? 'h-full' : 'p-4 md:p-8 max-w-7xl mx-auto'}>
           <Outlet />
         </div>
       </main>
 
       <BottomNavBar />
-      {/*<FloatingFooter onOpenAboutModal={() => setIsAboutModalOpen(true)} />*/}
     </div>
   );
 };
