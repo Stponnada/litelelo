@@ -47,6 +47,7 @@ const BlockchainPage = React.lazy(() => import('./pages/BlockchainPage'));
 const PasswordResetPage = React.lazy(() => import('./pages/PasswordResetPage'));
 const SettingsPage = React.lazy(() => import('./pages/SettingsPage'));
 const CampusMapPage = React.lazy(() => import('./pages/CampusMapPage'));
+const LandingPage = React.lazy(() => import('./pages/LandingPage'));
 
 // --- NEWLY ADDED IMPORTS ---
 const MarketplaceItemPage = React.lazy(() => import('./pages/MarketplaceItemPage'));
@@ -79,9 +80,10 @@ const AppRoutes = () => {
   if (!user) {
     return (
       <Routes>
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/password-reset" element={<PasswordResetPage />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     );
   }
