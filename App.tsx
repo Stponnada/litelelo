@@ -86,13 +86,17 @@ const AppRoutes = () => {
     );
   }
 
-  if (user && !profile?.profile_complete) {
-     return (
-        <Routes>
-            <Route path="/setup" element={<ProfileSetup />} />
-            <Route path="*" element={<Navigate to="/setup" replace />} />
-        </Routes>
-     )
+  if (user && !profile) {
+    return <FullPageSpinner />;
+  }
+
+  if (user && profile && !profile.profile_complete) {
+    return (
+      <Routes>
+        <Route path="/setup" element={<ProfileSetup />} />
+        <Route path="*" element={<Navigate to="/setup" replace />} />
+      </Routes>
+    )
   }
 
   return (
@@ -108,11 +112,11 @@ const AppRoutes = () => {
         <Route path="/campus/reviews" element={<CampusDirectoryPage />} />
         <Route path="/campus/reviews/:placeId" element={<PlaceDetailPage />} />
         <Route path="/campus/noticeboard" element={<NoticeboardPage />} />
-        
+
         {/* --- MODIFIED ROUTES SECTION --- */}
         <Route path="/campus/lost-and-found" element={<LostAndFoundPage />} />
         <Route path="/campus/lost-and-found/:itemId" element={<LostAndFoundItemPage />} /> {/* NEW */}
-        
+
         <Route path="/campus/marketplace" element={<MarketplacePage />} />
         <Route path="/campus/marketplace/:listingId" element={<MarketplaceItemPage />} /> {/* NEW */}
         {/* ----------------------------- */}
@@ -131,7 +135,7 @@ const AppRoutes = () => {
         <Route path="/chat/group/:conversationId" element={<GroupInfoPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/help" element={<HelpCenterPage />} />
-        <Route path="/terms" element={<TermsPage />} /> 
+        <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
