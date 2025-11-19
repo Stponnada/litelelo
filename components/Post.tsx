@@ -215,7 +215,7 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => 
                 
                 {/* Main Post Content - Reduced Padding */}
                 <div className={`p-3.5 ${post.reposted_by ? 'pt-2.5' : ''}`}>
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-start gap-3 mb-2">
                         {/* Avatar - Smaller Size */}
                         <Link to={authorLink} onClick={e => e.stopPropagation()} className="flex-shrink-0 relative group/avatar">
                             <img
@@ -274,63 +274,63 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => 
                                     </div>
                                 )}
                             </div>
-                            
-                            {/* Content */}
-                            {isEditing ? (
-                                <div className="mt-2" onClick={e => e.stopPropagation()}>
-                                    <textarea 
-                                        value={editedContent}
-                                        onChange={(e) => setEditedContent(e.target.value)}
-                                        className="w-full bg-tertiary-light dark:bg-tertiary p-2 rounded-lg border-2 border-transparent focus:border-brand-green/50 outline-none transition-all text-sm"
-                                        rows={3}
-                                        autoFocus
-                                    />
-                                    <div className="flex justify-end gap-2 mt-2">
-                                        <button onClick={handleCancelEdit} className="px-3 py-1.5 text-xs font-medium rounded-lg hover:bg-tertiary-light dark:hover:bg-white/10">Cancel</button>
-                                        <button onClick={handleSaveEdit} className="px-3 py-1.5 text-xs font-bold rounded-lg bg-brand-green text-black hover:bg-brand-green-darker">Save</button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="mt-1.5">
-                                    {post.is_deleted ? (
-                                        <div className="p-3 rounded-lg bg-tertiary-light/30 dark:bg-white/5 border border-dashed border-tertiary-light dark:border-white/10">
-                                            <p className="italic text-xs text-text-tertiary-light dark:text-text-tertiary text-center">{post.content}</p>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <div className="text-text-main-light dark:text-text-main text-sm leading-relaxed whitespace-pre-wrap font-normal">
-                                                {renderContentWithEmbeds(post.content)}
-                                            </div>
-                                            
-                                            {post.quoted_post && <QuotePostDisplay post={post.quoted_post} />}
-
-                                            {post.image_url && (
-                                                <div className={`mt-2.5 rounded-lg overflow-hidden border border-tertiary-light dark:border-white/10 shadow-sm bg-black/5 dark:bg-black/20 ${isTallImage ? 'max-w-xs' : 'w-full'}`}>
-                                                    <button 
-                                                        onClick={(e) => { e.stopPropagation(); if (onImageClick) { onImageClick(post.image_url!); } }} 
-                                                        className="w-full block cursor-zoom-in"
-                                                    >
-                                                        <img 
-                                                            src={post.image_url} 
-                                                            alt="Post content" 
-                                                            className="w-full h-auto object-contain max-h-[400px]" 
-                                                            loading="lazy"
-                                                        />
-                                                    </button>
-                                                </div>
-                                            )}
-
-                                            {post.poll && <PollComponent poll={post.poll} postId={post.id} />}
-                                        </>
-                                    )}
-                                </div>
-                            )}
                         </div>
                     </div>
+                            
+                    {/* Content */}
+                    {isEditing ? (
+                        <div className="mt-2" onClick={e => e.stopPropagation()}>
+                            <textarea 
+                                value={editedContent}
+                                onChange={(e) => setEditedContent(e.target.value)}
+                                className="w-full bg-tertiary-light dark:bg-tertiary p-2 rounded-lg border-2 border-transparent focus:border-brand-green/50 outline-none transition-all text-sm"
+                                rows={3}
+                                autoFocus
+                            />
+                            <div className="flex justify-end gap-2 mt-2">
+                                <button onClick={handleCancelEdit} className="px-3 py-1.5 text-xs font-medium rounded-lg hover:bg-tertiary-light dark:hover:bg-white/10">Cancel</button>
+                                <button onClick={handleSaveEdit} className="px-3 py-1.5 text-xs font-bold rounded-lg bg-brand-green text-black hover:bg-brand-green-darker">Save</button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="mt-1.5">
+                            {post.is_deleted ? (
+                                <div className="p-3 rounded-lg bg-tertiary-light/30 dark:bg-white/5 border border-dashed border-tertiary-light dark:border-white/10">
+                                    <p className="italic text-xs text-text-tertiary-light dark:text-text-tertiary text-center">{post.content}</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="text-text-main-light dark:text-text-main text-sm leading-relaxed whitespace-pre-wrap font-normal">
+                                        {renderContentWithEmbeds(post.content)}
+                                    </div>
+                                    
+                                    {post.quoted_post && <QuotePostDisplay post={post.quoted_post} />}
+
+                                    {post.image_url && (
+                                        <div className={`mt-2.5 rounded-lg overflow-hidden border border-tertiary-light dark:border-white/10 shadow-sm bg-black/5 dark:bg-black/20 ${isTallImage ? 'max-w-xs' : 'w-full'}`}>
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); if (onImageClick) { onImageClick(post.image_url!); } }} 
+                                                className="w-full block cursor-zoom-in"
+                                            >
+                                                <img 
+                                                    src={post.image_url} 
+                                                    alt="Post content" 
+                                                    className="w-full h-auto object-contain max-h-[400px]" 
+                                                    loading="lazy"
+                                                />
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {post.poll && <PollComponent poll={post.poll} postId={post.id} />}
+                                </>
+                            )}
+                        </div>
+                    )}
 
                     {/* Action Bar - Compact & Fixed Icons */}
                     {!isEditing && !post.is_deleted && (
-                        <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-tertiary-light/50 dark:border-white/5 max-w-md">
+                        <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-tertiary-light/50 dark:border-white/5 w-full">
                             <Link 
                                 to={`/post/${post.id}`} 
                                 onClick={(e) => e.stopPropagation()} 
