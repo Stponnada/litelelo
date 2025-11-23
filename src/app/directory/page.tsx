@@ -186,7 +186,7 @@ const DirectoryPage: React.FC = () => {
         // For now, let's just navigate to chat page. The chat page should handle selecting the user if passed via query param.
         // Or we can just navigate to /chat and let the user select.
         // Let's try to pass recipientId as query param.
-        router.push(`/chat?recipientId=${profile.id}`);
+        router.push(`/chat?recipientId=${profile.user_id}`);
     };
 
     // --- Dynamic Filter Options ---
@@ -435,7 +435,7 @@ const DirectoryPage: React.FC = () => {
                                         profile={profile}
                                         isCurrentUser={currentUser?.id === profile.id}
                                         isToggling={togglingFollowId === profile.id}
-                                        onFollowToggle={handleFollowToggle}
+                                        onFollowToggle={(p) => handleFollowToggle(p as DirectoryProfile)}
                                         onMessage={() => handleMessageUser(profile as any)}
                                     />
                                 </div>

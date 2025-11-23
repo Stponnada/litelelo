@@ -300,11 +300,11 @@ const ProfilePage: React.FC = () => {
         try {
             // Promise for profile user's friends
             const profileFriendsPromise = supabase.rpc('get_mutual_followers', { p_user_id: profile.user_id });
-            
+
             // Promise for current user's friends (if not viewing own profile)
             const isOwnProfile = profile.user_id === currentUser.id;
-            const currentUserFriendsPromise = isOwnProfile 
-                ? Promise.resolve({ data: null, error: null }) 
+            const currentUserFriendsPromise = isOwnProfile
+                ? Promise.resolve({ data: null, error: null })
                 : supabase.rpc('get_mutual_followers', { p_user_id: currentUser.id });
 
             const [profileFriendsResult, currentUserFriendsResult] = await Promise.all([profileFriendsPromise, currentUserFriendsPromise]);
@@ -312,14 +312,14 @@ const ProfilePage: React.FC = () => {
             if (profileFriendsResult.error) throw profileFriendsResult.error;
             const profileFriends = profileFriendsResult.data || [];
             setFriends(profileFriends);
-            
+
             if (currentUserFriendsResult.error) throw currentUserFriendsResult.error;
 
             if (!isOwnProfile) {
                 const currentUserFriends = currentUserFriendsResult.data || [];
                 // Find the intersection
-                const mutuals = profileFriends.filter(profileFriend =>
-                    currentUserFriends.some(currentUserFriend => currentUserFriend.user_id === profileFriend.user_id)
+                const mutuals = profileFriends.filter((profileFriend: Friend) =>
+                    currentUserFriends.some((currentUserFriend: Friend) => currentUserFriend.user_id === profileFriend.user_id)
                 );
                 setMutualFriends(mutuals);
             } else {

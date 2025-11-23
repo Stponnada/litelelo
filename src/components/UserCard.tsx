@@ -50,18 +50,22 @@ const getRandomColor = (name: string) => {
 };
 
 interface UserCardProps {
-  profile: DirectoryProfile;
+  profile: DirectoryProfile | Profile;
   isCurrentUser: boolean;
   isToggling: boolean;
-  onFollowToggle: (profile: DirectoryProfile) => void;
+  onFollowToggle: (profile: DirectoryProfile | Profile) => void;
   onMessage: (profile: Profile) => void;
 }
 
 const UserCard: React.FC<UserCardProps> = ({ profile, isCurrentUser, isToggling, onFollowToggle, onMessage }) => {
-  const isCommunity = profile.type === 'community';
+  // Normalize properties
+  const isCommunity = 'type' in profile ? profile.type === 'community' : false;
+  const id = 'id' in profile ? profile.id : profile.user_id;
+  const name = 'name' in profile ? profile.name : profile.full_name;
+  const memberCount = 'member_count' in profile ? profile.member_count : null;
 
   const linkTo = isCommunity
-    ? `/communities/${profile.id}`
+    ? `/communities/${id}`
     : `/profile/${profile.username}`;
 
   return (
@@ -79,13 +83,13 @@ const UserCard: React.FC<UserCardProps> = ({ profile, isCurrentUser, isToggling,
         {profile.avatar_url ? (
           <img
             src={getResizedAvatarUrl(profile.avatar_url, 80, 80)}
-            alt={profile.name || 'avatar'}
+            alt={name || 'avatar'}
             className="w-10 h-10 rounded-full object-cover border-2 border-tertiary-light dark:border-tertiary"
             loading="lazy"
           />
         ) : (
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm border-2 border-tertiary-light dark:border-tertiary ${getRandomColor(profile.name || 'User')}`}>
-            {getInitials(profile.name || 'User')}
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm border-2 border-tertiary-light dark:border-tertiary ${getRandomColor(name || 'User')}`}>
+            {getInitials(name || 'User')}
           </div>
         )}
       </Link>
@@ -93,7 +97,7 @@ const UserCard: React.FC<UserCardProps> = ({ profile, isCurrentUser, isToggling,
       <div className="flex-1 text-left min-w-0">
         {/* FIXED: Link href */}
         <Link href={linkTo}>
-          <h3 className="text-base sm:text-lg font-bold text-text-main-light dark:text-text-main hover:text-brand-green truncate">{profile.name}</h3>
+          <h3 className="text-base sm:text-lg font-bold text-text-main-light dark:text-text-main hover:text-brand-green truncate">{name}</h3>
         </Link>
 
         {!isCommunity && profile.username && (
@@ -104,7 +108,7 @@ const UserCard: React.FC<UserCardProps> = ({ profile, isCurrentUser, isToggling,
           {isCommunity ? (
             <div className="flex items-center gap-1">
               <UserGroupIcon className="w-4 h-4" />
-              <strong>{profile.member_count}</strong> members
+              <strong>{memberCount}</strong> members
             </div>
           ) : (
             <div className="flex items-center gap-1">
@@ -117,7 +121,7 @@ const UserCard: React.FC<UserCardProps> = ({ profile, isCurrentUser, isToggling,
       {!isCurrentUser && !isCommunity && (
         <div className="flex flex-row gap-2 ml-auto flex-shrink-0">
           <button
-            onClick={() => onMessage(profile as any)}
+            onClick={() => onMessage(profile as Profile)}
             aria-label="Send message"
             className="w-9 h-9 flex items-center justify-center rounded-lg bg-tertiary-light/70 dark:bg-tertiary/70 text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors"
           >

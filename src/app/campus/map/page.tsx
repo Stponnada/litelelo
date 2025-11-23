@@ -78,8 +78,8 @@ const MapControls: React.FC<{ onToggleLegend: () => void; isLegendOpen: boolean 
             <button
                 onClick={onToggleLegend}
                 className={`p-3 rounded-2xl shadow-xl border backdrop-blur-xl transition-all duration-200 ${isLegendOpen
-                        ? 'bg-brand-green text-black border-brand-green'
-                        : 'bg-secondary-light/90 dark:bg-secondary/90 text-text-main-light dark:text-text-main border-white/20 dark:border-white/10 hover:bg-brand-green/10'
+                    ? 'bg-brand-green text-black border-brand-green'
+                    : 'bg-secondary-light/90 dark:bg-secondary/90 text-text-main-light dark:text-text-main border-white/20 dark:border-white/10 hover:bg-brand-green/10'
                     }`}
             >
                 <LayersIcon className="w-6 h-6" />
@@ -113,7 +113,9 @@ const CampusMapPage = () => {
             .on('postgres_changes', { event: '*', schema: 'public', table: 'user_locations' }, fetchFriendLocations)
             .subscribe();
 
-        return () => subscription.unsubscribe();
+        return () => {
+            subscription.unsubscribe();
+        };
     }, []);
 
     // Geolocation tracking

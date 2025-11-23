@@ -74,9 +74,9 @@ const PlaceWidget: React.FC<{ places: CampusPlace[] }> = ({ places }) => (
 const MarketWidget: React.FC<{ listing: MarketplaceListing | null }> = ({ listing }) => (
     <div className="h-full flex flex-col relative">
         {/* Background Image for both modes, lighter in light mode */}
-        {listing?.image_urls?.[0] && (
+        {listing?.all_images?.[0] && (
             <div className="absolute inset-0 z-0">
-                <img src={listing.image_urls[0]} className="w-full h-full object-cover opacity-[0.08] dark:opacity-20 group-hover:scale-110 transition-all duration-700 grayscale group-hover:grayscale-0" alt="" />
+                <img src={listing.all_images[0]} className="w-full h-full object-cover opacity-[0.08] dark:opacity-20 group-hover:scale-110 transition-all duration-700 grayscale group-hover:grayscale-0" alt="" />
                 <div className="absolute inset-0 bg-gradient-to-t from-white via-white/50 to-transparent dark:from-zinc-900 dark:via-zinc-900/50 dark:to-transparent" />
             </div>
         )}

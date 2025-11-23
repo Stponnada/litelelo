@@ -62,7 +62,7 @@ const CommunityPage: React.FC = () => {
             const [communityResult, postsResult, subcommunitiesResult] = await Promise.all([communityPromise, postsPromise, subcommunitiesPromise]);
 
             if (communityResult.error) throw communityResult.error;
-            setCommunity(communityResult.data);
+            setCommunity(communityResult.data as CommunityDetailsType);
 
             if (postsResult.error) throw postsResult.error;
             setPosts((postsResult.data as any) || []);
@@ -384,8 +384,8 @@ const SubcommunityLink: React.FC<{ label?: string, subcommunity?: Subcommunity, 
                 {subcommunity?.access_type === 'restricted' && <LockClosedIcon className="w-3 h-3 text-text-tertiary-light dark:text-text-tertiary flex-shrink-0" />}
             </div>
             {!isChannel && !subcommunity?.is_member && onJoinToggle && (
-                <button onClick={handleJoinClick} disabled={subcommunity.has_pending_request} className={`text-xs font-bold px-2 py-1 rounded-md transition-colors ${subcommunity.has_pending_request ? 'text-text-tertiary-light dark:text-text-tertiary' : 'text-brand-green hover:bg-brand-green/10'}`}>
-                    {subcommunity.has_pending_request ? 'Pending' : 'Join'}
+                <button onClick={handleJoinClick} disabled={subcommunity?.has_pending_request} className={`text-xs font-bold px-2 py-1 rounded-md transition-colors ${subcommunity?.has_pending_request ? 'text-text-tertiary-light dark:text-text-tertiary' : 'text-brand-green hover:bg-brand-green/10'}`}>
+                    {subcommunity?.has_pending_request ? 'Pending' : 'Join'}
                 </button>
             )}
         </div>

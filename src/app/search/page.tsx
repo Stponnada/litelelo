@@ -147,7 +147,10 @@ const SearchPage: React.FC = () => {
                                 <div key={key} className="p-4">
                                     {activeTab === 'all' && <h3 className="font-bold mb-2 text-text-main-light dark:text-text-main">{title}</h3>}
                                     <div className="space-y-1">
-                                        {data.map((item: any) => <Component key={item.id || item.username} {...{ [propName]: item }} />)}
+                                        {data.map((item: any) => {
+                                            const props = { [propName]: item };
+                                            return <Component key={item.id || item.username} {...props as any} />;
+                                        })}
                                     </div>
                                 </div>
                             );

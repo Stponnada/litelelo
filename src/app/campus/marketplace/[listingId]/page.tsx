@@ -120,8 +120,14 @@ const MarketplaceItemPage: React.FC = () => {
                 <CreateListingModal
                     campus={profile.campus}
                     onClose={() => setIsEditing(false)}
+                    onListingCreated={() => { }}
                     onListingUpdated={(updated) => {
-                        setListing(prev => prev ? { ...prev, ...updated } : null);
+                        setListing(prev => prev ? {
+                            ...prev,
+                            ...updated,
+                            seller_id: prev.seller_id,
+                            marketplace_images: (updated as any).marketplace_images || prev.marketplace_images
+                        } : null);
                         setActiveImage(updated.all_images?.[0] || null);
                         setIsEditing(false);
                     }}
@@ -173,7 +179,7 @@ const MarketplaceItemPage: React.FC = () => {
                             <p className="text-xs font-bold uppercase text-text-tertiary-light dark:text-text-tertiary mb-3 tracking-wider">Seller Information</p>
                             <div className="flex items-center justify-between">
                                 <Link href={`/profile/${seller.username}`} className="flex items-center gap-3 group">
-                                    <img src={seller.avatar_url} alt={seller.username} className="w-12 h-12 rounded-full ring-2 ring-tertiary group-hover:ring-brand-green transition-all" />
+                                    <img src={seller.avatar_url || 'https://ui-avatars.com/api/?background=random'} alt={seller.username} className="w-12 h-12 rounded-full ring-2 ring-tertiary group-hover:ring-brand-green transition-all" />
                                     <div>
                                         <p className="font-bold text-text-main-light dark:text-text-main group-hover:text-brand-green transition-colors">{seller.full_name}</p>
                                         <p className="text-sm text-text-secondary-light dark:text-text-secondary">@{seller.username}</p>
@@ -181,7 +187,7 @@ const MarketplaceItemPage: React.FC = () => {
                                 </Link>
                                 <div className="flex items-center gap-1 text-yellow-400 bg-yellow-400/10 px-3 py-1.5 rounded-full border border-yellow-400/20">
                                     <StarIcon className="w-4 h-4" />
-                                    <span className="text-sm font-bold">{seller.avg_seller_rating.toFixed(1)}</span>
+                                    <span className="text-sm font-bold">{(seller.avg_seller_rating || 0).toFixed(1)}</span>
                                     <span className="text-xs">({seller.total_seller_ratings})</span>
                                 </div>
                             </div>

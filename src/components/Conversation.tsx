@@ -781,7 +781,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                             return (
                                 <div
                                     key={msg.id}
-                                    ref={el => messageRefs.current.set(msg.id, el)}
+                                    ref={el => { messageRefs.current.set(msg.id, el); }}
                                     className={`group flex items-end gap-2 w-full ${isOwn ? 'justify-end' : 'justify-start'} ${isSending ? 'opacity-60' : ''}`}
                                 >
                                     {!isOwn && msg.profiles && (

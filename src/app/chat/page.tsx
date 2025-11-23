@@ -58,8 +58,7 @@ const ChatPage: React.FC = () => {
                             last_message_at: null,
                             last_message_sender_id: null,
                             unread_count: 0,
-                            created_at: new Date().toISOString(),
-                            updated_at: new Date().toISOString()
+                            name: null
                         };
                         setPlaceholderConversation(newPlaceholder);
                         setSelectedConversationId(newPlaceholder.conversation_id);

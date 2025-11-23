@@ -101,9 +101,8 @@ const FollowListModal: React.FC<FollowListModalProps> = ({ profile, listType, on
                   profile={p}
                   isCurrentUser={currentUser?.id === p.user_id}
                   isToggling={togglingFollowId === p.user_id}
-                  onFollowToggle={handleFollowToggle}
+                  onFollowToggle={(p) => handleFollowToggle(p as Profile)}
                   onMessage={handleMessageUser}
-                  listType={listType}
                 />
               ))}
             </div>

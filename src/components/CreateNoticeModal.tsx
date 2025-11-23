@@ -21,7 +21,7 @@ const CreateNoticeModal: React.FC<CreateNoticeModalProps> = ({ campus, onClose, 
 
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
-    
+
     const [existingFiles, setExistingFiles] = useState<CampusNoticeFile[]>([]);
     const [filesToUpload, setFilesToUpload] = useState<File[]>([]);
     const [filesToDelete, setFilesToDelete] = useState<string[]>([]);
@@ -40,7 +40,7 @@ const CreateNoticeModal: React.FC<CreateNoticeModalProps> = ({ campus, onClose, 
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
-            setFilesToUpload(prev => [...prev, ...Array.from(e.target.files)]);
+            setFilesToUpload(prev => [...prev, ...Array.from(e.target.files!)]);
         }
     };
 
@@ -55,7 +55,7 @@ const CreateNoticeModal: React.FC<CreateNoticeModalProps> = ({ campus, onClose, 
 
     const uploadFiles = async (files: File[], noticeId: string) => {
         if (files.length === 0) return [];
-        
+
         const uploadPromises = files.map(async file => {
             const fileExt = file.name.split('.').pop();
             const filePath = `${user!.id}/noticeboard/${noticeId}/${Date.now()}.${fileExt}`;
@@ -103,7 +103,7 @@ const CreateNoticeModal: React.FC<CreateNoticeModalProps> = ({ campus, onClose, 
 
                 // 3. Upload new files
                 await uploadFiles(filesToUpload, existingNotice.id);
-                
+
                 // Refetch and call callback
                 const { data, error } = await supabase.rpc('get_campus_notices_with_files', { p_campus: campus }).eq('id', existingNotice.id).single();
                 if (error) throw error;
@@ -114,7 +114,7 @@ const CreateNoticeModal: React.FC<CreateNoticeModalProps> = ({ campus, onClose, 
                 const { data: newNotice, error: insertError } = await supabase.from('campus_notices')
                     .insert({ user_id: user.id, title, description, campus }).select().single();
                 if (insertError) throw insertError;
-                
+
                 await uploadFiles(filesToUpload, newNotice.id);
 
                 const { data, error } = await supabase.rpc('get_campus_notices_with_files', { p_campus: campus }).eq('id', newNotice.id).single();
@@ -136,7 +136,7 @@ const CreateNoticeModal: React.FC<CreateNoticeModalProps> = ({ campus, onClose, 
                         <h2 className="text-xl font-bold">{isEditMode ? 'Edit Notice' : 'Post a New Notice'}</h2>
                         <button type="button" onClick={onClose}><XCircleIcon className="w-8 h-8 text-text-tertiary-light dark:text-text-tertiary" /></button>
                     </header>
-                    
+
                     <div className="mt-4 space-y-4 max-h-[70vh] overflow-y-auto pr-2">
                         <div>
                             <label className="block text-sm font-medium">Title*</label>
@@ -178,7 +178,7 @@ const CreateNoticeModal: React.FC<CreateNoticeModalProps> = ({ campus, onClose, 
                     </div>
 
                     {error && <p className="text-red-400 text-sm mt-4 text-center">{error}</p>}
-                    
+
                     <footer className="flex justify-end space-x-4 pt-6 mt-4 border-t border-tertiary-light dark:border-tertiary">
                         <button type="button" onClick={onClose} className="py-2 px-6 rounded-full hover:bg-tertiary-light/60 dark:hover:bg-tertiary">Cancel</button>
                         <button type="submit" disabled={isSubmitting} className="py-2 px-6 rounded-full text-black bg-brand-green hover:bg-brand-green-darker disabled:opacity-50">

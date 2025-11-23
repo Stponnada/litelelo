@@ -98,14 +98,14 @@ const PostPage: React.FC = () => {
                 }
 
                 const formattedPost = {
-                    ...postData,
+                    ...(postData as any),
                     author: {
-                        author_id: postData.author_id,
-                        author_type: postData.author_type,
-                        author_name: postData.author_name,
-                        author_username: postData.author_username,
-                        author_avatar_url: postData.author_avatar_url,
-                        author_flair_details: postData.author_flair_details
+                        author_id: (postData as any).author_id,
+                        author_type: (postData as any).author_type,
+                        author_name: (postData as any).author_name,
+                        author_username: (postData as any).author_username,
+                        author_avatar_url: (postData as any).author_avatar_url,
+                        author_flair_details: (postData as any).author_flair_details
                     }
                 };
                 setLocalPost(formattedPost as PostType);

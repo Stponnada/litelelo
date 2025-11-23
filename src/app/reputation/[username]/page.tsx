@@ -35,11 +35,11 @@ const ReputationPage: React.FC = () => {
         try {
             const { data: profileData, error: profileError } = await supabase.rpc('get_profile_details', { profile_username: username }).single();
             if (profileError || !profileData) throw profileError || new Error("User not found");
-            setProfile(profileData);
+            setProfile(profileData as Profile);
 
             // Fetch both histories in parallel
-            const listingsPromise = supabase.from('marketplace_listings').select(`*, seller_profile:profiles(*), primary_image_url:marketplace_images(image_url)`).eq('seller_id', profileData.user_id).order('created_at', { ascending: false });
-            const bitsCoinPromise = supabase.rpc('get_bits_coin_history_for_user', { p_user_id: profileData.user_id });
+            const listingsPromise = supabase.from('marketplace_listings').select(`*, seller_profile:profiles(*), primary_image_url:marketplace_images(image_url)`).eq('seller_id', (profileData as Profile).user_id).order('created_at', { ascending: false });
+            const bitsCoinPromise = supabase.rpc('get_bits_coin_history_for_user', { p_user_id: (profileData as Profile).user_id });
 
             const [listingsResult, bitsCoinResult] = await Promise.all([listingsPromise, bitsCoinPromise]);
 

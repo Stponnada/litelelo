@@ -4,7 +4,7 @@ import { SodiumPlus, X25519PublicKey, X25519SecretKey } from 'sodium-plus';
 import { supabase } from './supabase';
 import { v4 as uuidv4 } from 'uuid';
 
-let sodium: SodiumPlus | null = null;
+let sodium: any | null = null;
 async function initSodium() {
   if (!sodium) sodium = await SodiumPlus.auto();
   return sodium!;
@@ -26,7 +26,7 @@ export async function getKeyPair() {
   const { user } = (await supabase.auth.getUser()).data;
   if (!user) throw new Error('User not authenticated');
   const deviceId = getDeviceId();
-  
+
   const storageKey = `spk_${user.id}`;
   const secretKeyHex = localStorage.getItem(storageKey);
 
@@ -51,7 +51,7 @@ export async function getKeyPair() {
   return { publicKey, secretKey };
 }
 
-async function getAllDeviceKeysForUser(userId: string): Promise<{ device_id: string, public_key: X25519PublicKey }[]> {
+async function getAllDeviceKeysForUser(userId: string): Promise<{ device_id: string, public_key: any }[]> {
   const sodium = await initSodium();
   const { data, error } = await supabase
     .from('device_keys')
@@ -77,7 +77,7 @@ export async function encryptMessage(message: string, recipientId: string) {
 
   const recipientKeys = await getAllDeviceKeysForUser(recipientId);
   const senderKeys = await getAllDeviceKeysForUser(sender.id);
-  const allKeys = new Map<string, X25519PublicKey>();
+  const allKeys = new Map<string, any>();
   for (const key of recipientKeys) { allKeys.set(key.device_id, key.public_key); }
   for (const key of senderKeys) { allKeys.set(key.device_id, key.public_key); }
   if (allKeys.size === 0) throw new Error("No devices found for sender or recipient.");
@@ -92,7 +92,7 @@ export async function encryptMessage(message: string, recipientId: string) {
     const ciphertextHex = await sodium.sodium_bin2hex(ciphertext);
     devicePayload[deviceId] = `${nonceHex}:${ciphertextHex}`;
   }
-  
+
   const senderPublicKeyHex = await sodium.sodium_bin2hex(senderPublicKey.getBuffer());
   const finalPayload = {
     sender_key: senderPublicKeyHex,
@@ -107,21 +107,21 @@ export async function decryptMessage(encryptedPayloadStr: string) {
   const { secretKey: recipientSecretKey } = await getKeyPair();
   const myDeviceId = getDeviceId();
   const payload = JSON.parse(encryptedPayloadStr);
-  
+
   if (!payload.sender_key || !payload.devices) throw new Error("Invalid payload structure.");
-  
+
   const messageForThisDevice = payload.devices[myDeviceId];
   if (!messageForThisDevice) throw new Error('Message not encrypted for this device.');
 
   const [nonceHex, ciphertextHex] = messageForThisDevice.split(':');
   if (!nonceHex || !ciphertextHex) throw new Error('Invalid encrypted message format');
-  
+
   const senderPublicKeyBuffer = await sodium.sodium_hex2bin(payload.sender_key);
   const senderPublicKey = new X25519PublicKey(senderPublicKeyBuffer);
-  
+
   // THIS IS THE CORRECTED LINE
   const nonce = await sodium.sodium_hex2bin(nonceHex);
-  
+
   const ciphertext = await sodium.sodium_hex2bin(ciphertextHex);
 
   const decryptedBuf = await sodium.crypto_box_open(ciphertext, nonce, recipientSecretKey, senderPublicKey);

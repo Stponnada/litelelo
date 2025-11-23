@@ -16,7 +16,7 @@ const DIRECTIONS = {
 
 // Custom hook for game loop interval
 const useInterval = (callback: () => void, delay: number | null) => {
-    const savedCallback = useRef<() => void>();
+    const savedCallback = useRef<() => void>(undefined as any);
 
     useEffect(() => {
         savedCallback.current = callback;
@@ -46,7 +46,7 @@ const EasterEggPage: React.FC = () => {
     const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
     const generateFood = (snakeBody: { x: number; y: number }[]) => {
-        let newFoodPosition;
+        let newFoodPosition: { x: number; y: number };
         do {
             newFoodPosition = {
                 x: Math.floor(Math.random() * BOARD_SIZE),

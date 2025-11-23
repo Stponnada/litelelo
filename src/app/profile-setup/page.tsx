@@ -6,10 +6,11 @@ import { supabase } from '@/services/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import Spinner from '@/components/Spinner';
 import { CameraIcon } from '@/components/icons';
-import { BITS_BRANCHES, isMscBranch } from '@/data/bitsBranches.ts';
-import { getKeyPair } from '@/services/encryption';
+import { BITS_BRANCHES, isMscBranch } from '@/data/bitsBranches';
+// REMOVED: import { getKeyPair } from '@/services/encryption'; 
+
 import ImageCropper from '@/components/ImageCropper';
-import { BITS_DORMS } from '@/data/bitsDorms.ts';
+import { BITS_DORMS } from '@/data/bitsDorms';
 
 const RELATIONSHIP_STATUSES = ['Single', 'In a Relationship', 'Married', "It's Complicated"];
 const DINING_HALLS = ['Mess 1', 'Mess 2'];
@@ -169,7 +170,7 @@ const ProfileSetup: React.FC = () => {
 
             if (updateError) throw updateError;
 
-            await getKeyPair();
+            // REMOVED: await getKeyPair();
 
             updateProfileContext(updatedProfile);
 
@@ -191,6 +192,7 @@ const ProfileSetup: React.FC = () => {
                 cropShape={cropperState.type === 'avatar' ? 'round' : 'rect'}
                 onSave={handleCropSave}
                 onClose={() => setCropperState({ isOpen: false, type: null, src: null })}
+                isSaving={false}
             />
         );
     }
@@ -214,8 +216,8 @@ const ProfileSetup: React.FC = () => {
                         {[1, 2, 3].map((step) => (
                             <React.Fragment key={step}>
                                 <div className={`flex items-center justify-center w-10 h-10 rounded-full font-semibold transition-all duration-300 ${currentStep >= step
-                                        ? 'bg-brand-green text-black scale-110'
-                                        : 'bg-tertiary-light dark:bg-tertiary text-text-tertiary-light dark:text-text-tertiary'
+                                    ? 'bg-brand-green text-black scale-110'
+                                    : 'bg-tertiary-light dark:bg-tertiary text-text-tertiary-light dark:text-text-tertiary'
                                     }`}>
                                     {step}
                                 </div>
@@ -397,8 +399,8 @@ const ProfileSetup: React.FC = () => {
                                             <label
                                                 key={gender}
                                                 className={`flex-1 p-4 border-2 rounded-xl cursor-pointer transition-all duration-300 ${formData.gender === gender
-                                                        ? 'border-brand-green bg-brand-green/10'
-                                                        : 'border-tertiary-light dark:border-gray-700 hover:border-brand-green/50'
+                                                    ? 'border-brand-green bg-brand-green/10'
+                                                    : 'border-tertiary-light dark:border-gray-700 hover:border-brand-green/50'
                                                     }`}
                                             >
                                                 <input

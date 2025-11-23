@@ -26,15 +26,29 @@ const BlogPage: React.FC = () => {
             if (!id) return;
             setLoading(true);
             try {
+                // Type for the RPC response with flattened author fields
+                type PostDetailsResponse = Omit<PostType, 'author'> & {
+                    author_id: string;
+                    author_type: 'user' | 'community';
+                    author_name: string | null;
+                    author_username: string | null;
+                    author_avatar_url: string | null;
+                    author_flair_details: {
+                        id: string;
+                        name: string;
+                        avatar_url: string | null;
+                    } | null;
+                };
+
                 const { data, error } = await supabase
                     .rpc('get_post_details_by_id', { p_post_id: id })
-                    .single();
+                    .single<PostDetailsResponse>();
 
                 if (error) throw error;
                 if (!data) throw new Error('Blog post not found');
 
                 // Format the data to match PostType
-                const formattedPost = {
+                const formattedPost: PostType = {
                     ...data,
                     author: {
                         author_id: data.author_id,
@@ -46,7 +60,7 @@ const BlogPage: React.FC = () => {
                     }
                 };
 
-                setPost(formattedPost as PostType);
+                setPost(formattedPost);
             } catch (err: any) {
                 console.error('Error fetching blog post:', err);
                 setError(err.message);

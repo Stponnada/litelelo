@@ -7,8 +7,7 @@ import {
   XCircleIcon,
   UserGroupIcon,
   GlobeAmericasIcon,
-  LockClosedIcon,
-  ChevronDownIcon // Assuming you have this, if not I've added the SVG below
+  LockClosedIcon
 } from './icons';
 import UserSelectorModal from './UserSelectorModal';
 
