@@ -3,6 +3,7 @@
 import React from 'react';
 // FIXED: Use Next.js Link
 import Link from 'next/link';
+import Image from 'next/image';
 import { DirectoryProfile, Profile } from '../types';
 import Spinner from './Spinner';
 import { UserGroupIcon } from './icons';
@@ -54,7 +55,7 @@ interface UserCardProps {
   isCurrentUser: boolean;
   isToggling: boolean;
   onFollowToggle: (profile: DirectoryProfile | Profile) => void;
-  onMessage: (profile: Profile) => void;
+  onMessage: (profile: DirectoryProfile | Profile) => void;
 }
 
 const UserCard: React.FC<UserCardProps> = ({ profile, isCurrentUser, isToggling, onFollowToggle, onMessage }) => {
@@ -81,11 +82,12 @@ const UserCard: React.FC<UserCardProps> = ({ profile, isCurrentUser, isToggling,
       {/* FIXED: Link href */}
       <Link href={linkTo} className="flex-shrink-0">
         {profile.avatar_url ? (
-          <img
+          <Image
             src={getResizedAvatarUrl(profile.avatar_url, 80, 80)}
             alt={name || 'avatar'}
-            className="w-10 h-10 rounded-full object-cover border-2 border-tertiary-light dark:border-tertiary"
-            loading="lazy"
+            width={40}
+            height={40}
+            className="rounded-full object-cover border-2 border-tertiary-light dark:border-tertiary"
           />
         ) : (
           <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm border-2 border-tertiary-light dark:border-tertiary ${getRandomColor(name || 'User')}`}>

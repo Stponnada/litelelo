@@ -3,6 +3,7 @@
 import React from 'react';
 // FIXED: Use Next.js Link
 import Link from 'next/link';
+import Image from 'next/image';
 import { SearchResults as SearchResultsType } from '../types';
 import Spinner from './Spinner';
 
@@ -47,7 +48,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ results, loading, onNavig
               <li key={user.username}>
                 {/* FIXED: Link href */}
                 <Link href={`/profile/${user.username}`} onClick={onNavigate} className="flex items-center space-x-3 p-3 hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors">
-                  <img src={user.avatar_url || `https://ui-avatars.com/api/?name=${user.full_name}`} alt={user.username} className="w-10 h-10 rounded-full object-cover border border-tertiary-light dark:border-tertiary" />
+                  <Image src={user.avatar_url || `https://ui-avatars.com/api/?name=${user.full_name}`} alt={user.username} width={40} height={40} className="rounded-full object-cover border border-tertiary-light dark:border-tertiary" />
                   <div>
                     <p className="font-semibold text-text-main-light dark:text-text-main text-sm">{user.full_name}</p>
                     <p className="text-xs text-text-secondary-light dark:text-text-secondary">@{user.username}</p>
@@ -66,7 +67,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ results, loading, onNavig
               <li key={post.id}>
                 {/* FIXED: Link href */}
                 <Link href={`/post/${post.id}`} onClick={onNavigate} className="block p-3 hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors">
-                  <p className="text-sm text-text-secondary-light dark:text-text-secondary line-clamp-2">"{post.content}"</p>
+                  <p className="text-sm text-text-secondary-light dark:text-text-secondary line-clamp-2">&quot;{post.content}&quot;</p>
                   <p className="text-xs text-text-tertiary-light dark:text-text-tertiary mt-1">by {post.author_full_name}</p>
                 </Link>
               </li>

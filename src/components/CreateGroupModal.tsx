@@ -63,8 +63,12 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose, onGroupCre
       const { data, error: rpcError } = await supabase.rpc('create_group_chat', { group_name: groupName, participant_ids });
       if (rpcError) throw rpcError;
       onGroupCreated(data);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unknown error occurred.');
+      }
     } finally {
       setIsSubmitting(false);
     }

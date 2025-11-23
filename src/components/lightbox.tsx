@@ -1,6 +1,7 @@
 // src/components/LightBox.tsx
 
 import React from 'react';
+import Image from 'next/image';
 import { XCircleIcon } from './icons';
 
 interface LightBoxProps {
@@ -33,7 +34,7 @@ const LightBox: React.FC<LightBoxProps> = ({ imageUrl, onClose }) => {
     React.useEffect(() => {
         const originalOverflow = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
-        
+
         return () => {
             document.body.style.overflow = originalOverflow;
         };
@@ -69,9 +70,9 @@ const LightBox: React.FC<LightBoxProps> = ({ imageUrl, onClose }) => {
             <div className="absolute top-6 left-6 text-white/80 text-sm font-medium bg-black/30 backdrop-blur-md px-4 py-2 rounded-full">
                 Press ESC to close
             </div>
-            
-            <div 
-                className="relative w-full h-full flex items-center justify-center" 
+
+            <div
+                className="relative w-full h-full flex items-center justify-center"
                 onClick={handleContentClick}
             >
                 {/* Loading spinner with glow effect */}
@@ -79,31 +80,34 @@ const LightBox: React.FC<LightBoxProps> = ({ imageUrl, onClose }) => {
                     <div className="absolute inset-0 flex items-center justify-center">
                         <div className="relative">
                             <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin" />
-                            <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-t-blue-400 rounded-full animate-spin blur-sm" 
-                                 style={{ animationDuration: '0.8s' }} />
+                            <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-t-blue-400 rounded-full animate-spin blur-sm"
+                                style={{ animationDuration: '0.8s' }} />
                         </div>
                     </div>
                 )}
-                
+
                 {/* Image with enhanced styling */}
-                <div 
-                    className={`relative transition-all duration-500 ${
-                        isLoading ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
-                    }`}
+                <div
+                    className={`relative transition-all duration-500 ${isLoading ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+                        }`}
                 >
-                    <img
+                    <Image
                         src={imageUrl}
                         alt="Full size view"
-                        className="max-w-[90vw] max-h-[90vh] object-contain rounded-xl shadow-2xl ring-1 ring-white/10"
+                        width={0}
+                        height={0}
+                        sizes="100vw"
+                        className="w-auto h-auto max-w-[90vw] max-h-[90vh] object-contain rounded-xl shadow-2xl ring-1 ring-white/10"
                         style={{
                             filter: 'drop-shadow(0 25px 50px rgba(0, 0, 0, 0.5))'
                         }}
-                        onLoad={() => setIsLoading(false)}
+                        onLoadingComplete={() => setIsLoading(false)}
                         onError={() => setIsLoading(false)}
+                        unoptimized
                     />
-                    
+
                     {/* Subtle glow effect behind image */}
-                    <div 
+                    <div
                         className="absolute inset-0 -z-10 blur-3xl opacity-20"
                         style={{
                             background: 'radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%)'

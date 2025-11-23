@@ -24,7 +24,7 @@ const CreateSubcommunityModal: React.FC<Props> = ({ parentCommunityId, onClose, 
     useEffect(() => {
         const fetchParentMembers = async () => {
             const { data, error } = await supabase.rpc('get_community_members', { p_community_id: parentCommunityId });
-            if (data) setParentMembers(data.filter((m: any) => m.status === 'approved'));
+            if (data) setParentMembers((data as Array<Profile & { status: string }>).filter(m => m.status === 'approved'));
         };
         fetchParentMembers();
     }, [parentCommunityId]);
@@ -51,8 +51,12 @@ const CreateSubcommunityModal: React.FC<Props> = ({ parentCommunityId, onClose, 
             if (rpcError) throw rpcError;
             onSubcommunityCreated();
             onClose();
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError('An unknown error occurred.');
+            }
         } finally {
             setIsSubmitting(false);
         }

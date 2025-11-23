@@ -15,6 +15,7 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import listPlugin from '@fullcalendar/list';
 import interactionPlugin from '@fullcalendar/interaction';
 import { format } from 'date-fns';
+import { EventClickArg } from '@fullcalendar/core';
 
 import '@fullcalendar/daygrid';
 import '@fullcalendar/timegrid';
@@ -61,8 +62,12 @@ const EventsPage: React.FC = () => {
                 });
                 if (rpcError) throw rpcError;
                 setEvents(data as CampusEvent[] || []);
-            } catch (err: any) {
-                setError(err.message);
+            } catch (err: unknown) {
+                if (err instanceof Error) {
+                    setError(err.message);
+                } else {
+                    setError('An unknown error occurred.');
+                }
             } finally {
                 setLoading(false);
             }
@@ -101,7 +106,7 @@ const EventsPage: React.FC = () => {
         extendedProps: { ...event }
     })), [events]);
 
-    const handleEventClick = (clickInfo: any) => {
+    const handleEventClick = (clickInfo: EventClickArg) => {
         const rect = clickInfo.el.getBoundingClientRect();
         const popoverWidth = Math.min(320, window.innerWidth - 32);
         const popoverHeight = 240;
@@ -119,7 +124,7 @@ const EventsPage: React.FC = () => {
         popoverTop = Math.max(margin, Math.min(window.innerHeight - popoverHeight - margin, popoverTop));
 
         setPopover({
-            event: clickInfo.event.extendedProps,
+            event: clickInfo.event.extendedProps as CampusEvent,
             x: popoverCenterX,
             y: popoverTop,
         });
@@ -249,7 +254,7 @@ const EventsPage: React.FC = () => {
                             </h1>
                         </div>
                         <p className="text-sm md:text-xl text-text-secondary-light dark:text-text-secondary">
-                            Discover what's happening at <span className="font-semibold text-brand-green">{profile?.campus}</span>
+                            Discover what&apos;s happening at <span className="font-semibold text-brand-green">{profile?.campus}</span>
                         </p>
                     </div>
 
@@ -338,7 +343,7 @@ const EventsPage: React.FC = () => {
                                     No {filter} events
                                 </h3>
                                 <p className="text-sm md:text-lg text-text-secondary-light dark:text-text-secondary max-w-md mx-auto mb-6 md:mb-8">
-                                    It's quiet right now. Be the first to create an event and bring the community together!
+                                    It&apos;s quiet right now. Be the first to create an event and bring the community together!
                                 </p>
                                 <button
                                     onClick={() => setCreateModalOpen(true)}

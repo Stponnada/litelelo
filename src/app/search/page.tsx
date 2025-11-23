@@ -22,7 +22,7 @@ const UserResultCard: React.FC<{ user: UserSearchResult }> = ({ user }) => (
 
 const PostResultCard: React.FC<{ post: PostSearchResult }> = ({ post }) => (
     <Link href={`/post/${post.id}`} className="block p-3 rounded-lg hover:bg-tertiary-light/60 dark:hover:bg-tertiary transition-colors">
-        <p className="text-text-secondary-light dark:text-text-secondary truncate italic">"{post.content}"</p>
+        <p className="text-text-secondary-light dark:text-text-secondary truncate italic">&quot;{post.content}&quot;</p>
         <p className="text-xs text-text-tertiary-light dark:text-text-tertiary mt-1">by {post.author_full_name}</p>
     </Link>
 );
@@ -147,9 +147,9 @@ const SearchPage: React.FC = () => {
                                 <div key={key} className="p-4">
                                     {activeTab === 'all' && <h3 className="font-bold mb-2 text-text-main-light dark:text-text-main">{title}</h3>}
                                     <div className="space-y-1">
-                                        {data.map((item: any) => {
+                                        {data.map(item => {
                                             const props = { [propName]: item };
-                                            return <Component key={item.id || item.username} {...props as any} />;
+                                            return <Component key={'id' in item ? item.id : item.username} {...props as any} />;
                                         })}
                                     </div>
                                 </div>

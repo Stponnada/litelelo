@@ -126,8 +126,12 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onEventCre
                 if (fetchError) throw fetchError;
                 onEventCreated(newEventData as CampusEvent);
             }
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError('An unknown error occurred.');
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -231,9 +235,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onEventCre
                     <header className="flex items-center justify-between pb-4 md:pb-6">
                         <div>
                             <h2 className="text-xl md:text-2xl font-bold">Create an Event</h2>
-                            <p className="text-sm text-text-tertiary-light dark:text-text-tertiary mt-1">
-                                Step {step} of 4
-                            </p>
+                            <p className="text-xs text-text-tertiary-light dark:text-text-tertiary mt-1">Make sure you have the rights to use this image. It&apos;ll be used as the event banner.</p>
                         </div>
                         <button type="button" onClick={onClose}>
                             <XCircleIcon className="w-6 h-6 md:w-8 md:h-8 text-text-tertiary-light dark:text-text-tertiary hover:text-text-primary-light dark:hover:text-text-primary" />

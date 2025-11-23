@@ -25,8 +25,12 @@ const RideSharePage: React.FC = () => {
             const { data, error } = await supabase.rpc('get_ride_shares', { p_campus: profile.campus });
             if (error) throw error;
             setRides(data as RideShare[] || []);
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError('An unknown error occurred.');
+            }
         } finally {
             setLoading(false);
         }
@@ -258,7 +262,13 @@ const CreateRideModal: React.FC<{ campus: string; onClose: () => void; onRideCre
             if (error) throw error;
             onRideCreated();
             onClose();
-        } catch (err: any) { setError(err.message); } finally { setIsSubmitting(false); }
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError('An unknown error occurred.');
+            }
+        } finally { setIsSubmitting(false); }
     };
 
     return (

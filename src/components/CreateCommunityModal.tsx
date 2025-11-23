@@ -7,10 +7,12 @@ import Spinner from './Spinner';
 import { XCircleIcon, CameraIcon } from './icons';
 import ImageCropper from './ImageCropper';
 
+import { CommunityDetails } from '../types';
+
 interface Props {
     campus: string;
     onClose: () => void;
-    onCommunityCreated: (newCommunity: any) => void;
+    onCommunityCreated: (newCommunity: CommunityDetails) => void;
 }
 
 const CreateCommunityModal: React.FC<Props> = ({ campus, onClose, onCommunityCreated }) => {
@@ -105,10 +107,14 @@ const CreateCommunityModal: React.FC<Props> = ({ campus, onClose, onCommunityCre
             
             if (fetchError) throw fetchError;
             
-            onCommunityCreated(newCommunityData);
+            onCommunityCreated(newCommunityData as CommunityDetails);
 
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError('An unknown error occurred.');
+            }
         } finally {
             setIsSubmitting(false);
         }

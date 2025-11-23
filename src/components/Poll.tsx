@@ -8,6 +8,7 @@ import { useAuth } from '../hooks/useAuth';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getResizedAvatarUrl } from '../utils/imageUtils';
+import Image from 'next/image';
 
 interface PollProps {
     poll: PollType;
@@ -134,10 +135,12 @@ const PollComponent: React.FC<PollProps> = ({ poll, postId }) => {
                                                     onClick={(e) => e.stopPropagation()}
                                                     className="flex items-center gap-2 group"
                                                 >
-                                                    <img
+                                                    <Image
                                                         src={getResizedAvatarUrl(voter.avatar_url, 48, 48)}
                                                         alt={voter.full_name}
-                                                        className="w-6 h-6 rounded-full object-cover bg-tertiary"
+                                                        width={24}
+                                                        height={24}
+                                                        className="rounded-full object-cover bg-tertiary"
                                                     />
                                                     <span className="text-xs font-medium text-text-secondary-light dark:text-text-secondary group-hover:underline">{voter.full_name}</span>
                                                 </Link>

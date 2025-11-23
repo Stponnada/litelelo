@@ -89,7 +89,7 @@ const Login: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [audioCtx, setAudioCtx] = useState<AudioContext | null>(null);
     const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
-    const [dataArray, setDataArray] = useState<Uint8Array | null>(null);
+    const [dataArray, setDataArray] = useState<Uint8Array<ArrayBuffer> | null>(null);
 
     useEffect(() => {
         if (session) router.push('/');
@@ -160,7 +160,7 @@ const Login: React.FC = () => {
         const centerX = width / 1.75;
         const centerY = height * 1.75;
         const radius = height * 1.55;
-        analyser.getByteFrequencyData(dataArray as any);
+        analyser.getByteFrequencyData(dataArray);
         const bufferLength = analyser.frequencyBinCount;
         const totalArc = Math.PI * 0.76;
         const startAngle = -Math.PI / 2 - totalArc / 2 + 0.52;
@@ -238,8 +238,12 @@ const Login: React.FC = () => {
                 if (profileError) throw profileError;
                 fadeOutAudio(() => { setLoading(false); router.push('/'); });
             }
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError('An unknown error occurred.');
+            }
             setLoading(false);
         }
     };
@@ -255,8 +259,12 @@ const Login: React.FC = () => {
             });
             if (error) throw error;
             setMessage("Password reset link sent! Please check your email.");
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError('An unknown error occurred.');
+            }
         } finally {
             setLoading(false);
         }

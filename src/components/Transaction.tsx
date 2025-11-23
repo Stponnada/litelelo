@@ -1,7 +1,18 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/Transaction.tsx
 import React from 'react';
 
-const Transaction: React.FC<{ tx: any; isMined?: boolean }> = ({ tx, isMined }) => {
+export interface TransactionProps {
+    tx: {
+        sender?: { username: string };
+        recipient?: { username: string };
+        amount: number;
+        id?: string; // Added id as it's used in Block.tsx key
+    };
+    isMined?: boolean;
+}
+
+const Transaction: React.FC<TransactionProps> = ({ tx, isMined }) => {
     const sender = isMined ? null : tx.sender;
     const recipient = isMined ? null : tx.recipient;
 

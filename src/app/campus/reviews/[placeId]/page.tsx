@@ -121,7 +121,7 @@ const PlaceDetailPage: React.FC = () => {
             if (imagesResult.error) throw imagesResult.error;
 
             setPlace(placeResult.data as CampusPlace);
-            setReviews(reviewsResult.data as any[] || []);
+            setReviews((reviewsResult.data as ReviewType[]) || []);
             setImages((imagesResult.data || []).map((img: { image_url: string }) => img.image_url));
 
             const userReview = (reviewsResult.data || []).find(r => r.user_id === user?.id);
@@ -130,8 +130,12 @@ const PlaceDetailPage: React.FC = () => {
                 setUserComment(userReview.comment || '');
             }
 
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError('An unknown error occurred.');
+            }
         } finally {
             setLoading(false);
         }
@@ -156,8 +160,9 @@ const PlaceDetailPage: React.FC = () => {
 
             if (error) throw error;
             await fetchPlaceAndReviews();
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
+            // Optionally, set an error state here as well if needed
         } finally {
             setIsSubmitting(false);
         }
@@ -173,8 +178,9 @@ const PlaceDetailPage: React.FC = () => {
             setUserRating(0);
             setUserComment('');
             await fetchPlaceAndReviews();
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Failed to delete review:", err);
+            // Optionally, set an error state here as well if needed
         }
     };
 

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
-import { Profile, BitsCoinRequest } from '../types';
+import { BitsCoinRequest } from '../types';
 import Spinner from './Spinner';
 import { XCircleIcon, StarIcon } from './icons';
 
@@ -59,12 +59,16 @@ const RateBitsCoinUserModal: React.FC<RateBitsCoinUserModalProps> = ({ request, 
                     comment,
                     role_at_time_of_rating: personToRate,
                 });
-            
+
             if (upsertError) throw upsertError;
             onClose();
 
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError('An unknown error occurred.');
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -80,7 +84,7 @@ const RateBitsCoinUserModal: React.FC<RateBitsCoinUserModalProps> = ({ request, 
                         <h2 className="text-xl font-bold">Rate {targetProfile.full_name}</h2>
                         <button type="button" onClick={onClose}><XCircleIcon className="w-8 h-8 text-text-tertiary-light dark:text-text-tertiary" /></button>
                     </header>
-                    
+
                     <div className="mt-4 space-y-6">
                         <StarRatingInput rating={rating} onRatingChange={setRating} />
                         <div>
@@ -90,7 +94,7 @@ const RateBitsCoinUserModal: React.FC<RateBitsCoinUserModalProps> = ({ request, 
                     </div>
 
                     {error && <p className="text-red-400 text-sm mt-4 text-center">{error}</p>}
-                    
+
                     <footer className="flex justify-end space-x-4 pt-6 mt-4 border-t border-tertiary-light dark:border-tertiary">
                         <button type="button" onClick={onClose} className="py-2 px-6 rounded-full hover:bg-tertiary-light/60 dark:hover:bg-tertiary">Cancel</button>
                         <button type="submit" disabled={isSubmitting || rating === 0} className="py-2 px-6 rounded-full text-black bg-brand-green hover:bg-brand-green-darker disabled:opacity-50">

@@ -125,8 +125,12 @@ const CreateListingModal: React.FC<CreateListingModalProps> = ({ campus, onClose
                 if (rpcError) throw rpcError;
                 onListingCreated(newListing as MarketplaceListing);
             }
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError('An unknown error occurred.');
+            }
         } finally {
             setIsSubmitting(false);
         }

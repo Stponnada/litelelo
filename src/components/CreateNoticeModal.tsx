@@ -107,7 +107,7 @@ const CreateNoticeModal: React.FC<CreateNoticeModalProps> = ({ campus, onClose, 
                 // Refetch and call callback
                 const { data, error } = await supabase.rpc('get_campus_notices_with_files', { p_campus: campus }).eq('id', existingNotice.id).single();
                 if (error) throw error;
-                onNoticeUpdated(data as any);
+                onNoticeUpdated(data as CampusNotice);
 
             } else {
                 // --- CREATE LOGIC ---
@@ -119,10 +119,14 @@ const CreateNoticeModal: React.FC<CreateNoticeModalProps> = ({ campus, onClose, 
 
                 const { data, error } = await supabase.rpc('get_campus_notices_with_files', { p_campus: campus }).eq('id', newNotice.id).single();
                 if (error) throw error;
-                onNoticeCreated(data as any);
+                onNoticeCreated(data as CampusNotice);
             }
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError('An unknown error occurred.');
+            }
         } finally {
             setIsSubmitting(false);
         }

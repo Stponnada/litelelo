@@ -37,10 +37,14 @@ const EventDetailPage: React.FC = () => {
             setEvent(eventResult.data as CampusEvent);
 
             if (rsvpsResult.error) throw rsvpsResult.error;
-            setRsvps(rsvpsResult.data as any[]);
+            setRsvps(rsvpsResult.data as EventRsvp[]);
 
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError('An unknown error occurred.');
+            }
         } finally {
             setLoading(false);
         }
@@ -77,8 +81,12 @@ const EventDetailPage: React.FC = () => {
             const { error } = await supabase.from('events').delete().eq('id', event.id);
             if (error) throw error;
             router.push('/campus/events');
-        } catch (err: any) {
-            alert(`Error deleting event: ${err.message}`);
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                alert(`Error deleting event: ${err.message}`);
+            } else {
+                alert('An unknown error occurred while deleting the event.');
+            }
         } finally {
             setIsDeleting(false);
         }

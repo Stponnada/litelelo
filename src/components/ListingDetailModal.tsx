@@ -50,9 +50,13 @@ const ListingDetailModal: React.FC<ListingDetailModalProps> = ({ listing, onClos
             const { error } = await supabase.rpc('delete_listing', { p_listing_id: listing.id });
             if (error) throw error;
             onDelete(listing.id);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Failed to delete listing:", err);
-            alert(`Error: ${err.message}`);
+            if (err instanceof Error) {
+                alert(`Error: ${err.message}`);
+            } else {
+                alert('An unknown error occurred while deleting the listing.');
+            }
         } finally {
             setIsDeleting(false);
         }

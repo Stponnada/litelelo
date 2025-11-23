@@ -6,8 +6,8 @@ import Skeleton from './Skeleton';
 const MessageSkeleton: React.FC<{ align?: 'left' | 'right' }> = ({ align = 'left' }) => {
   const isRight = align === 'right';
   // Use a few different widths to make the skeleton look more natural
-  const widths = ['w-32', 'w-48', 'w-56', 'w-64'];
-  const randomWidth = widths[Math.floor(Math.random() * widths.length)];
+  // Fixed: Removed impure Math.random() call during render
+  const randomWidth = 'w-48';
 
   return (
     <div className={`flex items-end gap-2 w-full ${isRight ? 'justify-end' : 'justify-start'}`}>

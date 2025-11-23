@@ -86,12 +86,16 @@ const CommunitiesListPage: React.FC = () => {
             try {
                 const { data, error: rpcError } = await supabase.rpc('get_communities_list', { p_campus: profile.campus });
                 if (rpcError) throw rpcError;
-                setCommunities(data as CommunityListItem[] || []);
-            } catch (err: any) {
+            setCommunities(data as CommunityListItem[] || []);
+        } catch (err: unknown) {
+            if (err instanceof Error) {
                 setError(err.message);
-            } finally {
-                setLoading(false);
+            } else {
+                setError('An unknown error occurred.');
             }
+        } finally {
+            setLoading(false);
+        }
         };
 
         fetchCommunities();
@@ -286,8 +290,8 @@ const CommunitiesListPage: React.FC = () => {
                         <p className="text-base sm:text-lg text-text-secondary-light dark:text-text-secondary max-w-md mx-auto mb-6 sm:mb-8">
                             {searchTerm ? (
                                 <>
-                                    We couldn't find any communities matching{' '}
-                                    <span className="font-semibold text-text-main-light dark:text-text-main">"{searchTerm}"</span>
+                                    We couldn&apos;t find any communities matching{' '}
+                                    <span className="font-semibold text-text-main-light dark:text-text-main">{searchTerm}</span>
                                 </>
                             ) : (
                                 activeTab === 'my' ? "Explore the 'Discover' tab to find your people!" : 'Why not be the first to create one?'

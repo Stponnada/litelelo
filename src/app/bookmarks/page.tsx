@@ -23,7 +23,15 @@ const BookmarksPage: React.FC = () => {
 
                 if (fetchError) throw fetchError;
 
-                const formattedPosts = (data as any[]).map(p => ({
+                interface BookmarkedPostRpcResult extends Omit<PostType, 'author'> {
+                    author_id: string;
+                    author_type: 'user' | 'community';
+                    author_name: string | null;
+                    author_username: string | null;
+                    author_avatar_url: string | null;
+                }
+
+                const formattedPosts = (data as BookmarkedPostRpcResult[]).map(p => ({
                     ...p,
                     author: {
                         author_id: p.author_id,
@@ -31,13 +39,18 @@ const BookmarksPage: React.FC = () => {
                         author_name: p.author_name,
                         author_username: p.author_username,
                         author_avatar_url: p.author_avatar_url,
+                        author_flair_details: null, // Assuming no flair details in bookmarked posts
                     }
                 }));
 
                 setPosts(formattedPosts || []);
-            } catch (err: any) {
+            } catch (err: unknown) {
                 console.error("Error fetching bookmarked posts:", err);
-                setError(err.message);
+                if (err instanceof Error) {
+                    setError(err.message);
+                } else {
+                    setError('An unknown error occurred.');
+                }
             } finally {
                 setLoading(false);
             }

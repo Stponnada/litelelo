@@ -33,6 +33,42 @@ interface CreatePostProps {
   placeholderText?: string;
 }
 
+interface CreatePostRpcResult {
+  id: string;
+  content: string;
+  image_url: string | null;
+  created_at: string;
+  like_count: number;
+  dislike_count: number;
+  comment_count: number;
+  repost_count: number;
+  user_vote: 'like' | 'dislike' | null;
+  is_bookmarked: boolean;
+  user_has_reposted: boolean;
+  community_id: string | null;
+  is_public: boolean;
+  visibility: 'public' | 'friends' | 'specific';
+  allowed_viewers: string[];
+  post_type: 'text' | 'image' | 'poll' | 'blog';
+  is_edited: boolean;
+  is_deleted: boolean;
+  user_id: string;
+  author_id: string;
+  author_type: 'user' | 'community';
+  author_name: string | null;
+  author_username: string | null;
+  author_avatar_url: string | null;
+  author_flair_details: {
+    id: string;
+    name: string;
+    avatar_url: string | null;
+  } | null;
+  original_poster_username: string | null;
+  poll: any;
+  quoted_post: any;
+  reposted_by: any;
+}
+
 const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, profile, communityId, isPublicPost = false, placeholderText }) => {
   const [content, setContent] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -147,16 +183,47 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, profile, communi
 
       if (rpcError) throw rpcError;
 
-      let finalData = data;
-      if (!communityId) {
-        finalData = {
-          ...(data as object),
-          author_name: profile.full_name,
-          author_username: profile.username,
-          author_avatar_url: profile.avatar_url,
-        };
-      }
-      onPostCreated(finalData as any);
+      // The RPC returns a post, possibly with flat author details.
+      // We need to transform it into the PostType structure for onPostCreated.
+      const rpcResult = data as CreatePostRpcResult;
+
+      const newPost: PostType = {
+        ...rpcResult,
+        id: rpcResult.id || '', // Ensure ID is present
+        content: rpcResult.content || '', // Ensure content is present
+        created_at: rpcResult.created_at || new Date().toISOString(), // Ensure created_at is present
+        like_count: rpcResult.like_count || 0,
+        dislike_count: rpcResult.dislike_count || 0,
+        comment_count: rpcResult.comment_count || 0,
+        repost_count: rpcResult.repost_count || 0,
+        user_vote: rpcResult.user_vote || null,
+        is_bookmarked: rpcResult.is_bookmarked || false,
+        user_has_reposted: rpcResult.user_has_reposted || false,
+        community_id: rpcResult.community_id || null,
+        is_public: rpcResult.is_public || false,
+        visibility: rpcResult.visibility || 'public',
+        allowed_viewers: rpcResult.allowed_viewers || [],
+        post_type: rpcResult.post_type || 'text',
+        // Author details from profile or rpcResult if available
+        author: {
+          author_id: rpcResult.author_id || profile.user_id,
+          author_type: rpcResult.author_type || 'user',
+          author_name: rpcResult.author_name || profile.full_name,
+          author_username: rpcResult.author_username || profile.username,
+          author_avatar_url: rpcResult.author_avatar_url || profile.avatar_url,
+          author_flair_details: rpcResult.author_flair_details || profile.flair_details || null,
+        },
+        original_poster_username: rpcResult.original_poster_username || null,
+        poll: rpcResult.poll || null,
+        is_edited: rpcResult.is_edited || false,
+        is_deleted: rpcResult.is_deleted || false,
+        user_id: rpcResult.user_id || profile.user_id,
+        quoted_post: rpcResult.quoted_post || null,
+        reposted_by: rpcResult.reposted_by || null,
+        // Any other properties that are part of PostType but not in CreatePostRpcResult will be undefined,
+        // which might be fine if they are optional or handled elsewhere.
+      };
+      onPostCreated(newPost);
 
       setContent('');
       handleRemoveImage();
@@ -164,8 +231,12 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, profile, communi
       setVisibility('public');
       setAllowedViewers([]);
 
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unknown error occurred.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -344,7 +415,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, profile, communi
                     <select
                       value={visibility}
                       onChange={(e) => {
-                        const val = e.target.value as any;
+                        const val = e.target.value as 'public' | 'friends' | 'specific';
                         setVisibility(val);
                         if (val === 'specific') setShowUserSelector(true);
                       }}

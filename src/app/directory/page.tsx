@@ -62,8 +62,12 @@ const DirectoryPage: React.FC = () => {
                 const { data, error: fetchError } = await supabase.rpc('get_unified_directory');
                 if (fetchError) throw fetchError;
                 setAllProfiles((data as DirectoryProfile[]) || []);
-            } catch (err: any) {
-                setError(err.message);
+            } catch (err: unknown) {
+                if (err instanceof Error) {
+                    setError(err.message);
+                } else {
+                    setError('An unknown error occurred.');
+                }
             } finally {
                 setLoading(false);
             }
@@ -180,13 +184,14 @@ const DirectoryPage: React.FC = () => {
         }
     };
 
-    const handleMessageUser = (profile: Profile) => {
+    const handleMessageUser = (profile: DirectoryProfile | Profile) => {
         // In Next.js, we can't pass state directly via router.push like in react-router-dom
         // We can use query params or a global store.
         // For now, let's just navigate to chat page. The chat page should handle selecting the user if passed via query param.
         // Or we can just navigate to /chat and let the user select.
         // Let's try to pass recipientId as query param.
-        router.push(`/chat?recipientId=${profile.user_id}`);
+        const recipientId = 'user_id' in profile ? profile.user_id : profile.id;
+        router.push(`/chat?recipientId=${recipientId}`);
     };
 
     // --- Dynamic Filter Options ---
@@ -436,7 +441,7 @@ const DirectoryPage: React.FC = () => {
                                         isCurrentUser={currentUser?.id === profile.id}
                                         isToggling={togglingFollowId === profile.id}
                                         onFollowToggle={(p) => handleFollowToggle(p as DirectoryProfile)}
-                                        onMessage={() => handleMessageUser(profile as any)}
+                                        onMessage={() => handleMessageUser(profile)}
                                     />
                                 </div>
                             ))}
@@ -449,9 +454,9 @@ const DirectoryPage: React.FC = () => {
                             <p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No matches found</p>
                             <p className="text-text-secondary-light dark:text-text-secondary text-sm max-w-md mx-auto mb-4">
                                 {(searchQuery || activeFilterCount > 0) ? (
-                                    <>We couldn't find any results matching your criteria.</>
+                                    <>We couldn&apos;t find any results matching your criteria.</>
                                 ) : activeTab === 'users' && userFilterTab !== 'all' ? (
-                                    <>No users found in your "{userFilterTab}" list.</>
+                                    <>No users found in your {userFilterTab} list.</>
                                 ) : (
                                     <>No {activeTab === 'users' ? 'users' : 'communities'} to display.</>
                                 )}

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { supabase } from '../services/supabase';
 import { Profile } from '../types';
 import Spinner from './Spinner';
@@ -75,10 +76,12 @@ const SearchPanel: React.FC<SearchPanelProps> = ({ onNavigate }) => {
                                     router.push(`/profile/${profile.username}`);
                                 }}
                             >
-                                <img
+                                <Image
                                     src={profile.avatar_url || `https://ui-avatars.com/api/?name=${profile.username}&background=0D8ABC&color=fff&size=50`}
                                     alt={profile.username}
-                                    className="w-11 h-11 rounded-full object-cover"
+                                    width={44}
+                                    height={44}
+                                    className="rounded-full object-cover"
                                 />
                                 <div>
                                     <p className="text-sm font-semibold text-text-main-light dark:text-text-main">{profile.username}</p>

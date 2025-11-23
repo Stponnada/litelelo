@@ -2,12 +2,27 @@
 
 import React from 'react';
 import { format } from 'date-fns';
+import { TransactionProps } from './Transaction';
 
 const ChainLink: React.FC = () => (
     <div className="w-16 h-1 flex-shrink-0 bg-gradient-to-r from-tertiary to-tertiary-light/50 dark:from-tertiary/50 dark:to-tertiary border-y border-tertiary-light dark:border-tertiary/80"></div>
 );
 
-const VisualBlock: React.FC<{ block: any, isGenesis: boolean }> = ({ block, isGenesis }) => (
+interface Block {
+    index: number;
+    timestamp: string;
+    hash: string;
+    previous_hash: string;
+    nonce: number;
+    transactions: TransactionProps['tx'][];
+    miner?: {
+        username: string;
+        avatar_url?: string;
+    };
+    id: string;
+}
+
+const VisualBlock: React.FC<{ block: Block, isGenesis: boolean }> = ({ block, isGenesis }) => (
     <div className="w-80 flex-shrink-0 bg-secondary-light/50 dark:bg-secondary/50 backdrop-blur-sm rounded-lg border-2 border-tertiary-light dark:border-tertiary shadow-xl hover:shadow-2xl hover:border-brand-green/50 transition-all duration-300 transform hover:-translate-y-1">
         <div className={`p-3 border-b-2 border-tertiary-light dark:border-tertiary ${isGenesis ? 'bg-gradient-to-r from-brand-green/20 to-transparent' : ''}`}>
             <div className="flex justify-between items-center">
@@ -31,7 +46,7 @@ const VisualBlock: React.FC<{ block: any, isGenesis: boolean }> = ({ block, isGe
 );
 
 
-const BlockchainVisualizer: React.FC<{ blocks: any[] }> = ({ blocks }) => {
+const BlockchainVisualizer: React.FC<{ blocks: Block[] }> = ({ blocks }) => {
     if (blocks.length === 0) {
         return null;
     }

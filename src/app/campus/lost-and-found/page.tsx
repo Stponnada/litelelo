@@ -50,9 +50,13 @@ const LostAndFoundPage: React.FC = () => {
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
-            setItems(data as any[] || []);
-        } catch (err: any) {
-            setError(err.message);
+            setItems((data as ItemType[]) || []);
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError('An unknown error occurred.');
+            }
         } finally {
             setLoading(false);
         }
@@ -70,7 +74,7 @@ const LostAndFoundPage: React.FC = () => {
     };
 
     const handleItemReclaimed = async (itemId: string) => {
-        if (!window.confirm("Are you sure you want to mark this item as reclaimed/found? This will remove the post.")) return;
+        if (!window.confirm("Are you sure you want to mark this item as reclaimed or found? This will remove the post.")) return;
 
         try {
             const { error } = await supabase
@@ -80,8 +84,9 @@ const LostAndFoundPage: React.FC = () => {
 
             if (error) throw error;
             setItems(items.filter(item => item.id !== itemId));
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Failed to update item status:", err);
+            // Optionally, set an error state here as well if needed
         }
     };
 
@@ -373,10 +378,14 @@ const CreateItemModal: React.FC<{ campus: string; itemType: 'lost' | 'found'; on
                 .single();
 
             if (insertError) throw insertError;
-            onPostCreated(newItem as any);
+            onPostCreated(newItem);
 
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError('An unknown error occurred.');
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -409,9 +418,7 @@ const CreateItemModal: React.FC<{ campus: string; itemType: 'lost' | 'found'; on
                                 <h2 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent">
                                     Post a {isFound ? 'Found' : 'Lost'} Item
                                 </h2>
-                                <p className="text-sm text-text-secondary-light dark:text-text-secondary mt-1">
-                                    Help reunite items with their owners
-                                </p>
+                                <p className="text-sm text-text-tertiary-light dark:text-text-tertiary">You&apos;re all caught up!</p>
                             </div>
                         </div>
                         <button

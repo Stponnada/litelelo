@@ -171,9 +171,13 @@ const CampusPage: React.FC = () => {
 
                 if (places.data) setTopPlaces(places.data as CampusPlace[]);
                 if (listings.data && listings.data.length > 0) setNewestListing(listings.data[0] as MarketplaceListing);
-                if (notices.data && notices.data.length > 0) setLatestNotice(notices.data[0] as any);
-            } catch (e) { console.error(e); }
-            finally { setLoading(false); }
+                if (notices.data && notices.data.length > 0) setLatestNotice(notices.data[0] as CampusNotice);
+            } catch (err: unknown) {
+                console.error(err);
+                // Optionally, set an error state here as well if needed
+            } finally {
+                setLoading(false);
+            }
         };
         fetchData();
     }, [profile?.campus]);
@@ -266,7 +270,7 @@ const CampusPage: React.FC = () => {
                                 <CalendarIcon className="w-5 h-5" />
                             </div>
                             <h3 className="font-bold text-zinc-800 dark:text-white">Events</h3>
-                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">What's coming up?</p>
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">What&apos;s coming up?</p>
                             <div className="mt-auto w-full h-1 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
                                 <div className="w-3/4 h-full bg-indigo-500"></div>
                             </div>

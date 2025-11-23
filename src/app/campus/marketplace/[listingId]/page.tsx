@@ -64,8 +64,12 @@ const MarketplaceItemPage: React.FC = () => {
                 if (data.marketplace_images && data.marketplace_images.length > 0) {
                     setActiveImage(data.marketplace_images[0].image_url);
                 }
-            } catch (err: any) {
-                setError(err.message);
+            } catch (err: unknown) {
+                if (err instanceof Error) {
+                    setError(err.message);
+                } else {
+                    setError('An unknown error occurred.');
+                }
             } finally {
                 setLoading(false);
             }
@@ -86,8 +90,12 @@ const MarketplaceItemPage: React.FC = () => {
             const { error: deleteError } = await supabase.rpc('delete_listing', { p_listing_id: listing.id });
             if (deleteError) throw deleteError;
             router.push('/campus/marketplace');
-        } catch (err: any) {
-            alert(`Failed to delete listing: ${err.message}`);
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                alert(`Failed to delete listing: ${err.message}`);
+            } else {
+                alert('An unknown error occurred while deleting the listing.');
+            }
         }
     };
 
@@ -126,7 +134,7 @@ const MarketplaceItemPage: React.FC = () => {
                             ...prev,
                             ...updated,
                             seller_id: prev.seller_id,
-                            marketplace_images: (updated as any).marketplace_images || prev.marketplace_images
+                            marketplace_images: (updated as ListingWithDetails).marketplace_images || prev.marketplace_images
                         } : null);
                         setActiveImage(updated.all_images?.[0] || null);
                         setIsEditing(false);

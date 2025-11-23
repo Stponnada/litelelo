@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
-import { Profile } from '../types';
+import { Profile, DirectoryProfile } from '../types';
 import Spinner from './Spinner';
 import UserCard from './UserCard';
 import { XCircleIcon } from './icons';
@@ -73,9 +73,10 @@ const FollowListModal: React.FC<FollowListModalProps> = ({ profile, listType, on
     }
   };
 
-  const handleMessageUser = (profileToMessage: Profile) => {
+  const handleMessageUser = (profileToMessage: DirectoryProfile | Profile) => {
     // FIXED: Next.js does not support state in push. Using Query Params.
-    router.push(`/chat?userId=${profileToMessage.user_id}`);
+    const userId = 'user_id' in profileToMessage ? profileToMessage.user_id : profileToMessage.id;
+    router.push(`/chat?userId=${userId}`);
   };
 
   return (

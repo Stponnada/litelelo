@@ -7,6 +7,7 @@ import { Post as PostType } from '../types';
 import Spinner from './Spinner';
 import QuotePostDisplay from './QuotePostDisplay';
 import { XCircleIcon } from './icons';
+import Image from 'next/image';
 
 interface QuotePostModalProps {
   postToQuote: PostType;
@@ -45,12 +46,16 @@ const QuotePostModal: React.FC<QuotePostModalProps> = ({ postToQuote, onClose, o
       }).single();
 
       if (rpcError) throw rpcError;
-      
+
       onPostCreated(data as PostType);
       onClose();
 
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unknown error occurred.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -59,50 +64,59 @@ const QuotePostModal: React.FC<QuotePostModalProps> = ({ postToQuote, onClose, o
   if (!profile) return null;
 
   return (
-    <div 
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-start justify-center p-4 pt-20 md:items-center md:pt-4"
-        onClick={onClose}
+    <div
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-start justify-center p-4 pt-20 md:items-center md:pt-4"
+      onClick={onClose}
     >
-        <div 
-            className="w-full max-w-2xl bg-secondary-light dark:bg-secondary rounded-xl shadow-lg relative"
-            onClick={(e) => e.stopPropagation()}
-        >
-            <button onClick={onClose} className="absolute top-3 right-3 text-text-tertiary-light dark:text-text-tertiary">
-                <XCircleIcon className="w-7 h-7"/>
+      <div
+        className="w-full max-w-2xl bg-secondary-light dark:bg-secondary rounded-xl shadow-lg relative"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button onClick={onClose} className="absolute top-3 right-3 text-text-tertiary-light dark:text-text-tertiary">
+          <XCircleIcon className="w-7 h-7" />
+        </button>
+
+        <form onSubmit={handleSubmit} className="p-4">
+          <div className="flex items-start space-x-4">
+            <Image src={profile.avatar_url || ''} alt="Your avatar" width={48} height={48} className="rounded-full object-cover" />
+            <div className="flex-1">
+              <textarea
+                ref={textareaRef}
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Add a comment..."
+                className="w-full bg-transparent text-lg text-text-main-light dark:text-text-main placeholder-text-tertiary-light dark:placeholder-text-tertiary resize-none focus:outline-none overflow-hidden"
+                rows={2}
+                autoFocus
+              />
+
+              <QuotePostDisplay post={{
+                id: postToQuote.id,
+                content: postToQuote.content,
+                image_url: postToQuote.image_url,
+                created_at: postToQuote.created_at,
+                is_deleted: postToQuote.is_deleted,
+                author_name: postToQuote.author.author_name,
+                author_username: postToQuote.author.author_username,
+                author_avatar_url: postToQuote.author.author_avatar_url,
+              }} />
+            </div>
+          </div>
+
+          {error && <p className="text-red-400 text-sm mt-2 text-center">{error}</p>}
+
+          <div className="flex justify-end items-center mt-4 pt-4 border-t border-tertiary-light dark:border-tertiary">
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="bg-brand-green text-black font-bold py-2 px-6 rounded-full hover:bg-brand-green-darker transition-colors disabled:opacity-50 flex items-center"
+            >
+              {isSubmitting && <Spinner />}
+              Post
             </button>
-
-            <form onSubmit={handleSubmit} className="p-4">
-                <div className="flex items-start space-x-4">
-                    <img src={profile.avatar_url || ''} alt="Your avatar" className="w-12 h-12 rounded-full object-cover" />
-                    <div className="flex-1">
-                        <textarea
-                            ref={textareaRef}
-                            value={content}
-                            onChange={(e) => setContent(e.target.value)}
-                            placeholder="Add a comment..."
-                            className="w-full bg-transparent text-lg text-text-main-light dark:text-text-main placeholder-text-tertiary-light dark:placeholder-text-tertiary resize-none focus:outline-none overflow-hidden"
-                            rows={2}
-                            autoFocus
-                        />
-                        
-                        <QuotePostDisplay post={postToQuote as any} />
-                    </div>
-                </div>
-
-                {error && <p className="text-red-400 text-sm mt-2 text-center">{error}</p>}
-                
-                <div className="flex justify-end items-center mt-4 pt-4 border-t border-tertiary-light dark:border-tertiary">
-                    <button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="bg-brand-green text-black font-bold py-2 px-6 rounded-full hover:bg-brand-green-darker transition-colors disabled:opacity-50 flex items-center"
-                    >
-                        {isSubmitting && <Spinner />}
-                        Post
-                    </button>
-                </div>
-            </form>
-        </div>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };

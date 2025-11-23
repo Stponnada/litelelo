@@ -16,7 +16,7 @@ const NoInternetPage: React.FC = () => {
                 Connection Lost
             </h1>
             <p className="text-lg text-text-secondary-light dark:text-text-secondary max-w-md mx-auto mb-8">
-                It seems you're offline. Please check your internet connection and try again.
+                It seems you&apos;re offline. Please check your internet connection and try again.
             </p>
 
             <button

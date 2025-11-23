@@ -106,8 +106,12 @@ const CommunityMembersPage: React.FC = () => {
             const viewingUser = (membersData as CommunityMember[])?.find(m => m.user_id === user?.id);
             setIsViewingUserConsul(viewingUser?.role === 'admin');
 
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError('An unknown error occurred.');
+            }
         } finally {
             setLoading(false);
         }

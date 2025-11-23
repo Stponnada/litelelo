@@ -1,0 +1,15 @@
+src/components/HomePage.tsx(160,76): error TS2304: Cannot find name 'FeedItem'.
+src/components/HomePage.tsx(160,107): error TS2304: Cannot find name 'FeedItem'.
+src/components/HomePage.tsx(165,50): error TS2339: Property 'item_type' does not exist on type 'FeedItem'.
+  Property 'item_type' does not exist on type 'Post'.
+src/components/HomePage.tsx(167,106): error TS2339: Property 'item_data' does not exist on type 'FeedItem'.
+  Property 'item_data' does not exist on type 'Post'.
+src/components/HomePage.tsx(167,178): error TS2339: Property 'item_data' does not exist on type 'FeedItem'.
+  Property 'item_data' does not exist on type 'Post'.
+src/components/HomePage.tsx(169,100): error TS2339: Property 'item_data' does not exist on type 'FeedItem'.
+  Property 'item_data' does not exist on type 'Post'.
+src/components/HomePage.tsx(171,105): error TS2339: Property 'item_data' does not exist on type 'FeedItem'.
+  Property 'item_data' does not exist on type 'Post'.
+src/components/HomePage.tsx(177,77): error TS2339: Property 'id' does not exist on type 'never'.
+src/components/MiningPuzzle.tsx(92,39): error TS2345: Argument of type '{ index: number; timestamp: string; transactions: { sender?: { username: string; }; recipient?: { username: string; }; amount: number; id?: string; }[]; previous_hash: string; }' is not assignable to parameter of type 'BlockData'.
+  Type '{ index: number; timestamp: string; transactions: { sender?: { username: string; } | undefined; recipient?: { username: string; } | undefined; amount: number; id?: string | undefined; }[]; previous_hash: string; }' is missing the following properties from type 'BlockData': hash, nonce

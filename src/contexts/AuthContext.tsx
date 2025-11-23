@@ -1,7 +1,7 @@
 'use client';
 // src/contexts/AuthContext.tsx
 
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '../services/supabase';
 import type { Session, User } from '@supabase/supabase-js';
 import { Profile } from '../types';
@@ -27,42 +27,53 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    // Check for an active session on initial load
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .single()
-          .then(({ data }) => {
-            setProfile(data as Profile | null);
-            setIsLoading(false); // <--- Finish initial load
-          });
-      } else {
-        setIsLoading(false); // <--- Finish initial load if no user
-      }
-    });
+    const initAuth = async () => {
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
 
-    // Listen for auth state changes
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+
         if (session?.user) {
-          // --- THIS IS THE FIX ---
-          // DO NOT set loading to true here. This is a background update.
-          supabase
+          const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('*')
             .eq('user_id', session.user.id)
-            .single()
-            .then(({ data }) => {
-              setProfile(data as Profile | null);
-              // Do not touch isLoading here.
-            });
+            .single();
+
+          if (profileError) {
+            console.error("Error fetching profile:", profileError);
+          }
+
+          setProfile(profileData as Profile | null);
+        }
+      } catch (error) {
+        console.error("Error initializing auth:", error);
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initAuth();
+
+    // Listen for auth state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+
+        if (session?.user) {
+          const { data } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .single();
+
+          setProfile(data as Profile | null);
         } else {
           setProfile(null);
         }
@@ -74,13 +85,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  const value = { 
-    session, 
-    user, 
-    profile, 
-    isLoading, 
+  const value = {
+    session,
+    user,
+    profile,
+    isLoading,
     updateProfileContext
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };

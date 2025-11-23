@@ -11,12 +11,19 @@ interface CampusImageUploadModalProps {
   onSuccess: () => void; // To refetch data on the main page
 }
 
+interface CampusPlaceImage {
+  id: string;
+  place_id: string;
+  image_url: string;
+  created_at: string;
+}
+
 const CampusImageUploadModal: React.FC<CampusImageUploadModalProps> = ({
   place,
   onClose,
   onSuccess,
 }) => {
-  const [images, setImages] = useState<any[]>([]);
+  const [images, setImages] = useState<CampusPlaceImage[]>([]);
   const [filesToUpload, setFilesToUpload] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [idsToDelete, setIdsToDelete] = useState<string[]>([]);
@@ -110,8 +117,12 @@ const CampusImageUploadModal: React.FC<CampusImageUploadModalProps> = ({
 
       onSuccess();
       onClose();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unknown error occurred.');
+      }
     } finally {
       setIsSaving(false);
     }
@@ -142,7 +153,7 @@ const CampusImageUploadModal: React.FC<CampusImageUploadModalProps> = ({
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {previews.map(
                 (preview, index) =>
-                  !idsToDelete.includes(images.find((i) => i.image_url === preview)?.id) && (
+                  !idsToDelete.includes(images.find((i) => i.image_url === preview)?.id || '') && (
                     <div key={preview} className="relative group aspect-square">
                       <img
                         src={preview}

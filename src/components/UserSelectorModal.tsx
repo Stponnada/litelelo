@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { DirectoryProfile } from '../types';
@@ -120,10 +121,12 @@ const UserSelectorModal: React.FC<UserSelectorModalProps> = ({ onClose, onConfir
                                         key={user.id}
                                         className="group flex items-center gap-2.5 pl-1 pr-3 py-1 bg-white dark:bg-gray-800 rounded-full border-2 border-emerald-200 dark:border-emerald-800 hover:border-emerald-400 dark:hover:border-emerald-600 transition-all duration-200 shadow-sm hover:shadow-md"
                                     >
-                                        <img
+                                        <Image
                                             src={user.avatar_url || `https://ui-avatars.com/api/?name=${user.name || user.username}&background=random&color=fff&bold=true`}
                                             alt={user.username!}
-                                            className="w-7 h-7 rounded-full object-cover"
+                                            width={28}
+                                            height={28}
+                                            className="rounded-full object-cover"
                                         />
                                         <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
                                             {user.name || user.username}
@@ -181,23 +184,25 @@ const UserSelectorModal: React.FC<UserSelectorModalProps> = ({ onClose, onConfir
                                             key={profile.id}
                                             onClick={() => handleToggleUser(profile.id)}
                                             className={`group flex items-center gap-4 p-3.5 w-full rounded-xl transition-all duration-200 ${isSelected
-                                                    ? 'bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/30'
-                                                    : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                                                ? 'bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/30'
+                                                : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
                                                 }`}
                                         >
                                             <div className="relative">
                                                 <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200 ${isSelected
-                                                        ? 'bg-emerald-500 border-emerald-500'
-                                                        : 'border-gray-300 dark:border-gray-600 group-hover:border-emerald-400'
+                                                    ? 'bg-emerald-500 border-emerald-500'
+                                                    : 'border-gray-300 dark:border-gray-600 group-hover:border-emerald-400'
                                                     }`}>
                                                     {isSelected && <CheckIcon className="w-3.5 h-3.5 text-white" />}
                                                 </div>
                                             </div>
 
-                                            <img
+                                            <Image
                                                 src={profile.avatar_url || `https://ui-avatars.com/api/?name=${profile.name || profile.username}&background=random&color=fff&bold=true`}
                                                 alt={profile.username!}
-                                                className={`w-11 h-11 rounded-xl object-cover shadow-sm transition-all duration-200 ${isSelected ? 'ring-2 ring-emerald-400 shadow-emerald-200 dark:shadow-emerald-900/50' : ''
+                                                width={44}
+                                                height={44}
+                                                className={`rounded-xl object-cover shadow-sm transition-all duration-200 ${isSelected ? 'ring-2 ring-emerald-400 shadow-emerald-200 dark:shadow-emerald-900/50' : ''
                                                     }`}
                                             />
 

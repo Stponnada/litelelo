@@ -12,7 +12,7 @@ import { BITS_BRANCHES, isMscBranch } from '@/data/bitsBranches';
 import ImageCropper from '@/components/ImageCropper';
 import { BITS_DORMS } from '@/data/bitsDorms';
 
-const RELATIONSHIP_STATUSES = ['Single', 'In a Relationship', 'Married', "It's Complicated"];
+const RELATIONSHIP_STATUSES = ['Single', 'In a Relationship', 'Married', "It&apos;s Complicated"];
 const DINING_HALLS = ['Mess 1', 'Mess 2'];
 const MONTHS = [
     { value: '01', label: 'January' }, { value: '02', label: 'February' },
@@ -175,8 +175,12 @@ const ProfileSetup: React.FC = () => {
             updateProfileContext(updatedProfile);
 
             router.push('/');
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError('An unknown error occurred.');
+            }
         } finally {
             setIsSaving(false);
         }
@@ -389,7 +393,7 @@ const ProfileSetup: React.FC = () => {
                             <div className={`space-y-6 transition-all duration-500 ${currentStep === 2 ? 'block' : 'hidden'}`}>
                                 <div className="text-center mb-6">
                                     <h3 className="text-2xl font-bold text-text-main-light dark:text-text-main mb-2">Personal Details</h3>
-                                    <p className="text-sm text-text-secondary-light dark:text-text-secondary">Help others get to know you better</p>
+                                    <p className="text-text-secondary-light dark:text-text-secondary mt-2">Let's get your profile set up so you can start connecting.</p>
                                 </div>
 
                                 <div>

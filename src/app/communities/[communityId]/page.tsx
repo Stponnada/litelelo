@@ -65,13 +65,17 @@ const CommunityPage: React.FC = () => {
             setCommunity(communityResult.data as CommunityDetailsType);
 
             if (postsResult.error) throw postsResult.error;
-            setPosts((postsResult.data as any) || []);
+            setPosts((postsResult.data as PostType[]) || []);
 
             if (subcommunitiesResult.error) throw subcommunitiesResult.error;
             setSubcommunities(subcommunitiesResult.data || []);
 
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError('An unknown error occurred.');
+            }
         } finally {
             setLoading(false);
         }
@@ -103,8 +107,9 @@ const CommunityPage: React.FC = () => {
             const newUrl = `${publicUrl}?t=${new Date().getTime()}`;
             await supabase.from('communities').update({ [columnToUpdate]: newUrl }).eq('id', community.id);
             setCommunity(prev => prev ? { ...prev, [columnToUpdate]: newUrl } : null);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(`Failed to upload ${fileType}:`, err);
+            // Optionally, set an error state here as well if needed
         } finally {
             setIsSaving(false);
             setCropperState({ isOpen: false, type: null, src: null });
@@ -134,9 +139,9 @@ const CommunityPage: React.FC = () => {
         if (!user) return;
         const isSubcommunity = targetCommunityId !== community?.id;
 
-        const updateState = (updater: (c: any) => any) => {
+        const updateState = (updater: (c: CommunityDetailsType | Subcommunity) => CommunityDetailsType | Subcommunity) => {
             if (isSubcommunity) {
-                setSubcommunities(prev => prev.map(sc => sc.id === targetCommunityId ? updater(sc) : sc));
+                setSubcommunities(prev => prev.map(sc => sc.id === targetCommunityId ? (updater(sc) as Subcommunity) : sc));
             } else if (community) {
                 setCommunity(updater(community));
             }
@@ -150,7 +155,7 @@ const CommunityPage: React.FC = () => {
                 } else {
                     await supabase.from('community_members').insert({ community_id: targetCommunityId, user_id: user.id, status: 'approved' });
                 }
-            } catch (err) {
+            } catch (err: unknown) {
                 console.error("Failed to toggle membership:", err);
                 fetchCommunityData(); // Revert on error
             }
@@ -212,7 +217,7 @@ const CommunityPage: React.FC = () => {
 
     const isOwner = community.is_admin;
     const canPostInCurrentView = community.is_member && ['private', 'public'].includes(activeView);
-    const placeholderText = activeView === 'public' ? "Share something with everyone..." : "What's on your mind, member?";
+    const placeholderText = activeView === 'public' ? "Share something with everyone..." : "What&apos;s on your mind, member?";
     const blogPosts = posts.filter(p => p.post_type === 'blog');
     const publicPosts = posts.filter(p => p.is_public && p.post_type !== 'blog');
     const privatePosts = posts.filter(p => !p.is_public);
@@ -354,7 +359,7 @@ const CommunityPage: React.FC = () => {
 
 
                                 {(activeView === 'private' && privatePosts.length === 0) && <div className="text-center py-20 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50"><p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No member posts yet</p><p className="text-text-secondary-light dark:text-text-secondary">Be the first to share something with the community!</p></div>}
-                                {(activeView === 'public' && publicPosts.length === 0) && <div className="text-center py-20 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50"><p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No public posts yet</p><p className="text-text-secondary-light dark:text-text-secondary">This community hasn't shared anything publicly yet.</p></div>}
+                                {(activeView === 'public' && publicPosts.length === 0) && <div className="text-center py-20 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50"><p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No public posts yet</p><p className="text-text-secondary-light dark:text-text-secondary">This community hasn&apos;t shared anything publicly yet.</p></div>}
                                 {(activeView === 'blog' && blogPosts.length === 0) && <div className="text-center py-20 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50"><p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No blog posts yet</p><p className="text-text-secondary-light dark:text-text-secondary">This community has no blog posts.</p></div>}
                             </div>
                         )}
@@ -365,7 +370,7 @@ const CommunityPage: React.FC = () => {
     );
 };
 
-const SubcommunityLink: React.FC<{ label?: string, subcommunity?: Subcommunity, isActive: boolean, onClick: () => void, onJoinToggle?: (...args: any) => void }> = ({ label, subcommunity, isActive, onClick, onJoinToggle }) => {
+const SubcommunityLink: React.FC<{ label?: string, subcommunity?: Subcommunity, isActive: boolean, onClick: () => void, onJoinToggle?: (targetCommunityId: string, accessType: 'public' | 'restricted', isMember: boolean, hasPendingRequest: boolean) => void }> = ({ label, subcommunity, isActive, onClick, onJoinToggle }) => {
     const isChannel = !!label;
     const name = label || subcommunity!.name;
 

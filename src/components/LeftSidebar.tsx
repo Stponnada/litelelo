@@ -32,6 +32,37 @@ interface LeftSidebarProps {
   onOpenAboutModal: () => void;
 }
 
+const NavLink: React.FC<{ to: string; icon: React.ReactNode; text: string; isExpanded: boolean; totalUnreadCount?: number }> = ({
+  to,
+  icon,
+  text,
+  isExpanded,
+  totalUnreadCount,
+}) => (
+  <Link
+    href={to}
+    className="group flex items-center p-3 my-1 space-x-4 rounded-xl text-text-secondary-light dark:text-text-secondary hover:bg-brand-green/10 hover:text-brand-green transition-all duration-200"
+  >
+    <div className="flex-shrink-0 transition-colors duration-200 group-hover:text-brand-green">
+      {icon}
+      {to === '/chat' && totalUnreadCount && totalUnreadCount > 0 && ( // Removed isExpanded here as it's not needed for the badge itself, only its positioning.
+        <span className="absolute -top-1 -right-1 flex h-3 w-3">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-green opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-3 w-3 bg-brand-green"></span>
+        </span>
+      )}
+    </div>
+    <span
+      className={`whitespace-nowrap font-medium transition-all duration-300 origin-left
+        ${isExpanded ? 'opacity-100 translate-x-0 scale-100' : 'opacity-0 -translate-x-4 scale-95 w-0 overflow-hidden'}
+      `}
+    >
+      {text}
+    </span>
+  </Link>
+);
+
+
 const LeftSidebar: React.FC<LeftSidebarProps> = ({
   isExpanded,
   setIsExpanded,
@@ -43,46 +74,26 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const { totalUnreadCount } = useChat();
   const { theme, toggleTheme } = useTheme();
 
-  const [sidebarMode, setSidebarMode] = useState<'hover' | 'expanded' | 'collapsed'>('hover');
+  const initialSidebarMode = typeof window !== 'undefined' ? (localStorage.getItem('litelelo.sidebarMode') as 'hover' | 'expanded' | 'collapsed' | null) : null;
+  const [sidebarMode, setSidebarMode] = useState<'hover' | 'expanded' | 'collapsed'>(initialSidebarMode || 'hover');
 
   const handleSignOut = async () => {
     await supabase.auth.signOut({ scope: 'local' });
     router.push('/login');
   };
 
-  const NavLink: React.FC<{ to: string; icon: React.ReactNode; text: string }> = ({
-    to,
-    icon,
-    text,
-  }) => (
-    <Link
-      href={to}
-      className="group flex items-center p-3 my-1 space-x-4 rounded-xl text-text-secondary-light dark:text-text-secondary hover:bg-brand-green/10 hover:text-brand-green transition-all duration-200"
-    >
-      <div className="flex-shrink-0 transition-colors duration-200 group-hover:text-brand-green">
-        {icon}
-      </div>
-      <span
-        className={`whitespace-nowrap font-medium transition-all duration-300 origin-left
-          ${isExpanded ? 'opacity-100 translate-x-0 scale-100' : 'opacity-0 -translate-x-4 scale-95 w-0 overflow-hidden'}
-        `}
-      >
-        {text}
-      </span>
-    </Link>
-  );
-
   useEffect(() => {
-    const key = 'litelelo.sidebarMode';
-    const fromStorage = localStorage.getItem(key) as 'hover' | 'expanded' | 'collapsed' | null;
-    if (fromStorage) {
-      setSidebarMode(fromStorage);
-      if (fromStorage === 'expanded') setIsExpanded(true);
-      if (fromStorage === 'collapsed') setIsExpanded(false);
-    }
+    if (initialSidebarMode === 'expanded') setIsExpanded(true);
+    if (initialSidebarMode === 'collapsed') setIsExpanded(false);
 
+    const key = 'litelelo.sidebarMode';
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === key && e.newValue) setSidebarMode(e.newValue as any);
+      if (e.key === key && e.newValue) {
+        const newMode = e.newValue as 'hover' | 'expanded' | 'collapsed';
+        setSidebarMode(newMode);
+        if (newMode === 'expanded') setIsExpanded(true);
+        if (newMode === 'collapsed') setIsExpanded(false);
+      }
     };
 
     const handleCustomChange = (e: Event) => {
@@ -98,7 +109,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('litelelo:sidebar-mode-changed', handleCustomChange);
     };
-  }, [setIsExpanded]);
+  }, [setIsExpanded, initialSidebarMode]);
 
   const handleMouseEnter = () => {
     if (sidebarMode === 'hover') setIsExpanded(true);
@@ -123,31 +134,24 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
       <div className="flex flex-col h-full p-3 overflow-visible">
         {/* Navigation Links - Scrollable Area */}
         <nav className="flex-grow space-y-1 overflow-y-auto overflow-x-hidden scrollbar-hide">
-          <NavLink to="/" icon={<HomeIcon className="w-7 h-7" />} text="Home" />
-          <NavLink to="/campus" icon={<BuildingLibraryIcon className="w-7 h-7" />} text="Campus" />
-          <NavLink to="/communities" icon={<UserGroupIcon className="w-7 h-7" />} text="Communities" />
-          <NavLink to="/search" icon={<SearchIcon className="w-7 h-7" />} text="Search" />
+          <NavLink to="/" icon={<HomeIcon className="w-7 h-7" />} text="Home" isExpanded={isExpanded} />
+          <NavLink to="/campus" icon={<BuildingLibraryIcon className="w-7 h-7" />} text="Campus" isExpanded={isExpanded} />
+          <NavLink to="/communities" icon={<UserGroupIcon className="w-7 h-7" />} text="Communities" isExpanded={isExpanded} />
+          <NavLink to="/search" icon={<SearchIcon className="w-7 h-7" />} text="Search" isExpanded={isExpanded} />
           <NavLink
             to="/chat"
-            icon={
-              <div className="relative">
-                <ChatIcon className="w-7 h-7" />
-                {totalUnreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-green opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-brand-green"></span>
-                  </span>
-                )}
-              </div>
-            }
+            icon={<ChatIcon className="w-7 h-7" />}
             text="Chat"
+            isExpanded={isExpanded}
+            totalUnreadCount={totalUnreadCount}
           />
-          <NavLink to="/directory" icon={<GlobeIcon className="w-7 h-7" />} text="Directory" />
+          <NavLink to="/directory" icon={<GlobeIcon className="w-7 h-7" />} text="Directory" isExpanded={isExpanded} />
           {username && (
             <NavLink
               to={`/profile/${username}`}
               icon={<UserIcon className="w-7 h-7" />}
               text="Profile"
+              isExpanded={isExpanded}
             />
           )}
         </nav>
@@ -175,7 +179,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                     <img src={profile.avatar_url || ''} alt="Profile" className="w-full h-full object-cover" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-text-main-light dark:text-text-main truncate">{profile.full_name}</p>
+                    <p className="text-sm font-bold text-text-main-light dark:text-text-main truncate max-w-[150px]">{profile.full_name}</p>
                     <p className="text-xs text-text-tertiary-light dark:text-text-tertiary truncate">@{profile.username}</p>
                   </div>
                 </Link>

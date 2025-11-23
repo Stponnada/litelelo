@@ -1,9 +1,25 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/Block.tsx
 import React from 'react';
 import { format } from 'date-fns';
 import Transaction from './Transaction';
 
-const Block: React.FC<{ block: any }> = ({ block }) => {
+import { TransactionProps } from './Transaction';
+
+export interface BlockData {
+    index: number;
+    timestamp: string;
+    hash: string;
+    previous_hash: string;
+    nonce: number;
+    transactions: TransactionProps['tx'][];
+    miner?: {
+        username: string;
+        avatar_url?: string;
+    };
+}
+
+const Block: React.FC<{ block: BlockData }> = ({ block }) => {
     return (
         <div className="bg-tertiary-light dark:bg-tertiary/50 p-4 rounded-md border border-tertiary-light dark:border-tertiary">
             <div className="flex justify-between items-center mb-2">
@@ -19,7 +35,7 @@ const Block: React.FC<{ block: any }> = ({ block }) => {
                 <div className="mt-3 pt-3 border-t border-tertiary-light dark:border-tertiary">
                     <h4 className="text-sm font-semibold mb-2">Transactions ({block.transactions.length})</h4>
                     <div className="space-y-1">
-                        {block.transactions.map((tx: any) => <Transaction key={tx.id} tx={tx} isMined />)}
+                        {block.transactions.map((tx) => <Transaction key={tx.id || Math.random()} tx={tx} isMined />)}
                     </div>
                 </div>
             )}

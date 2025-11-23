@@ -144,6 +144,7 @@ export const ShoppingCartIcon: React.FC<{ className?: string }> = ({ className =
     fill="#000"
     version="1"
     viewBox="0 0 64 64"
+    className={className}
   >
     <g id="SVGRepo_iconCarrier">
       <path
@@ -195,6 +196,7 @@ export const ArchiveBoxIcon: React.FC<{ className?: string }> = ({ className = "
     fill="#000"
     version="1"
     viewBox="0 0 64 64"
+    className={className}
   >
     <g id="SVGRepo_iconCarrier">
       <path
@@ -224,6 +226,7 @@ export const ClipboardDocumentListIcon: React.FC<{ className?: string }> = ({ cl
     fill="#000"
     version="1.1"
     viewBox="0 0 512 512"
+    className={className}
   >
     <g id="SVGRepo_iconCarrier">
       <path
@@ -469,6 +472,7 @@ export const MapIcon: React.FC<{ className?: string }> = ({
     fill="#000"
     version="1"
     viewBox="0 0 64 64"
+    className={className}
   >
     <g id="SVGRepo_iconCarrier">
       <path
@@ -498,6 +502,7 @@ export const WifiOffIcon: React.FC<{ className?: string }> = ({ className = "w-6
     stroke="#00ff62"
     version="1.1"
     viewBox="0 0 30 30"
+    className={className}
   >
     <g id="SVGRepo_iconCarrier">
       <g id="layer1" transform="translate(0 -289.063)">
@@ -562,6 +567,8 @@ export const CurrencyRupeeIcon: React.FC<React.SVGProps<SVGSVGElement>> = ({ cla
     fill="none"
     stroke="#fff"
     viewBox="0 0 24 24"
+    className={className}
+    {...rest}
   >
     <g
       id="SVGRepo_iconCarrier"
@@ -581,7 +588,7 @@ export const CurrencyDollarIcon: React.FC<{ className?: string }> = ({ className
     height="64"
     stroke="#000"
     strokeWidth="3.072"
-    className="icon"
+    className={className}
     viewBox="0 0 1024 1024"
   >
     <g
@@ -662,7 +669,7 @@ export const BellIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-
 );
 
 export const CarIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" }) => (
-  <svg version="1.0" id="Layer_1" xmlns="http://www.w3.org/2000/svg" width="64px" height="64px" viewBox="0 0 64 64" fill="#161616ff"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <g> <path fill="#cbcbcbff" d="M28,12h8c15.41,0,15.984,14.379,16,16H12C12,27.348,12.184,12,28,12z"></path> <polygon fill="#00ffe1ff" points="56,44 48,44 16,44 8,44 8,36 16,36 48,36 56,36 "></polygon> <g> <path fill="#242424ff" d="M60,28c0-8.301-5.016-24-24-24h-8C9.016,4,4,19.699,4,28c-2.211,0-4,1.789-4,4v16c0,2.211,1.789,4,4,4h4v4 c0,2.211,1.789,4,4,4h4c2.211,0,4-1.789,4-4v-4h24v4c0,2.211,1.789,4,4,4h4c2.211,0,4-1.789,4-4v-4h4c2.211,0,4-1.789,4-4V32 C64,29.789,62.211,28,60,28z M28,12h8c15.41,0,15.984,14.379,16,16H12C12,27.348,12.184,12,28,12z M56,44h-8H16H8v-8h8h32h8V44z"></path> <circle fill="#394240" cx="48" cy="40" r="4"></circle> <circle fill="#394240" cx="16" cy="40" r="4"></circle> </g> </g> </g></svg>
+  <svg version="1.0" id="Layer_1" xmlns="http://www.w3.org/2000/svg" width="64px" height="64px" viewBox="0 0 64 64" fill="#161616ff" className={className}><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <g> <path fill="#cbcbcbff" d="M28,12h8c15.41,0,15.984,14.379,16,16H12C12,27.348,12.184,12,28,12z"></path> <polygon fill="#00ffe1ff" points="56,44 48,44 16,44 8,44 8,36 16,36 48,36 56,36 "></polygon> <g> <path fill="#242424ff" d="M60,28c0-8.301-5.016-24-24-24h-8C9.016,4,4,19.699,4,28c-2.211,0-4,1.789-4,4v16c0,2.211,1.789,4,4,4h4v4 c0,2.211,1.789,4,4,4h4c2.211,0,4-1.789,4-4v-4h24v4c0,2.211,1.789,4,4,4h4c2.211,0,4-1.789,4-4v-4h4c2.211,0,4-1.789,4-4V32 C64,29.789,62.211,28,60,28z M28,12h8c15.41,0,15.984,14.379,16,16H12C12,27.348,12.184,12,28,12z M56,44h-8H16H8v-8h8h32h8V44z"></path> <circle fill="#394240" cx="48" cy="40" r="4"></circle> <circle fill="#394240" cx="16" cy="40" r="4"></circle> </g> </g> </g></svg>
 );
 
 export const CubeIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" }) => (
@@ -679,6 +686,7 @@ export const LogoGraphicIcon: React.FC<{ className?: string }> = ({ className = 
     fill="none"
     stroke="#00ff4c"
     viewBox="0 0 400 400"
+    className={className}
   >
     <g
       id="SVGRepo_iconCarrier"
@@ -714,6 +722,7 @@ export const CampusPlacesIcon: React.FC<{ className?: string }> = ({ className }
     fill="#000"
     version="1"
     viewBox="0 0 64 64"
+    className={className}
   >
     <g id="SVGRepo_iconCarrier">
       <path
@@ -736,6 +745,7 @@ export const SpaceInvaderIcon: React.FC<{ className?: string }> = ({ className =
     stroke="#000"
     strokeWidth="0.001"
     viewBox="0 0 64 64"
+    className={className}
   >
     <g
       id="SVGRepo_tracerCarrier"
@@ -825,7 +835,7 @@ export const CalendarIcon: React.FC<{ className?: string }> = ({ className = "w-
     xmlns="http://www.w3.org/2000/svg"
     width="64"
     height="64"
-    className="icon"
+    className={className}
     viewBox="0 0 1024 1024"
   >
     <g id="SVGRepo_iconCarrier">
@@ -859,13 +869,13 @@ export const CalendarIcon: React.FC<{ className?: string }> = ({ className = "w-
 );
 
 export const UserPlusIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766Z" />
   </svg>
 );
 
 export const ShoppingBagIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
   </svg>
 
@@ -948,8 +958,9 @@ export const HandoutIcon = ({ className, ...props }: React.SVGProps<SVGSVGElemen
     xmlns="http://www.w3.org/2000/svg"
     width="178"
     height="178"
-    className="icon"
+    className={className}
     viewBox="-51.2 -51.2 1126.4 1126.4"
+    {...props}
   >
     <g
       id="SVGRepo_tracerCarrier"

@@ -33,24 +33,32 @@ const ReputationPage: React.FC = () => {
         setLoading(true);
         setError(null);
         try {
-            const { data: profileData, error: profileError } = await supabase.rpc('get_profile_details', { profile_username: username }).single();
+            const { data: profileData, error: profileError } = await supabase.rpc('get_profile_details', { profile_username: username }).single<Profile>();
             if (profileError || !profileData) throw profileError || new Error("User not found");
-            setProfile(profileData as Profile);
+            setProfile(profileData);
 
             // Fetch both histories in parallel
-            const listingsPromise = supabase.from('marketplace_listings').select(`*, seller_profile:profiles(*), primary_image_url:marketplace_images(image_url)`).eq('seller_id', (profileData as Profile).user_id).order('created_at', { ascending: false });
-            const bitsCoinPromise = supabase.rpc('get_bits_coin_history_for_user', { p_user_id: (profileData as Profile).user_id });
+            const listingsPromise = supabase.from('marketplace_listings').select(`*, seller_profile:profiles(*), primary_image_url:marketplace_images(image_url)`).eq('seller_id', profileData.user_id).order('created_at', { ascending: false });
+            const bitsCoinPromise = supabase.rpc('get_bits_coin_history_for_user', { p_user_id: profileData.user_id });
 
             const [listingsResult, bitsCoinResult] = await Promise.all([listingsPromise, bitsCoinPromise]);
 
             if (listingsResult.error) throw listingsResult.error;
-            setListings((listingsResult.data || []).map((l: any) => ({ ...l, primary_image_url: l.primary_image_url[0]?.image_url })) as MarketplaceListing[]);
+            interface MarketplaceListingRpcResult extends Omit<MarketplaceListing, 'seller_profile' | 'primary_image_url' | 'all_images'> {
+                seller_profile: Profile;
+                primary_image_url: { image_url: string }[];
+            }
+            setListings((listingsResult.data as MarketplaceListingRpcResult[] || []).map(l => ({ ...l, primary_image_url: l.primary_image_url[0]?.image_url, all_images: l.primary_image_url.map(img => img.image_url) })) as MarketplaceListing[]);
 
             if (bitsCoinResult.error) throw bitsCoinResult.error;
             setBitsCoinHistory(bitsCoinResult.data as BitsCoinRequest[] || []);
 
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError('An unknown error occurred.');
+            }
         } finally {
             setLoading(false);
         }

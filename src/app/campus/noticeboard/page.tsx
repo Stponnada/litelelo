@@ -178,9 +178,13 @@ const NoticeboardPage: React.FC = () => {
         try {
             const { data, error } = await supabase.rpc('get_campus_notices_with_files', { p_campus: profile.campus });
             if (error) throw error;
-            setNotices(data as any[] || []);
-        } catch (err: any) {
-            setError(err.message);
+            setNotices((data as CampusNotice[]) || []);
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError('An unknown error occurred.');
+            }
         } finally {
             setLoading(false);
         }
@@ -209,7 +213,7 @@ const NoticeboardPage: React.FC = () => {
         try {
             const { error } = await supabase.rpc('delete_notice', { p_notice_id: id });
             if (error) throw error;
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Failed to delete notice:", err);
             setNotices(originalNotices);
         }

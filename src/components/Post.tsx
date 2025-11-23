@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePosts } from '../hooks/usePosts';
 import { useAuth } from '../hooks/useAuth';
 import { Post as PostType } from '../types';
@@ -43,10 +44,12 @@ const Flair: React.FC<{ flair: { id: string; name: string; avatar_url: string | 
         className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-brand-green/10 border border-brand-green/20 hover:bg-brand-green/20 transition-colors group ml-1.5"
         title={flair.name}
     >
-        <img
+        <Image
             src={flair.avatar_url || `https://ui-avatars.com/api/?name=${flair.name}`}
             alt={flair.name}
-            className="w-3 h-3 rounded-full object-cover"
+            width={12}
+            height={12}
+            className="rounded-full object-cover"
         />
         <span className="text-[9px] font-bold text-brand-green uppercase tracking-wide leading-none">{flair.name}</span>
     </Link >
@@ -70,9 +73,10 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => 
     const [isQuoteModalOpen, setQuoteModalOpen] = useState(false);
     const isOwner = user?.id === post.user_id;
 
+
     useEffect(() => {
         if (post.image_url) {
-            const img = new Image();
+            const img = new window.Image();
             img.onload = () => {
                 const aspectRatio = img.height / img.width;
                 setIsTallImage(aspectRatio > 1.2);
@@ -231,11 +235,12 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => 
                     <div className="flex items-start gap-3">
                         {/* Avatar - Smaller Size */}
                         <Link href={authorLink} onClick={e => e.stopPropagation()} className="flex-shrink-0 relative group/avatar">
-                            <img
+                            <Image
                                 src={author.author_avatar_url ? getResizedAvatarUrl(author.author_avatar_url, 80, 80) : `https://ui-avatars.com/api/?name=${author.author_name || author.author_username}&background=random&color=fff&bold=true`}
                                 alt={author.author_name || ''}
-                                className="relative w-10 h-10 rounded-full object-cover ring-1 ring-white dark:ring-white/10 shadow-sm"
-                                loading="lazy"
+                                width={40}
+                                height={40}
+                                className="relative rounded-full object-cover ring-1 ring-white dark:ring-white/10 shadow-sm"
                             />
                         </Link>
 
@@ -319,10 +324,11 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => 
                                             <div className="relative overflow-hidden rounded-xl bg-black/5 dark:bg-black/20 border border-tertiary-light dark:border-white/10 transition-all hover:border-brand-green/50 dark:hover:border-brand-green/50">
                                                 {post.image_url && (
                                                     <div className="h-48 w-full overflow-hidden">
-                                                        <img
+                                                        <Image
                                                             src={post.image_url}
                                                             alt={post.title || 'Blog cover'}
-                                                            className="w-full h-full object-cover transition-transform duration-500 group-hover/blog:scale-105"
+                                                            fill
+                                                            className="object-cover transition-transform duration-500 group-hover/blog:scale-105"
                                                         />
                                                     </div>
                                                 )}
@@ -361,11 +367,12 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => 
                                                         onClick={(e) => { e.stopPropagation(); if (onImageClick) { onImageClick(post.image_url!); } }}
                                                         className="w-full block cursor-zoom-in"
                                                     >
-                                                        <img
+                                                        <Image
                                                             src={post.image_url}
                                                             alt="Post content"
+                                                            width={500}
+                                                            height={300}
                                                             className="w-full h-auto object-contain max-h-[400px]"
-                                                            loading="lazy"
                                                         />
                                                     </button>
                                                 </div>

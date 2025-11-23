@@ -161,6 +161,28 @@ const FriendshipButtons: React.FC<{
         );
     };
 
+interface ProfileRpcResult extends Omit<Profile, 'phone' | 'flair_details'> {
+    phone: string | null;
+    flair_details: {
+        id: string;
+        name: string;
+        avatar_url: string | null;
+    } | null;
+}
+
+interface ProfilePostRpcResult extends Omit<PostType, 'author'> {
+    author_id: string;
+    author_type: 'user' | 'community';
+    author_name: string | null;
+    author_username: string | null;
+    author_avatar_url: string | null;
+    author_flair_details: {
+        id: string;
+        name: string;
+        avatar_url: string | null;
+    } | null;
+}
+
 const ProfilePage: React.FC = () => {
     const params = useParams();
     const username = params?.username as string;
@@ -200,10 +222,10 @@ const ProfilePage: React.FC = () => {
                 .rpc('get_profile_details', {
                     profile_username: username,
                 })
-                .single();
+                .single<ProfileRpcResult>();
 
             if (error || !data) throw error || new Error("Profile not found");
-            const profileData: any = data;
+            const profileData = data; // data is already typed as ProfileRpcResult
             let phone: string | null = null;
             if (profileData?.user_id) {
                 const { data: profileRow } = await supabase
@@ -211,11 +233,11 @@ const ProfilePage: React.FC = () => {
                     .select('phone')
                     .eq('user_id', profileData.user_id)
                     .single();
-                phone = (profileRow as any)?.phone ?? null;
+                phone = profileRow?.phone ?? null;
             }
-            setProfile({ ...(profileData as object), phone } as any);
-        } catch (error) {
-            console.error("Error fetching profile data:", error);
+            setProfile({ ...profileData, phone });
+        } catch (err: unknown) {
+            console.error("Error fetching profile data:", err);
             setProfile(null);
         } finally {
             setProfileLoading(false);
@@ -234,7 +256,7 @@ const ProfilePage: React.FC = () => {
         if (postsResult.error) {
             console.error("Error fetching posts:", postsResult.error);
         } else {
-            const fetchedPosts = (postsResult.data as any[] || []).map(p => ({
+            const fetchedPosts = (postsResult.data as ProfilePostRpcResult[] || []).map(p => ({
                 ...p,
                 author: {
                     author_id: p.author_id,
@@ -252,7 +274,7 @@ const ProfilePage: React.FC = () => {
         if (mentionsResult.error) {
             console.error("Error fetching mentions:", mentionsResult.error)
         } else {
-            const fetchedMentions = (mentionsResult.data as any[] || []).map(p => ({
+            const fetchedMentions = (mentionsResult.data as ProfilePostRpcResult[] || []).map(p => ({
                 ...p,
                 author: {
                     author_id: p.author_id,
@@ -269,28 +291,8 @@ const ProfilePage: React.FC = () => {
         setPostsLoading(false);
     }, [profile]);
 
-    const handlePostCreated = (newPost: any) => {
-        const authorProfile = newPost.profiles as Profile | null;
-        const formattedPost: PostType = {
-            ...newPost,
-            like_count: 0,
-            dislike_count: 0,
-            comment_count: 0,
-            user_vote: null,
-            author: {
-                author_id: authorProfile?.user_id || '',
-                author_type: 'user',
-                author_name: authorProfile?.full_name || '',
-                author_username: authorProfile?.username || '',
-                author_avatar_url: authorProfile?.avatar_url || '',
-                author_flair_details: null,
-            },
-            original_poster_username: null,
-            // @ts-ignore
-            profiles: null,
-        };
-        delete (formattedPost as any).profiles;
-        setPosts(prevPosts => [formattedPost, ...prevPosts]);
+    const handlePostCreated = (newPost: PostType) => {
+        setPosts(prevPosts => [newPost, ...prevPosts]);
     };
 
     const fetchFriendshipData = useCallback(async () => {
@@ -326,8 +328,8 @@ const ProfilePage: React.FC = () => {
                 setMutualFriends([]);
             }
 
-        } catch (error) {
-            console.error("Error fetching friendship data:", error);
+        } catch (err: unknown) {
+            console.error("Error fetching friendship data:", err);
             setFriends([]);
             setMutualFriends([]);
         } finally {
@@ -343,8 +345,8 @@ const ProfilePage: React.FC = () => {
             const { data, error } = await supabase.rpc('get_communities_for_user', { p_user_id: profile.user_id });
             if (error) throw error;
             setCommunities(data || []);
-        } catch (error) {
-            console.error("Error fetching communities:", error);
+        } catch (err: unknown) {
+            console.error("Error fetching communities:", err);
         } finally {
             setCommunitiesLoading(false);
         }
@@ -378,9 +380,9 @@ const ProfilePage: React.FC = () => {
         setIsTogglingFollow(true);
         const originalFollowerCount = profile.follower_count;
         setProfile({ ...profile, is_following: true, follower_count: profile.follower_count + 1 });
-        const { error } = await supabase.rpc('follow_user', { user_to_follow_id: profile.user_id });
-        if (error) {
-            console.error("Error following user:", error);
+        const { error: rpcError } = await supabase.rpc('follow_user', { user_to_follow_id: profile.user_id });
+        if (rpcError) {
+            console.error("Error following user:", rpcError);
             setProfile({ ...profile, is_following: false, follower_count: originalFollowerCount });
         }
         setIsTogglingFollow(false);
@@ -392,9 +394,9 @@ const ProfilePage: React.FC = () => {
         const originalFollowerCount = profile.follower_count;
         const originalIsFollowedBy = profile.is_followed_by;
         setProfile({ ...profile, is_following: false, follower_count: profile.follower_count - 1 });
-        const { error } = await supabase.rpc('unfollow_user', { user_to_unfollow_id: profile.user_id });
-        if (error) {
-            console.error("Error unfollowing user:", error);
+        const { error: rpcError } = await supabase.rpc('unfollow_user', { user_to_unfollow_id: profile.user_id });
+        if (rpcError) {
+            console.error("Error unfollowing user:", rpcError);
             setProfile({ ...profile, is_following: true, follower_count: originalFollowerCount, is_followed_by: originalIsFollowedBy });
         }
         setIsTogglingFollow(false);
@@ -404,9 +406,9 @@ const ProfilePage: React.FC = () => {
         if (!currentUser || !profile || isTogglingFollow) return;
         setIsTogglingFollow(true);
         setProfile({ ...profile, has_sent_request: true });
-        const { error } = await supabase.rpc('send_friend_request', { recipient_id: profile.user_id });
-        if (error) {
-            console.error("Error sending request:", error);
+        const { error: rpcError } = await supabase.rpc('send_friend_request', { recipient_id: profile.user_id });
+        if (rpcError) {
+            console.error("Error sending request:", rpcError);
             setProfile({ ...profile, has_sent_request: false });
         }
         setIsTogglingFollow(false);
@@ -422,9 +424,9 @@ const ProfilePage: React.FC = () => {
             is_followed_by: true,
             follower_count: profile.follower_count + 1,
         });
-        const { error } = await supabase.rpc('accept_friend_request', { requester_id: profile.user_id });
-        if (error) {
-            console.error("Error accepting request:", error);
+        const { error: rpcError } = await supabase.rpc('accept_friend_request', { requester_id: profile.user_id });
+        if (rpcError) {
+            console.error("Error accepting request:", rpcError);
             fetchProfileData();
         }
         setIsTogglingFollow(false);
@@ -435,9 +437,9 @@ const ProfilePage: React.FC = () => {
         setIsTogglingFollow(true);
         const wasRequestSent = profile.has_sent_request;
         setProfile({ ...profile, has_sent_request: false, has_received_request: false });
-        const { error } = await supabase.rpc('cancel_or_deny_friend_request', { other_user_id: profile.user_id });
-        if (error) {
-            console.error("Error cancelling/denying request:", error);
+        const { error: rpcError } = await supabase.rpc('cancel_or_deny_friend_request', { other_user_id: profile.user_id });
+        if (rpcError) {
+            console.error("Error cancelling/denying request:", rpcError);
             setProfile({ ...profile, has_sent_request: wasRequestSent, has_received_request: !wasRequestSent });
         }
         setIsTogglingFollow(false);
@@ -811,7 +813,7 @@ const MutualFriendsListModal: React.FC<{
                             ))}
                         </div>
                     ) : (
-                        <p className="text-center text-text-tertiary-light dark:text-text-tertiary p-8">You have no mutual friends with {profile.full_name?.split(' ')[0]}.</p>
+                        <p className="text-center text-text-tertiary-light dark:text-text-tertiary p-8">You have no mutual friends with {profile.full_name?.split(' ')[0]}</p>
                     )}
                 </div>
             </div>

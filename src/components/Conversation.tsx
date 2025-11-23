@@ -4,10 +4,11 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 // FIXED: Use Next.js Link
 import Link from 'next/link';
+import Image from 'next/image';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { useChat } from '../hooks/useChat';
-import { ConversationSummary, Message, MessageReaction, Profile, PinnedMessage } from '../types';
+import { ConversationSummary, Message, MessageReaction, PinnedMessage } from '../types';
 import MessageSkeleton from './MessageSkeleton';
 import { SendIcon, UserGroupIcon, PlusIcon, ImageIcon, XCircleIcon, PencilIcon, TrashIcon, CheckIcon, ReplyIcon, FaceSmileIcon, PinIcon, BackIcon } from './icons';
 import { formatMessageTime } from '../utils/timeUtils';
@@ -69,6 +70,30 @@ interface ConversationProps {
     onConversationCreated: (placeholderId: string, newConversationId: string) => void;
 }
 
+// utility: shallow-equality for message lists (compares ids and updated/created timestamps)
+const messagesEqual = (a: Message[], b: Message[]) => {
+    if (a === b) return true;
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+        const ai = a[i];
+        const bi = b[i];
+        if (ai.id !== bi.id) return false;
+        const aTime = (ai as { updated_at?: string; created_at: string }).updated_at || ai.created_at;
+        const bTime = (bi as { updated_at?: string; created_at: string }).updated_at || bi.created_at;
+        if (aTime !== bTime) return false;
+    }
+    return true;
+};
+
+const mapShallowEqual = (a: Map<string, string>, b: Map<string, string>) => {
+    if (a === b) return true;
+    if (a.size !== b.size) return false;
+    for (const [k, v] of a) {
+        if (!b.has(k) || b.get(k) !== v) return false;
+    }
+    return true;
+};
+
 const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onConversationCreated }) => {
     const { user, profile } = useAuth();
     const { latestMessage, onlineUsers } = useChat();
@@ -106,63 +131,41 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
     const readTimestampsRef = useRef<Map<string, string>>(readTimestamps);
     useEffect(() => { readTimestampsRef.current = readTimestamps; }, [readTimestamps]);
 
-    // utility: shallow-equality for message lists (compares ids and updated/created timestamps)
-    const messagesEqual = (a: Message[], b: Message[]) => {
-        if (a === b) return true;
-        if (a.length !== b.length) return false;
-        for (let i = 0; i < a.length; i++) {
-            const ai = a[i];
-            const bi = b[i];
-            if (ai.id !== bi.id) return false;
-            const aTime = (ai as any).updated_at || ai.created_at;
-            const bTime = (bi as any).updated_at || bi.created_at;
-            if (aTime !== bTime) return false;
-        }
-        return true;
-    };
 
-    const mapShallowEqual = (a: Map<string, string>, b: Map<string, string>) => {
-        if (a === b) return true;
-        if (a.size !== b.size) return false;
-        for (const [k, v] of a) {
-            if (!b.has(k) || b.get(k) !== v) return false;
-        }
-        return true;
-    };
 
-    const setMessagesIfDifferent = (next: Message[] | ((prev: Message[]) => Message[])) => {
+    const setMessagesIfDifferent = React.useCallback((next: Message[] | ((prev: Message[]) => Message[])) => {
         if (typeof next === 'function') {
             setMessages(prev => {
-                const candidate = (next as any)(prev) as Message[];
+                const candidate = next(prev); // Removed unnecessary 'as' cast
                 const changed = !messagesEqual(prev, candidate);
                 if (changed) console.debug('[Conversation] setMessagesIfDifferent -> updating messages', { prevLength: prev.length, nextLength: candidate.length });
                 return changed ? candidate : prev;
             });
         } else {
             setMessages(prev => {
-                const candidate = next as Message[];
+                const candidate = next; // Removed unnecessary 'as' cast
                 const changed = !messagesEqual(prev, candidate);
                 if (changed) console.debug('[Conversation] setMessagesIfDifferent -> replacing messages', { prevLength: prev.length, nextLength: candidate.length });
                 return changed ? candidate : prev;
             });
         }
-    };
+    }, []);
 
-    const setPinnedMessageIfDifferent = (next: PinnedMessage | null) => {
+    const setPinnedMessageIfDifferent = React.useCallback((next: PinnedMessage | null) => {
         const prev = pinnedMessageRef.current;
         const same = (prev === next) || (prev && next && prev.id === next.id && prev.message_id === next.message_id);
         if (!same) {
             console.debug('[Conversation] setPinnedMessageIfDifferent -> updating pinned message', { prev: prev?.id, next: next?.id });
             setPinnedMessage(next);
         }
-    };
+    }, []);
 
-    const setReadTimestampsIfDifferent = (next: Map<string, string>) => {
+    const setReadTimestampsIfDifferent = React.useCallback((next: Map<string, string>) => {
         if (!mapShallowEqual(readTimestampsRef.current, next)) {
             console.debug('[Conversation] setReadTimestampsIfDifferent -> updating read timestamps', { prevSize: readTimestampsRef.current.size, nextSize: next.size });
             setReadTimestamps(next);
         }
-    };
+    }, []);
 
     const otherParticipant = conversation.type === 'dm'
         ? conversation.participants.find(p => p.user_id !== user?.id)
@@ -181,7 +184,6 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
         setPinningOptions({ messageId: null, x: 0, y: 0 });
         setGifPickerOpen(false);
         setLightboxUrl(null);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [conversation.conversation_id]);
 
     useEffect(() => {
@@ -241,7 +243,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
         fetchMessages();
         fetchPinnedMessage();
         fetchReadTimestamps();
-    }, [currentConversationId, user?.id]);
+    }, [currentConversationId, user, conversation.participants, setMessagesIfDifferent, setPinnedMessageIfDifferent, setReadTimestampsIfDifferent]);
 
     useEffect(() => {
         console.debug('[Conversation] latestMessage effect', { latestMessageId: latestMessage?.id, currentConversationId });
@@ -258,18 +260,19 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                 .eq('user_id', latestMessage.sender_id)
                 .single();
 
-            const newMsg: Message = { ...latestMessage, profiles: senderProfile || null, reactions: [] } as Message;
+            const newMsg: Message = { ...latestMessage, profiles: senderProfile || null, reactions: [] };
             setMessagesIfDifferent(prev => [...prev, newMsg]);
         };
         fetchProfileAndSetMessage();
-    }, [latestMessage?.id, currentConversationId, user?.id]);
+    }, [latestMessage, currentConversationId, user?.id, setMessagesIfDifferent]);
+
 
 
     useEffect(() => {
         console.debug('[Conversation] realtime subscription effect', { currentConversationId, userId: user?.id });
         if (!user || currentConversationId.startsWith('placeholder_')) return;
 
-        const handleDbChange = async (payload: any) => {
+        const handleDbChange = async (payload: { eventType: string; new: Record<string, unknown>; old: Record<string, unknown>; table: string }) => {
             const { eventType, new: newRecord, old: oldRecord, table } = payload;
 
             if (table === 'messages') {
@@ -282,25 +285,27 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
             } else if (table === 'message_reactions') {
                 if (eventType === 'INSERT') {
                     const { data: profile } = await supabase.from('profiles').select('*').eq('user_id', newRecord.user_id).single();
+                    const newReaction = { ...newRecord, profiles: profile } as unknown as MessageReaction;
                     setMessages(prev => {
                         const candidate = prev.map(msg =>
-                            msg.id === newRecord.message_id
-                                ? { ...msg, reactions: [...msg.reactions.filter(r => r.user_id !== newRecord.user_id), { ...newRecord, profiles: profile }] }
+                            msg.id === (newRecord as unknown as MessageReaction).message_id
+                                ? { ...msg, reactions: [...msg.reactions.filter(r => r.user_id !== (newRecord as unknown as MessageReaction).user_id), newReaction] }
                                 : msg
                         );
                         return messagesEqual(prev, candidate) ? prev : candidate;
                     });
                 } else if (eventType === 'DELETE') {
                     setMessages(prev => {
-                        const candidate = prev.map(msg => msg.id === oldRecord.message_id ? { ...msg, reactions: msg.reactions.filter(r => !(r.user_id === oldRecord.user_id && r.emoji === oldRecord.emoji)) } : msg);
+                        const candidate = prev.map(msg => msg.id === (oldRecord as unknown as MessageReaction).message_id ? { ...msg, reactions: msg.reactions.filter(r => !(r.user_id === (oldRecord as unknown as MessageReaction).user_id && r.emoji === (oldRecord as unknown as MessageReaction).emoji)) } : msg);
                         return messagesEqual(prev, candidate) ? prev : candidate;
                     });
                 } else if (eventType === 'UPDATE') {
                     const { data: profile } = await supabase.from('profiles').select('*').eq('user_id', newRecord.user_id).single();
+                    const updatedReaction = { ...newRecord, profiles: profile } as unknown as MessageReaction;
                     setMessages(prev => {
                         const candidate = prev.map(msg =>
-                            msg.id === newRecord.message_id
-                                ? { ...msg, reactions: msg.reactions.map(r => r.user_id === newRecord.user_id ? { ...newRecord, profiles: profile } : r) }
+                            msg.id === (newRecord as unknown as MessageReaction).message_id
+                                ? { ...msg, reactions: msg.reactions.map(r => r.user_id === (newRecord as unknown as MessageReaction).user_id ? updatedReaction : r) }
                                 : msg
                         );
                         return messagesEqual(prev, candidate) ? prev : candidate;
@@ -309,15 +314,15 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
             }
         };
 
-        const channel = supabase.channel(`conversation-realtime:${currentConversationId}`)
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages', filter: `conversation_id=eq.${currentConversationId}` }, handleDbChange)
+        const channel = supabase.channel(`conversation - realtime:${currentConversationId} `)
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages', filter: `conversation_id = eq.${currentConversationId} ` }, handleDbChange)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'message_reactions' }, handleDbChange)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'pinned_messages', filter: `conversation_id=eq.${currentConversationId}` }, async () => {
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'pinned_messages', filter: `conversation_id = eq.${currentConversationId} ` }, async () => {
                 const { data, error } = await supabase.rpc('get_pinned_message_for_conversation', { p_conversation_id: currentConversationId });
                 if (error) console.error("Error refetching pinned message:", error);
                 else setPinnedMessageIfDifferent(data);
             })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'conversation_read_timestamps', filter: `conversation_id=eq.${currentConversationId}` }, (payload) => {
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'conversation_read_timestamps', filter: `conversation_id = eq.${currentConversationId} ` }, (payload) => {
                 const newTimestamp = payload.new as { user_id: string, last_read_at: string };
                 setReadTimestamps(prev => {
                     const next = new Map(prev) as Map<string, string>;
@@ -354,12 +359,11 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
             supabase.removeChannel(channel);
             typingTimeoutRefs.current.forEach(timeoutId => clearTimeout(timeoutId));
         };
-    }, [currentConversationId, user?.id]);
+    }, [currentConversationId, user, setPinnedMessageIfDifferent, setMessages, setReadTimestamps, setTypingUsers, typingTimeoutRefs, mapShallowEqual]);
 
     useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
     const resetInput = (keepImagePreview = false) => {
-        setNewMessage('');
         setImageFile(null);
         if (imagePreview && !keepImagePreview) {
             URL.revokeObjectURL(imagePreview);
@@ -429,7 +433,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                 setCurrentConversationId(newConversationId);
             }
 
-            let messageData: any = { conversation_id: convId, sender_id: user.id, reply_to_message_id: tempReplyingTo?.id || null };
+            let messageData: { conversation_id: string; sender_id: string; reply_to_message_id: number | null; message_type?: 'text' | 'image' | 'gif'; content?: string; attachment_url?: string } = { conversation_id: convId, sender_id: user.id, reply_to_message_id: tempReplyingTo?.id || null };
 
             if (media?.type === 'gif') {
                 messageData = { ...messageData, message_type: 'gif', attachment_url: media.url, content: '[GIF]' };
@@ -449,7 +453,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
 
             setMessages(prev => prev.map(msg => msg.id === tempId ? { ...(sentMessage as unknown as Message), reactions: [] } : msg));
 
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Failed to send message:", err);
             setMessages(prev => prev.map(msg => msg.id === tempId ? { ...msg, status: 'failed' } : msg));
         } finally {
@@ -581,7 +585,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                     }
                 },
             }).catch(() => { });
-        } catch (e) {
+        } catch {
             // ignore
         }
 
@@ -616,10 +620,13 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                 // FIXED: Link to href
                 <Link href={`/profile/${otherParticipant.username}`} className="flex items-center space-x-3 group min-w-0 flex-1">
                     <div className="relative flex-shrink-0">
-                        <img
+                        <Image
                             src={otherParticipant.avatar_url || `https://ui-avatars.com/api/?name=${otherParticipant.full_name || otherParticipant.username}`}
-                            className="w-11 h-11 rounded-full object-cover ring-2 ring-brand-green/20 group-hover:ring-brand-green/40 transition-all"
+                            className="rounded-full object-cover ring-2 ring-brand-green/20 group-hover:ring-brand-green/40 transition-all"
                             alt="avatar"
+                            width={44}
+                            height={44}
+                            unoptimized
                         />
                         {isEffectivelyOnline && <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-secondary-light dark:border-secondary"></div>}
                     </div>
@@ -785,10 +792,13 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                                     className={`group flex items-end gap-2 w-full ${isOwn ? 'justify-end' : 'justify-start'} ${isSending ? 'opacity-60' : ''}`}
                                 >
                                     {!isOwn && msg.profiles && (
-                                        <img
+                                        <Image
                                             src={msg.profiles.avatar_url || `https://ui-avatars.com/api/?name=${msg.profiles.username}`}
-                                            className="w-8 h-8 rounded-full mb-1 ring-2 ring-secondary-light dark:ring-secondary shadow-sm flex-shrink-0"
+                                            className="rounded-full mb-1 ring-2 ring-secondary-light dark:ring-secondary shadow-sm flex-shrink-0"
                                             alt="avatar"
+                                            width={32}
+                                            height={32}
+                                            unoptimized
                                         />
                                     )}
                                     {isOwn && !hasFailed && (
@@ -870,18 +880,24 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                                                             onClick={() => setLightboxUrl(msg.attachment_url!)}
                                                             className="block p-1.5 hover:opacity-95 transition-opacity w-full"
                                                         >
-                                                            <img
+                                                            <Image
                                                                 src={msg.attachment_url}
                                                                 alt="attachment"
                                                                 className="rounded-xl w-full max-w-xs max-h-80 object-cover"
+                                                                width={320}
+                                                                height={320}
+                                                                unoptimized
                                                             />
                                                         </button>
                                                     ) : msg.message_type === 'gif' && msg.attachment_url ? (
                                                         <div className="p-1.5">
-                                                            <img
+                                                            <Image
                                                                 src={msg.attachment_url}
                                                                 alt="gif"
                                                                 className="rounded-xl w-full max-w-xs"
+                                                                width={320}
+                                                                height={320}
+                                                                unoptimized
                                                             />
                                                         </div>
                                                     ) : null}
@@ -984,12 +1000,15 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                                 <span className="text-xs text-text-tertiary-light dark:text-text-tertiary">Seen by</span>
                                 <div className="flex -space-x-2">
                                     {readersOfLastMessage.slice(0, 3).map(reader => (
-                                        <img
+                                        <Image
                                             key={reader.user_id}
                                             src={reader.avatar_url || `https://ui-avatars.com/api/?name=${reader.full_name}`}
                                             alt={reader.full_name || ''}
                                             title={reader.full_name || ''}
-                                            className="w-5 h-5 rounded-full object-cover ring-2 ring-secondary-light dark:ring-secondary"
+                                            className="rounded-full object-cover ring-2 ring-secondary-light dark:ring-secondary"
+                                            width={20}
+                                            height={20}
+                                            unoptimized
                                         />
                                     ))}
                                 </div>
@@ -1027,7 +1046,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                 {imagePreview && (
                     <div className="mb-3">
                         <div className="relative inline-block w-32 h-32 rounded-xl overflow-hidden shadow-lg border-2 border-brand-green/30">
-                            <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                            <Image src={imagePreview} alt="Preview" className="object-cover" fill unoptimized />
                             <button
                                 onClick={() => resetInput()}
                                 className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-lg transform hover:scale-110 transition-transform"

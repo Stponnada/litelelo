@@ -19,7 +19,7 @@ import ListingCard from './ListingCard';
 import EventCard from './EventCard';
 import ListingDetailModal from './ListingDetailModal';
 
-const LostFoundFeedCard: React.FC<{ item: any }> = ({ item }) => {
+const LostFoundFeedCard: React.FC<{ item: LostAndFoundItem }> = ({ item }) => {
     const isLost = item.item_type === 'lost';
     const router = useRouter();
     const handleClick = () => {
@@ -77,17 +77,14 @@ const HomePage: React.FC = () => {
     const { posts, loading: postsLoading, error: postsError, addPostToContext, feedType, setFeedType, fetchPosts, hasMore } = usePosts();
     const { user, profile: currentUserProfile } = useAuth();
 
-    const [hasDiscoveredBlockchain, setHasDiscoveredBlockchain] = useState(false);
+    const sentinelRef = useRef<HTMLDivElement>(null);
     const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
-    const [isCreatePostModalOpen, setCreatePostModalOpen] = useState(false);
     const [selectedListing, setSelectedListing] = useState<MarketplaceListing | null>(null);
-    const sentinelRef = useRef<HTMLDivElement | null>(null);
+    const [isCreatePostModalOpen, setCreatePostModalOpen] = useState(false);
 
-    useEffect(() => {
-        if (localStorage.getItem('discoveredBlockchain') === 'true') {
-            setHasDiscoveredBlockchain(true);
-        }
-    }, []);
+    const [hasDiscoveredBlockchain, setHasDiscoveredBlockchain] = useState(() => {
+        return typeof window !== 'undefined' ? localStorage.getItem('discoveredBlockchain') === 'true' : false;
+    });
 
     useEffect(() => {
         const sentinel = sentinelRef.current;
@@ -156,23 +153,25 @@ const HomePage: React.FC = () => {
                         </div>
                     </div>
 
+
                     {posts.length > 0 ? (
                         <div className="space-y-2">
-                            {posts.map((item: any) => {
-                                switch (item.item_type) {
-                                    case 'listing':
-                                        return <ListingCard key={`listing-${item.item_data.id}`} listing={item.item_data as MarketplaceListing} onClick={() => setSelectedListing(item.item_data)} />;
-                                    case 'event':
-                                        return <EventCard key={`event-${item.item_data.id}`} event={item.item_data as CampusEvent} />;
-                                    case 'lost_found':
-                                        return <LostFoundFeedCard key={`laf-${item.item_data.id}`} item={item.item_data} />;
-                                    case 'post':
-                                        return <PostComponent key={`post-${item.id}`} post={item} onImageClick={setLightboxUrl} />;
-                                    default:
-                                        if (item.id && !item.item_type) {
-                                            return <PostComponent key={`post-${item.id}`} post={item} onImageClick={setLightboxUrl} />;
-                                        }
-                                        return null;
+                            {posts.map(item => {
+                                // Type guard to check if item has item_type property
+                                if ('item_type' in item && item.item_type) {
+                                    switch (item.item_type) {
+                                        case 'listing':
+                                            return <ListingCard key={`listing-${item.item_data.id}`} listing={item.item_data as MarketplaceListing} onClick={() => setSelectedListing(item.item_data as MarketplaceListing)} />;
+                                        case 'event':
+                                            return <EventCard key={`event-${item.item_data.id}`} event={item.item_data as CampusEvent} />;
+                                        case 'lost_found':
+                                            return <LostFoundFeedCard key={`laf-${item.item_data.id}`} item={item.item_data as LostAndFoundItem} />;
+                                        default:
+                                            return null;
+                                    }
+                                } else {
+                                    // It's a regular Post
+                                    return <PostComponent key={`post-${item.id}`} post={item as PostType} onImageClick={setLightboxUrl} />;
                                 }
                             })}
                             {hasMore && (<div ref={sentinelRef} className="flex items-center justify-center py-6"><Spinner /></div>)}

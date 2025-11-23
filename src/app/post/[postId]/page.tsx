@@ -61,6 +61,19 @@ const Comment: React.FC<{ comment: CommentType }> = ({ comment }) => {
     );
 };
 
+interface PostRpcResult extends Omit<PostType, 'author'> {
+    author_id: string;
+    author_type: 'user' | 'community';
+    author_name: string | null;
+    author_username: string | null;
+    author_avatar_url: string | null;
+    author_flair_details: {
+        id: string;
+        name: string;
+        avatar_url: string | null;
+    } | null;
+}
+
 const PostPage: React.FC = () => {
     const params = useParams();
     const postId = params?.postId as string;
@@ -75,7 +88,7 @@ const PostPage: React.FC = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [currentUserProfile, setCurrentUserProfile] = useState<Profile | null>(null);
 
-    const postFromContext = posts.find(p => p.id === postId);
+    const postFromContext = posts.find((p): p is PostType => !('item_type' in p) && p.id === postId);
     const post = localPost || postFromContext;
 
     useEffect(() => {
@@ -89,7 +102,7 @@ const PostPage: React.FC = () => {
                 // --- THIS IS THE FIX: Call the new, correct RPC function ---
                 const { data: postData, error: postError } = await supabase
                     .rpc('get_post_details_by_id', { p_post_id: postId })
-                    .single();
+                    .single<PostRpcResult>();
 
                 if (postError || !postData) {
                     console.error("Error fetching post:", postError);
@@ -97,30 +110,30 @@ const PostPage: React.FC = () => {
                     return;
                 }
 
-                const formattedPost = {
-                    ...(postData as any),
+                const formattedPost: PostType = {
+                    ...postData,
                     author: {
-                        author_id: (postData as any).author_id,
-                        author_type: (postData as any).author_type,
-                        author_name: (postData as any).author_name,
-                        author_username: (postData as any).author_username,
-                        author_avatar_url: (postData as any).author_avatar_url,
-                        author_flair_details: (postData as any).author_flair_details
+                        author_id: postData.author_id,
+                        author_type: postData.author_type,
+                        author_name: postData.author_name,
+                        author_username: postData.author_username,
+                        author_avatar_url: postData.author_avatar_url,
+                        author_flair_details: postData.author_flair_details
                     }
                 };
-                setLocalPost(formattedPost as PostType);
+                setLocalPost(formattedPost);
             }
 
             const { data: commentsData, error: commentsError } = await supabase.rpc('get_comments_for_post', { p_post_id: postId });
             if (commentsError) {
                 console.error("Error fetching comments with flair:", commentsError);
             } else {
-                setComments((commentsData as any) || []);
+                setComments((commentsData as CommentType[]) || []);
             }
 
             if (user) {
                 const { data: profileData } = await supabase.from('profiles').select('*, flair_details:displayed_community_flair(id, name, avatar_url)').eq('user_id', user.id).single();
-                setCurrentUserProfile(profileData as Profile);
+                setCurrentUserProfile(profileData);
             }
 
             setPageLoading(false);
@@ -160,8 +173,8 @@ const PostPage: React.FC = () => {
 
             setComments(prev => prev.map(c => c.id === tempCommentId ? { ...c, ...commentData } : c));
 
-        } catch (error) {
-            console.error("Error submitting comment:", error);
+        } catch (err: unknown) {
+            console.error("Error submitting comment:", err);
             alert('Failed to post comment. Please try again.');
             setComments(prev => prev.filter(c => c.id !== tempCommentId));
             updatePostInContext({ id: post.id, comment_count: originalCommentCount });

@@ -43,8 +43,8 @@ const NotFound = () => {
                         </h2>
 
                         <p className="text-md md:text-lg text-text-secondary-light dark:text-text-secondary mt-4 mb-8 leading-relaxed" style={{ animation: 'fadeIn 1s 0.4s ease-out forwards', opacity: 0 }}>
-                            Oops! It seems you've ventured into uncharted territory.
-                            Let's get you back on track.
+                            Oops! It seems you&apos;ve ventured into uncharted territory.
+                            Let&apos;s get you back on track.
                         </p>
 
                         <Link

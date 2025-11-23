@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import Spinner from '@/components/Spinner';
-import { CurrencyRupeeIcon, XCircleIcon, ChatIcon, StarIcon } from '@/components/icons';
+import { CurrencyRupeeIcon, XCircleIcon, ChatIcon } from '@/components/icons';
 import { formatDeadline } from '@/utils/timeUtils';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -59,9 +59,13 @@ const BitsCoinPage: React.FC = () => {
         try {
             const { data, error } = await supabase.rpc('get_bits_coin_requests', { p_campus: profile.campus });
             if (error) throw error;
-            setRequests(data as any[] || []);
-        } catch (err: any) {
-            setError(err.message);
+            setRequests((data as BitsCoinRequest[]) || []);
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError('An unknown error occurred.');
+            }
         } finally {
             if (isInitialLoad) setLoading(false);
         }
@@ -75,7 +79,7 @@ const BitsCoinPage: React.FC = () => {
 
     useEffect(() => {
         if (!profile?.campus) return;
-        const channel = supabase.channel('bits_coin_requests_channel').on('postgres_changes', { event: '*', schema: 'public', table: 'bits_coin_requests', filter: `campus=eq.${profile.campus}` }, (payload) => {
+        const channel = supabase.channel('bits_coin_requests_channel').on('postgres_changes', { event: '*', schema: 'public', table: 'bits_coin_requests', filter: `campus=eq.${profile.campus}` }, (_payload) => {
             fetchRequests();
         }).subscribe();
         return () => { supabase.removeChannel(channel); };
@@ -335,7 +339,13 @@ const CreateRequestModal: React.FC<{ campus: string; onClose: () => void; onRequ
             if (error) throw error;
             const newRequest: BitsCoinRequest = { ...data, requester: { user_id: profile.user_id, username: profile.username, full_name: profile.full_name || '', avatar_url: profile.avatar_url || '' }, claimer: null };
             onRequestCreated(newRequest);
-        } catch (err: any) { setError(err.message); } finally { setIsSubmitting(false); }
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError('An unknown error occurred.');
+            }
+        } finally { setIsSubmitting(false); }
     };
 
     return (
@@ -464,7 +474,11 @@ const RequestDetailModal: React.FC<{ request: BitsCoinRequest, onClose: () => vo
     const handleAction = async (action: 'claim' | 'unclaim' | 'complete' | 'cancel') => {
         if (!user || !profile) return;
         setIsSubmitting(true);
-        let updateData: any = {};
+        interface UpdateData {
+            status?: 'open' | 'claimed' | 'completed' | 'cancelled';
+            claimed_by_id?: string | null;
+        }
+        let updateData: UpdateData = {};
         if (action === 'claim') updateData = { status: 'claimed', claimed_by_id: user.id };
         if (action === 'unclaim') updateData = { status: 'open', claimed_by_id: null };
         if (action === 'complete') updateData = { status: 'completed' };
@@ -481,7 +495,10 @@ const RequestDetailModal: React.FC<{ request: BitsCoinRequest, onClose: () => vo
             } else {
                 onRequestUpdate(updatedRequest);
             }
-        } catch (error) { console.error('Error updating request status:', error); } finally { setIsSubmitting(false); }
+        } catch (err: unknown) {
+            console.error('Error updating request status:', err);
+            // Optionally, set an error state here as well if needed
+        } finally { setIsSubmitting(false); }
     };
 
     const handleContact = (personToContact: BitsCoinRequest['requester'] | BitsCoinRequest['claimer']) => {

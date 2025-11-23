@@ -56,18 +56,24 @@ const GroupInfoPage: React.FC = () => {
                 setGroupInfo(conversationData as ConversationType);
 
                 // Fetch members
-                const { data: membersData, error: membersError } = await supabase
+                const { data: membersData, error: membersError } = (await supabase
                     .from('conversation_participants')
                     .select('profiles(*)')
-                    .eq('conversation_id', conversationId);
+                    .eq('conversation_id', conversationId)) as { data: Array<{ profiles: Profile | null }> | null, error: any };
 
                 if (membersError) throw membersError;
 
-                const memberProfiles = membersData.map((m: any) => m.profiles).filter(Boolean);
+                const memberProfiles = (membersData || [])
+                    .map(m => m.profiles)
+                    .filter(Boolean);
                 setMembers(memberProfiles as Profile[]);
 
-            } catch (err: any) {
-                setError(err.message);
+            } catch (err: unknown) {
+                if (err instanceof Error) {
+                    setError(err.message);
+                } else {
+                    setError('An unknown error occurred.');
+                }
             } finally {
                 setLoading(false);
             }

@@ -59,8 +59,12 @@ const MarketplacePage: React.FC = () => {
 
                 if (rpcError) throw rpcError;
                 setListings(data as MarketplaceListing[] || []);
-            } catch (err: any) {
-                setError(err.message);
+            } catch (err: unknown) {
+                if (err instanceof Error) {
+                    setError(err.message);
+                } else {
+                    setError('An unknown error occurred.');
+                }
             } finally {
                 setLoading(false);
             }
@@ -302,7 +306,7 @@ const MarketplacePage: React.FC = () => {
                             </h3>
                             <p className="text-sm md:text-base text-text-secondary-light dark:text-text-secondary max-w-md mb-6">
                                 {searchTerm || selectedCategory !== 'All'
-                                    ? 'Try adjusting your search or filters to find what you\'re looking for.'
+                                    ? 'Try adjusting your search or filters to find what you&apos;re looking for.'
                                     : 'Be the first to list an item for sale!'}
                             </p>
                             {(searchTerm || selectedCategory !== 'All') && (

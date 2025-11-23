@@ -2,11 +2,13 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Spinner from './Spinner';
+import { TransactionProps } from './Transaction';
+import { BlockData } from './Block';
 
 const DIFFICULTY = '000';
 
 // A debounced async effect hook
-const useDebouncedAsyncEffect = (effect: () => Promise<void>, deps: any[], delay: number) => {
+const useDebouncedAsyncEffect = (effect: () => Promise<void>, deps: React.DependencyList, delay: number) => {
     useEffect(() => {
         const handler = setTimeout(() => {
             effect();
@@ -24,9 +26,9 @@ const sha256 = async (str: string) => {
 };
 
 interface MiningPuzzleProps {
-    lastBlock: any;
-    pendingTransactions: any[];
-    onMine: (blockData: any, nonce: number, hash: string) => void;
+    lastBlock: BlockData | null;
+    pendingTransactions: TransactionProps['tx'][];
+    onMine: (blockData: BlockData, nonce: number, hash: string) => void;
     miningStatus: 'idle' | 'mining' | 'success' | 'error';
     miningError: string;
 }
@@ -62,10 +64,10 @@ const MiningPuzzle: React.FC<MiningPuzzleProps> = ({ lastBlock, pendingTransacti
                     Find a nonce that makes the block hash start with <span className="font-mono font-bold">{DIFFICULTY}</span> to earn a reward.
                 </p>
             </div>
-            
+
             <div className="bg-tertiary-light/50 dark:bg-tertiary/50 p-3 rounded-md text-xs font-mono space-y-1 break-all">
                 <p><span className="font-semibold text-text-secondary-light dark:text-text-secondary">Index:</span> {blockData.index}</p>
-                <p><span className="font-semibold text-text-secondary-light dark:text-text-secondary">Prev Hash:</span> {blockData.previous_hash.substring(0,24)}...</p>
+                <p><span className="font-semibold text-text-secondary-light dark:text-text-secondary">Prev Hash:</span> {blockData.previous_hash.substring(0, 24)}...</p>
                 <p><span className="font-semibold text-text-secondary-light dark:text-text-secondary">Transactions:</span> {blockData.transactions.length}</p>
             </div>
 
@@ -79,17 +81,16 @@ const MiningPuzzle: React.FC<MiningPuzzleProps> = ({ lastBlock, pendingTransacti
                     className="w-full p-2 bg-tertiary-light dark:bg-tertiary rounded font-mono"
                 />
             </div>
-            
+
             <div className="bg-tertiary-light/50 dark:bg-tertiary/50 p-3 rounded-md text-xs font-mono break-all">
-                <p className="font-semibold text-text-secondary-light dark:text-text-secondary mb-1">Resulting Hash:</p>
                 <p className={`font-bold transition-colors ${hashColor}`}>
                     {isCalculating ? 'Calculating...' : currentHash}
                 </p>
             </div>
 
-            <button 
-                onClick={() => onMine(blockData, nonce, currentHash)} 
-                disabled={!isNonceValid || miningStatus === 'mining'} 
+            <button
+                onClick={() => onMine({ ...blockData, hash: currentHash, nonce }, nonce, currentHash)}
+                disabled={!isNonceValid || miningStatus === 'mining'}
                 className="w-full bg-brand-green text-black font-bold py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
                 {miningStatus === 'mining' ? <Spinner /> : 'Mine Block & Claim Reward'}

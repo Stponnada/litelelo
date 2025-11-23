@@ -3,6 +3,7 @@
 import React, { useEffect } from 'react';
 // FIXED: Use useRouter
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useNotifications } from '../hooks/useNotifications';
 import { Notification as NotificationType } from '../types';
 import Spinner from './Spinner';
@@ -66,10 +67,12 @@ const NotificationItem: React.FC<{ notification: NotificationType, onClose: () =
     return (
         <div onClick={handleClick} className="p-3 flex items-start gap-3 hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50 cursor-pointer transition-colors relative">
             {!notification.is_read && <div className="absolute left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-blue-500 rounded-full"></div>}
-            <img
+            <Image
                 src={notification.actor.avatar_url || `https://ui-avatars.com/api/?name=${notification.actor.full_name || notification.actor.username}&background=random&color=fff&bold=true`}
                 alt={notification.actor.username}
-                className="w-10 h-10 rounded-full object-cover flex-shrink-0 ml-3 bg-tertiary"
+                width={40}
+                height={40}
+                className="rounded-full object-cover flex-shrink-0 ml-3 bg-tertiary"
             />
             <div className="flex-1">
                 <p className="text-sm text-text-secondary-light dark:text-text-secondary">
@@ -112,7 +115,7 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, onClose }
                 {loading ? (
                     <div className="p-8 flex justify-center"><Spinner /></div>
                 ) : notifications.length === 0 ? (
-                    <p className="p-8 text-center text-sm text-text-tertiary-light dark:text-text-tertiary">You're all caught up!</p>
+                    <p className="p-8 text-center text-sm text-text-tertiary-light dark:text-text-tertiary">You&apos;re all caught up!</p>
                 ) : (
                     <div className="divide-y divide-tertiary-light/50 dark:divide-tertiary/50">
                         {notifications.map(n => <NotificationItem key={n.id} notification={n} onClose={onClose} />)}

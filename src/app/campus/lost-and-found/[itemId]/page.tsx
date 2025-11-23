@@ -46,8 +46,12 @@ const LostAndFoundItemPage: React.FC = () => {
                 if (!data) throw new Error("Item not found or has been reclaimed.");
 
                 setItem(data as ItemWithDetails);
-            } catch (err: any) {
-                setError(err.message);
+            } catch (err: unknown) {
+                if (err instanceof Error) {
+                    setError(err.message);
+                } else {
+                    setError('An unknown error occurred.');
+                }
             } finally {
                 setLoading(false);
             }
@@ -66,8 +70,12 @@ const LostAndFoundItemPage: React.FC = () => {
                 .eq('id', item.id);
             if (updateError) throw updateError;
             router.push('/campus/lost-and-found');
-        } catch (err: any) {
-            alert(`Failed to update status: ${err.message}`);
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                alert(`Failed to update status: ${err.message}`);
+            } else {
+                alert('An unknown error occurred while updating status.');
+            }
         }
     };
 

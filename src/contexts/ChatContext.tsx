@@ -4,7 +4,7 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
-import { ConversationSummary, Profile, DirectoryProfile, Message } from '../types';
+import { ConversationSummary, Profile, DirectoryProfile, Message, ConversationParticipant } from '../types';
 
 interface ChatContextType {
   conversations: ConversationSummary[];
@@ -38,8 +38,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data: convosWithDetails, error: rpcError } = await supabase.rpc('get_conversations_for_user_v2');
       if (rpcError) throw rpcError;
 
-      const conversationsFromRpc = (convosWithDetails as ConversationSummary[]) || [];
-      const conversationIds = conversationsFromRpc.map(c => c.conversation_id);
+      const conversationsFromRpc = convosWithDetails || [];
+      const conversationIds = conversationsFromRpc.map((c: any) => c.conversation_id);
 
       let finalSummaries: ConversationSummary[] = [];
 
@@ -51,20 +51,25 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (participantsError) throw participantsError;
 
-        const participantsMap = new Map<string, Profile[]>();
-        (participantsData || []).forEach((p: any) => {
+        const participantsMap = new Map<string, ConversationParticipant[]>();
+        (participantsData || []).forEach((p: { conversation_id: string; profiles: Partial<Profile> | Partial<Profile>[] }) => {
           if (!participantsMap.has(p.conversation_id)) {
             participantsMap.set(p.conversation_id, []);
           }
           if (p.profiles) {
-            participantsMap.get(p.conversation_id)!.push(p.profiles);
+            const profiles = Array.isArray(p.profiles) ? p.profiles : [p.profiles];
+            // Cast to Profile[] assuming the partial data is sufficient for now, or keep as Partial<Profile>[]
+            // The context expects Profile[], but we only select a few fields.
+            // Ideally we should update the context type or fetch full profiles.
+            // For now, casting as Profile[] to satisfy the map type, acknowledging missing fields.
+            participantsMap.get(p.conversation_id)!.push(...(profiles as ConversationParticipant[]));
           }
         });
 
-        finalSummaries = conversationsFromRpc.map(convo => {
+        finalSummaries = conversationsFromRpc.map((convo: any) => {
           const participants = participantsMap.get(convo.conversation_id) || [];
           const otherParticipants = participants.filter(p => p.user_id !== user.id);
-          
+
           let name = convo.name;
           if (convo.type === 'dm' && otherParticipants.length > 0) {
             name = otherParticipants[0].full_name || otherParticipants[0].username;
@@ -76,33 +81,33 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const { data: directoryData, error: directoryError } = await supabase.rpc('get_unified_directory');
       if (directoryError) throw directoryError;
-      
-      const allProfiles = (directoryData as DirectoryProfile[] || []).filter(item => item.type === 'user');
-      
-      const contacts = allProfiles.filter(p => p.is_following);
+
+      const allProfiles = (directoryData || []).filter((item: any) => item.type === 'user');
+
+      const contacts = allProfiles.filter((p: any) => p.is_following);
 
       const existingParticipantIds = new Set(
         (finalSummaries || []).flatMap(c => (c.participants || []).map(p => p.user_id))
       );
-      
+
       const placeholderConversations = contacts
-        .filter(contact => !existingParticipantIds.has(contact.id))
-        .map(contact => ({
-            conversation_id: `placeholder_${contact.id}`, 
-            type: 'dm' as const, 
-            name: contact.name,
-            participants: [{ 
-                user_id: contact.id, 
-                username: contact.username!, 
-                full_name: contact.name, 
-                avatar_url: contact.avatar_url 
-            }], 
-            last_message_content: "Start a conversation!", 
-            last_message_at: null,
-            last_message_sender_id: null, 
-            unread_count: 0,
+        .filter((contact: any) => !existingParticipantIds.has(contact.id))
+        .map((contact: any) => ({
+          conversation_id: `placeholder_${contact.id}`,
+          type: 'dm' as const,
+          name: contact.name,
+          participants: [{
+            user_id: contact.id,
+            username: contact.username!,
+            full_name: contact.name,
+            avatar_url: contact.avatar_url
+          }],
+          last_message_content: "Start a conversation!",
+          last_message_at: null,
+          last_message_sender_id: null,
+          unread_count: 0,
         }));
-      
+
       const combinedList = [...finalSummaries, ...placeholderConversations];
 
       combinedList.sort((a, b) => {
@@ -131,7 +136,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const newState = presenceChannel.presenceState();
         const userIds = new Set<string>();
         for (const id in newState) {
-          (newState[id] as any[]).forEach(presence => {
+          (newState[id] as unknown as { user_id: string }[]).forEach(presence => {
             userIds.add(presence.user_id);
           });
         }
@@ -140,14 +145,14 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .on('presence', { event: 'join' }, ({ newPresences }) => {
         setOnlineUsers(prev => {
           const newSet = new Set(prev);
-          (newPresences as any[]).forEach(p => newSet.add(p.user_id));
+          (newPresences as unknown as { user_id: string }[]).forEach(p => newSet.add(p.user_id));
           return newSet;
         });
       })
       .on('presence', { event: 'leave' }, ({ leftPresences }) => {
         setOnlineUsers(prev => {
           const newSet = new Set(prev);
-          (leftPresences as any[]).forEach(p => newSet.delete(p.user_id));
+          (leftPresences as unknown as { user_id: string }[]).forEach(p => newSet.delete(p.user_id));
           return newSet;
         });
       })
@@ -168,10 +173,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // --- THE FIX: Use a unique, abstract channel name ---
     const channel = supabase
       .channel('chat-feed-channel')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, 
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' },
         (payload) => {
-          const newMessage = payload.new as Message;
-          
+          const newMessage = payload.new as unknown as Message;
+
           setLatestMessage(newMessage);
 
           setConversations(prev => {
@@ -194,7 +199,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
 
             conversationsCopy.splice(convoIndex, 1);
-            
+
             return [updatedConvo, ...conversationsCopy];
           });
         }
@@ -210,7 +215,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user?.id || conversationId.startsWith('placeholder_')) return;
 
     setConversations(prev =>
-        prev.map(c => (c.conversation_id === conversationId ? { ...c, unread_count: 0 } : c))
+      prev.map(c => (c.conversation_id === conversationId ? { ...c, unread_count: 0 } : c))
     );
 
     const { error } = await supabase
@@ -226,9 +231,9 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       fetchConversations();
     }
   }, [user, fetchConversations]);
-  
+
   const totalUnreadCount = conversations.reduce((sum, conv) => sum + (conv.unread_count || 0), 0);
-  
+
   const updateConversationId = (placeholderId: string, newId: string) => {
     setConversations(prev => prev.map(c => c.conversation_id === placeholderId ? { ...c, conversation_id: newId } : c));
   };
