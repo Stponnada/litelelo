@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="#3cfba2" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Bulb Shape -->
+  <path d="M35 60 C 20 40 30 10 50 10 C 70 10 80 40 65 60" />
+  
+  <!-- Base -->
+  <path d="M35 60 L 40 80 L 60 80 L 65 60" />
+  <path d="M40 80 L 42 85 L 58 85 L 60 80" />
+  
+  <!-- Filament (Stylized as an 'L') -->
+  <path d="M45 30 L 45 50 L 55 50" stroke-width="5" />
+  
+  <!-- Rays of light -->
+  <path d="M10 10 L 20 20" />
+  <path d="M90 10 L 80 20" />
+  <path d="M50 0 L 50 5" />
+</svg>

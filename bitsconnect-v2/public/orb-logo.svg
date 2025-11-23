@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Outer Ring -->
+  <!-- Base ring with low opacity -->
+  <circle cx="50" cy="50" r="44" stroke="#3cfba2" stroke-width="4" stroke-opacity="0.1" />
+  <!-- Static segment -->
+  <circle cx="50" cy="50" r="44" stroke="#3cfba2" stroke-width="4" stroke-dasharray="70 207" stroke-linecap="round" transform="rotate(-45 50 50)" />
+  
+  <!-- Inner Ring -->
+  <!-- Base ring with low opacity -->
+  <circle cx="50" cy="50" r="32" stroke="#3cfba2" stroke-width="4" stroke-opacity="0.1" />
+  <!-- Static segment -->
+  <circle cx="50" cy="50" r="32" stroke="#3cfba2" stroke-width="4" stroke-dasharray="50 151" stroke-linecap="round" transform="rotate(135 50 50)" />
+  
+  <!-- Core -->
+  <circle cx="50" cy="50" r="10" fill="#3cfba2" />
+  
+  <!-- Glow Effect -->
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+</svg>

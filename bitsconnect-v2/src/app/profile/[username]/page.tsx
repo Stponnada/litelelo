@@ -1,0 +1,1297 @@
+'use client';
+
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { supabase } from '@/services/supabase';
+import { useAuth } from '@/hooks/useAuth';
+import PostComponent from '@/components/Post';
+import CreatePost from '@/components/CreatePost';
+import { Post as PostType, Profile, Friend } from '@/types';
+import Spinner from '@/components/Spinner';
+import ProfilePageSkeleton from '@/components/ProfilePageSkeleton';
+import { CameraIcon, LogoutIcon, ChatIcon, UserGroupIcon, BookmarkIcon, ConsulIcon, UserPlusIcon, CheckIcon, XMarkIcon } from '@/components/icons';
+import { isMscBranch, BITS_BRANCHES } from '@/data/bitsBranches';
+import ImageCropper from '@/components/ImageCropper';
+import FollowListModal from '@/components/FollowListModal';
+import LightBox from '@/components/lightbox';
+import { format } from 'date-fns';
+
+interface CommunityLink {
+    id: string;
+    name: string;
+    avatar_url: string | null;
+    role: 'member' | 'admin';
+}
+
+const Flair: React.FC<{ flair: { id: string; name: string; avatar_url: string | null } }> = ({ flair }) => (
+    <Link
+        href={`/communities/${flair.id}`}
+        className="group"
+        title={flair.name}
+    >
+        <img
+            src={flair.avatar_url || `https://ui-avatars.com/api/?name=${flair.name}`}
+            alt={flair.name}
+            className="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover transition-transform group-hover:scale-110 shadow-md border-2 border-secondary-light dark:border-secondary"
+        />
+    </Link>
+);
+
+
+const TabButton: React.FC<{ label: string, isActive: boolean, onClick: () => void }> = ({ label, isActive, onClick }) => (
+    <button
+        onClick={onClick}
+        className={`flex-1 py-4 px-6 font-semibold text-center transition-all ${isActive
+            ? 'border-b-2 border-brand-green text-brand-green'
+            : 'text-text-tertiary-light dark:text-text-tertiary hover:text-text-main-light dark:hover:text-text-main'
+            }`}
+    >
+        {label}
+    </button>
+);
+
+const FriendshipButtons: React.FC<{
+    profile: Profile;
+    isToggling: boolean;
+    onFollow: () => void;
+    onUnfollow: () => void;
+    onMessage: () => void;
+    onSendRequest: () => void;
+    onAcceptRequest: () => void;
+    onCancelOrDenyRequest: () => void;
+}> = ({
+    profile, isToggling, onFollow, onUnfollow, onMessage,
+    onSendRequest, onAcceptRequest, onCancelOrDenyRequest
+}) => {
+        const isFriends = profile.is_following && profile.is_followed_by;
+
+        // Highest priority: A request is pending from them to you.
+        if (profile.has_received_request) {
+            return (
+                <>
+                    <button
+                        onClick={onAcceptRequest}
+                        disabled={isToggling}
+                        className="font-bold py-2 px-4 sm:px-6 rounded-full bg-brand-green text-black hover:bg-brand-green-darker shadow-lg shadow-brand-green/20 transition-all text-sm sm:text-base"
+                    >
+                        Accept
+                    </button>
+                    <button
+                        onClick={onCancelOrDenyRequest}
+                        disabled={isToggling}
+                        className="p-2 sm:p-3 rounded-full bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
+                        title="Deny Request"
+                    >
+                        <XMarkIcon className="w-5 h-5" />
+                    </button>
+                </>
+            );
+        }
+
+        // Next priority: You have sent a request to them.
+        if (profile.has_sent_request) {
+            return (
+                <>
+                    <button
+                        disabled
+                        className="font-bold py-2 px-4 sm:px-6 rounded-full bg-tertiary-light dark:bg-tertiary text-text-secondary-light dark:text-text-secondary cursor-not-allowed text-sm sm:text-base"
+                    >
+                        Sent
+                    </button>
+                    <button
+                        onClick={onCancelOrDenyRequest}
+                        disabled={isToggling}
+                        className="p-2 sm:p-3 rounded-full bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
+                        title="Cancel Request"
+                    >
+                        <XMarkIcon className="w-5 h-5" />
+                    </button>
+                </>
+            );
+        }
+
+        // They are friends
+        if (isFriends) {
+            return (
+                <>
+                    <button onClick={onMessage} className="p-2 sm:p-3 rounded-full bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main hover:bg-tertiary-light/80 dark:hover:bg-tertiary/80 transition-colors" title="Message"><ChatIcon className="w-5 h-5" /></button>
+                    <button onClick={onUnfollow} disabled={isToggling} className="font-bold py-2 px-4 sm:px-6 rounded-full bg-transparent border-2 border-tertiary-light dark:border-tertiary text-text-main-light dark:text-text-main hover:border-red-500 hover:text-red-500 hover:bg-red-500/5 transition-all flex items-center gap-2 text-sm sm:text-base">
+                        {isToggling ? <Spinner /> : <> <CheckIcon className="w-5 h-5" /> Friends </>}
+                    </button>
+                </>
+            );
+        }
+
+        // You follow them, but they don't follow back
+        if (profile.is_following) {
+            return (
+                <>
+                    <button onClick={onMessage} className="p-2 sm:p-3 rounded-full bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main hover:bg-tertiary-light/80 dark:hover:bg-tertiary/80 transition-colors" title="Message"><ChatIcon className="w-5 h-5" /></button>
+                    <button onClick={onUnfollow} disabled={isToggling} className="font-bold py-2 px-4 sm:px-6 rounded-full bg-brand-green text-black hover:bg-brand-green-darker transition-all text-sm sm:text-base">
+                        {isToggling ? <Spinner /> : 'Following'}
+                    </button>
+                </>
+            );
+        }
+
+        // They follow you, but you don't follow back
+        if (profile.is_followed_by) {
+            return (
+                <>
+                    <button onClick={onMessage} className="p-2 sm:p-3 rounded-full bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main hover:bg-tertiary-light/80 dark:hover:bg-tertiary/80 transition-colors" title="Message"><ChatIcon className="w-5 h-5" /></button>
+                    <button onClick={onFollow} disabled={isToggling} className="font-bold py-2 px-4 sm:px-8 rounded-full bg-brand-green text-black hover:bg-brand-green-darker shadow-lg shadow-brand-green/20 transition-all flex items-center gap-2 text-sm sm:text-base">
+                        {isToggling ? <Spinner /> : 'Follow Back'}
+                    </button>
+                </>
+            );
+        }
+
+        // Default case: No relationship
+        return (
+            <>
+                <button onClick={onMessage} className="p-2 sm:p-3 rounded-full bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main hover:bg-tertiary-light/80 dark:hover:bg-tertiary/80 transition-colors" title="Message"><ChatIcon className="w-5 h-5" /></button>
+                <button onClick={onFollow} disabled={isToggling} className="font-semibold py-2 px-4 sm:px-6 rounded-full bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main hover:bg-tertiary-light/80 dark:hover:bg-tertiary/80 transition-colors text-sm sm:text-base">
+                    {isToggling ? <Spinner /> : 'Follow'}
+                </button>
+                <button onClick={onSendRequest} disabled={isToggling} className="font-bold py-2 px-4 sm:px-6 rounded-full bg-brand-green text-black hover:bg-brand-green-darker shadow-lg shadow-brand-green/20 transition-all flex items-center gap-2 text-sm sm:text-base">
+                    <UserPlusIcon className="w-5 h-5" /> <span className="hidden sm:inline">Add Friend</span><span className="sm:hidden">Add</span>
+                </button>
+            </>
+        );
+    };
+
+const ProfilePage: React.FC = () => {
+    const params = useParams();
+    const username = params?.username as string;
+    const { user: currentUser, profile: currentUserProfile, updateProfileContext } = useAuth();
+    const router = useRouter();
+
+    const [profile, setProfile] = useState<Profile | null>(null);
+    const [profileLoading, setProfileLoading] = useState(true);
+
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isTogglingFollow, setIsTogglingFollow] = useState(false);
+
+    const [activeTab, setActiveTab] = useState<'posts' | 'mentions' | 'media'>('posts');
+    const [posts, setPosts] = useState<PostType[]>([]);
+    const [mentions, setMentions] = useState<PostType[]>([]);
+    const [mediaPosts, setMediaPosts] = useState<PostType[]>([]);
+    const [postsLoading, setPostsLoading] = useState(true);
+
+    const [friends, setFriends] = useState<Friend[]>([]);
+    const [friendsLoading, setFriendsLoading] = useState(true);
+    const [mutualFriends, setMutualFriends] = useState<Friend[]>([]);
+    const [mutualFriendsLoading, setMutualFriendsLoading] = useState(true);
+
+    const [communities, setCommunities] = useState<CommunityLink[]>([]);
+    const [communitiesLoading, setCommunitiesLoading] = useState(true);
+
+    const [followModalState, setFollowModalState] = useState<{ isOpen: boolean; listType: 'followers' | 'following' | null; }>({ isOpen: false, listType: null });
+    const [isFriendsModalOpen, setIsFriendsModalOpen] = useState(false);
+    const [isMutualFriendsModalOpen, setIsMutualFriendsModalOpen] = useState(false);
+    const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+
+    const fetchProfileData = useCallback(async () => {
+        if (!username) return;
+        setProfileLoading(true);
+        try {
+            const { data, error } = await supabase
+                .rpc('get_profile_details', {
+                    profile_username: username,
+                })
+                .single();
+
+            if (error || !data) throw error || new Error("Profile not found");
+            const profileData: any = data;
+            let phone: string | null = null;
+            if (profileData?.user_id) {
+                const { data: profileRow } = await supabase
+                    .from('profiles')
+                    .select('phone')
+                    .eq('user_id', profileData.user_id)
+                    .single();
+                phone = (profileRow as any)?.phone ?? null;
+            }
+            setProfile({ ...(profileData as object), phone } as any);
+        } catch (error) {
+            console.error("Error fetching profile data:", error);
+            setProfile(null);
+        } finally {
+            setProfileLoading(false);
+        }
+    }, [username]);
+
+    const fetchPostsAndMentions = useCallback(async () => {
+        if (!profile) return;
+        setPostsLoading(true);
+
+        const postsPromise = supabase.rpc('get_posts_for_profile', { p_user_id: profile.user_id });
+        const mentionsPromise = supabase.rpc('get_mentions_for_user', { profile_user_id: profile.user_id });
+
+        const [postsResult, mentionsResult] = await Promise.all([postsPromise, mentionsPromise]);
+
+        if (postsResult.error) {
+            console.error("Error fetching posts:", postsResult.error);
+        } else {
+            const fetchedPosts = (postsResult.data as any[] || []).map(p => ({
+                ...p,
+                author: {
+                    author_id: p.author_id,
+                    author_type: p.author_type,
+                    author_name: p.author_name,
+                    author_username: p.author_username,
+                    author_avatar_url: p.author_avatar_url,
+                    author_flair_details: p.author_flair_details,
+                }
+            }));
+            setPosts(fetchedPosts);
+            setMediaPosts(fetchedPosts.filter((p: PostType) => !!p.image_url));
+        }
+
+        if (mentionsResult.error) {
+            console.error("Error fetching mentions:", mentionsResult.error)
+        } else {
+            const fetchedMentions = (mentionsResult.data as any[] || []).map(p => ({
+                ...p,
+                author: {
+                    author_id: p.author_id,
+                    author_type: p.author_type,
+                    author_name: p.author_name,
+                    author_username: p.author_username,
+                    author_avatar_url: p.author_avatar_url,
+                    author_flair_details: p.author_flair_details,
+                }
+            }));
+            setMentions(fetchedMentions);
+        }
+
+        setPostsLoading(false);
+    }, [profile]);
+
+    const handlePostCreated = (newPost: any) => {
+        const authorProfile = newPost.profiles as Profile | null;
+        const formattedPost: PostType = {
+            ...newPost,
+            like_count: 0,
+            dislike_count: 0,
+            comment_count: 0,
+            user_vote: null,
+            author: {
+                author_id: authorProfile?.user_id || '',
+                author_type: 'user',
+                author_name: authorProfile?.full_name || '',
+                author_username: authorProfile?.username || '',
+                author_avatar_url: authorProfile?.avatar_url || '',
+                author_flair_details: null,
+            },
+            original_poster_username: null,
+            // @ts-ignore
+            profiles: null,
+        };
+        delete (formattedPost as any).profiles;
+        setPosts(prevPosts => [formattedPost, ...prevPosts]);
+    };
+
+    const fetchFriendshipData = useCallback(async () => {
+        if (!profile || !currentUser) return;
+        setFriendsLoading(true);
+        setMutualFriendsLoading(true);
+        try {
+            // Promise for profile user's friends
+            const profileFriendsPromise = supabase.rpc('get_mutual_followers', { p_user_id: profile.user_id });
+            
+            // Promise for current user's friends (if not viewing own profile)
+            const isOwnProfile = profile.user_id === currentUser.id;
+            const currentUserFriendsPromise = isOwnProfile 
+                ? Promise.resolve({ data: null, error: null }) 
+                : supabase.rpc('get_mutual_followers', { p_user_id: currentUser.id });
+
+            const [profileFriendsResult, currentUserFriendsResult] = await Promise.all([profileFriendsPromise, currentUserFriendsPromise]);
+
+            if (profileFriendsResult.error) throw profileFriendsResult.error;
+            const profileFriends = profileFriendsResult.data || [];
+            setFriends(profileFriends);
+            
+            if (currentUserFriendsResult.error) throw currentUserFriendsResult.error;
+
+            if (!isOwnProfile) {
+                const currentUserFriends = currentUserFriendsResult.data || [];
+                // Find the intersection
+                const mutuals = profileFriends.filter(profileFriend =>
+                    currentUserFriends.some(currentUserFriend => currentUserFriend.user_id === profileFriend.user_id)
+                );
+                setMutualFriends(mutuals);
+            } else {
+                setMutualFriends([]);
+            }
+
+        } catch (error) {
+            console.error("Error fetching friendship data:", error);
+            setFriends([]);
+            setMutualFriends([]);
+        } finally {
+            setFriendsLoading(false);
+            setMutualFriendsLoading(false);
+        }
+    }, [profile, currentUser]);
+
+    const fetchCommunities = useCallback(async () => {
+        if (!profile) return;
+        setCommunitiesLoading(true);
+        try {
+            const { data, error } = await supabase.rpc('get_communities_for_user', { p_user_id: profile.user_id });
+            if (error) throw error;
+            setCommunities(data || []);
+        } catch (error) {
+            console.error("Error fetching communities:", error);
+        } finally {
+            setCommunitiesLoading(false);
+        }
+    }, [profile]);
+
+
+    useEffect(() => {
+        fetchProfileData();
+    }, [username, fetchProfileData]);
+
+    useEffect(() => {
+        if (profile) {
+            fetchPostsAndMentions();
+            fetchFriendshipData();
+            fetchCommunities();
+        }
+    }, [profile, fetchPostsAndMentions, fetchFriendshipData, fetchCommunities]);
+
+    const handleMessageUser = () => {
+        if (!profile) return;
+        router.push(`/chat?recipientId=${profile.user_id}`);
+    };
+
+    const handleSignOut = async () => {
+        await supabase.auth.signOut({ scope: 'local' });
+        router.push('/login');
+    };
+
+    const handleFollow = async () => {
+        if (!currentUser || !profile || isTogglingFollow) return;
+        setIsTogglingFollow(true);
+        const originalFollowerCount = profile.follower_count;
+        setProfile({ ...profile, is_following: true, follower_count: profile.follower_count + 1 });
+        const { error } = await supabase.rpc('follow_user', { user_to_follow_id: profile.user_id });
+        if (error) {
+            console.error("Error following user:", error);
+            setProfile({ ...profile, is_following: false, follower_count: originalFollowerCount });
+        }
+        setIsTogglingFollow(false);
+    };
+
+    const handleUnfollow = async () => {
+        if (!currentUser || !profile || isTogglingFollow) return;
+        setIsTogglingFollow(true);
+        const originalFollowerCount = profile.follower_count;
+        const originalIsFollowedBy = profile.is_followed_by;
+        setProfile({ ...profile, is_following: false, follower_count: profile.follower_count - 1 });
+        const { error } = await supabase.rpc('unfollow_user', { user_to_unfollow_id: profile.user_id });
+        if (error) {
+            console.error("Error unfollowing user:", error);
+            setProfile({ ...profile, is_following: true, follower_count: originalFollowerCount, is_followed_by: originalIsFollowedBy });
+        }
+        setIsTogglingFollow(false);
+    };
+
+    const handleSendRequest = async () => {
+        if (!currentUser || !profile || isTogglingFollow) return;
+        setIsTogglingFollow(true);
+        setProfile({ ...profile, has_sent_request: true });
+        const { error } = await supabase.rpc('send_friend_request', { recipient_id: profile.user_id });
+        if (error) {
+            console.error("Error sending request:", error);
+            setProfile({ ...profile, has_sent_request: false });
+        }
+        setIsTogglingFollow(false);
+    };
+
+    const handleAcceptRequest = async () => {
+        if (!currentUser || !profile || isTogglingFollow) return;
+        setIsTogglingFollow(true);
+        setProfile({
+            ...profile,
+            has_received_request: false,
+            is_following: true,
+            is_followed_by: true,
+            follower_count: profile.follower_count + 1,
+        });
+        const { error } = await supabase.rpc('accept_friend_request', { requester_id: profile.user_id });
+        if (error) {
+            console.error("Error accepting request:", error);
+            fetchProfileData();
+        }
+        setIsTogglingFollow(false);
+    };
+
+    const handleCancelOrDenyRequest = async () => {
+        if (!currentUser || !profile || isTogglingFollow) return;
+        setIsTogglingFollow(true);
+        const wasRequestSent = profile.has_sent_request;
+        setProfile({ ...profile, has_sent_request: false, has_received_request: false });
+        const { error } = await supabase.rpc('cancel_or_deny_friend_request', { other_user_id: profile.user_id });
+        if (error) {
+            console.error("Error cancelling/denying request:", error);
+            setProfile({ ...profile, has_sent_request: wasRequestSent, has_received_request: !wasRequestSent });
+        }
+        setIsTogglingFollow(false);
+    };
+
+    if (profileLoading) {
+        return <ProfilePageSkeleton />;
+    }
+
+    if (!profile) {
+        return <div className="text-center py-10 text-xl text-red-400">User not found.</div>;
+    }
+
+    const isOwnProfile = currentUser?.id === profile.user_id;
+    const dormInfo = profile.dorm_building ? `${profile.dorm_building}${profile.dorm_room ? `, Room ${profile.dorm_room}` : ''}` : null;
+
+    const formattedBirthday = profile.birthday
+        ? format(new Date(profile.birthday), 'MMMM d')
+        : null;
+
+    return (
+        <>
+            {isEditModalOpen && profile && <EditProfileModal userProfile={profile} onClose={() => setIsEditModalOpen(false)} onSave={fetchProfileData} />}
+            {followModalState.isOpen && profile && followModalState.listType && <FollowListModal profile={profile} listType={followModalState.listType} onClose={() => setFollowModalState({ isOpen: false, listType: null })} />}
+            {isFriendsModalOpen && profile && <FriendsListModal profile={profile} onClose={() => setIsFriendsModalOpen(false)} />}
+            {isMutualFriendsModalOpen && profile && (
+                <MutualFriendsListModal
+                    mutualFriends={mutualFriends}
+                    onClose={() => setIsMutualFriendsModalOpen(false)}
+                    profile={profile}
+                />
+            )}
+            {lightboxUrl && <LightBox imageUrl={lightboxUrl} onClose={() => setLightboxUrl(null)} />}
+
+            <div className="w-full max-w-7xl mx-auto pb-8">
+                {/* Main Profile Card */}
+                <div className="relative mb-6 overflow-visible">
+                    {/* Banner Image */}
+                    <div className="h-48 sm:h-72 bg-gradient-to-br from-tertiary-light to-tertiary-light/50 dark:from-tertiary dark:to-tertiary/50 relative rounded-b-3xl overflow-hidden shadow-lg">
+                        {profile.banner_url ? (
+                            <img
+                                src={profile.banner_url}
+                                alt="Banner"
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-brand-green/20 to-blue-500/20"></div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                    </div>
+
+                    {/* Profile Info Overlay */}
+                    <div className="px-4 sm:px-8 pb-4 relative -mt-20 sm:-mt-24 flex flex-col sm:flex-row items-end gap-4 sm:gap-6">
+                        {/* Avatar */}
+                        <div className="relative z-10 flex-shrink-0 mx-auto sm:mx-0">
+                            <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 border-secondary-light dark:border-secondary bg-tertiary overflow-hidden shadow-2xl">
+                                {profile.avatar_url ? (
+                                    <img
+                                        src={profile.avatar_url}
+                                        alt={profile.full_name || ''}
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-green/20 to-blue-500/20">
+                                        <span className="text-4xl sm:text-5xl font-bold text-brand-green">{profile.full_name ? profile.full_name.split(' ').map(n => n[0]).join('') : profile.username[0]}</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Info & Actions */}
+                        <div className="flex-1 flex flex-col sm:flex-row sm:items-end justify-between w-full gap-4 text-center sm:text-left mt-2 sm:mt-0">
+                            {/* Text Info */}
+                            <div className="text-white pb-2">
+                                <div className="flex items-center justify-center sm:justify-start gap-2">
+                                    <h1 className="text-2xl sm:text-3xl font-bold drop-shadow-md">
+                                        {profile.full_name}
+                                    </h1>
+                                    {profile.flair_details && <Flair flair={profile.flair_details} />}
+                                </div>
+                                <p className="text-gray-200 font-medium text-sm sm:text-base">
+                                    @{profile.username}
+                                </p>
+
+                                <div className="flex items-center justify-center sm:justify-start gap-6 mt-3 text-sm text-text-secondary-light dark:text-text-secondary">
+                                    <button
+                                        onClick={() => setFollowModalState({ isOpen: true, listType: 'following' })}
+                                        className="hover:text-brand-green transition-colors"
+                                    >
+                                        <span className="font-bold text-text-main-light dark:text-white text-base">
+                                            {profile.following_count}
+                                        </span>
+                                        <span className="ml-1">Following</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setFollowModalState({ isOpen: true, listType: 'followers' })}
+                                        className="hover:text-brand-green transition-colors"
+                                    >
+                                        <span className="font-bold text-text-main-light dark:text-white text-base">
+                                            {profile.follower_count}
+                                        </span>
+                                        <span className="ml-1">Followers</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex items-center justify-center sm:justify-end gap-2 pb-2">
+                                {isOwnProfile ? (
+                                    <>
+                                        <Link href="/bookmarks" className="p-2.5 rounded-full bg-tertiary-light/50 dark:bg-white/10 backdrop-blur-sm hover:bg-brand-green/20 text-text-main-light dark:text-white transition-colors" title="Bookmarks">
+                                            <BookmarkIcon className="w-5 h-5" />
+                                        </Link>
+                                        <button onClick={() => setIsEditModalOpen(true)} className="font-semibold py-2.5 px-6 rounded-full bg-tertiary-light/50 dark:bg-white/10 backdrop-blur-sm text-text-main-light dark:text-white hover:bg-brand-green/20 transition-colors text-sm sm:text-base">
+                                            Edit Profile
+                                        </button>
+                                        <button onClick={handleSignOut} className="p-2.5 text-red-500 rounded-full bg-tertiary-light/50 dark:bg-white/10 backdrop-blur-sm hover:bg-red-500/20 transition-colors" title="Sign Out">
+                                            <LogoutIcon className="w-5 h-5" />
+                                        </button>
+                                    </>
+                                ) : (
+                                    <FriendshipButtons
+                                        profile={profile}
+                                        isToggling={isTogglingFollow}
+                                        onFollow={handleFollow}
+                                        onUnfollow={handleUnfollow}
+                                        onMessage={handleMessageUser}
+                                        onSendRequest={handleSendRequest}
+                                        onAcceptRequest={handleAcceptRequest}
+                                        onCancelOrDenyRequest={handleCancelOrDenyRequest}
+                                    />
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="px-4 sm:px-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Details Sidebar */}
+                        <div className="lg:col-span-1">
+                            <div className="glass-panel rounded-2xl p-6 space-y-6">
+                                {profile.bio && (
+                                    <div>
+                                        <h3 className="text-lg font-bold text-text-main-light dark:text-white mb-2">About</h3>
+                                        <p className="text-text-secondary-light dark:text-text-secondary text-sm leading-relaxed whitespace-pre-wrap">{profile.bio}</p>
+                                    </div>
+                                )}
+
+                                {profile.roommates && profile.roommates.length > 0 && (
+                                    <>
+                                        <hr className="border-tertiary-light dark:border-white/10" />
+                                        <div>
+                                            <h3 className="text-sm font-bold text-text-main-light dark:text-white mb-2">Roomies</h3>
+                                            <div className="flex flex-wrap gap-2">
+                                                {profile.roommates.map((roomie) => (
+                                                    <Link href={`/profile/${roomie.username}`} key={roomie.user_id} className="inline-flex items-center gap-2 bg-tertiary-light dark:bg-white/5 px-3 py-1 rounded-full text-xs font-medium hover:bg-brand-green/20 transition-colors">
+                                                        <span className="text-brand-green">@</span>{roomie.full_name || roomie.username}
+                                                    </Link>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+
+                                <hr className="border-tertiary-light dark:border-white/10" />
+
+                                <div className="space-y-3">
+                                    <h3 className="text-sm font-bold text-text-main-light dark:text-white">Details</h3>
+                                    <div className="space-y-2.5 text-sm text-text-secondary-light dark:text-text-secondary">
+                                        <ProfileDetail label="Birthday" value={formattedBirthday} />
+                                        <ProfileDetail label="Primary Degree" value={profile.branch} />
+                                        <ProfileDetail label="B.E. Degree" value={profile.dual_degree_branch} />
+                                        <ProfileDetail label="Relationship" value={profile.relationship_status} />
+                                        <ProfileDetail label="Dorm" value={dormInfo} />
+                                        <ProfileDetail label="Dining Hall" value={profile.dining_hall} />
+                                        <ProfileDetail label="Phone" value={profile.phone || null} />
+                                    </div>
+                                </div>
+
+                                {!isOwnProfile && !mutualFriendsLoading && mutualFriends.length > 0 && (
+                                    <>
+                                        <hr className="border-tertiary-light dark:border-white/10" />
+                                        <div>
+                                            <button onClick={() => setIsMutualFriendsModalOpen(true)} className="w-full text-left hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50 p-2 -m-2 rounded-lg transition-colors">
+                                                <h3 className="text-sm font-bold text-text-main-light dark:text-white mb-2">Mutual Friends</h3>
+                                                <div className="flex items-center">
+                                                    <div className="flex flex-wrap -space-x-2">
+                                                        {mutualFriends.slice(0, 7).map(friend => (
+                                                            <img
+                                                                key={friend.user_id}
+                                                                src={friend.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.full_name || friend.username)}&background=random&color=fff&bold=true`}
+                                                                alt={friend.username}
+                                                                className="w-8 h-8 rounded-full object-cover ring-2 ring-secondary-light dark:ring-secondary"
+                                                                title={friend.full_name || friend.username}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                    {mutualFriends.length > 7 && (
+                                                        <span className="text-xs font-bold pl-4 text-text-tertiary-light dark:text-text-tertiary">
+                                                            +{mutualFriends.length - 7}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p className="text-xs text-text-tertiary-light dark:text-text-tertiary mt-2">
+                                                    You and {profile.full_name?.split(' ')[0]} have {mutualFriends.length} friend{mutualFriends.length > 1 ? 's' : ''} in common.
+                                                </p>
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+
+                                {!friendsLoading && friends.length > 0 && (
+                                    <>
+                                        <hr className="border-tertiary-light dark:border-white/10" />
+                                        <div>
+                                            <button onClick={() => setIsFriendsModalOpen(true)} className="flex items-center justify-between w-full text-sm font-bold text-text-main-light dark:text-white mb-3 hover:text-brand-green transition-colors">
+                                                <span>Friends</span>
+                                                <span className="text-xs text-text-tertiary-light font-normal">{friends.length}</span>
+                                            </button>
+                                            <div className="grid grid-cols-4 gap-2">
+                                                {friends.slice(0, 8).map(friend => (
+                                                    <Link href={`/profile/${friend.username}`} key={friend.user_id} className="group">
+                                                        <img
+                                                            src={friend.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.full_name || friend.username)}&background=random&color=fff&bold=true`}
+                                                            alt={friend.username}
+                                                            className="w-10 h-10 rounded-full object-cover ring-2 ring-transparent group-hover:ring-brand-green transition-all mx-auto"
+                                                            title={friend.full_name || friend.username}
+                                                        />
+                                                    </Link>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+
+                                {!communitiesLoading && communities.length > 0 && (
+                                    <>
+                                        <hr className="border-tertiary-light dark:border-white/10" />
+                                        <div>
+                                            <h3 className="text-sm font-bold text-text-main-light dark:text-white mb-3">Communities</h3>
+                                            <div className="flex flex-wrap gap-2">
+                                                {communities.slice(0, 5).map(community => (
+                                                    <Link href={`/communities/${community.id}`} key={community.id} className="group relative">
+                                                        <img
+                                                            src={community.avatar_url || `https://ui-avatars.com/api/?name=${community.name}&background=random&color=fff&bold=true`}
+                                                            alt={community.name}
+                                                            className="w-10 h-10 rounded-xl object-cover ring-2 ring-transparent group-hover:ring-brand-green transition-all"
+                                                            title={community.name}
+                                                        />
+                                                        {community.role === 'admin' && (
+                                                            <div className="absolute -top-1 -right-1 bg-secondary-light dark:bg-secondary rounded-full p-0.5">
+                                                                <ConsulIcon className="w-3 h-3" />
+                                                            </div>
+                                                        )}
+                                                    </Link>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Feed Section */}
+                        <div className="lg:col-span-2 space-y-6">
+                            {isOwnProfile && currentUserProfile && (
+                                <div className="glass-panel rounded-2xl overflow-hidden p-1">
+                                    <CreatePost onPostCreated={handlePostCreated} profile={currentUserProfile} />
+                                </div>
+                            )}
+
+                            <div className="glass-panel rounded-2xl overflow-hidden min-h-[400px]">
+                                <div className="flex border-b border-tertiary-light/50 dark:border-white/10">
+                                    <TabButton label="Posts" isActive={activeTab === 'posts'} onClick={() => setActiveTab('posts')} />
+                                    <TabButton label="Photos" isActive={activeTab === 'media'} onClick={() => setActiveTab('media')} />
+                                    <TabButton label="Mentions" isActive={activeTab === 'mentions'} onClick={() => setActiveTab('mentions')} />
+                                </div>
+                                <div className="p-4">
+                                    {postsLoading ? <div className="text-center py-12"><Spinner /></div> : (
+                                        <>
+                                            {activeTab === 'posts' && (
+                                                <div className="space-y-4">
+                                                    {posts.length > 0 ? (
+                                                        posts.map(post => <PostComponent key={post.id} post={post} onImageClick={setLightboxUrl} />)
+                                                    ) : (
+                                                        <div className="text-center py-16 text-text-tertiary-light dark:text-text-tertiary">
+                                                            <p className="text-lg font-medium">No posts yet</p>
+                                                            <p className="text-sm opacity-70">Share your first post!</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                            {activeTab === 'mentions' && (
+                                                <div className="space-y-4">
+                                                    {mentions.length > 0 ? (
+                                                        mentions.map(post => <PostComponent key={post.id} post={post} onImageClick={setLightboxUrl} />)
+                                                    ) : (
+                                                        <div className="text-center py-16 text-text-tertiary-light dark:text-text-tertiary">
+                                                            <p className="text-lg font-medium">No mentions yet</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                            {activeTab === 'media' && (
+                                                mediaPosts.length > 0 ? (
+                                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                                        {mediaPosts.map(post => (
+                                                            <Link href={`/post/${post.id}`} key={post.id} className="group relative aspect-square rounded-xl overflow-hidden bg-tertiary-light dark:bg-white/5">
+                                                                <img src={post.image_url!} alt="Post media" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" onClick={(e) => { e.preventDefault(); setLightboxUrl(post.image_url!); }}>
+                                                                    <span className="text-white font-bold bg-black/20 backdrop-blur-md px-3 py-1 rounded-full border border-white/20">View</span>
+                                                                </div>
+                                                            </Link>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-center py-16 text-text-tertiary-light dark:text-text-tertiary">
+                                                        <p className="text-lg font-medium">No media posted yet</p>
+                                                    </div>
+                                                )
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </>
+    );
+};
+
+const MutualFriendsListModal: React.FC<{
+    mutualFriends: Friend[];
+    profile: Profile;
+    onClose: () => void;
+}> = ({ mutualFriends, profile, onClose }) => {
+    return (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
+            <div
+                className="bg-secondary-light dark:bg-secondary rounded-2xl shadow-2xl w-full flex flex-col
+                           max-w-md md:max-w-2xl lg:max-w-4xl max-h-[85vh]"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="p-4 border-b border-tertiary-light dark:border-tertiary flex items-center justify-between sticky top-0 bg-secondary-light dark:bg-secondary rounded-t-2xl">
+                    <h2 className="text-xl font-bold text-text-main-light dark:text-white">Mutual Friends</h2>
+                    <button onClick={onClose} className="text-2xl text-text-tertiary-light dark:text-text-tertiary hover:text-text-main-light dark:hover:text-text-main">&times;</button>
+                </div>
+                <div className="overflow-y-auto p-4">
+                    {mutualFriends.length > 0 ? (
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-4">
+                            {mutualFriends.map(friend => (
+                                <Link
+                                    href={`/profile/${friend.username}`}
+                                    onClick={onClose}
+                                    key={friend.user_id}
+                                    className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors text-center"
+                                >
+                                    <img
+                                        src={friend.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.full_name || friend.username)}&background=random&color=fff&bold=true`}
+                                        alt={friend.username}
+                                        className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover"
+                                    />
+                                    <div className="w-full">
+                                        <p className="font-semibold text-sm text-text-main-light dark:text-text-main truncate">{friend.full_name || friend.username}</p>
+                                        <p className="text-xs text-text-tertiary-light dark:text-text-tertiary truncate">@{friend.username}</p>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-center text-text-tertiary-light dark:text-text-tertiary p-8">You have no mutual friends with {profile.full_name?.split(' ')[0]}.</p>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const FriendsListModal: React.FC<{ profile: Profile; onClose: () => void }> = ({ profile, onClose }) => {
+    const [fullFriendsList, setFullFriendsList] = useState<Friend[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchAllFriends = async () => {
+            if (!profile) return;
+            setLoading(true);
+            try {
+                const { data, error } = await supabase.rpc('get_mutual_followers', { p_user_id: profile.user_id });
+                if (error) throw error;
+                setFullFriendsList(data || []);
+            } catch (error) {
+                console.error("Error fetching full friends list:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchAllFriends();
+    }, [profile]);
+
+    return (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
+            <div
+                className="bg-secondary-light dark:bg-secondary rounded-2xl shadow-2xl w-full flex flex-col
+                           max-w-md md:max-w-2xl lg:max-w-4xl max-h-[85vh]"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="p-4 border-b border-tertiary-light dark:border-tertiary flex items-center justify-between sticky top-0 bg-secondary-light dark:bg-secondary rounded-t-2xl">
+                    <h2 className="text-xl font-bold text-text-main-light dark:text-white">Friends</h2>
+                    <button onClick={onClose} className="text-2xl text-text-tertiary-light dark:text-text-tertiary hover:text-text-main-light dark:hover:text-text-main">&times;</button>
+                </div>
+                <div className="overflow-y-auto p-4">
+                    {loading ? (
+                        <div className="flex justify-center p-8"><Spinner /></div>
+                    ) : fullFriendsList.length > 0 ? (
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-4">
+                            {fullFriendsList.map(friend => (
+                                <Link
+                                    href={`/profile/${friend.username}`}
+                                    onClick={onClose}
+                                    key={friend.user_id}
+                                    className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors text-center"
+                                >
+                                    <img
+                                        src={friend.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.full_name || friend.username)}&background=random&color=fff&bold=true`}
+                                        alt={friend.username}
+                                        className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover"
+                                    />
+                                    <div className="w-full">
+                                        <p className="font-semibold text-sm text-text-main-light dark:text-text-main truncate">{friend.full_name || friend.username}</p>
+                                        <p className="text-xs text-text-tertiary-light dark:text-text-tertiary truncate">@{friend.username}</p>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-center text-text-tertiary-light dark:text-text-tertiary p-8">{profile.full_name?.split(' ')[0]} has no friends yet.</p>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, onSave: () => void }> = ({ userProfile, onClose, onSave }) => {
+    const { user, updateProfileContext } = useAuth();
+    const router = useRouter();
+    const [profileData, setProfileData] = useState(userProfile);
+    const [avatarFile, setAvatarFile] = useState<File | null>(null);
+    const [bannerFile, setBannerFile] = useState<File | null>(null);
+    const [avatarPreview, setAvatarPreview] = useState<string | null>(userProfile.avatar_url);
+    const [bannerPreview, setBannerPreview] = useState<string | null>(userProfile.banner_url);
+    const [isSaving, setIsSaving] = useState(false);
+    const [error, setError] = useState('');
+
+    const [joinedCommunities, setJoinedCommunities] = useState<CommunityLink[]>([]);
+
+    const [cropperState, setCropperState] = useState<{
+        isOpen: boolean;
+        type: 'avatar' | 'banner' | null;
+        src: string | null;
+    }>({ isOpen: false, type: null, src: null });
+
+    const [availableBranches, setAvailableBranches] = useState<string[]>([]);
+    const [isDualDegreeStudent, setIsDualDegreeStudent] = useState(false);
+    const avatarInputRef = useRef<HTMLInputElement>(null);
+    const bannerInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        const campus = profileData.campus;
+        if (campus && BITS_BRANCHES[campus]) {
+            const campusBranches = BITS_BRANCHES[campus];
+            setAvailableBranches([...campusBranches['B.E.'], ...campusBranches['M.Sc.']]);
+            const isMsc = isMscBranch(profileData.branch || '', campus);
+            setIsDualDegreeStudent(isMsc);
+        }
+    }, [profileData.campus, profileData.branch]);
+
+    useEffect(() => {
+        if (!user) return;
+        const fetchUserCommunities = async () => {
+            const { data, error } = await supabase.rpc('get_communities_for_user', { p_user_id: user.id });
+            if (error) console.error("Failed to fetch user's communities:", error);
+            else setJoinedCommunities(data || []);
+        };
+        fetchUserCommunities();
+    }, [user]);
+
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'banner') => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setCropperState({ isOpen: true, type, src: reader.result as string });
+            };
+            reader.readAsDataURL(file);
+        }
+        e.target.value = '';
+    };
+
+    const handleCropSave = (croppedImageFile: File) => {
+        const previewUrl = URL.createObjectURL(croppedImageFile);
+        if (cropperState.type === 'avatar') {
+            setAvatarFile(croppedImageFile);
+            setAvatarPreview(previewUrl);
+        } else if (cropperState.type === 'banner') {
+            setBannerFile(croppedImageFile);
+            setBannerPreview(previewUrl);
+        }
+        setCropperState({ isOpen: false, type: null, src: null });
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setProfileData(prev => {
+            const updated = { ...prev, [name]: value };
+            if (name === 'branch' && !isMscBranch(value, updated.campus || '')) {
+                updated.dual_degree_branch = null;
+            }
+            return updated;
+        });
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!user) return;
+        setIsSaving(true); setError('');
+        try {
+            let avatar_url = profileData.avatar_url;
+            let banner_url = profileData.banner_url;
+
+            if (avatarFile) {
+                const filePath = `${user.id}/avatar.${avatarFile.name.split('.').pop()}`;
+                await supabase.storage.from('avatars').upload(filePath, avatarFile, { upsert: true });
+                const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+                avatar_url = `${publicUrl}?t=${new Date().getTime()}`;
+            }
+            if (bannerFile) {
+                const filePath = `${user.id}/banner.${bannerFile.name.split('.').pop()}`;
+                await supabase.storage.from('avatars').upload(filePath, bannerFile, { upsert: true });
+                const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+                banner_url = `${publicUrl}?t=${new Date().getTime()}`;
+            }
+
+            const { data: updatedProfile, error: updateError } = await supabase.from('profiles').update({
+                username: profileData.username, // Send the new username
+                full_name: profileData.full_name, bio: profileData.bio, branch: profileData.branch,
+                dual_degree_branch: profileData.dual_degree_branch || null, relationship_status: profileData.relationship_status,
+                dorm_building: profileData.dorm_building, dorm_room: profileData.dorm_room, dining_hall: profileData.dining_hall,
+                phone: profileData.phone || null,
+                avatar_url, banner_url, updated_at: new Date().toISOString(),
+                displayed_community_flair: profileData.displayed_community_flair || null,
+            }).eq('user_id', user.id).select().single();
+
+            if (updateError) {
+                if (updateError.message.includes('profiles_username_key')) {
+                    throw new Error('That username is already taken. Please choose another.');
+                }
+                throw updateError;
+            }
+
+            updateProfileContext(updatedProfile);
+
+            const usernameChanged = profileData.username !== userProfile.username;
+
+            onClose(); // Close the modal
+
+            if (usernameChanged) {
+                // If username changed, navigate to the new URL
+                router.replace(`/profile/${updatedProfile.username}`);
+            } else {
+                // Otherwise, just refresh the data on the current page
+                onSave();
+            }
+        } catch (err: any) { setError(err.message); } finally { setIsSaving(false); }
+    };
+
+    if (cropperState.isOpen && cropperState.src) {
+        return (
+            <ImageCropper
+                imageSrc={cropperState.src}
+                aspect={cropperState.type === 'avatar' ? 1 : 16 / 9}
+                cropShape={cropperState.type === 'avatar' ? 'round' : 'rect'}
+                onSave={handleCropSave}
+                onClose={() => setCropperState({ isOpen: false, type: null, src: null })}
+                isSaving={isSaving}
+            />
+        );
+    }
+
+    return (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+            <div className="bg-secondary-light dark:bg-secondary rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                <form onSubmit={handleSubmit} className="p-6 sm:p-8">
+                    <h2 className="text-3xl font-bold text-brand-green mb-8">Edit Profile</h2>
+
+                    {/* Banner and Avatar Upload */}
+                    <div className="relative h-48 bg-gradient-to-br from-tertiary-light to-tertiary-light/50 dark:from-tertiary dark:to-tertiary/50 rounded-xl mb-20 overflow-visible">
+                        {bannerPreview && <img src={bannerPreview} className="w-full h-full object-cover" alt="Banner Preview" />}
+                        <button
+                            type="button"
+                            onClick={() => bannerInputRef.current?.click()}
+                            className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+                        >
+                            <div className="flex flex-col items-center gap-2 text-white">
+                                <CameraIcon className="w-8 h-8" />
+                                <span className="text-sm font-medium">Change Banner</span>
+                            </div>
+                        </button>
+                        <input type="file" ref={bannerInputRef} onChange={(e) => handleFileChange(e, 'banner')} accept="image/*" hidden />
+
+                        <div className="absolute -bottom-16 left-6 w-32 h-32 rounded-full border-4 border-secondary-light dark:border-secondary bg-gradient-to-br from-gray-600 to-gray-700 overflow-hidden shadow-xl">
+                            {avatarPreview && <img src={avatarPreview} className="w-full h-full object-cover" alt="Avatar Preview" />}
+                            <button
+                                type="button"
+                                onClick={() => avatarInputRef.current?.click()}
+                                className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 rounded-full transition-opacity"
+                            >
+                                <div className="flex flex-col items-center gap-1 text-white">
+                                    <CameraIcon className="w-6 h-6" />
+                                    <span className="text-xs font-medium">Change</span>
+                                </div>
+                            </button>
+                            <input type="file" ref={avatarInputRef} onChange={(e) => handleFileChange(e, 'avatar')} accept="image/*" hidden />
+                        </div>
+                    </div>
+
+                    {error && (
+                        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+                            <p className="text-red-400 text-sm">{error}</p>
+                        </div>
+                    )}
+
+                    <div className="space-y-6">
+                        {/* Full Name */}
+                        <div>
+                            <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                Full Name
+                            </label>
+                            <input
+                                type="text"
+                                name="full_name"
+                                value={profileData.full_name || ''}
+                                onChange={handleChange}
+                                className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none"
+                            />
+                        </div>
+
+                        {/* User Name */}
+                        <div>
+                            <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                UserTag
+                            </label>
+                            <input
+                                type="text"
+                                name="username"
+                                value={profileData.username || ''}
+                                onChange={handleChange}
+                                className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none"
+                            />
+                        </div>
+
+                        {/* Phone */}
+                        <div>
+                            <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                Phone <span className="text-text-tertiary-light dark:text-text-tertiary text-xs">(Optional)</span>
+                            </label>
+                            <input
+                                type="tel"
+                                name="phone"
+                                value={profileData.phone || ''}
+                                onChange={handleChange}
+                                placeholder="e.g., +91 98765 43210"
+                                className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none"
+                            />
+                        </div>
+
+                        {/* Flair Selection Dropdown */}
+                        <div>
+                            <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                Display Flair
+                            </label>
+                            <select
+                                name="displayed_community_flair"
+                                value={profileData.displayed_community_flair || ''}
+                                onChange={handleChange}
+                                className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none"
+                            >
+                                <option value="">No Flair</option>
+                                {joinedCommunities.map(community => (
+                                    <option key={community.id} value={community.id}>
+                                        {community.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Bio */}
+                        <div>
+                            <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                Bio
+                            </label>
+                            <textarea
+                                name="bio"
+                                value={profileData.bio || ''}
+                                onChange={handleChange}
+                                rows={4}
+                                className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none resize-none"
+                                placeholder="Tell us about yourself..."
+                            />
+                        </div>
+
+                        {/* Degrees */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                    Primary Degree
+                                </label>
+                                <select
+                                    name="branch"
+                                    value={profileData.branch || ''}
+                                    onChange={handleChange}
+                                    className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none"
+                                >
+                                    <option value="">Select Branch</option>
+                                    {availableBranches.map(b => <option key={b} value={b}>{b}</option>)}
+                                </select>
+                            </div>
+
+                            {isDualDegreeStudent && (
+                                <div>
+                                    <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                        B.E. Degree
+                                    </label>
+                                    <select
+                                        name="dual_degree_branch"
+                                        value={profileData.dual_degree_branch || ''}
+                                        onChange={handleChange}
+                                        className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none"
+                                    >
+                                        <option value="">Select B.E. Branch</option>
+                                        {profileData.campus && BITS_BRANCHES[profileData.campus]['B.E.'].map(b => <option key={b} value={b}>{b}</option>)}
+                                    </select>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Other Details */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                    Relationship Status
+                                </label>
+                                <select
+                                    name="relationship_status"
+                                    value={profileData.relationship_status || ''}
+                                    onChange={handleChange}
+                                    className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none"
+                                >
+                                    <option value="">Select Status</option>
+                                    <option value="Single">Single</option>
+                                    <option value="In a relationship">In a relationship</option>
+                                    <option value="It's complicated">It's complicated</option>
+                                    <option value="Married">Married</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                    Dorm Building
+                                </label>
+                                <input
+                                    type="text"
+                                    name="dorm_building"
+                                    placeholder="e.g., Valmiki"
+                                    value={profileData.dorm_building || ''}
+                                    onChange={handleChange}
+                                    className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                    Dorm Room
+                                </label>
+                                <input
+                                    type="number"
+                                    name="dorm_room"
+                                    placeholder="e.g., 469"
+                                    value={profileData.dorm_room || ''}
+                                    onChange={handleChange}
+                                    pattern="^[1-9][0-9]{2}$"
+                                    title="Please enter a 3-digit room number."
+                                    className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">
+                                    Dining Hall
+                                </label>
+                                <select
+                                    name="dining_hall"
+                                    value={profileData.dining_hall || ''}
+                                    onChange={handleChange}
+                                    className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3 text-text-main-light dark:text-text-main border border-transparent focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 transition-all outline-none"
+                                >
+                                    <option value="">Select Mess</option>
+                                    <option value="Mess 1">Mess 1</option>
+                                    <option value="Mess 2">Mess 2</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex justify-end gap-3 pt-8">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="py-2.5 px-6 rounded-full text-text-main-light dark:text-text-main hover:bg-tertiary-light/60 dark:hover:bg-tertiary transition-colors font-medium"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={isSaving}
+                            className="py-2.5 px-8 rounded-full text-black bg-brand-green hover:bg-brand-green-darker disabled:opacity-50 transition-all font-bold shadow-lg shadow-brand-green/20"
+                        >
+                            {isSaving ? <Spinner /> : 'Save Changes'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+const ProfileDetail: React.FC<{ label: string; value?: string | number | null }> = ({ label, value }) => {
+    if (!value) return null;
+    return (
+        <div className="flex items-start gap-2">
+            <span className="font-semibold text-text-main-light dark:text-text-main min-w-fit">
+                {label}:
+            </span>
+            <span className="text-text-secondary-light dark:text-text-secondary">
+                {value}
+            </span>
+        </div>
+    );
+};
+
+export default ProfilePage;

@@ -1,0 +1,393 @@
+<svg width="100%" height="100%" viewBox="0 0 900 650" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    
+    <filter id="noiseFilter" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves="4" stitchTiles="stitch" result="noise"></feTurbulence>
+      <feColorMatrix in="noise" type="saturate" values="0" result="grayscaleNoise"></feColorMatrix>
+      <feComponentTransfer in="grayscaleNoise">
+        <feFuncR type="linear" slope="0.15" intercept="0"></feFuncR>
+        <feFuncG type="linear" slope="0.15" intercept="0"></feFuncG>
+        <feFuncB type="linear" slope="0.15" intercept="0"></feFuncB>
+      </feComponentTransfer>
+      <feComposite operator="in" in2="SourceGraphic" result="composite"></feComposite>
+      <feBlend mode="soft-light" in="composite" in2="SourceGraphic" result="blend"></feBlend>
+    </filter>
+
+    
+    <symbol id="xbox-logo" viewBox="0 0 576 576">
+        <path d="M285.994,141.629c9.553-6.861,59.149-38.887,132.088-23.397c-36.084-27.772-81.25-44.327-130.307-44.327 c-48.562,0-93.324,16.212-129.224,43.482C228.925,104.211,276.648,134.921,285.994,141.629z"></path>
+        <path d="M285.994,242.793C153.851,344.818,141.904,425.016,140.968,443.234c38.311,36.193,89.952,58.428,146.812,58.428 c55.129,0,105.379-20.869,143.305-55.129C431.258,438.994,429.832,353.852,285.994,242.793z"></path>
+        <path d="M339.697,194.334c0,0,148.74,144.462,91.848,251.794c43.066-39.125,70.111-95.576,70.111-158.348 c0-63.011-27.264-119.652-70.619-158.79C429.574,134.597,345.51,162.394,339.697,194.334z"></path>
+        <path d="M232.291,194.334c-5.361-29.492-77.412-55.447-89.578-63.66c-42.295,39.076-68.807,94.988-68.807,157.112 c0,59.504,24.321,113.313,63.532,152.083C89.303,333.266,232.291,194.334,232.291,194.334z"></path>
+    </symbol>
+
+    
+    <mask id="dpadMask">
+        <circle cx="0" cy="0" r="50" fill="white"></circle>
+    </mask>
+
+    
+    <radialGradient id="bodyGrad" cx="50%" cy="20%" r="90%" fx="50%" fy="20%">
+      <stop offset="0%" style="stop-color:#3a3a3a;stop-opacity:1"></stop>
+      <stop offset="60%" style="stop-color:#222222;stop-opacity:1"></stop>
+      <stop offset="100%" style="stop-color:#111111;stop-opacity:1"></stop>
+    </radialGradient>
+    
+    <linearGradient id="rimLightLeft" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#bbb;stop-opacity:0.55"></stop>
+      <stop offset="100%" style="stop-color:#222;stop-opacity:0"></stop>
+    </linearGradient>
+    
+    <linearGradient id="rimLightRight" x1="100%" y1="0%" x2="0%" y2="0%">
+      <stop offset="0%" style="stop-color:#bbb;stop-opacity:0.55"></stop>
+      <stop offset="100%" style="stop-color:#222;stop-opacity:0"></stop>
+    </linearGradient>
+
+    
+    <linearGradient id="triggerCurve" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" style="stop-color:#000000;stop-opacity:1"></stop>
+        <stop offset="15%" style="stop-color:#333333;stop-opacity:1"></stop> 
+        <stop offset="50%" style="stop-color:#1a1a1a;stop-opacity:1"></stop>
+        <stop offset="100%" style="stop-color:#050505;stop-opacity:1"></stop>
+    </linearGradient>
+    
+    <linearGradient id="triggerEdge" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" style="stop-color:#444;stop-opacity:1"></stop>
+        <stop offset="100%" style="stop-color:#111;stop-opacity:0"></stop>
+    </linearGradient>
+
+    
+    <radialGradient id="dpadDishGrad" cx="50%" cy="40%" r="80%">
+      <stop offset="0%" style="stop-color:#333333;stop-opacity:1"></stop>
+      <stop offset="60%" style="stop-color:#262626;stop-opacity:1"></stop>
+      <stop offset="100%" style="stop-color:#111111;stop-opacity:1"></stop>
+    </radialGradient>
+
+    <linearGradient id="dpadArmGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#3a3a3a;stop-opacity:1"></stop>
+      <stop offset="100%" style="stop-color:#1f1f1f;stop-opacity:1"></stop>
+    </linearGradient>
+
+    <radialGradient id="dpadCenterDip" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#111;stop-opacity:1"></stop>
+      <stop offset="70%" style="stop-color:#262626;stop-opacity:1"></stop>
+      <stop offset="100%" style="stop-color:#262626;stop-opacity:0"></stop>
+    </radialGradient>
+
+    
+    
+    <radialGradient id="stickOuterRim" cx="50%" cy="40%" r="70%" fx="50%" fy="30%">
+      <stop offset="60%" style="stop-color:#262626;stop-opacity:1"></stop>
+      <stop offset="100%" style="stop-color:#080808;stop-opacity:1"></stop>
+    </radialGradient>
+    
+    
+    <linearGradient id="rubberSheen" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" style="stop-color:#555;stop-opacity:0.4"></stop>
+        <stop offset="30%" style="stop-color:#333;stop-opacity:0"></stop>
+    </linearGradient>
+    
+    
+    <linearGradient id="stickConcave" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#000000;stop-opacity:1"></stop>
+      <stop offset="40%" style="stop-color:#111111;stop-opacity:1"></stop>
+      <stop offset="100%" style="stop-color:#2a2a2a;stop-opacity:1"></stop>
+    </linearGradient>
+
+    
+    <radialGradient id="jewelBtn" cx="35%" cy="35%" r="90%">
+      <stop offset="0%" style="stop-color:#555;stop-opacity:1"></stop>
+      <stop offset="30%" style="stop-color:#222;stop-opacity:1"></stop>
+      <stop offset="100%" style="stop-color:#000;stop-opacity:1"></stop>
+    </radialGradient>
+    
+    <linearGradient id="btnEdge" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" style="stop-color:#666;stop-opacity:0.5"></stop>
+        <stop offset="100%" style="stop-color:#000;stop-opacity:0.8"></stop>
+    </linearGradient>
+
+    <linearGradient id="casingLip" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#000000;stop-opacity:0.8"></stop>
+      <stop offset="45%" style="stop-color:#000000;stop-opacity:0.8"></stop>
+      <stop offset="55%" style="stop-color:#3a3a3a;stop-opacity:1"></stop>
+      <stop offset="100%" style="stop-color:#555555;stop-opacity:1"></stop>
+    </linearGradient>
+
+    <radialGradient id="innerWell" cx="50%" cy="50%" r="50%">
+        <stop offset="85%" style="stop-color:#000000;stop-opacity:1"></stop>
+        <stop offset="100%" style="stop-color:#151515;stop-opacity:1"></stop>
+    </radialGradient>
+
+    <linearGradient id="matteButtonGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#2a2a2a;stop-opacity:1"></stop>
+      <stop offset="100%" style="stop-color:#111111;stop-opacity:1"></stop>
+    </linearGradient>
+
+    <radialGradient id="buttonGlow" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+      <stop offset="70%" stop-color="#ffffff"></stop>
+      <stop offset="100%" stop-color="#dcdcdc"></stop>
+    </radialGradient>
+
+    <radialGradient id="socketGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="80%" style="stop-color:#000000;stop-opacity:1"></stop>
+      <stop offset="100%" style="stop-color:#1a1a1a;stop-opacity:1"></stop>
+    </radialGradient>
+
+    <linearGradient id="glare" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.4"></stop>
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0"></stop>
+    </linearGradient>
+
+    <linearGradient id="crossSurf" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#303030;stop-opacity:1"></stop>
+      <stop offset="100%" style="stop-color:#0a0a0a;stop-opacity:1"></stop>
+    </linearGradient>
+
+    <radialGradient id="slopeGrad" cx="0%" cy="0%" r="90%">
+      <stop offset="0%" style="stop-color:#000000;stop-opacity:1"></stop>
+      <stop offset="60%" style="stop-color:#0f0f0f;stop-opacity:1"></stop>
+      <stop offset="100%" style="stop-color:#1a1a1a;stop-opacity:1"></stop>
+    </radialGradient>
+
+    <radialGradient id="centerDip" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#111;stop-opacity:1"></stop> 
+      <stop offset="100%" style="stop-color:#222;stop-opacity:1"></stop>
+    </radialGradient>
+
+    
+    
+    <filter id="softShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="12"></feGaussianBlur>
+      <feOffset dx="0" dy="15" result="offsetblur"></feOffset>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.5"></feFuncA>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode></feMergeNode>
+        <feMergeNode in="SourceGraphic"></feMergeNode>
+      </feMerge>
+    </filter>
+    
+    <filter id="btnSocketFilter">
+       <feGaussianBlur stdDeviation="0.8" in="SourceAlpha"></feGaussianBlur>
+       <feOffset dx="0" dy="1" result="blur"></feOffset>
+       <feFlood flood-color="#000" flood-opacity="1"></feFlood>
+       <feComposite in2="blur" operator="in"></feComposite>
+       <feMerge>
+         <feMergeNode></feMergeNode>
+         <feMergeNode in="SourceGraphic"></feMergeNode>
+       </feMerge>
+    </filter>
+    
+    <filter id="buttonLift" x="-50%" y="-50%" width="200%" height="200%">
+        <fedropshadow dx="0" dy="2.5" stdDeviation="1.5" flood-color="black" flood-opacity="0.9"></fedropshadow>
+    </filter>
+
+    <filter id="textInset">
+        <fedropshadow dx="0" dy="1" stdDeviation="0.5" flood-color="#000" flood-opacity="0.9"></fedropshadow>
+    </filter>
+
+    <filter id="slopeBlur">
+        <feGaussianBlur stdDeviation="2.0"></feGaussianBlur>
+    </filter>
+
+    <filter id="centerBlur">
+        <feGaussianBlur stdDeviation="1.5"></feGaussianBlur>
+    </filter>
+    
+    <filter id="housingInset" x="-50%" y="-50%" width="200%" height="200%">
+        <feOffset dx="0" dy="2"></feOffset>
+        <feGaussianBlur stdDeviation="2" result="offset-blur"></feGaussianBlur>
+        <feComposite operator="out" in="SourceGraphic" in2="offset-blur" result="inverse"></feComposite>
+        <feFlood flood-color="black" flood-opacity="1" result="color"></feFlood>
+        <feComposite operator="in" in="color" in2="inverse" result="shadow"></feComposite>
+        <feComposite operator="over" in="shadow" in2="SourceGraphic"></feComposite>
+    </filter>
+    
+    <filter id="rimBlur">
+        <feGaussianBlur stdDeviation="8"></feGaussianBlur>
+    </filter>
+
+    <filter id="armStep">
+        <fedropshadow dx="0" dy="1" stdDeviation="1.2" flood-color="#000" flood-opacity="1.0"></fedropshadow>
+    </filter>
+    
+    <filter id="facetBlur">
+        <feGaussianBlur stdDeviation="3.0"></feGaussianBlur>
+    </filter>
+
+  </defs>
+
+  <rect width="900" height="650" fill="#e6e6e6"></rect>
+
+  
+  <g transform="translate(0, 10)" filter="url(#softShadow)">
+    
+    
+    <g>
+        <path d="M200,170 Q 215,138 280,138 C 310,138 320,155 340,155 L 340,160 Q 260,160 200,170 Z" fill="url(#triggerCurve)" stroke="#000" stroke-width="1"></path>
+        <path d="M200,170 Q 215,138 280,138 C 310,138 320,155 340,155" fill="none" stroke="url(#triggerEdge)" stroke-width="2" opacity="0.6"></path>
+
+        <path d="M700,170 Q 685,138 620,138 C 590,138 580,155 560,155 L 560,160 Q 640,160 700,170 Z" fill="url(#triggerCurve)" stroke="#000" stroke-width="1"></path>
+        <path d="M700,170 Q 685,138 620,138 C 590,138 580,155 560,155" fill="none" stroke="url(#triggerEdge)" stroke-width="2" opacity="0.6"></path>
+    </g>
+
+    
+    <g filter="url(#noiseFilter)">
+        <path d="M 200,170
+                 C 230,155 340,155 340,155 L 560,155 C 560,155 670,155 700,170
+                 C 725,210 790,310 790,490
+                 C 790,570 730,610 680,580
+                 C 640,550 600,465 530,465
+                 L 370,465
+                 C 300,465 260,550 220,580
+                 C 170,610 110,570 110,490
+                 C 110,310 175,210 200,170 Z" fill="url(#bodyGrad)"></path>
+                 
+        <path d="M 145,285 Q 110,435 150,590 L 175,580 Q 140,435 165,290 Z" fill="url(#rimLightLeft)" filter="url(#rimBlur)" opacity="0.5"></path>
+              
+        <path d="M 755,285 Q 790,435 750,590 L 725,580 Q 760,435 735,290 Z" fill="url(#rimLightRight)" filter="url(#rimBlur)" opacity="0.5"></path>
+    </g>
+
+    
+    <g transform="translate(290, 260)">
+      
+      <circle cx="0" cy="0" r="50" fill="#181818" filter="url(#softShadow)"></circle>
+      
+      
+      <circle cx="0" cy="0" r="42" fill="url(#stickOuterRim)"></circle>
+      
+      
+      <circle cx="0" cy="0" r="39" fill="none" stroke="#111" stroke-width="4" stroke-dasharray="1 2" opacity="0.9"></circle>
+      <circle cx="0" cy="0" r="41" fill="none" stroke="#050505" stroke-width="2" stroke-dasharray="0.5 1" opacity="0.8"></circle>
+      
+      
+      <circle cx="0" cy="0" r="41" fill="url(#rubberSheen)" opacity="0.7"></circle>
+
+      
+      <circle cx="0" cy="0" r="32" fill="url(#stickConcave)" stroke="#000" stroke-width="0.5"></circle>
+      
+      
+      <circle cx="0" cy="0" r="42" fill="none" stroke="#444" stroke-width="0.5" opacity="0.4"></circle>
+    </g>
+
+    
+    <g transform="translate(615, 260)">
+      
+      <g transform="translate(0, -42)">
+        <circle cx="0" cy="0" r="24" fill="none" stroke="url(#casingLip)" stroke-width="2" filter="url(#slopeBlur)" opacity="0.7"></circle>
+        <circle cx="0" cy="0" r="22" fill="url(#innerWell)"></circle>
+        <g filter="url(#buttonLift)">
+            <circle cx="0" cy="0" r="20.5" fill="url(#jewelBtn)"></circle>
+            <circle cx="0" cy="0" r="20.5" fill="none" stroke="url(#btnEdge)" stroke-width="1"></circle>
+        </g>
+        <text x="0" y="7" font-family="Arial" font-weight="bold" font-size="21" text-anchor="middle" fill="#fecb00" filter="url(#textInset)">Y</text>
+        <ellipse cx="-5" cy="-8" rx="10" ry="6" fill="#fff" opacity="0.15" transform="rotate(-20)"></ellipse>
+      </g>
+      
+      <g transform="translate(42, 0)">
+        <circle cx="0" cy="0" r="24" fill="none" stroke="url(#casingLip)" stroke-width="2" filter="url(#slopeBlur)" opacity="0.7"></circle>
+        <circle cx="0" cy="0" r="22" fill="url(#innerWell)"></circle>
+        <g filter="url(#buttonLift)">
+            <circle cx="0" cy="0" r="20.5" fill="url(#jewelBtn)"></circle>
+            <circle cx="0" cy="0" r="20.5" fill="none" stroke="url(#btnEdge)" stroke-width="1"></circle>
+        </g>
+        <text x="0" y="7" font-family="Arial" font-weight="bold" font-size="21" text-anchor="middle" fill="#e62e2e" filter="url(#textInset)">B</text>
+        <ellipse cx="-5" cy="-8" rx="10" ry="6" fill="#fff" opacity="0.15" transform="rotate(-20)"></ellipse>
+      </g>
+      
+      <g transform="translate(0, 42)">
+        <circle cx="0" cy="0" r="24" fill="none" stroke="url(#casingLip)" stroke-width="2" filter="url(#slopeBlur)" opacity="0.7"></circle>
+        <circle cx="0" cy="0" r="22" fill="url(#innerWell)"></circle>
+        <g filter="url(#buttonLift)">
+            <circle cx="0" cy="0" r="20.5" fill="url(#jewelBtn)"></circle>
+            <circle cx="0" cy="0" r="20.5" fill="none" stroke="url(#btnEdge)" stroke-width="1"></circle>
+        </g>
+        <text x="0" y="7" font-family="Arial" font-weight="bold" font-size="21" text-anchor="middle" fill="#59c22b" filter="url(#textInset)">A</text>
+        <ellipse cx="-5" cy="-8" rx="10" ry="6" fill="#fff" opacity="0.15" transform="rotate(-20)"></ellipse>
+      </g>
+      
+      <g transform="translate(-42, 0)">
+        <circle cx="0" cy="0" r="24" fill="none" stroke="url(#casingLip)" stroke-width="2" filter="url(#slopeBlur)" opacity="0.7"></circle>
+        <circle cx="0" cy="0" r="22" fill="url(#innerWell)"></circle>
+        <g filter="url(#buttonLift)">
+            <circle cx="0" cy="0" r="20.5" fill="url(#jewelBtn)"></circle>
+            <circle cx="0" cy="0" r="20.5" fill="none" stroke="url(#btnEdge)" stroke-width="1"></circle>
+        </g>
+        <text x="0" y="7" font-family="Arial" font-weight="bold" font-size="21" text-anchor="middle" fill="#00bfff" filter="url(#textInset)">X</text>
+        <ellipse cx="-5" cy="-8" rx="10" ry="6" fill="#fff" opacity="0.15" transform="rotate(-20)"></ellipse>
+      </g>
+    </g>
+
+    
+    <g transform="translate(540, 380)">
+      <circle cx="0" cy="0" r="50" fill="#181818" filter="url(#softShadow)"></circle>
+      <circle cx="0" cy="0" r="42" fill="url(#stickOuterRim)"></circle>
+      <circle cx="0" cy="0" r="39" fill="none" stroke="#111" stroke-width="4" stroke-dasharray="1 2" opacity="0.9"></circle>
+      <circle cx="0" cy="0" r="41" fill="none" stroke="#050505" stroke-width="2" stroke-dasharray="0.5 1" opacity="0.8"></circle>
+      <circle cx="0" cy="0" r="41" fill="url(#rubberSheen)" opacity="0.7"></circle>
+      <circle cx="0" cy="0" r="32" fill="url(#stickConcave)" stroke="#000" stroke-width="0.5"></circle>
+      <circle cx="0" cy="0" r="42" fill="none" stroke="#444" stroke-width="0.5" opacity="0.4"></circle>
+    </g>
+
+    
+    <g transform="translate(340, 380)">
+      <circle cx="0" cy="0" r="55" fill="#111" filter="url(#housingInset)"></circle>
+      <circle cx="0" cy="0" r="50" fill="url(#dpadDishGrad)"></circle>
+      
+      
+      <g opacity="0.15" fill="#000" filter="url(#facetBlur)" mask="url(#dpadMask)">
+        <path d="M-14,-14 L-42,-42 A 50 50 0 0 1 0 -50 L 0 -18 Z"></path>
+        <path d="M14,-14 L42,-42 A 50 50 0 0 1 50 0 L 18 0 Z"></path>
+        <path d="M14,14 L42,42 A 50 50 0 0 1 0 50 L 0 18 Z"></path>
+        <path d="M-14,14 L-42,42 A 50 50 0 0 1 -50 0 L -18 0 Z"></path>
+      </g>
+
+      <path d="M-15,-15 L-15,-48 L15,-48 L15,-15 
+               L48,-15 L48,15 L15,15 
+               L15,48 L-15,48 L-15,15 
+               L-48,15 L-48,-15 L-15,-15 Z" fill="url(#dpadArmGrad)" stroke="#181818" stroke-width="0.5"></path>
+
+      <circle cx="0" cy="0" r="49" fill="none" stroke="url(#rimLightLeft)" stroke-width="1" opacity="0.4"></circle>
+      <path d="M-15,-48 L-15,-15 L-48,-15" fill="none" stroke="#555" stroke-width="0.5" opacity="0.4"></path>
+      <path d="M15,-48 L15,-15 L48,-15" fill="none" stroke="#000" stroke-width="0.5" opacity="0.6"></path>
+      <circle cx="0" cy="0" r="20" fill="url(#dpadCenterDip)"></circle>
+    </g>
+
+    
+    <g transform="translate(450, 200)">
+       <circle cx="0" cy="0" r="29.5" fill="#111" filter="url(#btnSocketFilter)"></circle>
+       <circle cx="0" cy="0" r="28" fill="#222222"></circle>
+       <use xlink:href="#xbox-logo" x="-52" y="-37" width="104" height="75" fill="#ffffff"></use>
+       <circle cx="0" cy="0" r="28" fill="none" stroke="#000" stroke-width="1.5"></circle>
+    </g>
+
+    
+    <g transform="translate(400, 260)">
+      <circle cx="0" cy="0" r="14" fill="#000" filter="url(#btnSocketFilter)"></circle>
+      <circle cx="0" cy="0" r="13" fill="url(#matteButtonGrad)" stroke="#050505"></circle>
+      <rect x="-5" y="-5" width="7" height="7" stroke="#888" stroke-width="1.5" fill="none"></rect>
+      <rect x="-2" y="-2" width="7" height="7" stroke="#888" stroke-width="1.5" fill="none"></rect> 
+    </g>
+    
+    <g transform="translate(500, 260)">
+      <circle cx="0" cy="0" r="14" fill="#000" filter="url(#btnSocketFilter)"></circle>
+      <circle cx="0" cy="0" r="13" fill="url(#matteButtonGrad)" stroke="#050505"></circle>
+      <line x1="-7" y1="-4" x2="7" y2="-4" stroke="#888" stroke-width="1.5"></line>
+      <line x1="-7" y1="0" x2="7" y2="0" stroke="#888" stroke-width="1.5"></line>
+      <line x1="-7" y1="4" x2="7" y2="4" stroke="#888" stroke-width="1.5"></line> 
+    </g>
+    
+    
+    <g transform="translate(450, 315)">
+      <rect x="-21" y="-12" width="42" height="24" rx="12" fill="#000" filter="url(#btnSocketFilter)"></rect>
+      <rect x="-20" y="-11" width="40" height="22" rx="11" fill="url(#matteButtonGrad)" stroke="#050505" stroke-width="0.5"></rect>
+      <g transform="translate(0, 0) scale(0.85)">
+        <path d="M-7,-3 L-7,5 L7,5 L7,-3" stroke="#888" stroke-width="1.8" fill="none" stroke-linecap="round"></path>
+        <path d="M0,-7 L0,2" stroke="#888" stroke-width="1.8" fill="none" stroke-linecap="round"></path>
+        <path d="M-3,-4 L0,-7 L3,-4" stroke="#888" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
+      </g>
+    </g>
+
+  </g>
+</svg>

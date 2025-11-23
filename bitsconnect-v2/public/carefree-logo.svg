@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="#3cfba2" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Paper Plane: Symbol of lightness and travel -->
+  <path d="M30 60 L 90 20 L 50 80 L 45 55 L 30 60 Z" />
+  <path d="M90 20 L 45 55" />
+  
+  <!-- Looping Trail: Represents a carefree, playful path -->
+  <path d="M30 60 C 10 70 0 40 20 30 C 35 22 45 35 40 45" stroke-width="3" stroke-dasharray="6 10" opacity="0.6" />
+</svg>

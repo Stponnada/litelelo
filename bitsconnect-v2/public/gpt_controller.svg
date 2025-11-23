@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" width="1200" height="600" role="img" aria-labelledby="title desc">
+  <title id="title">Xbox-style game controller</title>
+  <desc id="desc">Vector illustration of a game controller with thumbsticks, D-pad, buttons, and Xbox logo.</desc>
+
+  <!-- Definitions -->
+  <defs>
+    <filter id="softShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="8" result="blur"/>
+      <feOffset in="blur" dx="0" dy="6" result="offset"/>
+      <feMerge>
+        <feMergeNode in="offset"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <radialGradient id="btnGloss" cx="40%" cy="30%">
+      <stop offset="0" stop-color="rgba(255,255,255,0.35)"/>
+      <stop offset="1" stop-color="rgba(255,255,255,0)"/>
+    </radialGradient>
+
+    <linearGradient id="bodyGrad" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#22272a"/>
+      <stop offset="1" stop-color="#0f1112"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Controller shadow / ground -->
+  <ellipse cx="600" cy="500" rx="440" ry="60" fill="#000" opacity="0.22"/>
+
+  <!-- Controller body -->
+  <g filter="url(#softShadow)">
+    <path d="M200 250
+             C160 170, 160 120, 260 90
+             C370 58, 520 50, 600 120
+             C680 50, 830 58, 940 90
+             C1040 120, 1040 170, 1000 250
+             C980 300, 940 340, 900 360
+             C840 390, 720 420, 600 420
+             C480 420, 360 390, 300 360
+             C260 340, 220 300, 200 250 Z"
+          fill="url(#bodyGrad)" stroke="#111416" stroke-width="6" />
+
+    <!-- Inner subtle plate -->
+    <path d="M240 245
+             C210 180, 210 140, 300 115
+             C380 95, 500 88, 600 140
+             C700 88, 820 95, 900 115
+             C990 140, 990 180, 960 245
+             C940 290, 900 320, 860 340
+             C810 360, 700 390, 600 390
+             C500 390, 390 360, 340 340
+             C300 320, 260 290, 240 245 Z"
+          fill="#0f1314" opacity="0.18" />
+
+    <!-- Left bumper -->
+    <rect x="220" y="70" rx="22" ry="22" width="120" height="28" fill="#1b1f22" stroke="#0d0f10" stroke-width="3"/>
+
+    <!-- Right bumper -->
+    <rect x="860" y="70" rx="22" ry="22" width="120" height="28" fill="#1b1f22" stroke="#0d0f10" stroke-width="3"/>
+  </g>
+
+  <!-- Left thumbstick -->
+  <g transform="translate(330,260)">
+    <circle cx="0" cy="0" r="72" fill="#2b2f31" stroke="#0b0c0d" stroke-width="6"/>
+    <circle cx="0" cy="0" r="44" fill="#111315"/>
+    <circle cx="-6" cy="-8" r="24" fill="url(#btnGloss)" opacity="0.45"/>
+  </g>
+
+  <!-- Right thumbstick -->
+  <g transform="translate(820,300)">
+    <circle cx="0" cy="0" r="72" fill="#2b2f31" stroke="#0b0c0d" stroke-width="6"/>
+    <circle cx="0" cy="0" r="44" fill="#111315"/>
+    <circle cx="-6" cy="-8" r="24" fill="url(#btnGloss)" opacity="0.45"/>
+  </g>
+
+  <!-- D-Pad -->
+  <g transform="translate(470,320)" fill="#1a1d1f">
+    <path d="M-10 -70 L 10 -70 L 10 -20 L 60 -20 L 60 20 L 10 20 L 10 70 L -10 70 L -10 20 L -60 20 L -60 -20 L -10 -20 Z"
+          stroke="#0f1112" stroke-width="4" rx="6" ry="6"/>
+    <circle cx="0" cy="0" r="20" fill="#111315" stroke="#090a0b" stroke-width="3"/>
+  </g>
+
+  <!-- ABXY buttons -->
+  <!-- A (green) -->
+  <g transform="translate(950,260)">
+    <circle cx="0" cy="0" r="36" fill="#4bb543" stroke="#07120a" stroke-width="4"/>
+    <text x="0" y="12" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="700" text-anchor="middle" fill="#ffffff">A</text>
+    <circle cx="-4" cy="-8" r="30" fill="url(#btnGloss)" opacity="0.32"/>
+  </g>
+
+  <!-- B (red) -->
+  <g transform="translate(1010,220)">
+    <circle cx="0" cy="0" r="36" fill="#e03b3b" stroke="#220000" stroke-width="4"/>
+    <text x="0" y="12" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="700" text-anchor="middle" fill="#ffffff">B</text>
+    <circle cx="-4" cy="-8" r="30" fill="url(#btnGloss)" opacity="0.32"/>
+  </g>
+
+  <!-- X (blue) -->
+  <g transform="translate(890,220)">
+    <circle cx="0" cy="0" r="36" fill="#3b7fe0" stroke="#071033" stroke-width="4"/>
+    <text x="0" y="12" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="700" text-anchor="middle" fill="#ffffff">X</text>
+    <circle cx="-4" cy="-8" r="30" fill="url(#btnGloss)" opacity="0.32"/>
+  </g>
+
+  <!-- Y (yellow) -->
+  <g transform="translate(950,180)">
+    <circle cx="0" cy="0" r="36" fill="#e7d233" stroke="#3a3000" stroke-width="4"/>
+    <text x="0" y="12" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="700" text-anchor="middle" fill="#111111">Y</text>
+    <circle cx="-4" cy="-8" r="30" fill="url(#btnGloss)" opacity="0.32"/>
+  </g>
+
+  <!-- Small buttons: Menu / View -->
+  <g fill="#2a2d2f" stroke="#0b0c0d" stroke-width="3">
+    <rect x="640" y="200" width="58" height="28" rx="6" ry="6"/>
+    <rect x="516" y="200" width="58" height="28" rx="6" ry="6"/>
+  </g>
+
+  <!-- Xbox central button -->
+  <g transform="translate(600,200)">
+    <circle cx="0" cy="0" r="46" fill="#0b0b0b" stroke="#111315" stroke-width="6"/>
+    <!-- Simple Xbox 'X' mark -->
+    <path d="M-18 -10 L -6 -6 L -2 -18 L 10 -10 L 6 6 L 18 10 L 6 14 L 2 2 L -10 10 L -6 -6 Z"
+          fill="#bfffb5" opacity="0.95" transform="scale(0.95) translate(0,0)"/>
+  </g>
+
+  <!-- Controller seams / accents -->
+  <path d="M300 260 C360 230, 420 215, 600 215 C780 215, 840 230, 900 260" stroke="#ffffff" stroke-width="1.4" opacity="0.05" fill="none"/>
+
+  <!-- Optional labels (turn off or remove if not wanted) -->
+  <style>
+    /* Make SVG scale nicely when embedded */
+    svg { max-width: 100%; height: auto; display:block; }
+  </style>
+</svg>

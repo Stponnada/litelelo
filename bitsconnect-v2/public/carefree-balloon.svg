@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="#3cfba2" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Balloon Shape -->
+  <path d="M50 80 C 20 70 10 30 50 10 C 90 30 80 70 50 80 Z" />
+  
+  <!-- Knot -->
+  <path d="M46 80 L 50 84 L 54 80" />
+  
+  <!-- String (Wavy for movement) -->
+  <path d="M50 84 C 50 90 45 95 55 100" />
+  
+  <!-- Reflection/Shine -->
+  <path d="M30 30 Q 35 20 45 25" opacity="0.6" />
+</svg>

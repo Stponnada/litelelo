@@ -1,0 +1,36 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Main Traces -->
+    <path d="M 0 50 L 30 50 L 50 70 L 50 120 L 80 150 L 150 150 L 170 170 L 200 170" />
+    <path d="M 0 150 L 20 150 L 40 130 L 40 80 L 70 50 L 130 50 L 150 30 L 200 30" />
+    <path d="M 100 0 L 100 40 L 80 60" />
+    <path d="M 100 200 L 100 160 L 120 140" />
+
+    <!-- Branching Traces -->
+    <path d="M 30 50 L 30 20 L 60 20" />
+    <path d="M 50 95 L 20 95" />
+    <path d="M 150 150 L 150 180 L 180 180" />
+    <path d="M 130 50 L 130 10 L 160 10" />
+    <path d="M 80 150 L 80 180" />
+    <path d="M 120 140 L 160 140" />
+    <path d="M 80 60 L 60 80 L 60 110" />
+
+    <!-- Connection Points -->
+    <g fill="currentColor">
+      <circle cx="50" cy="70" r="4"/>
+      <circle cx="50" cy="120" r="4"/>
+      <circle cx="80" cy="150" r="4"/>
+      <circle cx="150" cy="150" r="4"/>
+      <circle cx="170" cy="170" r="4"/>
+      <circle cx="40" cy="130" r="4"/>
+      <circle cx="40" cy="80" r="4"/>
+      <circle cx="70" cy="50" r="4"/>
+      <circle cx="130" cy="50" r="4"/>
+      <circle cx="150" cy="30" r="4"/>
+      <circle cx="100" cy="40" r="4"/>
+      <circle cx="100" cy="160" r="4"/>
+      <circle cx="120" cy="140" r="4"/>
+      <circle cx="80" cy="60" r="4"/>
+    </g>
+  </g>
+</svg>

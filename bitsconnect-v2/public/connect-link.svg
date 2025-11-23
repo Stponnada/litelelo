@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="#3cfba2" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Top Left Link -->
+  <path d="M30 70 L 50 50" /> <!-- Connection line -->
+  <path d="M40 40 L 25 25 C 15 15 15 40 25 50 L 40 65" /> <!-- Loop -->
+  
+  <!-- Bottom Right Link -->
+  <path d="M70 30 L 50 50" /> <!-- Connection line -->
+  <path d="M60 60 L 75 75 C 85 85 85 60 75 50 L 60 35" /> <!-- Loop -->
+  
+  <!-- Center overlap detail -->
+  <circle cx="50" cy="50" r="5" fill="#3cfba2" stroke="none" />
+</svg>

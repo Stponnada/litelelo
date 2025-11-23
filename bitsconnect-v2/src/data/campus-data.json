@@ -1,0 +1,153 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [75.5872, 28.3639] },
+      "properties": {
+        "name": "Clock Tower",
+        "description": "The iconic clock tower at the heart of the campus.",
+        "category": "landmark"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [75.5866, 28.3655] },
+      "properties": {
+        "name": "Nagar Auditorium (NAB)",
+        "description": "Main auditorium for events, fests, and guest lectures.",
+        "category": "academic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [75.5878, 28.3639] },
+      "properties": {
+        "name": "BITS Pilani Library",
+        "description": "Central library, also known as BPHC.",
+        "category": "academic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [75.5880, 28.3648] },
+      "properties": {
+        "name": "Lecture Theatre Complex (LTC)",
+        "description": "Houses most of the lecture halls.",
+        "category": "academic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [75.5875, 28.3625] },
+      "properties": {
+        "name": "Main Building (Birla Mandir)",
+        "description": "The primary administrative building.",
+        "category": "admin"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [75.5905, 28.3644] },
+      "properties": {
+        "name": "Student Activity Centre (SAC)",
+        "description": "Hub for student clubs and recreational activities.",
+        "category": "recreation"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [75.5886, 28.3601] },
+      "properties": { "name": "Ram Bhawan", "description": "Boys' Hostel.", "category": "hostel" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [75.5900, 28.3600] },
+      "properties": { "name": "Budh Bhawan", "description": "Boys' Hostel.", "category": "hostel" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [75.5894, 28.3608] },
+      "properties": { "name": "Krishna Bhawan", "description": "Boys' Hostel.", "category": "hostel" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [75.5904, 28.3607] },
+      "properties": { "name": "Gandhi Bhawan", "description": "Boys' Hostel.", "category": "hostel" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [75.5898, 28.3589] },
+      "properties": { "name": "Meera Bhawan", "description": "Girls' Hostel.", "category": "hostel" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [75.5919, 28.3639] },
+      "properties": { "name": "Shankar Bhawan", "description": "Boys' Hostel.", "category": "hostel" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [75.5929, 28.3632] },
+      "properties": { "name": "Vyas Bhawan", "description": "Boys' Hostel.", "category": "hostel" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [75.5925, 28.3615] },
+      "properties": { "name": "Medical Center", "description": "On-campus health services.", "category": "service" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [75.5912, 28.3598] },
+      "properties": {
+        "name": "Connaught Place",
+        "description": "Shopping complex with eateries and general stores.",
+        "category": "food"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [75.5918, 28.3608] },
+      "properties": {
+        "name": "All Night Canteen (ANC)",
+        "description": "Popular spot for late-night food.",
+        "category": "food"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [75.5909, 28.3620] },
+      "properties": {
+        "name": "Infinity Pool",
+        "description": "The campus swimming pool.",
+        "category": "sports"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [75.5905, 28.3618] },
+      "properties": {
+        "name": "Old Football Ground",
+        "description": "Main ground for football and cricket.",
+        "category": "sports"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [75.5855, 28.3628] },
+      "properties": {
+        "name": "BITS Main Gate",
+        "description": "Main entrance to the campus.",
+        "category": "landmark"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [75.5894, 28.3662] },
+      "properties": {
+        "name": "Saraswati Temple",
+        "description": "A beautiful white marble temple on campus.",
+        "category": "landmark"
+      }
+    }
+  ]
+}

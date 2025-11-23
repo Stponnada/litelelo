@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="#3cfba2" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Spine of the feather -->
+  <path d="M20 90 Q 50 50 80 10" />
+  
+  <!-- Barbs (Left side) -->
+  <path d="M25 80 Q 15 70 25 60" />
+  <path d="M32 68 Q 20 55 35 45" />
+  <path d="M42 55 Q 30 40 48 30" />
+  <path d="M55 40 Q 45 25 60 20" />
+  
+  <!-- Barbs (Right side) -->
+  <path d="M30 85 Q 40 75 35 65" />
+  <path d="M40 70 Q 55 60 45 50" />
+  <path d="M50 58 Q 65 45 58 35" />
+  <path d="M62 42 Q 75 30 70 20" />
+</svg>
