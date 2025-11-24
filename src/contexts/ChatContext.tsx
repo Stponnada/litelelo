@@ -27,7 +27,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
 
   const fetchConversations = useCallback(async () => {
-    // --- THIS IS THE FIX: The hook now depends on the stable user ID ---
     if (!user?.id) {
       setLoading(false);
       return;
@@ -58,10 +57,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           if (p.profiles) {
             const profiles = Array.isArray(p.profiles) ? p.profiles : [p.profiles];
-            // Cast to Profile[] assuming the partial data is sufficient for now, or keep as Partial<Profile>[]
-            // The context expects Profile[], but we only select a few fields.
-            // Ideally we should update the context type or fetch full profiles.
-            // For now, casting as Profile[] to satisfy the map type, acknowledging missing fields.
             participantsMap.get(p.conversation_id)!.push(...(profiles as ConversationParticipant[]));
           }
         });
@@ -83,9 +78,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (directoryError) throw directoryError;
 
       const allProfiles = (directoryData || []).filter((item: Record<string, unknown>) => item.type === 'user');
-
       const contacts = allProfiles.filter((p: Record<string, unknown>) => p.is_following);
-
       const existingParticipantIds = new Set(
         (finalSummaries || []).flatMap(c => (c.participants || []).map(p => p.user_id))
       );
@@ -109,7 +102,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }));
 
       const combinedList = [...finalSummaries, ...placeholderConversations];
-
       combinedList.sort((a, b) => {
         if (!a.last_message_at) return 1; if (!b.last_message_at) return -1;
         return new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime();
@@ -118,19 +110,22 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setConversations(combinedList);
 
     } catch (error) {
-      console.error('Error fetching chat list:', error); setConversations([]);
+      console.error('Error fetching chat list:', error);
+      setConversations([]);
     } finally {
       setLoading(false);
     }
-  }, [user?.id]); // --- THE FIX IS HERE ---
+  }, [user?.id]); // DEPENDENCY STABILIZED
 
-  useEffect(() => { if (user) fetchConversations() }, [user, fetchConversations]);
+  useEffect(() => {
+    if (user?.id) fetchConversations();
+  }, [user?.id, fetchConversations]); // DEPENDENCY STABILIZED
+
+  // ... rest of subscriptions and presence logic (uses user.id which is stable) ...
 
   useEffect(() => {
     if (!user) return;
-
     const presenceChannel = supabase.channel('online-users');
-
     presenceChannel
       .on('presence', { event: 'sync' }, () => {
         const newState = presenceChannel.presenceState();
@@ -161,63 +156,45 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           await presenceChannel.track({ user_id: user.id, online_at: new Date().toISOString() });
         }
       });
-
-    return () => {
-      supabase.removeChannel(presenceChannel);
-    };
+    return () => { supabase.removeChannel(presenceChannel); };
   }, [user]);
 
   useEffect(() => {
     if (!user) return;
-
-    // --- THE FIX: Use a unique, abstract channel name ---
     const channel = supabase
       .channel('chat-feed-channel')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' },
         (payload) => {
           const newMessage = payload.new as unknown as Message;
-
           setLatestMessage(newMessage);
-
           setConversations(prev => {
             const convoIndex = prev.findIndex(c => c.conversation_id === newMessage.conversation_id);
-
             if (convoIndex === -1) {
               fetchConversations();
               return prev;
             }
-
             const conversationsCopy = [...prev];
             const updatedConvo = { ...conversationsCopy[convoIndex] };
-
             updatedConvo.last_message_content = newMessage.content;
             updatedConvo.last_message_at = newMessage.created_at;
             updatedConvo.last_message_sender_id = newMessage.sender_id;
-
             if (newMessage.sender_id !== user.id) {
               updatedConvo.unread_count = (updatedConvo.unread_count || 0) + 1;
             }
-
             conversationsCopy.splice(convoIndex, 1);
-
             return [updatedConvo, ...conversationsCopy];
           });
         }
       )
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [user, fetchConversations]);
 
   const markConversationAsRead = useCallback(async (conversationId: string) => {
     if (!user?.id || conversationId.startsWith('placeholder_')) return;
-
     setConversations(prev =>
       prev.map(c => (c.conversation_id === conversationId ? { ...c, unread_count: 0 } : c))
     );
-
     const { error } = await supabase
       .from('conversation_read_timestamps')
       .upsert({
@@ -225,7 +202,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user_id: user.id,
         last_read_at: new Date().toISOString(),
       }, { onConflict: 'conversation_id, user_id' });
-
     if (error) {
       console.error('Failed to mark as read on backend:', error);
       fetchConversations();

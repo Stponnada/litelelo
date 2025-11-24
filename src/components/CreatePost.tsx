@@ -452,7 +452,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, profile, communi
             <button
               type="submit"
               disabled={isSubmitting || (!content.trim() && !imageFile && !isCreatingPoll)}
-              className="bg-gradient-to-r from-brand-green to-emerald-500 text-white text-sm font-bold py-2 px-6 rounded-full shadow-md shadow-brand-green/20 hover:shadow-lg hover:shadow-brand-green/30 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:scale-100 flex items-center gap-2"
+              className="bg-gradient-to-r from-brand-green to-brand-green/80 text-white text-sm font-bold py-2 px-6 rounded-full shadow-md shadow-brand-green/20 hover:shadow-lg hover:shadow-brand-green/30 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:scale-100 flex items-center gap-2"
             >
               {isSubmitting && <Spinner className="w-4 h-4 text-white" />}
               {isSubmitting ? 'Posting...' : 'Post'}

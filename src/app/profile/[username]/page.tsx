@@ -336,7 +336,7 @@ const ProfilePage: React.FC = () => {
             setFriendsLoading(false);
             setMutualFriendsLoading(false);
         }
-    }, [profile, currentUser]);
+    }, [profile, currentUser?.id]);
 
     const fetchCommunities = useCallback(async () => {
         if (!profile) return;
