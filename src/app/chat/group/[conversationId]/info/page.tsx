@@ -59,7 +59,7 @@ const GroupInfoPage: React.FC = () => {
                 const { data: membersData, error: membersError } = (await supabase
                     .from('conversation_participants')
                     .select('profiles(*)')
-                    .eq('conversation_id', conversationId)) as { data: Array<{ profiles: Profile | null }> | null, error: any };
+                    .eq('conversation_id', conversationId)) as { data: Array<{ profiles: Profile | null }> | null, error: Error | null };
 
                 if (membersError) throw membersError;
 

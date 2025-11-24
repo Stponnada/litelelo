@@ -4,7 +4,7 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
-import { ConversationSummary, Profile, DirectoryProfile, Message, ConversationParticipant } from '../types';
+import { ConversationSummary, Profile, Message, ConversationParticipant } from '../types';
 
 interface ChatContextType {
   conversations: ConversationSummary[];
@@ -39,7 +39,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (rpcError) throw rpcError;
 
       const conversationsFromRpc = convosWithDetails || [];
-      const conversationIds = conversationsFromRpc.map((c: any) => c.conversation_id);
+      const conversationIds = conversationsFromRpc.map((c: Record<string, unknown>) => c.conversation_id as string);
 
       let finalSummaries: ConversationSummary[] = [];
 
@@ -66,8 +66,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         });
 
-        finalSummaries = conversationsFromRpc.map((convo: any) => {
-          const participants = participantsMap.get(convo.conversation_id) || [];
+        finalSummaries = conversationsFromRpc.map((convo: Record<string, unknown>) => {
+          const participants = participantsMap.get(convo.conversation_id as string) || [];
           const otherParticipants = participants.filter(p => p.user_id !== user.id);
 
           let name = convo.name;
@@ -82,17 +82,17 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data: directoryData, error: directoryError } = await supabase.rpc('get_unified_directory');
       if (directoryError) throw directoryError;
 
-      const allProfiles = (directoryData || []).filter((item: any) => item.type === 'user');
+      const allProfiles = (directoryData || []).filter((item: Record<string, unknown>) => item.type === 'user');
 
-      const contacts = allProfiles.filter((p: any) => p.is_following);
+      const contacts = allProfiles.filter((p: Record<string, unknown>) => p.is_following);
 
       const existingParticipantIds = new Set(
         (finalSummaries || []).flatMap(c => (c.participants || []).map(p => p.user_id))
       );
 
       const placeholderConversations = contacts
-        .filter((contact: any) => !existingParticipantIds.has(contact.id))
-        .map((contact: any) => ({
+        .filter((contact: Record<string, unknown>) => !existingParticipantIds.has(contact.id as string))
+        .map((contact: Record<string, unknown>) => ({
           conversation_id: `placeholder_${contact.id}`,
           type: 'dm' as const,
           name: contact.name,

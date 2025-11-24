@@ -123,7 +123,7 @@ const LostAndFoundPage: React.FC = () => {
                                 </h1>
                             </div>
                             <p className="text-sm md:text-lg text-text-secondary-light dark:text-text-secondary max-w-xl">
-                                Help reunite lost items with their owners or report what you've found
+                                Help reunite lost items with their owners or report what you&apos;ve found
                             </p>
                             <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs md:text-sm">
                                 <div className="flex items-center gap-2 bg-green-500/10 text-green-400 px-2.5 py-1 md:px-3 md:py-1.5 rounded-full border border-green-500/30">

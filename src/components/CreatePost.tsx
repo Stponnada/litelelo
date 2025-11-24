@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from '../services/supabase';
-import { Post as PostType, Profile } from '../types';
+import { Post as PostType, Profile, Poll, QuotedPost } from '../types';
 import Spinner from './Spinner';
 import {
   ImageIcon,
@@ -64,9 +64,13 @@ interface CreatePostRpcResult {
     avatar_url: string | null;
   } | null;
   original_poster_username: string | null;
-  poll: any;
-  quoted_post: any;
-  reposted_by: any;
+  poll: Poll | null;
+  quoted_post: QuotedPost | null;
+  reposted_by: {
+    user_id: string;
+    username: string;
+    full_name: string | null;
+  } | null;
 }
 
 const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, profile, communityId, isPublicPost = false, placeholderText }) => {

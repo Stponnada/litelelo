@@ -8,12 +8,13 @@ import { BlockData } from './Block';
 const DIFFICULTY = '000';
 
 // A debounced async effect hook
-const useDebouncedAsyncEffect = (effect: () => Promise<void>, deps: React.DependencyList, delay: number) => {
+const useDebouncedAsyncEffect = (effect: () => Promise<void>, deps: unknown[], delay: number) => {
     useEffect(() => {
         const handler = setTimeout(() => {
             effect();
         }, delay);
         return () => clearTimeout(handler);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, deps);
 };
 
@@ -89,7 +90,7 @@ const MiningPuzzle: React.FC<MiningPuzzleProps> = ({ lastBlock, pendingTransacti
             </div>
 
             <button
-                onClick={() => onMine({ ...blockData, hash: currentHash, nonce }, nonce, currentHash)}
+                onClick={() => onMine({ ...blockData, id: 'temp-' + Date.now(), hash: currentHash, nonce }, nonce, currentHash)}
                 disabled={!isNonceValid || miningStatus === 'mining'}
                 className="w-full bg-brand-green text-black font-bold py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >

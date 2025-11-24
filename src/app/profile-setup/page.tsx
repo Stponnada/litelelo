@@ -210,7 +210,7 @@ const ProfileSetup: React.FC = () => {
                         Welcome to litelelo.
                     </h1>
                     <p className="text-lg text-text-secondary-light dark:text-text-secondary">
-                        Let's create your profile and get you connected
+                        Let&apos;s create your profile and get you connected
                     </p>
                 </div>
 
@@ -393,7 +393,7 @@ const ProfileSetup: React.FC = () => {
                             <div className={`space-y-6 transition-all duration-500 ${currentStep === 2 ? 'block' : 'hidden'}`}>
                                 <div className="text-center mb-6">
                                     <h3 className="text-2xl font-bold text-text-main-light dark:text-text-main mb-2">Personal Details</h3>
-                                    <p className="text-text-secondary-light dark:text-text-secondary mt-2">Let's get your profile set up so you can start connecting.</p>
+                                    <p className="text-text-secondary-light dark:text-text-secondary mt-2">Let&apos;s get your profile set up so you can start connecting.</p>
                                 </div>
 
                                 <div>

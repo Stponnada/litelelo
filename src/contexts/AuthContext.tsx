@@ -21,16 +21,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const isInitializedRef = React.useRef(false);
 
   const updateProfileContext = (newProfile: Profile | null) => {
     setProfile(newProfile);
   };
 
   useEffect(() => {
+    let mounted = true;
+
     const initAuth = async () => {
       try {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (sessionError) throw sessionError;
+
+        if (!mounted) return;
 
         setSession(session);
         setUser(session?.user ?? null);
@@ -46,15 +51,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             console.error("Error fetching profile:", profileError);
           }
 
-          setProfile(profileData as Profile | null);
+          if (mounted) {
+            setProfile(profileData as Profile | null);
+          }
         }
       } catch (error) {
         console.error("Error initializing auth:", error);
-        setSession(null);
-        setUser(null);
-        setProfile(null);
+        if (mounted) {
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+        }
       } finally {
-        setIsLoading(false);
+        if (mounted) {
+          isInitializedRef.current = true;
+          setIsLoading(false);
+        }
       }
     };
 
@@ -63,6 +75,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Listen for auth state changes
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        // Skip if this fires during initial auth to prevent race condition
+        if (!isInitializedRef.current || !mounted) return;
+
         setSession(session);
         setUser(session?.user ?? null);
 
@@ -73,14 +88,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             .eq('user_id', session.user.id)
             .single();
 
-          setProfile(data as Profile | null);
+          if (mounted) {
+            setProfile(data as Profile | null);
+          }
         } else {
-          setProfile(null);
+          if (mounted) {
+            setProfile(null);
+          }
         }
       }
     );
 
     return () => {
+      mounted = false;
       authListener.subscription.unsubscribe();
     };
   }, []);

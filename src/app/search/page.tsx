@@ -149,7 +149,7 @@ const SearchPage: React.FC = () => {
                                     <div className="space-y-1">
                                         {data.map(item => {
                                             const props = { [propName]: item };
-                                            return <Component key={'id' in item ? item.id : item.username} {...props as any} />;
+                                            return <Component key={'id' in item ? item.id : item.username} {...props as unknown as React.ComponentProps<typeof Component>} />;
                                         })}
                                     </div>
                                 </div>

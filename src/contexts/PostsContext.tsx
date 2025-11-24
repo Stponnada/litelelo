@@ -83,7 +83,7 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       if (fetchError) throw fetchError;
 
-      const formattedPosts = (data || []).map((item: any) => {
+      const formattedPosts = (data || []).map((item: Record<string, unknown>) => {
         if ('item_type' in item && 'item_data' in item && item.item_data && typeof item.item_data === 'object' && 'id' in item.item_data) {
           return { ...item, id: (item.item_data as { id: string }).id };
         } else {
@@ -131,7 +131,7 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // --- THIS IS THE FIX ---
   // Instead of optimistically adding the post, we now force a clean refetch of the current feed.
   // This is more robust and guarantees no duplicates.
-  const addPostToContext = (newPost: FeedItem) => {
+  const addPostToContext = (_newPost: FeedItem) => {
     // To give immediate feedback, we can clear the posts for the current feed
     // and reset its page count, which will trigger a fresh load.
     setFeedData(prev => ({

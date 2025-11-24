@@ -9,7 +9,6 @@ import {
   ShoppingBagIcon,
   ShieldCheckIcon,
   GlobeIcon,
-  ArrowPathRoundedSquareIcon, // Using as a generic forward arrow
 } from '@/components/icons';
 
 // --- Animations & Styles ---
@@ -187,7 +186,7 @@ const LandingPage: React.FC = () => {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-12 relative">
           <div className="flex-1 space-y-8">
             <h2 className="text-4xl md:text-6xl font-black font-raleway leading-tight">
-              Discover what's happening at your <span className="text-brand-green">Bits</span><br />
+              Discover what&apos;s happening at your <span className="text-brand-green">Bits</span><br />
               Campus.
             </h2>
             <p className="text-gray-300 text-lg leading-relaxed">

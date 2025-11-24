@@ -240,7 +240,7 @@ const MarketplacePage: React.FC = () => {
                                 <span className="text-xs md:text-sm font-semibold text-text-secondary-light dark:text-text-secondary">Active filters:</span>
                                 {searchTerm && (
                                     <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-500/10 text-green-400 rounded-full text-xs md:text-sm font-semibold border border-green-500/30">
-                                        Search: "{searchTerm}"
+                                        Search: &quot;{searchTerm}&quot;
                                         <button onClick={() => setSearchTerm('')} className="hover:bg-green-500/20 rounded-full p-0.5">
                                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

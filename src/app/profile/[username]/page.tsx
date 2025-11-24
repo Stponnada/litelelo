@@ -1018,7 +1018,13 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
                 // Otherwise, just refresh the data on the current page
                 onSave();
             }
-        } catch (err: any) { setError(err.message); } finally { setIsSaving(false); }
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError('An unknown error occurred.');
+            }
+        } finally { setIsSaving(false); }
     };
 
     if (cropperState.isOpen && cropperState.src) {
@@ -1206,7 +1212,7 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
                                     <option value="">Select Status</option>
                                     <option value="Single">Single</option>
                                     <option value="In a relationship">In a relationship</option>
-                                    <option value="It's complicated">It's complicated</option>
+                                    <option value="It's complicated">It&apos;s complicated</option>
                                     <option value="Married">Married</option>
                                 </select>
                             </div>

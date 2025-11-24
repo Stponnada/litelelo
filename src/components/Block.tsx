@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/Block.tsx
-import React from 'react';
+import React, { useMemo } from 'react';
 import { format } from 'date-fns';
 import Transaction from './Transaction';
 
 import { TransactionProps } from './Transaction';
 
 export interface BlockData {
+    id: string;
     index: number;
     timestamp: string;
     hash: string;
@@ -20,11 +21,15 @@ export interface BlockData {
 }
 
 const Block: React.FC<{ block: BlockData }> = ({ block }) => {
+    const formattedTimestamp = useMemo(() => {
+        return format(new Date(block.timestamp), 'PPpp');
+    }, [block.timestamp]);
+
     return (
         <div className="bg-tertiary-light dark:bg-tertiary/50 p-4 rounded-md border border-tertiary-light dark:border-tertiary">
             <div className="flex justify-between items-center mb-2">
                 <h3 className="font-bold text-brand-green">Block #{block.index}</h3>
-                <span className="text-xs text-text-tertiary-light dark:text-text-tertiary">{format(new Date(block.timestamp), 'PPpp')}</span>
+                <span className="text-xs text-text-tertiary-light dark:text-text-tertiary">{formattedTimestamp}</span>
             </div>
             <div className="text-xs space-y-1 break-all">
                 <p><span className="font-semibold">Hash:</span> {block.hash}</p>
@@ -35,7 +40,7 @@ const Block: React.FC<{ block: BlockData }> = ({ block }) => {
                 <div className="mt-3 pt-3 border-t border-tertiary-light dark:border-tertiary">
                     <h4 className="text-sm font-semibold mb-2">Transactions ({block.transactions.length})</h4>
                     <div className="space-y-1">
-                        {block.transactions.map((tx) => <Transaction key={tx.id || Math.random()} tx={tx} isMined />)}
+                        {block.transactions.map((tx, index) => <Transaction key={tx.id || `tx-${block.index}-${index}`} tx={tx} isMined />)}
                     </div>
                 </div>
             )}

@@ -338,14 +338,14 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => 
                                                             BLOG
                                                         </span>
                                                         <span className="text-xs text-text-tertiary-light dark:text-text-tertiary">
-                                                            {Math.ceil(post.content.length / 500)} min read
+                                                            {Math.ceil((post.content?.length || 0) / 500)} min read
                                                         </span>
                                                     </div>
                                                     <h3 className="text-xl font-bold text-text-main-light dark:text-text-main mb-2 leading-tight group-hover/blog:text-brand-green transition-colors">
-                                                        {post.title}
+                                                        {post.title || (post.content ? post.content.substring(0, 60) + '...' : 'Untitled Blog Post')}
                                                     </h3>
                                                     <p className="text-sm text-text-secondary-light dark:text-text-secondary line-clamp-2">
-                                                        {post.content}
+                                                        {post.content || 'No description available.'}
                                                     </p>
                                                     <div className="mt-3 flex items-center text-brand-green text-sm font-semibold">
                                                         Read full story <span className="ml-1 transition-transform group-hover/blog:translate-x-1">→</span>

@@ -130,7 +130,7 @@ const NoticeWidget: React.FC<{ notice: CampusNotice | null }> = ({ notice }) => 
     </div>
 );
 
-const QuickAction: React.FC<{ to: string; icon: any; label: string; colorClass: string }> = ({ to, icon: Icon, label, colorClass }) => (
+const QuickAction: React.FC<{ to: string; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; label: string; colorClass: string }> = ({ to, icon: Icon, label, colorClass }) => (
     <Link href={to} className="group flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-white dark:bg-secondary border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-600 transition-all hover:scale-105 hover:shadow-lg">
         <div className={`p-2.5 rounded-xl ${colorClass} bg-opacity-10 dark:bg-opacity-20 text-current transition-all group-hover:scale-110`}>
             <Icon className={`w-6 h-6`} style={{ color: 'currentColor' }} />

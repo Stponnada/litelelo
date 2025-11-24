@@ -259,9 +259,9 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onEventCre
                         {step === 1 && (
                             <div className="space-y-6 animate-fadeIn">
                                 <div>
-                                    <h3 className="text-lg font-semibold mb-2">What's your event called?</h3>
+                                    <h3 className="text-lg font-semibold mb-2">What&apos;s your event called?</h3>
                                     <p className="text-sm text-text-tertiary-light dark:text-text-tertiary mb-4">
-                                        Choose a catchy name that tells people what it's about
+                                        Choose a catchy name that tells people what it&apos;s about
                                     </p>
                                     <input
                                         type="text"

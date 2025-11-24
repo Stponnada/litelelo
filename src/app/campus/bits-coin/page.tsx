@@ -53,37 +53,52 @@ const BitsCoinPage: React.FC = () => {
     }, [clickCount, router]);
     // --- End of fix ---
 
-    const fetchRequests = useCallback(async (isInitialLoad = false) => {
-        if (!profile?.campus) return;
-        if (isInitialLoad) setLoading(true);
-        try {
-            const { data, error } = await supabase.rpc('get_bits_coin_requests', { p_campus: profile.campus });
-            if (error) throw error;
-            setRequests((data as BitsCoinRequest[]) || []);
-        } catch (err: unknown) {
-            if (err instanceof Error) {
-                setError(err.message);
-            } else {
-                setError('An unknown error occurred.');
+    // Initial data fetch
+    useEffect(() => {
+        const fetchRequests = async () => {
+            if (!profile?.campus) {
+                setLoading(false);
+                return;
             }
-        } finally {
-            if (isInitialLoad) setLoading(false);
-        }
+            setLoading(true);
+            try {
+                const { data, error } = await supabase.rpc('get_bits_coin_requests', { p_campus: profile.campus });
+                if (error) throw error;
+                setRequests((data as BitsCoinRequest[]) || []);
+            } catch (err: unknown) {
+                if (err instanceof Error) {
+                    setError(err.message);
+                } else {
+                    setError('An unknown error occurred.');
+                }
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchRequests();
     }, [profile?.campus]);
 
-    useEffect(() => {
-        if (profile?.campus) {
-            fetchRequests(true);
-        }
-    }, [profile?.campus, fetchRequests]);
-
+    // Real-time subscription
     useEffect(() => {
         if (!profile?.campus) return;
+
+        const fetchUpdates = async () => {
+            try {
+                const { data, error } = await supabase.rpc('get_bits_coin_requests', { p_campus: profile.campus });
+                if (error) throw error;
+                setRequests((data as BitsCoinRequest[]) || []);
+            } catch (err: unknown) {
+                console.error('Error fetching request updates:', err);
+            }
+        };
+
         const channel = supabase.channel('bits_coin_requests_channel').on('postgres_changes', { event: '*', schema: 'public', table: 'bits_coin_requests', filter: `campus=eq.${profile.campus}` }, (_payload) => {
-            fetchRequests();
+            fetchUpdates();
         }).subscribe();
+
         return () => { supabase.removeChannel(channel); };
-    }, [profile?.campus, fetchRequests]);
+    }, [profile?.campus]);
 
     const handleRequestCreated = (newRequest: BitsCoinRequest) => {
         setRequests(prev => [newRequest, ...prev]);
