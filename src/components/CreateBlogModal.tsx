@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import Image from 'next/image';
 import { XMarkIcon, PhotoIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
@@ -101,7 +102,7 @@ export default function CreateBlogModal({ isOpen, onClose, communityId, onSucces
                         className={`relative w-full h-48 rounded-xl border-2 border-dashed border-border-light dark:border-border flex flex-col items-center justify-center cursor-pointer hover:bg-hover-light dark:hover:bg-hover transition-colors overflow-hidden ${imagePreview ? 'border-none' : ''}`}
                     >
                         {imagePreview ? (
-                            <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                            <Image src={imagePreview} alt="Preview" fill className="object-cover" unoptimized />
                         ) : (
                             <>
                                 <PhotoIcon className="w-12 h-12 text-text-tertiary-light dark:text-text-tertiary mb-2" />

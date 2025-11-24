@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import Image from 'next/image';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { RideShare } from '@/types';
@@ -206,10 +207,13 @@ const RideCard: React.FC<{ ride: RideShare }> = ({ ride }) => {
                     className="inline-flex items-center gap-3 pt-2 group/avatar"
                 >
                     <div className="relative">
-                        <img
+                        <Image
                             src={ride.user.avatar_url || ''}
                             alt="user"
+                            width={40}
+                            height={40}
                             className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover ring-2 ring-tertiary-light dark:ring-tertiary group-hover/avatar:ring-sky-500 transition-all duration-200"
+                            unoptimized
                         />
                         <div className="absolute inset-0 rounded-full bg-accent-sky opacity-0 group-hover/avatar:opacity-20 transition-opacity duration-200"></div>
                     </div>

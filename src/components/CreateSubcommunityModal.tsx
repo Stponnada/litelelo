@@ -1,6 +1,7 @@
 // src/components/CreateSubcommunityModal.tsx
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { supabase } from '../services/supabase';
 import { Profile } from '../types';
 import Spinner from './Spinner';
@@ -23,7 +24,7 @@ const CreateSubcommunityModal: React.FC<Props> = ({ parentCommunityId, onClose, 
 
     useEffect(() => {
         const fetchParentMembers = async () => {
-            const { data, error } = await supabase.rpc('get_community_members', { p_community_id: parentCommunityId });
+            const { data } = await supabase.rpc('get_community_members', { p_community_id: parentCommunityId });
             if (data) setParentMembers((data as Array<Profile & { status: string }>).filter(m => m.status === 'approved'));
         };
         fetchParentMembers();
@@ -73,7 +74,7 @@ const CreateSubcommunityModal: React.FC<Props> = ({ parentCommunityId, onClose, 
                         </div>
                         <button type="button" onClick={onClose}><XCircleIcon className="w-7 h-7" /></button>
                     </header>
-                    
+
                     <main className="flex-1 p-6 overflow-y-auto space-y-6">
                         <div>
                             <label htmlFor="name" className="block text-sm font-medium">Name*</label>
@@ -87,11 +88,11 @@ const CreateSubcommunityModal: React.FC<Props> = ({ parentCommunityId, onClose, 
                             <label className="block text-sm font-medium">Access Type</label>
                             <div className="mt-2 flex gap-4">
                                 <label className={`flex-1 p-3 border rounded-md cursor-pointer ${accessType === 'public' ? 'border-brand-green bg-brand-green/10' : 'border-tertiary-light dark:border-gray-600'}`}>
-                                    <input type="radio" value="public" checked={accessType === 'public'} onChange={() => setAccessType('public')} className="sr-only"/>
+                                    <input type="radio" value="public" checked={accessType === 'public'} onChange={() => setAccessType('public')} className="sr-only" />
                                     <p className="font-semibold">Public</p><p className="text-xs">Any community member can join.</p>
                                 </label>
                                 <label className={`flex-1 p-3 border rounded-md cursor-pointer ${accessType === 'restricted' ? 'border-brand-green bg-brand-green/10' : 'border-tertiary-light dark:border-gray-600'}`}>
-                                    <input type="radio" value="restricted" checked={accessType === 'restricted'} onChange={() => setAccessType('restricted')} className="sr-only"/>
+                                    <input type="radio" value="restricted" checked={accessType === 'restricted'} onChange={() => setAccessType('restricted')} className="sr-only" />
                                     <p className="font-semibold">Restricted</p><p className="text-xs">Join by approval from Consul.</p>
                                 </label>
                             </div>
@@ -101,8 +102,8 @@ const CreateSubcommunityModal: React.FC<Props> = ({ parentCommunityId, onClose, 
                             <div className="max-h-48 overflow-y-auto space-y-2 p-2 bg-tertiary-light dark:bg-tertiary rounded-md">
                                 {parentMembers.map(member => (
                                     <div key={member.user_id} onClick={() => handleToggleConsul(member.user_id)} className="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 cursor-pointer">
-                                        <input type="checkbox" checked={selectedConsuls.includes(member.user_id)} readOnly className="form-checkbox rounded text-brand-green"/>
-                                        <img src={member.avatar_url || ''} alt={member.username} className="w-8 h-8 rounded-full" />
+                                        <input type="checkbox" checked={selectedConsuls.includes(member.user_id)} readOnly className="form-checkbox rounded text-brand-green" />
+                                        <Image src={member.avatar_url || ''} alt={member.username} width={32} height={32} className="w-8 h-8 rounded-full" unoptimized />
                                         <span>{member.full_name || member.username}</span>
                                     </div>
                                 ))}
@@ -110,7 +111,7 @@ const CreateSubcommunityModal: React.FC<Props> = ({ parentCommunityId, onClose, 
                         </div>
                         {error && <p className="text-red-400 text-sm mt-4">{error}</p>}
                     </main>
-                    
+
                     <footer className="px-6 py-4 bg-tertiary-light/30 dark:bg-tertiary/30 flex justify-end items-center space-x-3">
                         <button type="button" onClick={onClose}>Cancel</button>
                         <button type="submit" disabled={isSubmitting} className="px-6 py-2 bg-brand-green text-black font-bold rounded-md disabled:opacity-50">

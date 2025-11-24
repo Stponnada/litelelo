@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/services/supabase';
@@ -153,7 +154,7 @@ const MarketplaceItemPage: React.FC = () => {
                 <div className="lg:col-span-3">
                     <div className="aspect-w-4 aspect-h-3 rounded-2xl overflow-hidden bg-secondary-light dark:bg-secondary border border-tertiary-light dark:border-tertiary shadow-lg">
                         {activeImage ? (
-                            <img src={activeImage} alt={listing.title} className="w-full h-full object-cover" />
+                            <Image src={activeImage} alt={listing.title} fill className="object-cover" unoptimized />
                         ) : (
                             <div className="flex items-center justify-center text-text-tertiary-light dark:text-text-tertiary">No Image</div>
                         )}
@@ -162,7 +163,7 @@ const MarketplaceItemPage: React.FC = () => {
                         <div className="flex gap-3 mt-4">
                             {listing.marketplace_images.map((img, index) => (
                                 <button key={index} onClick={() => setActiveImage(img.image_url)} className={`w-24 h-24 rounded-lg overflow-hidden border-2 transition-all ${activeImage === img.image_url ? 'border-brand-green scale-105' : 'border-tertiary-light dark:border-tertiary opacity-70 hover:opacity-100'}`}>
-                                    <img src={img.image_url} alt={`Thumbnail ${index + 1}`} className="w-full h-full object-cover" />
+                                    <Image src={img.image_url} alt={`Thumbnail ${index + 1}`} width={96} height={96} className="w-full h-full object-cover" unoptimized />
                                 </button>
                             ))}
                         </div>
@@ -187,7 +188,7 @@ const MarketplaceItemPage: React.FC = () => {
                             <p className="text-xs font-bold uppercase text-text-tertiary-light dark:text-text-tertiary mb-3 tracking-wider">Seller Information</p>
                             <div className="flex items-center justify-between">
                                 <Link href={`/profile/${seller.username}`} className="flex items-center gap-3 group">
-                                    <img src={seller.avatar_url || 'https://ui-avatars.com/api/?background=random'} alt={seller.username} className="w-12 h-12 rounded-full ring-2 ring-tertiary group-hover:ring-brand-green transition-all" />
+                                    <Image src={seller.avatar_url || 'https://ui-avatars.com/api/?background=random'} alt={seller.username} width={48} height={48} className="w-12 h-12 rounded-full ring-2 ring-tertiary group-hover:ring-brand-green transition-all" unoptimized />
                                     <div>
                                         <p className="font-bold text-text-main-light dark:text-text-main group-hover:text-brand-green transition-colors">{seller.full_name}</p>
                                         <p className="text-sm text-text-secondary-light dark:text-text-secondary">@{seller.username}</p>

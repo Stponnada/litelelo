@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
+import Image from 'next/image';
 import { MapContainer, TileLayer, Marker, Popup, GeoJSON, useMap } from 'react-leaflet';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
@@ -270,10 +271,13 @@ const CampusMapPage = () => {
                         <Popup className="custom-popup-clean" closeButton={false}>
                             <div className="text-center p-1 min-w-[120px]">
                                 <Link href={`/profile/${friend.username}`} className="block">
-                                    <img
+                                    <Image
                                         src={friend.avatar_url}
+                                        width={48}
+                                        height={48}
                                         className="w-12 h-12 rounded-full mx-auto mb-2 border-2 border-brand-green object-cover"
                                         alt={friend.username}
+                                        unoptimized
                                     />
                                     <p className="font-bold text-sm text-gray-900">{friend.full_name}</p>
                                     <p className="text-xs text-brand-green font-medium">@{friend.username}</p>

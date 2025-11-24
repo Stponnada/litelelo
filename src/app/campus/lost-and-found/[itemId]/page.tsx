@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/services/supabase';
@@ -121,10 +122,12 @@ const LostAndFoundItemPage: React.FC = () => {
                 {/* Image Section */}
                 <div className="lg:col-span-3">
                     <div className="aspect-w-4 aspect-h-3 rounded-2xl overflow-hidden bg-secondary-light dark:bg-secondary border border-tertiary-light dark:border-tertiary shadow-lg">
-                        <img
+                        <Image
                             src={item.image_url || `https://placehold.co/600x400/1e293b/ef4444?text=${isFoundItem ? 'Found+Item' : 'Lost+Item'}`}
                             alt={item.title}
-                            className="w-full h-full object-cover"
+                            fill
+                            className="object-cover"
+                            unoptimized
                         />
                     </div>
                 </div>
@@ -168,7 +171,7 @@ const LostAndFoundItemPage: React.FC = () => {
                         <div className="bg-tertiary-light/50 dark:bg-tertiary/50 p-3 md:p-4 rounded-xl">
                             <p className="text-[10px] md:text-xs font-bold uppercase text-text-tertiary-light dark:text-text-tertiary mb-2 md:mb-3 tracking-wider">Posted By</p>
                             <Link href={`/profile/${poster.username}`} className="flex items-center gap-3 group">
-                                <img src={poster.avatar_url || `https://ui-avatars.com/api/?name=${poster.username}&background=10b981&color=fff`} alt={poster.username} className="w-10 h-10 md:w-12 md:h-12 rounded-full ring-2 ring-tertiary group-hover:ring-orange-500 transition-all" />
+                                <Image src={poster.avatar_url || `https://ui-avatars.com/api/?name=${poster.username}&background=10b981&color=fff`} alt={poster.username} width={48} height={48} className="w-10 h-10 md:w-12 md:h-12 rounded-full ring-2 ring-tertiary group-hover:ring-orange-500 transition-all" unoptimized />
                                 <div>
                                     <p className="font-bold text-text-main-light dark:text-text-main group-hover:text-orange-500 transition-colors text-sm md:text-base">{poster.full_name}</p>
                                     <p className="text-xs md:text-sm text-text-secondary-light dark:text-text-secondary">@{poster.username}</p>

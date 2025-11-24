@@ -1,6 +1,7 @@
 // src/components/Header.tsx
 
 import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '../hooks/useAuth';
@@ -97,7 +98,7 @@ const Header: React.FC<HeaderProps> = ({ isSidebarExpanded, onOpenAboutModal }) 
                                 </div>
                             </div>
                             <button onClick={() => setMenuOpen(prev => !prev)} className="w-9 h-9 rounded-full overflow-hidden border border-tertiary-light dark:border-tertiary">
-                                <img src={profile.avatar_url || ''} alt="My Profile" className="w-full h-full object-cover" />
+                                <Image src={profile.avatar_url || ''} alt="My Profile" width={36} height={36} className="w-full h-full object-cover" unoptimized />
                             </button>
                         </div>
                     )}

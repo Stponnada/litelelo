@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 // FIXED: Use Next.js Link
 import Link from 'next/link';
+import Image from 'next/image';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { FollowSuggestion } from '../types';
@@ -12,10 +13,13 @@ const FollowSuggestionCard: React.FC<{ user: FollowSuggestion; onFollow: (userId
   <div className="flex items-center space-x-2 p-2 group">
     {/* FIXED: to -> href */}
     <Link href={`/profile/${user.username}`}>
-      <img
+      <Image
         src={user.avatar_url || `https://ui-avatars.com/api/?name=${user.full_name || user.username}&background=random&color=fff&bold=true`}
         alt={user.username}
+        width={40}
+        height={40}
         className="w-10 h-10 rounded-full object-cover ring-2 ring-transparent group-hover:ring-brand-green transition-all"
+        unoptimized
       />
     </Link>
     <div className="flex-1 min-w-0">

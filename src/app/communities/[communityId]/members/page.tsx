@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/services/supabase';
@@ -34,10 +35,13 @@ const MemberCard: React.FC<{
     return (
         <div className="bg-secondary-light dark:bg-secondary p-4 rounded-lg flex items-center space-x-4 hover:bg-tertiary-light/60 dark:hover:bg-tertiary transition-colors border border-tertiary-light dark:border-tertiary relative">
             <Link href={`/profile/${member.username}`}>
-                <img
+                <Image
                     src={member.avatar_url || `https://ui-avatars.com/api/?name=${member.full_name || member.username}&background=random&color=fff&bold=true`}
                     alt={member.username}
+                    width={48}
+                    height={48}
                     className="w-12 h-12 rounded-full object-cover bg-tertiary"
+                    unoptimized
                 />
             </Link>
             <div className="flex-grow overflow-hidden">

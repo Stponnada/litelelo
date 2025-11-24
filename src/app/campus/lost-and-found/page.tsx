@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/services/supabase';
@@ -237,10 +238,12 @@ const ItemCard: React.FC<{ item: ItemType; onItemReclaimed: (itemId: string) => 
 
             {/* Image */}
             <div className="relative overflow-hidden">
-                <img
-                    className="w-full h-48 md:h-56 object-cover transition-transform duration-500 group-hover:scale-110"
+                <Image
+                    className="object-cover transition-transform duration-500 group-hover:scale-110"
                     src={item.image_url || `https://placehold.co/600x400/1e293b/3cfba2?text=${item.item_type === 'lost' ? 'Lost+Item' : 'Found+Item'}`}
                     alt={item.title}
+                    fill
+                    unoptimized
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <div className="absolute top-3 right-3">
@@ -285,10 +288,13 @@ const ItemCard: React.FC<{ item: ItemType; onItemReclaimed: (itemId: string) => 
                         className="min-w-0 flex items-center gap-2 group/avatar"
                     >
                         <div className="relative">
-                            <img
+                            <Image
                                 src={poster?.avatar_url || `https://ui-avatars.com/api/?name=${poster?.username}&background=10b981&color=fff`}
-                                alt={poster?.username}
+                                alt={poster?.username || 'User'}
+                                width={36}
+                                height={36}
                                 className="w-8 h-8 md:w-9 md:h-9 rounded-full ring-2 ring-tertiary-light dark:ring-tertiary group-hover/avatar:ring-orange-500 transition-all duration-200"
+                                unoptimized
                             />
                             <div className="absolute inset-0 rounded-full bg-orange-500 opacity-0 group-hover/avatar:opacity-20 transition-opacity duration-200"></div>
                         </div>
@@ -482,7 +488,7 @@ const CreateItemModal: React.FC<{ campus: string; itemType: 'lost' | 'found'; on
 
                             {imagePreview ? (
                                 <div className="relative rounded-xl overflow-hidden border-2 border-tertiary-light dark:border-tertiary">
-                                    <img src={imagePreview} alt="Preview" className="w-full h-56 object-cover" />
+                                    <Image src={imagePreview} alt="Preview" fill className="object-cover" unoptimized />
                                     <button
                                         type="button"
                                         onClick={() => {

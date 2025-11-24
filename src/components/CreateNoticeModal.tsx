@@ -1,6 +1,7 @@
 // src/components/CreateNoticeModal.tsx
 
 import React, { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { CampusNotice, CampusNoticeFile } from '../types';
@@ -156,7 +157,7 @@ const CreateNoticeModal: React.FC<CreateNoticeModalProps> = ({ campus, onClose, 
                                 {existingFiles.map(file => (
                                     <div key={file.file_url} className="relative group aspect-square">
                                         {file.file_type === 'image' ? (
-                                            <img src={file.file_url} alt="Preview" className="w-full h-full object-cover rounded" />
+                                            <Image src={file.file_url} alt="Preview" fill className="object-cover rounded" unoptimized />
                                         ) : (
                                             <div className="w-full h-full bg-gray-700 text-white flex items-center justify-center rounded p-2 text-xs">PDF</div>
                                         )}
@@ -166,7 +167,7 @@ const CreateNoticeModal: React.FC<CreateNoticeModalProps> = ({ campus, onClose, 
                                 {filesToUpload.map((file, index) => (
                                     <div key={index} className="relative group aspect-square">
                                         {file.type.startsWith('image/') ? (
-                                            <img src={URL.createObjectURL(file)} alt="Preview" className="w-full h-full object-cover rounded" />
+                                            <Image src={URL.createObjectURL(file)} alt="Preview" fill className="object-cover rounded" unoptimized />
                                         ) : (
                                             <div className="w-full h-full bg-gray-700 text-white flex items-center justify-center rounded p-2 text-xs truncate">{file.name}</div>
                                         )}

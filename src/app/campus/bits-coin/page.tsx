@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import Image from 'next/image';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import Spinner from '@/components/Spinner';
@@ -306,10 +307,13 @@ const RequestCard: React.FC<{ request: BitsCoinRequest, onClick: () => void, ind
             <div className="relative z-10 flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-800">
                 <div className="flex items-center gap-2">
                     <div className="relative w-8 h-8">
-                        <img
+                        <Image
                             src={request.requester.avatar_url || ''}
                             alt="requester"
+                            width={32}
+                            height={32}
                             className="w-full h-full rounded-full object-cover ring-2 ring-white dark:ring-gray-800 shadow-sm"
+                            unoptimized
                         />
                         <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white dark:border-gray-900 rounded-full"></div>
                     </div>
@@ -555,7 +559,7 @@ const RequestDetailModal: React.FC<{ request: BitsCoinRequest, onClose: () => vo
                                 href={`/reputation/${request.requester.username}`}
                                 className="flex items-center gap-2 text-sm text-text-tertiary-light dark:text-text-tertiary hover:text-brand-green transition-colors group"
                             >
-                                <img src={request.requester.avatar_url || ''} alt="requester" className="w-6 h-6 rounded-full ring-2 ring-gray-100 dark:ring-gray-800 group-hover:ring-brand-green transition-all" />
+                                <Image src={request.requester.avatar_url || ''} alt="requester" width={24} height={24} className="w-6 h-6 rounded-full ring-2 ring-gray-100 dark:ring-gray-800 group-hover:ring-brand-green transition-all" unoptimized />
                                 <span className="font-semibold">Posted by @{request.requester.username}</span>
                             </Link>
                             <span className="px-3 py-1 bg-gray-100 dark:bg-gray-800 text-text-secondary-light dark:text-text-secondary text-xs font-bold rounded-lg">
@@ -583,10 +587,13 @@ const RequestDetailModal: React.FC<{ request: BitsCoinRequest, onClose: () => vo
                             </p>
                             <div className="flex items-center justify-between">
                                 <Link href={`/reputation/${request.claimer.username}`} className="flex items-center gap-4 group">
-                                    <img
+                                    <Image
                                         src={request.claimer.avatar_url || ''}
                                         alt="claimer"
+                                        width={56}
+                                        height={56}
                                         className="w-14 h-14 rounded-full ring-4 ring-white dark:ring-gray-900 group-hover:ring-brand-green transition-all"
+                                        unoptimized
                                     />
                                     <div>
                                         <span className="font-bold text-xl text-text-main-light dark:text-text-main group-hover:text-brand-green transition-colors block">

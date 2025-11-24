@@ -1,6 +1,7 @@
 // src/components/GifPickerModal.tsx
 
 import React, { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import Spinner from './Spinner';
 import { XCircleIcon } from './icons';
 
@@ -74,8 +75,8 @@ const GifPickerModal: React.FC<GifPickerModalProps> = ({ onClose, onGifSelect })
           {loading ? <div className="flex justify-center p-8"><Spinner /></div> : (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
               {gifs.map(gif => (
-                <button key={gif.id} onClick={() => onGifSelect(gif.images.fixed_width.url)} className="aspect-square">
-                  <img src={gif.images.fixed_width.url} alt="GIF" className="w-full h-full object-cover rounded-md" />
+                <button key={gif.id} onClick={() => onGifSelect(gif.images.fixed_width.url)} className="aspect-square relative">
+                  <Image src={gif.images.fixed_width.url} alt="GIF" fill className="object-cover rounded-md" unoptimized />
                 </button>
               ))}
             </div>

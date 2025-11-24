@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/services/supabase';
@@ -245,7 +246,7 @@ const CommunityPage: React.FC = () => {
 
                 <div className="bg-white/80 dark:bg-secondary/80 backdrop-blur-sm rounded-3xl shadow-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50 overflow-hidden mb-8">
                     <div className="relative h-48 md:h-56 bg-gradient-to-br from-brand-green/30 via-brand-green/20 to-tertiary-light dark:to-tertiary group">
-                        {community.banner_url && <img src={community.banner_url} alt="Banner" className="w-full h-full object-cover" />}
+                        {community.banner_url && <Image src={community.banner_url} alt="Banner" fill className="object-cover" unoptimized />}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
                         {isOwner && (<>
                             <button type="button" onClick={() => bannerInputRef.current?.click()} className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -259,7 +260,7 @@ const CommunityPage: React.FC = () => {
                         <div className="flex justify-between items-end -mt-28 md:-mt-32">
                             <div className="relative group">
                                 <div className="absolute inset-0 bg-brand-green/30 blur-2xl rounded-full"></div>
-                                <img src={community.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(community.name)}&background=3cfba2&color=000`} alt={community.name} className="relative w-32 h-32 md:w-36 md:h-36 rounded-3xl border-4 border-white dark:border-secondary object-cover shadow-2xl" />
+                                <Image src={community.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(community.name)}&background=3cfba2&color=000`} alt={community.name} width={144} height={144} className="relative w-32 h-32 md:w-36 md:h-36 rounded-3xl border-4 border-white dark:border-secondary object-cover shadow-2xl" unoptimized />
                                 {isOwner && (<>
                                     <button type="button" onClick={() => avatarInputRef.current?.click()} className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl">
                                         <CameraIcon className="w-8 h-8 text-white" />

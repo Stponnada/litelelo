@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useAuth } from '../hooks/useAuth';
 import { useChat } from '../hooks/useChat';
 import { useTheme } from '../contexts/ThemeContext';
@@ -176,7 +177,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
               {profile?.username && (
                 <Link href={`/profile/${profile.username}`} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-tertiary-light dark:hover:bg-white/5 transition-colors mb-1">
                   <div className="w-10 h-10 rounded-full overflow-hidden border border-brand-green/30">
-                    <img src={profile.avatar_url || ''} alt="Profile" className="w-full h-full object-cover" />
+                    <Image src={profile.avatar_url || ''} alt="Profile" width={40} height={40} className="w-full h-full object-cover" unoptimized />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-text-main-light dark:text-text-main truncate max-w-[150px]">{profile.full_name}</p>
@@ -216,10 +217,13 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
             <div className={`flex items-center p-2 rounded-xl hover:bg-brand-green/10 dark:hover:bg-white/5 cursor-pointer transition-all duration-300 ${!isExpanded ? 'justify-center' : ''}`}>
               <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-transparent group-hover:border-brand-green transition-all">
                 {profile?.avatar_url && (
-                  <img
+                  <Image
                     src={profile.avatar_url}
                     alt="profile"
+                    width={40}
+                    height={40}
                     className="w-full h-full object-cover"
+                    unoptimized
                   />
                 )}
               </div>

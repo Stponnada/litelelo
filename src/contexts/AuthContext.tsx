@@ -30,78 +30,39 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     let mounted = true;
 
-    const initAuth = async () => {
-      try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) throw sessionError;
+    // The listener fires immediately with the initial session, so we can
+    // use it to set the initial state and handle all subsequent changes.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!mounted) return;
 
-        if (!mounted) return;
+      setSession(session);
+      setUser(session?.user ?? null);
 
-        setSession(session);
-        setUser(session?.user ?? null);
+      if (session?.user) {
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .single();
 
-        if (session?.user) {
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('user_id', session.user.id)
-            .single();
-
-          if (profileError) {
-            console.error("Error fetching profile:", profileError);
-          }
-
-          if (mounted) {
-            setProfile(profileData as Profile | null);
-          }
+        if (profileError) {
+          console.error("Error fetching profile on auth change:", profileError);
         }
-      } catch (error) {
-        console.error("Error initializing auth:", error);
+        
         if (mounted) {
-          setSession(null);
-          setUser(null);
+          setProfile(profileData as Profile | null);
+        }
+      } else {
+        if (mounted) {
           setProfile(null);
         }
-      } finally {
-        if (mounted) {
-          isInitializedRef.current = true;
-          setIsLoading(false);
-        }
       }
-    };
-
-    initAuth();
-
-    // Listen for auth state changes
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        // Skip if this fires during initial auth to prevent race condition
-        if (!isInitializedRef.current || !mounted) return;
-
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        if (session?.user) {
-          const { data } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('user_id', session.user.id)
-            .single();
-
-          if (mounted) {
-            setProfile(data as Profile | null);
-          }
-        } else {
-          if (mounted) {
-            setProfile(null);
-          }
-        }
-      }
-    );
+      setIsLoading(false);
+    });
 
     return () => {
       mounted = false;
-      authListener.subscription.unsubscribe();
+      subscription.unsubscribe();
     };
   }, []);
 

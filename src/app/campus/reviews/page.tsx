@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/hooks/useAuth';
@@ -21,10 +22,12 @@ const PlaceCard: React.FC<{ place: CampusPlace; onEditImages: (place: CampusPlac
 
             <Link href={`/campus/reviews/${place.id}`} className="block">
                 <div className="relative overflow-hidden">
-                    <img
-                        className="w-full h-40 md:h-52 object-cover transition-transform duration-500 group-hover:scale-110"
+                    <Image
+                        className="object-cover transition-transform duration-500 group-hover:scale-110"
                         src={place.primary_image_url || 'https://placehold.co/600x400/1e293b/3cfba2?text=No+Image'}
                         alt={place.name}
+                        fill
+                        unoptimized
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 

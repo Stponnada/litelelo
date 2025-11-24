@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/services/supabase';
@@ -50,7 +51,7 @@ const ReviewCard: React.FC<{ review: ReviewType; onDelete: (reviewId: string) =>
         <div className="bg-secondary-light dark:bg-secondary p-4 rounded-lg border border-tertiary-light dark:border-tertiary">
             <div className="flex items-start space-x-3">
                 <Link href={`/profile/${author?.username}`}>
-                    <img src={author?.avatar_url || ''} alt={author?.username} className="w-10 h-10 rounded-full object-cover" />
+                    <Image src={author?.avatar_url || ''} alt={author?.username || 'User'} width={40} height={40} className="w-10 h-10 rounded-full object-cover" unoptimized />
                 </Link>
                 <div className="flex-1">
                     <div className="flex justify-between items-start">
@@ -198,7 +199,7 @@ const PlaceDetailPage: React.FC = () => {
                 <div className="relative w-full h-64 md:h-80 bg-tertiary-light dark:bg-tertiary rounded-md overflow-hidden mb-4">
                     {images.length > 0 ? (
                         <>
-                            <img src={images[currentImageIndex]} alt={`${place.name} image ${currentImageIndex + 1}`} className="w-full h-full object-cover" />
+                            <Image src={images[currentImageIndex]} alt={`${place.name} image ${currentImageIndex + 1}`} fill className="object-cover" unoptimized />
                             {images.length > 1 && (
                                 <>
                                     <button onClick={prevImage} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 text-white p-2 rounded-full hover:bg-black/60 transition-colors">

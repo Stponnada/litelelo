@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
 import { supabase } from '../services/supabase';
 import { Post as PostType, Profile, Poll, QuotedPost } from '../types';
 import Spinner from './Spinner';
@@ -259,10 +260,13 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, profile, communi
       <div className="p-5">
         <form onSubmit={handleSubmit}>
           <div className="flex items-start gap-4">
-            <img
-              src={profile.avatar_url || ''}
+            <Image
+              src={profile.avatar_url || 'https://placehold.co/44x44'}
               alt="Avatar"
+              width={44}
+              height={44}
               className="w-11 h-11 rounded-full object-cover ring-2 ring-white dark:ring-tertiary shadow-sm"
+              unoptimized
             />
 
             <div className="flex-1 min-w-0">
@@ -282,6 +286,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, profile, communi
               {imagePreview && (
                 <div className="mt-4 relative group inline-block">
                   <div className="relative rounded-xl overflow-hidden border border-gray-200 dark:border-tertiary shadow-sm">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={imagePreview}
                       alt="Preview"

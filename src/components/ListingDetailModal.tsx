@@ -1,6 +1,7 @@
 // src/components/ListingDetailModal.tsx
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 // FIXED: Imports for Next.js
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -71,7 +72,7 @@ const ListingDetailModal: React.FC<ListingDetailModalProps> = ({ listing, onClos
                 <div className="w-full md:w-1/2 relative bg-tertiary-light dark:bg-primary rounded-t-xl md:rounded-l-xl md:rounded-tr-none flex items-center justify-center">
                     {images.length > 0 ? (
                         <>
-                            <img src={images[currentImageIndex]} alt={`${listing.title} image ${currentImageIndex + 1}`} className="max-h-[50vh] md:max-h-[90vh] w-auto h-auto object-contain" />
+                            <Image src={images[currentImageIndex]} alt={`${listing.title} image ${currentImageIndex + 1}`} fill className="object-contain" unoptimized />
                             {images.length > 1 && (
                                 <>
                                     <button onClick={prevImage} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 text-white p-2 rounded-full hover:bg-black/60"><BackIcon /></button>
@@ -103,7 +104,7 @@ const ListingDetailModal: React.FC<ListingDetailModalProps> = ({ listing, onClos
                             <p className="text-sm font-semibold text-text-secondary-light dark:text-text-secondary mb-2">SELLER INFORMATION</p>
                             {/* FIXED: Link href */}
                             <Link href={`/reputation/${listing.seller_profile.username}`} className="flex items-center space-x-3 group">
-                                <img src={listing.seller_profile.avatar_url || ''} alt={listing.seller_profile.username} className="w-12 h-12 rounded-full object-cover" />
+                                <Image src={listing.seller_profile.avatar_url || ''} alt={listing.seller_profile.username} width={48} height={48} className="w-12 h-12 rounded-full object-cover" unoptimized />
                                 <div>
                                     <p className="font-bold text-text-main-light dark:text-text-main group-hover:underline">{listing.seller_profile.full_name}</p>
                                     <div className="flex items-center text-xs text-text-tertiary-light dark:text-text-tertiary">

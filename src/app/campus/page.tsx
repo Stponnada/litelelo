@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/services/supabase';
@@ -55,7 +56,7 @@ const PlaceWidget: React.FC<{ places: CampusPlace[] }> = ({ places }) => (
         <div className="mt-auto space-y-3">
             {places.length > 0 ? places.map((place) => (
                 <div key={place.id} className="flex items-center gap-3 p-2 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700">
-                    <img src={place.primary_image_url || 'https://placehold.co/80x80'} className="w-10 h-10 rounded-lg object-cover" alt="" />
+                    <Image src={place.primary_image_url || 'https://placehold.co/80x80'} width={40} height={40} className="w-10 h-10 rounded-lg object-cover" alt="" unoptimized />
                     <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-zinc-700 dark:text-zinc-200 truncate">{place.name}</p>
                         <div className="flex items-center text-xs text-amber-500 font-medium">
@@ -76,7 +77,7 @@ const MarketWidget: React.FC<{ listing: MarketplaceListing | null }> = ({ listin
         {/* Background Image for both modes, lighter in light mode */}
         {listing?.all_images?.[0] && (
             <div className="absolute inset-0 z-0">
-                <img src={listing.all_images[0]} className="w-full h-full object-cover opacity-[0.08] dark:opacity-20 group-hover:scale-110 transition-all duration-700 grayscale group-hover:grayscale-0" alt="" />
+                <Image src={listing.all_images[0]} fill className="object-cover opacity-[0.08] dark:opacity-20 group-hover:scale-110 transition-all duration-700 grayscale group-hover:grayscale-0" alt="" unoptimized />
                 <div className="absolute inset-0 bg-gradient-to-t from-white via-white/50 to-transparent dark:from-zinc-900 dark:via-zinc-900/50 dark:to-transparent" />
             </div>
         )}
@@ -148,7 +149,11 @@ const CampusPage: React.FC = () => {
     const [topPlaces, setTopPlaces] = useState<CampusPlace[]>([]);
     const [newestListing, setNewestListing] = useState<MarketplaceListing | null>(null);
     const [latestNotice, setLatestNotice] = useState<CampusNotice | null>(null);
-    const [loading, setLoading] = useState(true);
+    
+    const [loadingPlaces, setLoadingPlaces] = useState(true);
+    const [loadingListing, setLoadingListing] = useState(true);
+    const [loadingNotice, setLoadingNotice] = useState(true);
+
     const [greeting, setGreeting] = useState('Hello');
 
     useEffect(() => {
@@ -159,27 +164,63 @@ const CampusPage: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        if (!profile?.campus) return;
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                const [places, listings, notices] = await Promise.all([
-                    supabase.rpc('get_campus_places_with_ratings', { p_campus: profile.campus }).order('avg_rating', { ascending: false }).limit(2),
-                    supabase.rpc('get_marketplace_listings', { p_campus: profile.campus }).order('created_at', { ascending: false }).limit(1),
-                    supabase.rpc('get_campus_notices_with_files', { p_campus: profile.campus }).limit(1)
-                ]);
+        if (!profile?.campus) {
+            setLoadingPlaces(false);
+            setLoadingListing(false);
+            setLoadingNotice(false);
+            return;
+        }
 
-                if (places.data) setTopPlaces(places.data as CampusPlace[]);
-                if (listings.data && listings.data.length > 0) setNewestListing(listings.data[0] as MarketplaceListing);
-                if (notices.data && notices.data.length > 0) setLatestNotice(notices.data[0] as CampusNotice);
-            } catch (err: unknown) {
-                console.error(err);
-                // Optionally, set an error state here as well if needed
+        const fetchPlaces = async () => {
+            setLoadingPlaces(true);
+            try {
+                const { data, error } = await supabase
+                    .rpc('get_campus_places_with_ratings', { p_campus: profile.campus })
+                    .order('avg_rating', { ascending: false })
+                    .limit(2);
+                if (error) throw error;
+                if (data) setTopPlaces(data as CampusPlace[]);
+            } catch (err) {
+                console.error("Error fetching places:", err);
             } finally {
-                setLoading(false);
+                setLoadingPlaces(false);
             }
         };
-        fetchData();
+
+        const fetchListings = async () => {
+            setLoadingListing(true);
+            try {
+                const { data, error } = await supabase
+                    .rpc('get_marketplace_listings', { p_campus: profile.campus })
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+                if (error) throw error;
+                if (data && data.length > 0) setNewestListing(data[0] as MarketplaceListing);
+            } catch (err) {
+                console.error("Error fetching listings:", err);
+            } finally {
+                setLoadingListing(false);
+            }
+        };
+
+        const fetchNotices = async () => {
+            setLoadingNotice(true);
+            try {
+                const { data, error } = await supabase
+                    .rpc('get_campus_notices_with_files', { p_campus: profile.campus })
+                    .limit(1);
+                if (error) throw error;
+                if (data && data.length > 0) setLatestNotice(data[0] as CampusNotice);
+            } catch (err) {
+                console.error("Error fetching notices:", err);
+            } finally {
+                setLoadingNotice(false);
+            }
+        };
+        
+        fetchPlaces();
+        fetchListings();
+        fetchNotices();
     }, [profile?.campus]);
 
     return (
@@ -219,17 +260,17 @@ const CampusPage: React.FC = () => {
 
                     {/* 1. Places (Large Vertical) */}
                     <BentoCard href="/campus/reviews" className="md:col-span-1 md:row-span-2" gradient="from-blue-500/5 to-purple-500/5">
-                        {loading ? <Spinner /> : <PlaceWidget places={topPlaces} />}
+                        {loadingPlaces ? <Spinner /> : <PlaceWidget places={topPlaces} />}
                     </BentoCard>
 
                     {/* 2. Marketplace */}
                     <BentoCard href="/campus/marketplace" className="md:col-span-1 md:row-span-1" gradient="from-emerald-500/10 to-teal-500/10">
-                        {loading ? <Spinner /> : <MarketWidget listing={newestListing} />}
+                        {loadingListing ? <Spinner /> : <MarketWidget listing={newestListing} />}
                     </BentoCard>
 
                     {/* 3. Notices */}
                     <BentoCard href="/campus/noticeboard" className="md:col-span-1 md:row-span-1" gradient="from-amber-500/5 to-orange-500/5">
-                        {loading ? <Spinner /> : <NoticeWidget notice={latestNotice} />}
+                        {loadingNotice ? <Spinner /> : <NoticeWidget notice={latestNotice} />}
                     </BentoCard>
 
                     {/* 4. Handouts for you */}

@@ -1,6 +1,7 @@
 // src/components/BlockchainVisualizer.tsx
 
 import React from 'react';
+import Image from 'next/image';
 import { format } from 'date-fns';
 import { TransactionProps } from './Transaction';
 
@@ -29,7 +30,7 @@ const VisualBlock: React.FC<{ block: Block, isGenesis: boolean }> = ({ block, is
                 <h3 className="font-bold text-lg text-brand-green">Block #{block.index}</h3>
                 {block.miner?.username ? (
                     <div className="flex items-center gap-2" title={`Mined by @${block.miner.username}`}>
-                        <img src={block.miner.avatar_url || ''} alt={block.miner.username} className="w-6 h-6 rounded-full object-cover" />
+                        <Image src={block.miner.avatar_url || ''} alt={block.miner.username} width={24} height={24} className="w-6 h-6 rounded-full object-cover" unoptimized />
                         <span className="text-xs font-semibold text-text-secondary-light dark:text-text-secondary">@{block.miner.username}</span>
                     </div>
                 ) : (

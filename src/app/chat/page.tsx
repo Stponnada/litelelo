@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
+import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { Profile, ConversationSummary } from '@/types';
@@ -205,10 +206,13 @@ const ChatPage: React.FC = () => {
                                                     <UserGroupIcon className="w-7 h-7 text-purple-600 dark:text-purple-400" />
                                                 </div>
                                             ) : (
-                                                <img
+                                                <Image
                                                     src={avatarSrc}
                                                     alt={displayName || ''}
+                                                    width={56}
+                                                    height={56}
                                                     className="w-14 h-14 rounded-full object-cover shadow-lg ring-2 ring-white dark:ring-secondary"
+                                                    unoptimized
                                                 />
                                             )}
                                             {isOnline && conv.type === 'dm' && (

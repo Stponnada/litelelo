@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/hooks/useAuth';
@@ -34,10 +35,13 @@ const CommunityCard: React.FC<{ community: CommunityListItem, index: number }> =
                         {/* Avatar with glow effect */}
                         <div className="relative flex-shrink-0">
                             <div className="absolute inset-0 bg-brand-green/30 blur-2xl rounded-full scale-110 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                            <img
+                            <Image
                                 src={community.avatar_url || `https://ui-avatars.com/api/?name=${community.name}&background=random&color=000`}
                                 alt={community.name}
+                                width={80}
+                                height={80}
                                 className="relative w-14 h-14 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl object-cover ring-1 ring-black/5 dark:ring-white/10 shadow-lg"
+                                unoptimized
                             />
                         </div>
 
@@ -86,16 +90,16 @@ const CommunitiesListPage: React.FC = () => {
             try {
                 const { data, error: rpcError } = await supabase.rpc('get_communities_list', { p_campus: profile.campus });
                 if (rpcError) throw rpcError;
-            setCommunities(data as CommunityListItem[] || []);
-        } catch (err: unknown) {
-            if (err instanceof Error) {
-                setError(err.message);
-            } else {
-                setError('An unknown error occurred.');
+                setCommunities(data as CommunityListItem[] || []);
+            } catch (err: unknown) {
+                if (err instanceof Error) {
+                    setError(err.message);
+                } else {
+                    setError('An unknown error occurred.');
+                }
+            } finally {
+                setLoading(false);
             }
-        } finally {
-            setLoading(false);
-        }
         };
 
         fetchCommunities();

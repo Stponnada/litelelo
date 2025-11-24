@@ -1,6 +1,7 @@
 // src/components/ListingCard.tsx
 
 import React from 'react';
+import Image from 'next/image';
 import { MarketplaceListing } from '../types';
 
 interface ListingCardProps {
@@ -26,15 +27,18 @@ const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) => {
     // ----------------------
 
     return (
-        <div 
-            onClick={onClick} 
+        <div
+            onClick={onClick}
             className="group cursor-pointer bg-secondary-light dark:bg-secondary rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 border border-tertiary-light dark:border-tertiary flex flex-col"
         >
             <div className="relative w-full aspect-square overflow-hidden">
-                <img 
-                    src={getResizedImageUrl(listing.primary_image_url, 400, 400)} 
-                    alt={listing.title} 
+                <Image
+                    src={getResizedImageUrl(listing.primary_image_url, 400, 400)}
+                    alt={listing.title}
+                    width={400}
+                    height={400}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    unoptimized
                 />
             </div>
             <div className="p-4 flex flex-col flex-grow">

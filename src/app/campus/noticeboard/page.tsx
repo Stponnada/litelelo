@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/hooks/useAuth';
@@ -89,10 +90,14 @@ const NoticeCard: React.FC<{ notice: CampusNotice, onDelete: (id: string) => voi
                     <a href={currentFile.file_url} target="_blank" rel="noopener noreferrer" className="block group/image">
                         {currentFile.file_type === 'image' ? (
                             <div className="relative overflow-hidden rounded-xl">
-                                <img
+                                <Image
                                     src={currentFile.file_url}
                                     alt={notice.title}
+                                    width={0}
+                                    height={0}
+                                    sizes="100vw"
                                     className="w-full h-auto rounded-xl object-cover max-h-96 transition-transform duration-500 group-hover/image:scale-105"
+                                    unoptimized
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300"></div>
                             </div>
@@ -146,10 +151,13 @@ const NoticeCard: React.FC<{ notice: CampusNotice, onDelete: (id: string) => voi
                         className="flex items-center gap-2 group/user"
                     >
                         <div className="relative">
-                            <img
+                            <Image
                                 src={notice.profiles?.avatar_url || ''}
-                                alt={notice.profiles?.username}
+                                alt={notice.profiles?.username || 'User'}
+                                width={24}
+                                height={24}
                                 className="w-6 h-6 rounded-full ring-2 ring-yellow-300 dark:ring-yellow-700 group-hover/user:ring-amber-500 transition-all"
+                                unoptimized
                             />
                         </div>
                         <span className="font-semibold text-gray-700 dark:text-yellow-300 group-hover/user:text-amber-600 dark:group-hover/user:text-yellow-400 transition-colors">

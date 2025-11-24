@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/services/supabase';
@@ -107,10 +108,12 @@ const BlogPage: React.FC = () => {
             <div className="relative w-full h-[40vh] md:h-[50vh] bg-black/10 dark:bg-black/30">
                 {post.image_url ? (
                     <>
-                        <img
+                        <Image
                             src={post.image_url}
                             alt={post.title || 'Cover'}
-                            className="w-full h-full object-cover"
+                            fill
+                            className="object-cover"
+                            unoptimized
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-surface-light dark:from-surface via-transparent to-black/30"></div>
                     </>
@@ -144,10 +147,13 @@ const BlogPage: React.FC = () => {
 
                         <div className="flex items-center justify-center gap-4 text-sm text-text-secondary-light dark:text-text-secondary">
                             <div className="flex items-center gap-2">
-                                <img
+                                <Image
                                     src={post.author.author_avatar_url || `https://ui-avatars.com/api/?name=${post.author.author_name}`}
                                     alt={post.author.author_name || 'Author'}
+                                    width={40}
+                                    height={40}
                                     className="w-10 h-10 rounded-full object-cover border-2 border-surface-light dark:border-surface"
+                                    unoptimized
                                 />
                                 <div className="text-left">
                                     <p className="font-bold text-text-main-light dark:text-text-main">
