@@ -32,7 +32,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const { data, error } = await supabase.auth.getSession();
       if (error) {
-        console.warn("Session refresh warning:", error.message);
+        // If refresh token is missing/invalid, sign out to prevent UI hangs
         if (error.message.includes("refresh_token_not_found") || error.message.includes("Invalid Refresh Token")) {
           await supabase.auth.signOut();
           setSession(null);
@@ -71,20 +71,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
 
-    // 1. Initial Session Fetch with Safety Timeout
+    // 1. Initial Session Fetch
     const initSession = async () => {
       try {
-        // Race between getSession and a 5-second timeout to prevent eternal hanging
-        const sessionPromise = supabase.auth.getSession();
-        const timeoutPromise = new Promise<{ data: { session: null } }>((resolve) =>
-          setTimeout(() => resolve({ data: { session: null } }), 5000)
-        );
+        // Removed Promise.race to prevent premature logout on slow connections
+        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
 
-        const { data: { session: initialSession } } = await Promise.race([
-          sessionPromise,
-          // If getSession hangs, we fall back to null so the app can at least render (likely redirecting to login)
-          timeoutPromise
-        ]);
+        if (error) throw error;
 
         if (mounted) {
           setSession(initialSession);
@@ -97,6 +90,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } catch (err) {
         console.error("Auth initialization error:", err);
       } finally {
+        // Ensure loading is ALWAYS turned off, even if errors occur
         if (mounted) setIsLoading(false);
       }
     };
@@ -111,8 +105,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        // Ensure we fetch profile safely inside a try/catch block
         try {
+          // Fetch profile if we don't have it or if user changed
           if (!profile || profile.user_id !== session.user.id) {
             await fetchProfile(session.user.id);
           }
@@ -123,7 +117,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setProfile(null);
       }
 
-      // ALWAYS turn off loading, even if profile fetch fails
       setIsLoading(false);
     });
 
