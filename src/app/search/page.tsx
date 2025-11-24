@@ -141,16 +141,27 @@ const SearchPage: React.FC = () => {
                 </div>
 
                 <div className="divide-y divide-tertiary-light/50 dark:divide-tertiary/50">
-                    {sections.map(({ key, title, data, component: Component, propName }) => {
+                    {sections.map(({ key, title, data }) => {
                         if ((activeTab === 'all' || activeTab === key) && data.length > 0) {
                             return (
                                 <div key={key} className="p-4">
                                     {activeTab === 'all' && <h3 className="font-bold mb-2 text-text-main-light dark:text-text-main">{title}</h3>}
                                     <div className="space-y-1">
-                                        {data.map(item => {
-                                            const props = { [propName]: item };
-                                            return <Component key={'id' in item ? item.id : item.username} {...props as unknown as React.ComponentProps<typeof Component>} />;
-                                        })}
+                                        {key === 'users' && (data as UserSearchResult[]).map(item => (
+                                            <UserResultCard key={item.username} user={item} />
+                                        ))}
+                                        {key === 'posts' && (data as PostSearchResult[]).map(item => (
+                                            <PostResultCard key={item.id} post={item} />
+                                        ))}
+                                        {key === 'communities' && (data as CommunitySearchResult[]).map(item => (
+                                            <CommunityResultCard key={item.id} community={item} />
+                                        ))}
+                                        {key === 'listings' && (data as ListingSearchResult[]).map(item => (
+                                            <ListingResultCard key={item.id} listing={item} />
+                                        ))}
+                                        {key === 'events' && (data as EventSearchResult[]).map(item => (
+                                            <EventResultCard key={item.id} event={item} />
+                                        ))}
                                     </div>
                                 </div>
                             );
