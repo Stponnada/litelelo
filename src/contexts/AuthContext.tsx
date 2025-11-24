@@ -33,7 +33,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { data, error } = await supabase.auth.getSession();
       if (error) {
         console.warn("Session refresh warning:", error.message);
-        // If refresh token is missing/invalid, sign out to prevent UI hangs
         if (error.message.includes("refresh_token_not_found") || error.message.includes("Invalid Refresh Token")) {
           await supabase.auth.signOut();
           setSession(null);
@@ -41,7 +40,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setProfile(null);
         }
       } else if (data.session) {
-        // Only update if the token has actually changed to prevent rerenders
         if (data.session.access_token !== session?.access_token) {
           setSession(data.session);
           setUser(data.session.user);
@@ -55,10 +53,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     let mounted = true;
 
-    // 1. Initial Session Fetch
+    const fetchProfile = async (userId: string) => {
+      try {
+        const { data: profileData, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', userId)
+          .single();
+
+        if (error) {
+          console.warn("Error fetching profile:", error.message);
+        }
+
+        if (mounted) setProfile(profileData as Profile | null);
+      } catch (err) {
+        console.error("Unexpected profile fetch error:", err);
+      }
+    };
+
+    // 1. Initial Session Fetch with Safety Timeout
     const initSession = async () => {
       try {
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        // Race between getSession and a 5-second timeout to prevent eternal hanging
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise<{ data: { session: null } }>((resolve) =>
+          setTimeout(() => resolve({ data: { session: null } }), 5000)
+        );
+
+        const { data: { session: initialSession } } = await Promise.race([
+          sessionPromise,
+          // If getSession hangs, we fall back to null so the app can at least render (likely redirecting to login)
+          timeoutPromise
+        ]);
 
         if (mounted) {
           setSession(initialSession);
@@ -75,16 +101,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
 
-    const fetchProfile = async (userId: string) => {
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
-
-      if (mounted) setProfile(profileData as Profile | null);
-    };
-
     initSession();
 
     // 2. Auth State Listener
@@ -95,17 +111,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        if (!profile || profile.user_id !== session.user.id) {
-          await fetchProfile(session.user.id);
+        // Ensure we fetch profile safely inside a try/catch block
+        try {
+          if (!profile || profile.user_id !== session.user.id) {
+            await fetchProfile(session.user.id);
+          }
+        } catch (err) {
+          console.error("Profile update error in auth listener:", err);
         }
       } else {
         setProfile(null);
       }
 
+      // ALWAYS turn off loading, even if profile fetch fails
       setIsLoading(false);
     });
 
-    // 3. Window Focus Revalidation (Fixes the "Idle Hang" issue)
+    // 3. Window Focus Revalidation
     const handleFocus = () => {
       if (document.visibilityState === 'visible') {
         refreshSession();
