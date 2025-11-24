@@ -27,12 +27,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setProfile(newProfile);
   };
 
-  // Helper to manually refresh session data
   const refreshSession = useCallback(async () => {
     try {
       const { data, error } = await supabase.auth.getSession();
       if (error) {
-        // If refresh token is missing/invalid, sign out to prevent UI hangs
         if (error.message.includes("refresh_token_not_found") || error.message.includes("Invalid Refresh Token")) {
           await supabase.auth.signOut();
           setSession(null);
@@ -46,81 +44,83 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       }
     } catch (err) {
-      console.error("Unexpected error checking session:", err);
+      console.error("Error checking session:", err);
     }
   }, [session?.access_token]);
 
   useEffect(() => {
     let mounted = true;
 
+    // Independent function to fetch profile without blocking the UI
     const fetchProfile = async (userId: string) => {
       try {
-        const { data: profileData, error } = await supabase
+        const { data, error } = await supabase
           .from('profiles')
           .select('*')
           .eq('user_id', userId)
           .single();
 
-        if (error) {
-          console.warn("Error fetching profile:", error.message);
-        }
-
-        if (mounted) setProfile(profileData as Profile | null);
-      } catch (err) {
-        console.error("Unexpected profile fetch error:", err);
+        if (error && mounted) console.warn("Error loading profile:", error.message);
+        if (data && mounted) setProfile(data as Profile);
+      } catch (error) {
+        console.error("Profile fetch error", error);
       }
     };
 
-    // 1. Initial Session Fetch
-    const initSession = async () => {
+    const initializeAuth = async () => {
       try {
-        // Removed Promise.race to prevent premature logout on slow connections
-        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
-
-        if (error) throw error;
+        // 1. Get Session from Supabase (fast, from local storage)
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
 
         if (mounted) {
           setSession(initialSession);
           setUser(initialSession?.user ?? null);
-
-          if (initialSession?.user) {
-            await fetchProfile(initialSession.user.id);
-          }
         }
-      } catch (err) {
-        console.error("Auth initialization error:", err);
-      } finally {
-        // Ensure loading is ALWAYS turned off, even if errors occur
+
+        // 2. Stop the spinner IMMEDIATELY after we know if we have a user or not.
+        // We do NOT await the profile here. We let it load in the background.
+        if (mounted) setIsLoading(false);
+
+        // 3. Fetch Profile in background if user exists
+        if (initialSession?.user) {
+          await fetchProfile(initialSession.user.id);
+        }
+
+      } catch (error) {
+        console.error("Auth initialization failed:", error);
         if (mounted) setIsLoading(false);
       }
     };
 
-    initSession();
+    initializeAuth();
 
-    // 2. Auth State Listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    // 4. Safety Valve: Force loading to stop after 2 seconds max
+    // This prevents the "infinite spinner" if Supabase hangs or network is weird.
+    const safetyTimeout = setTimeout(() => {
+      if (mounted && isLoading) {
+        console.warn("Forcing loading completion via safety timeout");
+        setIsLoading(false);
+      }
+    }, 2000);
+
+    // 5. Listen for Auth Changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
       setSession(session);
       setUser(session?.user ?? null);
 
-      if (session?.user) {
-        try {
-          // Fetch profile if we don't have it or if user changed
-          if (!profile || profile.user_id !== session.user.id) {
-            await fetchProfile(session.user.id);
-          }
-        } catch (err) {
-          console.error("Profile update error in auth listener:", err);
-        }
-      } else {
+      if (event === 'SIGNED_OUT') {
         setProfile(null);
+        setIsLoading(false);
+      } else if (session?.user && event !== 'INITIAL_SESSION') {
+        // On sign-in or token refresh, ensure profile is up to date
+        // We don't set isLoading(true) here to avoid flashing
+        fetchProfile(session.user.id);
       }
-
-      setIsLoading(false);
     });
 
-    // 3. Window Focus Revalidation
+    // 6. Window Focus Logic (Kept from previous fix)
     const handleFocus = () => {
       if (document.visibilityState === 'visible') {
         refreshSession();
@@ -132,11 +132,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     return () => {
       mounted = false;
+      clearTimeout(safetyTimeout);
       subscription.unsubscribe();
       window.removeEventListener('visibilitychange', handleFocus);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [refreshSession, profile]);
+  }, [refreshSession]); // Dependencies reduced to avoid loops
 
   const value = {
     session,
