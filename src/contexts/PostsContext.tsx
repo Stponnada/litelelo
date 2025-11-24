@@ -58,6 +58,18 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const currentPage = loadMore ? currentFeedState.page + 1 : 0;
 
     try {
+      // Proactively ensure the session is fresh for authenticated feeds
+      if (feedType === 'following' || feedType === 'campus') {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+        if (!session) {
+            // If the session is gone, stop and likely let the UI redirect to login
+            setIsFetching(false);
+            setLoading(false);
+            return;
+        }
+      }
+
       let rpcToCall: string;
       let query;
 

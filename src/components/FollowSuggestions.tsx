@@ -47,6 +47,11 @@ const FollowSuggestions: React.FC = () => {
     const fetchSuggestions = async () => {
       setLoading(true);
       try {
+        // Proactively ensure the session is fresh before calling an authenticated RPC
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+        if (!session) return; // Not authenticated, so no suggestions to fetch
+
         const { data, error } = await supabase.rpc('get_follow_suggestions');
         if (error) throw error;
         setSuggestions(data || []);

@@ -149,11 +149,7 @@ const CampusPage: React.FC = () => {
     const [topPlaces, setTopPlaces] = useState<CampusPlace[]>([]);
     const [newestListing, setNewestListing] = useState<MarketplaceListing | null>(null);
     const [latestNotice, setLatestNotice] = useState<CampusNotice | null>(null);
-    
-    const [loadingPlaces, setLoadingPlaces] = useState(true);
-    const [loadingListing, setLoadingListing] = useState(true);
-    const [loadingNotice, setLoadingNotice] = useState(true);
-
+    const [loading, setLoading] = useState(true);
     const [greeting, setGreeting] = useState('Hello');
 
     useEffect(() => {
@@ -165,62 +161,39 @@ const CampusPage: React.FC = () => {
 
     useEffect(() => {
         if (!profile?.campus) {
-            setLoadingPlaces(false);
-            setLoadingListing(false);
-            setLoadingNotice(false);
+            setLoading(false);
             return;
         }
 
-        const fetchPlaces = async () => {
-            setLoadingPlaces(true);
+        const fetchData = async () => {
+            setLoading(true);
             try {
-                const { data, error } = await supabase
-                    .rpc('get_campus_places_with_ratings', { p_campus: profile.campus })
-                    .order('avg_rating', { ascending: false })
-                    .limit(2);
-                if (error) throw error;
-                if (data) setTopPlaces(data as CampusPlace[]);
-            } catch (err) {
-                console.error("Error fetching places:", err);
+                // Proactively refresh the session to ensure the client has a valid token
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+                if (sessionError) throw sessionError;
+                if (!session) {
+                    console.error("Not authenticated, stopping fetch.");
+                    return;
+                }
+
+                const [places, listings, notices] = await Promise.all([
+                    supabase.rpc('get_campus_places_with_ratings', { p_campus: profile.campus }).order('avg_rating', { ascending: false }).limit(2),
+                    supabase.rpc('get_marketplace_listings', { p_campus: profile.campus }).order('created_at', { ascending: false }).limit(1),
+                    supabase.rpc('get_campus_notices_with_files', { p_campus: profile.campus }).limit(1)
+                ]);
+
+                if (places.data) setTopPlaces(places.data as CampusPlace[]);
+                if (listings.data && listings.data.length > 0) setNewestListing(listings.data[0] as MarketplaceListing);
+                if (notices.data && notices.data.length > 0) setLatestNotice(notices.data[0] as CampusNotice);
+
+            } catch (err: unknown) {
+                console.error("Error fetching campus data:", err);
             } finally {
-                setLoadingPlaces(false);
+                setLoading(false);
             }
         };
 
-        const fetchListings = async () => {
-            setLoadingListing(true);
-            try {
-                const { data, error } = await supabase
-                    .rpc('get_marketplace_listings', { p_campus: profile.campus })
-                    .order('created_at', { ascending: false })
-                    .limit(1);
-                if (error) throw error;
-                if (data && data.length > 0) setNewestListing(data[0] as MarketplaceListing);
-            } catch (err) {
-                console.error("Error fetching listings:", err);
-            } finally {
-                setLoadingListing(false);
-            }
-        };
-
-        const fetchNotices = async () => {
-            setLoadingNotice(true);
-            try {
-                const { data, error } = await supabase
-                    .rpc('get_campus_notices_with_files', { p_campus: profile.campus })
-                    .limit(1);
-                if (error) throw error;
-                if (data && data.length > 0) setLatestNotice(data[0] as CampusNotice);
-            } catch (err) {
-                console.error("Error fetching notices:", err);
-            } finally {
-                setLoadingNotice(false);
-            }
-        };
-        
-        fetchPlaces();
-        fetchListings();
-        fetchNotices();
+        fetchData();
     }, [profile?.campus]);
 
     return (
@@ -260,17 +233,17 @@ const CampusPage: React.FC = () => {
 
                     {/* 1. Places (Large Vertical) */}
                     <BentoCard href="/campus/reviews" className="md:col-span-1 md:row-span-2" gradient="from-blue-500/5 to-purple-500/5">
-                        {loadingPlaces ? <Spinner /> : <PlaceWidget places={topPlaces} />}
+                        {loading ? <Spinner /> : <PlaceWidget places={topPlaces} />}
                     </BentoCard>
 
                     {/* 2. Marketplace */}
                     <BentoCard href="/campus/marketplace" className="md:col-span-1 md:row-span-1" gradient="from-emerald-500/10 to-teal-500/10">
-                        {loadingListing ? <Spinner /> : <MarketWidget listing={newestListing} />}
+                        {loading ? <Spinner /> : <MarketWidget listing={newestListing} />}
                     </BentoCard>
 
                     {/* 3. Notices */}
                     <BentoCard href="/campus/noticeboard" className="md:col-span-1 md:row-span-1" gradient="from-amber-500/5 to-orange-500/5">
-                        {loadingNotice ? <Spinner /> : <NoticeWidget notice={latestNotice} />}
+                        {loading ? <Spinner /> : <NoticeWidget notice={latestNotice} />}
                     </BentoCard>
 
                     {/* 4. Handouts for you */}

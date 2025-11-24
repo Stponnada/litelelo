@@ -30,35 +30,61 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     let mounted = true;
 
-    // The listener fires immediately with the initial session, so we can
-    // use it to set the initial state and handle all subsequent changes.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (!mounted) return;
+    const initializeSession = async () => {
+        try {
+            const { data: { session }, error } = await supabase.auth.getSession();
+            if (error) throw error;
+            if (!mounted) return;
 
-      setSession(session);
-      setUser(session?.user ?? null);
+            setSession(session);
+            setUser(session?.user ?? null);
 
-      if (session?.user) {
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .single();
-
-        if (profileError) {
-          console.error("Error fetching profile on auth change:", profileError);
+            if (session?.user) {
+                const { data: profileData, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('user_id', session.user.id)
+                    .single();
+                if (profileError) throw profileError;
+                if (mounted) setProfile(profileData as Profile | null);
+            }
+        } catch (error) {
+            console.error("Error initializing session:", error);
+        } finally {
+            if (mounted) {
+                setIsLoading(false);
+            }
         }
+    };
+
+    initializeSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        if (!mounted) return;
         
-        if (mounted) {
-          setProfile(profileData as Profile | null);
-        }
-      } else {
-        if (mounted) {
-          setProfile(null);
+        setSession(session);
+        setUser(session?.user ?? null);
+
+        if (session?.user) {
+            try {
+                const { data: profileData, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('user_id', session.user.id)
+                    .single();
+
+                if (profileError) throw profileError;
+                if (mounted) setProfile(profileData as Profile | null);
+
+            } catch (error) {
+                console.error("Error fetching profile on auth change:", error);
+            }
+        } else {
+            setProfile(null);
         }
       }
-      setIsLoading(false);
-    });
+    );
 
     return () => {
       mounted = false;
