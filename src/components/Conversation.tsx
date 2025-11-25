@@ -107,6 +107,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
 
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [attachedFile, setAttachedFile] = useState<File | null>(null);
     const [isGifPickerOpen, setGifPickerOpen] = useState(false);
     const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
     const [emojiPickerMessageId, setEmojiPickerMessageId] = useState<number | null>(null);
@@ -365,6 +366,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
 
     const resetInput = (keepImagePreview = false) => {
         setImageFile(null);
+        setAttachedFile(null);
         if (imagePreview && !keepImagePreview) {
             URL.revokeObjectURL(imagePreview);
         }
@@ -373,12 +375,49 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
         }
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const getFileType = (file: File): 'image' | 'video' | 'audio' | 'document' | 'file' => {
+        const type = file.type;
+        if (type.startsWith('image/')) return 'image';
+        if (type.startsWith('video/')) return 'video';
+        if (type.startsWith('audio/')) return 'audio';
+        if (type === 'application/pdf' ||
+            type === 'application/msword' ||
+            type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+            type === 'application/vnd.ms-excel' ||
+            type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+            type === 'application/vnd.ms-powerpoint' ||
+            type === 'application/vnd.openxmlformats-officedocument.presentationml.presentation') {
+            return 'document';
+        }
+        return 'file';
+    };
+
+    const formatFileSize = (bytes: number): string => {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fileType: 'image' | 'file') => {
         if (e.target.files && e.target.files[0]) {
             resetInput();
             const file = e.target.files[0];
-            setImageFile(file);
-            setImagePreview(URL.createObjectURL(file));
+
+            // Validate file size (50MB limit)
+            const maxSize = 50 * 1024 * 1024; // 50MB
+            if (file.size > maxSize) {
+                alert('File size must be less than 50MB');
+                return;
+            }
+
+            if (fileType === 'image' || file.type.startsWith('image/')) {
+                setImageFile(file);
+                setImagePreview(URL.createObjectURL(file));
+            } else {
+                setAttachedFile(file);
+            }
         }
     };
 
@@ -389,19 +428,23 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
 
     const handleSendMessage = async (e?: React.FormEvent, media?: { type: 'gif'; url: string }) => {
         if (e) e.preventDefault();
-        if (!user || !profile || (!newMessage.trim() && !imageFile && !media)) return;
+        if (!user || !profile || (!newMessage.trim() && !imageFile && !attachedFile && !media)) return;
 
         const tempId = Date.now();
         const tempImagePreview = imagePreview;
+        const tempFile = imageFile || attachedFile;
+        const fileType = tempFile ? getFileType(tempFile) : null;
 
         const optimisticMessage: Message = {
             id: tempId,
             conversation_id: currentConversationId,
             sender_id: user.id,
-            content: media?.type === 'gif' ? '[GIF]' : (imageFile ? '[Image]' : newMessage.trim()),
+            content: media?.type === 'gif' ? '[GIF]' : (tempFile ? `[${fileType?.toUpperCase()}]` : newMessage.trim()),
             created_at: new Date().toISOString(),
-            message_type: media?.type === 'gif' ? 'gif' : (imageFile ? 'image' : 'text'),
+            message_type: media?.type === 'gif' ? 'gif' : (fileType || 'text'),
             attachment_url: media?.url || tempImagePreview,
+            file_name: tempFile?.name,
+            file_size: tempFile?.size,
             profiles: profile,
             reply_to_message_id: replyingTo?.id || null,
             is_edited: false,
@@ -413,12 +456,14 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
 
         const tempMessageContent = newMessage;
         const tempImageFile = imageFile;
+        const tempAttachedFile = attachedFile;
         const tempReplyingTo = replyingTo;
 
         resetInput(true);
         setNewMessage('');
         setImageFile(null);
         setImagePreview(null);
+        setAttachedFile(null);
         setReplyingTo(null);
 
         try {
@@ -433,17 +478,42 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                 setCurrentConversationId(newConversationId);
             }
 
-            let messageData: { conversation_id: string; sender_id: string; reply_to_message_id: number | null; message_type?: 'text' | 'image' | 'gif'; content?: string; attachment_url?: string } = { conversation_id: convId, sender_id: user.id, reply_to_message_id: tempReplyingTo?.id || null };
+            type MessageData = {
+                conversation_id: string;
+                sender_id: string;
+                reply_to_message_id: number | null;
+                message_type?: 'text' | 'image' | 'gif' | 'video' | 'audio' | 'document' | 'file';
+                content?: string;
+                attachment_url?: string;
+                file_name?: string;
+                file_size?: number;
+            };
+
+            let messageData: MessageData = {
+                conversation_id: convId,
+                sender_id: user.id,
+                reply_to_message_id: tempReplyingTo?.id || null
+            };
 
             if (media?.type === 'gif') {
                 messageData = { ...messageData, message_type: 'gif', attachment_url: media.url, content: '[GIF]' };
-            } else if (tempImageFile) {
-                const fileExt = tempImageFile.name.split('.').pop();
+            } else if (tempImageFile || tempAttachedFile) {
+                const fileToUpload = tempImageFile || tempAttachedFile!;
+                const fileExt = fileToUpload.name.split('.').pop();
                 const filePath = `${user.id}/${Date.now()}.${fileExt}`;
-                const { error: uploadError } = await supabase.storage.from('chat-attachments').upload(filePath, tempImageFile);
+                const { error: uploadError } = await supabase.storage.from('chat-attachments').upload(filePath, fileToUpload);
                 if (uploadError) throw uploadError;
                 const { data: { publicUrl } } = supabase.storage.from('chat-attachments').getPublicUrl(filePath);
-                messageData = { ...messageData, message_type: 'image', attachment_url: publicUrl, content: '[Image]' };
+
+                const detectedFileType = getFileType(fileToUpload);
+                messageData = {
+                    ...messageData,
+                    message_type: detectedFileType,
+                    attachment_url: publicUrl,
+                    content: `[${detectedFileType.toUpperCase()}]`,
+                    file_name: fileToUpload.name,
+                    file_size: fileToUpload.size
+                };
             } else {
                 messageData = { ...messageData, message_type: 'text', content: tempMessageContent.trim() };
             }
@@ -476,7 +546,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
 
     const handleDeleteForEveryone = async (messageId: number) => {
         if (!window.confirm("Are you sure you want to delete this message for everyone?")) return;
-        const updatedFields = { content: "This message was deleted", is_deleted: true, attachment_url: null, message_type: 'text' as const, };
+        const updatedFields = { content: "This message was deleted", is_deleted: true, attachment_url: null, message_type: 'text' as const, file_name: null, file_size: null };
         setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, ...updatedFields } : msg));
         await supabase.from('messages').update(updatedFields).eq('id', messageId);
     };
@@ -900,6 +970,45 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                                                                 unoptimized
                                                             />
                                                         </div>
+                                                    ) : msg.message_type === 'video' && msg.attachment_url ? (
+                                                        <div className="p-1.5">
+                                                            <video
+                                                                src={msg.attachment_url}
+                                                                controls
+                                                                className="rounded-xl w-full max-w-md max-h-80"
+                                                            />
+                                                        </div>
+                                                    ) : msg.message_type === 'audio' && msg.attachment_url ? (
+                                                        <div className="px-4 py-3">
+                                                            <audio
+                                                                src={msg.attachment_url}
+                                                                controls
+                                                                className="w-full max-w-sm"
+                                                            />
+                                                        </div>
+                                                    ) : (msg.message_type === 'document' || msg.message_type === 'file') && msg.attachment_url ? (
+                                                        <a
+                                                            href={msg.attachment_url}
+                                                            download={msg.file_name || 'download'}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="flex items-center gap-3 px-4 py-3 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
+                                                        >
+                                                            <div className="p-2 bg-brand-green/20 rounded-lg flex-shrink-0">
+                                                                <svg className="w-6 h-6 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                                                </svg>
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-sm font-medium truncate">{msg.file_name || 'File'}</p>
+                                                                {msg.file_size && (
+                                                                    <p className="text-xs opacity-70">{formatFileSize(msg.file_size)}</p>
+                                                                )}
+                                                            </div>
+                                                            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                                            </svg>
+                                                        </a>
                                                     ) : null}
                                                 </>
                                             )}
@@ -1056,6 +1165,27 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                         </div>
                     </div>
                 )}
+                {attachedFile && (
+                    <div className="mb-3">
+                        <div className="flex items-center gap-3 px-4 py-3 bg-tertiary-light dark:bg-tertiary rounded-xl border-2 border-brand-green/30">
+                            <div className="p-2 bg-brand-green/20 rounded-lg flex-shrink-0">
+                                <svg className="w-6 h-6 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">{attachedFile.name}</p>
+                                <p className="text-xs text-text-tertiary-light dark:text-text-tertiary">{formatFileSize(attachedFile.size)}</p>
+                            </div>
+                            <button
+                                onClick={() => resetInput()}
+                                className="p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg transform hover:scale-110 transition-transform flex-shrink-0"
+                            >
+                                <XCircleIcon className="w-5 h-5" />
+                            </button>
+                        </div>
+                    </div>
+                )}
                 <form onSubmit={handleSendMessage} className="flex items-center space-x-2">
                     <div className="group relative flex-shrink-0">
                         <button
@@ -1067,7 +1197,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                         <div className="absolute bottom-full mb-2 left-0 bg-secondary-light dark:bg-secondary border border-tertiary-light dark:border-tertiary rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 whitespace-nowrap">
                             <button
                                 type="button"
-                                onClick={() => fileInputRef.current?.click()}
+                                onClick={() => document.getElementById('image-file-input')?.click()}
                                 className="flex items-center w-full text-left space-x-3 px-4 py-3 hover:bg-brand-green/10 dark:hover:bg-brand-green/20 rounded-t-xl transition-colors"
                             >
                                 <div className="p-2 bg-brand-green/20 rounded-lg flex-shrink-0">
@@ -1078,16 +1208,40 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                             <button
                                 type="button"
                                 onClick={() => setGifPickerOpen(true)}
-                                className="flex items-center w-full text-left space-x-3 px-4 py-3 hover:bg-brand-green/10 dark:hover:bg-brand-green/20 rounded-b-xl transition-colors"
+                                className="flex items-center w-full text-left space-x-3 px-4 py-3 hover:bg-brand-green/10 dark:hover:bg-brand-green/20 transition-colors"
                             >
                                 <div className="p-2 bg-brand-green/20 rounded-lg flex-shrink-0">
                                     <GifIcon className="w-5 h-5 text-brand-green" />
                                 </div>
                                 <span className="font-medium">GIF</span>
                             </button>
+                            <button
+                                type="button"
+                                onClick={() => document.getElementById('file-input')?.click()}
+                                className="flex items-center w-full text-left space-x-3 px-4 py-3 hover:bg-brand-green/10 dark:hover:bg-brand-green/20 rounded-b-xl transition-colors"
+                            >
+                                <div className="p-2 bg-brand-green/20 rounded-lg flex-shrink-0">
+                                    <svg className="w-5 h-5 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                    </svg>
+                                </div>
+                                <span className="font-medium">File</span>
+                            </button>
                         </div>
                     </div>
-                    <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" hidden />
+                    <input
+                        id="image-file-input"
+                        type="file"
+                        onChange={(e) => handleFileChange(e, 'image')}
+                        accept="image/*"
+                        hidden
+                    />
+                    <input
+                        id="file-input"
+                        type="file"
+                        onChange={(e) => handleFileChange(e, 'file')}
+                        hidden
+                    />
 
                     <input
                         type="text"
@@ -1102,7 +1256,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                     />
                     <button
                         type="submit"
-                        disabled={!newMessage.trim() && !imageFile}
+                        disabled={!newMessage.trim() && !imageFile && !attachedFile}
                         className="p-3 bg-gradient-to-br from-brand-green to-green-500 text-black rounded-full hover:shadow-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex-shrink-0"
                     >
                         <SendIcon className="w-5 h-5" />

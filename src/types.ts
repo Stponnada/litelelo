@@ -288,8 +288,10 @@ export interface Message {
   sender_id: string;
   content: string | null;
   created_at: string;
-  message_type: 'text' | 'image' | 'gif';
+  message_type: 'text' | 'image' | 'gif' | 'video' | 'audio' | 'document' | 'file';
   attachment_url: string | null;
+  file_name?: string | null;
+  file_size?: number | null;
   profiles: Profile | null;
   reply_to_message_id: number | null;
   is_edited: boolean;
