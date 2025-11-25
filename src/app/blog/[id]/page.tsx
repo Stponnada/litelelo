@@ -12,6 +12,20 @@ import { formatExactTimestamp } from '@/utils/timeUtils';
 import { renderContentWithEmbeds } from '@/utils/renderEmbeds';
 import { ArrowLeftIcon } from '@/components/icons';
 
+// Simple Heart Icon for the floating dock
+const HeartIcon = ({ className }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}>
+        <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+    </svg>
+);
+
+// Share Icon
+const ShareIcon = ({ className }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}>
+        <path fillRule="evenodd" d="M15.75 4.5a3 3 0 11.825 2.066l-8.421 4.679a3.002 3.002 0 010 1.51l8.421 4.679a3 3 0 11-.729 1.31l-8.421-4.678a3 3 0 110-4.132l8.421-4.679a3 3 0 01-.096-.755z" clipRule="evenodd" />
+    </svg>
+);
+
 const BlogPage: React.FC = () => {
     const params = useParams();
     const id = params?.id as string;
@@ -22,24 +36,32 @@ const BlogPage: React.FC = () => {
     const [post, setPost] = useState<PostType | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [scrollProgress, setScrollProgress] = useState(0);
+
+    // Scroll Progress Logic
+    useEffect(() => {
+        const handleScroll = () => {
+            const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const progress = (window.scrollY / totalHeight) * 100;
+            setScrollProgress(Math.min(100, Math.max(0, progress)));
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
     useEffect(() => {
         const fetchBlogPost = async () => {
             if (!id) return;
             setLoading(true);
             try {
-                // Type definitions
+                // Same RPC logic as before...
                 type PostDetailsResponse = Omit<PostType, 'author'> & {
                     author_id: string;
                     author_type: 'user' | 'community';
                     author_name: string | null;
                     author_username: string | null;
                     author_avatar_url: string | null;
-                    author_flair_details: {
-                        id: string;
-                        name: string;
-                        avatar_url: string | null;
-                    } | null;
+                    author_flair_details: { id: string; name: string; avatar_url: string | null; } | null;
                 };
 
                 const { data, error } = await supabase
@@ -60,183 +82,212 @@ const BlogPage: React.FC = () => {
                         author_flair_details: data.author_flair_details
                     }
                 };
-
                 setPost(formattedPost);
             } catch (err: unknown) {
-                console.error('Error fetching blog post:', err);
-                if (err instanceof Error) {
-                    setError(err.message);
-                } else {
-                    setError('An unknown error occurred.');
-                }
+                console.error(err);
+                setError(err instanceof Error ? err.message : 'An unknown error occurred.');
             } finally {
                 setLoading(false);
             }
         };
-
         fetchBlogPost();
     }, [id]);
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-screen bg-surface-light dark:bg-surface">
-                <Spinner />
-            </div>
-        );
-    }
-
-    if (error || !post) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-screen gap-6 bg-surface-light dark:bg-surface">
-                <div className="text-center space-y-2">
-                    <p className="text-text-secondary-light dark:text-text-secondary text-lg">Something went wrong</p>
-                    <h1 className="text-2xl font-bold text-red-500">{error || 'Blog post not found'}</h1>
-                </div>
-                <button
-                    onClick={() => router.back()}
-                    className="flex items-center gap-2 px-6 py-3 rounded-full bg-text-main-light dark:bg-text-main text-surface-light dark:text-surface font-medium hover:opacity-90 transition-opacity"
-                >
-                    <ArrowLeftIcon className="w-4 h-4" />
-                    Go Back
-                </button>
-            </div>
-        );
-    }
+    if (loading) return <div className="flex items-center justify-center min-h-screen bg-surface dark:bg-black"><Spinner /></div>;
+    if (error || !post) return <div className="p-10 text-center text-red-500">{error || 'Post not found'}</div>;
 
     return (
-        <article className="min-h-screen bg-surface-light dark:bg-surface relative overflow-x-hidden selection:bg-brand-green/30 selection:text-brand-green-darker">
+        <div className="min-h-screen bg-surface-light dark:bg-[#0a0a0a] text-text-main-light dark:text-[#ededed] font-sans selection:bg-brand-green/30">
 
-            {/* 1. Ambient Background Glow (Removes the 'boring' flat bg) */}
-            {post.image_url && (
-                <div className="fixed inset-0 z-0 pointer-events-none">
-                    <Image
-                        src={post.image_url}
-                        alt=""
-                        fill
-                        className="object-cover opacity-30 dark:opacity-20 blur-[120px] scale-125 saturate-150"
-                        unoptimized
-                    />
-                    {/* Gradient fade to ensure text readability */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-surface-light/80 via-surface-light/95 to-surface-light dark:from-surface/80 dark:via-surface/95 dark:to-surface" />
-                </div>
-            )}
-
-            {/* Sticky Nav */}
-            <nav className="sticky top-0 z-50 w-full bg-surface-light/60 dark:bg-surface/60 backdrop-blur-xl border-b border-border-light/10 dark:border-border/10">
-                <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-                    <button
-                        onClick={() => router.back()}
-                        className="group flex items-center gap-2 text-text-secondary-light dark:text-text-secondary hover:text-text-main-light dark:hover:text-text-main transition-colors"
-                    >
-                        <div className="p-2 rounded-full bg-black/5 dark:bg-white/5 group-hover:bg-black/10 dark:group-hover:bg-white/10 transition-colors">
-                            <ArrowLeftIcon className="w-4 h-4" />
-                        </div>
-                        <span className="text-sm font-medium">Back</span>
-                    </button>
-                    {/* Placeholder for simple Share/Bookmark actions */}
-                    <div className="flex gap-2"></div>
-                </div>
-            </nav>
-
-            <main className="relative z-10 pt-12 pb-24">
-
-                {/* 2. Title & Meta (Narrow container) */}
-                <header className="max-w-3xl mx-auto px-6 text-center mb-10">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 mb-6 rounded-full bg-brand-green/10 text-brand-green text-xs font-bold uppercase tracking-wider">
-                        {post.community_id ? 'Community Blog' : 'Blog Post'}
+            {/* --- HERO SECTION --- */}
+            {/* Full viewport height cover image with title overlay */}
+            <header className="relative w-full h-[85vh] md:h-[90vh] flex flex-col justify-end overflow-hidden">
+                {post.image_url && (
+                    <div className="absolute inset-0 z-0">
+                        <Image
+                            src={post.image_url}
+                            alt={post.title}
+                            fill
+                            className="object-cover"
+                            priority
+                            unoptimized
+                        />
+                        {/* Complex Gradient Overlay for readability */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-surface-light via-surface-light/60 to-transparent dark:from-[#0a0a0a] dark:via-[#0a0a0a]/80 dark:to-transparent opacity-100" />
+                        <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent" />
                     </div>
-
-                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-text-main-light dark:text-text-main tracking-tight leading-[1.1] mb-8 text-balance">
-                        {post.title}
-                    </h1>
-
-                    <div className="flex items-center justify-center gap-6 text-sm">
-                        <div className="flex items-center gap-2">
-                            <Image
-                                src={post.author.author_avatar_url || `https://ui-avatars.com/api/?name=${post.author.author_name}`}
-                                alt={post.author.author_name || 'Author'}
-                                width={32}
-                                height={32}
-                                className="rounded-full ring-2 ring-surface-light dark:ring-surface"
-                                unoptimized
-                            />
-                            <span className="font-bold text-text-main-light dark:text-text-main">
-                                {post.author.author_name}
-                            </span>
-                        </div>
-                        <span className="text-text-tertiary-light dark:text-text-tertiary">•</span>
-                        <span className="text-text-secondary-light dark:text-text-secondary">
-                            {formatExactTimestamp(post.created_at)}
-                        </span>
-                    </div>
-                </header>
-
-                {/* 3. Cinematic Hero Image (Breakout container - Wider than text) */}
-                {post.image_url ? (
-                    <div className="max-w-5xl mx-auto px-4 md:px-6 mb-16">
-                        <div className="relative aspect-[16/9] md:aspect-[21/9] w-full rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl shadow-brand-green/10 ring-1 ring-black/5 dark:ring-white/10 group">
-                            <Image
-                                src={post.image_url}
-                                alt={post.title || 'Cover'}
-                                fill
-                                className="object-cover transition-transform duration-1000 group-hover:scale-105"
-                                priority
-                                unoptimized
-                            />
-                            {/* Inner vignette for focus */}
-                            <div className="absolute inset-0 ring-1 ring-inset ring-black/10 dark:ring-white/5 rounded-2xl md:rounded-3xl" />
-                        </div>
-                    </div>
-                ) : (
-                    <div className="h-10"></div> /* Spacer if no image */
                 )}
 
-                {/* 4. Main Content (Narrow container for readability) */}
-                <div className="max-w-3xl mx-auto px-6">
-                    <div className="prose dark:prose-invert prose-lg max-w-none 
-                        prose-headings:font-bold prose-headings:text-text-main-light dark:prose-headings:text-text-main
-                        prose-p:text-text-secondary-light dark:prose-p:text-text-secondary prose-p:font-serif prose-p:leading-loose
-                        prose-a:text-brand-green prose-a:font-semibold prose-a:no-underline hover:prose-a:underline
-                        prose-img:rounded-xl prose-img:shadow-lg prose-img:my-8
-                        prose-blockquote:border-l-4 prose-blockquote:border-brand-green prose-blockquote:pl-6 prose-blockquote:italic
-                    ">
-                        {renderContentWithEmbeds(post.content)}
-                    </div>
-
-                    {/* Footer / Community Card */}
-                    {post.community_id && (
-                        <div className="mt-20 pt-10 border-t border-border-light dark:border-border">
-                            <p className="text-xs font-bold uppercase tracking-widest text-text-tertiary-light dark:text-text-tertiary mb-6">
-                                Published In
-                            </p>
-
-                            <Link
-                                href={`/communities/${post.community_id}`}
-                                className="group block relative overflow-hidden rounded-2xl bg-surface-light-alt dark:bg-surface-alt border border-border-light dark:border-border hover:border-brand-green/50 transition-all duration-300"
-                            >
-                                <div className="p-6 md:p-8 flex items-center gap-6 relative z-10">
-                                    <div className="w-16 h-16 rounded-2xl bg-brand-green/10 text-brand-green flex items-center justify-center text-3xl font-black group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300">
-                                        #
-                                    </div>
-                                    <div className="flex-1">
-                                        <h3 className="text-xl font-bold text-text-main-light dark:text-text-main group-hover:text-brand-green transition-colors mb-1">
-                                            View Community
-                                        </h3>
-                                        <p className="text-text-secondary-light dark:text-text-secondary text-sm">
-                                            Join the conversation and explore similar posts
-                                        </p>
-                                    </div>
-                                    <ArrowLeftIcon className="w-6 h-6 rotate-180 text-text-tertiary-light dark:text-text-tertiary group-hover:text-brand-green group-hover:translate-x-1 transition-all" />
-                                </div>
-
-                                {/* Hover Gradient Effect */}
-                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-brand-green/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-                            </Link>
+                <div className="relative z-10 w-full max-w-7xl mx-auto px-6 pb-16 md:pb-24">
+                    <div className="max-w-4xl space-y-6">
+                        {/* Community Badge */}
+                        <div className="flex items-center gap-3 animate-fade-in">
+                            {post.community_id && (
+                                <span className="px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-white text-xs font-bold tracking-widest uppercase">
+                                    Community
+                                </span>
+                            )}
+                            <span className="text-white/80 text-sm font-medium tracking-wide">
+                                {formatExactTimestamp(post.created_at)}
+                            </span>
                         </div>
-                    )}
+
+                        <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white leading-[0.95] tracking-tight text-balance shadow-black drop-shadow-lg">
+                            {post.title}
+                        </h1>
+                    </div>
+                </div>
+            </header>
+
+            {/* --- MAIN CONTENT LAYOUT (Split) --- */}
+            <main className="max-w-7xl mx-auto px-6 pb-32">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 relative">
+
+                    {/* LEFT COLUMN: Sticky Author Bio (Desktop) */}
+                    <aside className="lg:col-span-4 hidden lg:block">
+                        <div className="sticky top-12 space-y-8 py-8 animate-fade-in">
+                            <div className="flex items-center gap-4">
+                                <Image
+                                    src={post.author.author_avatar_url || `https://ui-avatars.com/api/?name=${post.author.author_name}`}
+                                    alt="Author"
+                                    width={64}
+                                    height={64}
+                                    className="rounded-full ring-2 ring-white/10 shadow-xl"
+                                    unoptimized
+                                />
+                                <div>
+                                    <p className="text-xs font-bold uppercase tracking-widest text-text-tertiary-light dark:text-neutral-500 mb-1">
+                                        Written by
+                                    </p>
+                                    <p className="text-xl font-bold">{post.author.author_name}</p>
+                                    <p className="text-sm opacity-60">@{post.author.author_username}</p>
+                                </div>
+                            </div>
+
+                            <hr className="border-border-light dark:border-white/10 w-1/2" />
+
+                            {/* Table of Contents / Scannable bits could go here */}
+                            <div className="text-sm text-text-secondary-light dark:text-neutral-400 leading-relaxed">
+                                <p>
+                                    Scroll to read the full story.
+                                    Join the discussion in the community forum below.
+                                </p>
+                            </div>
+                        </div>
+                    </aside>
+
+                    {/* RIGHT COLUMN: The Content */}
+                    <article className="lg:col-span-8 lg:border-l border-border-light dark:border-white/5 lg:pl-12 pt-8 lg:pt-8 min-h-[50vh]">
+                        {/* Mobile Author View */}
+                        <div className="lg:hidden flex items-center gap-4 mb-10 pb-8 border-b border-border-light dark:border-white/10">
+                            <Image
+                                src={post.author.author_avatar_url || `https://ui-avatars.com/api/?name=${post.author.author_name}`}
+                                alt="Author"
+                                width={48}
+                                height={48}
+                                className="rounded-full"
+                                unoptimized
+                            />
+                            <div>
+                                <p className="font-bold">{post.author.author_name}</p>
+                                <p className="text-xs opacity-60">{formatExactTimestamp(post.created_at)}</p>
+                            </div>
+                        </div>
+
+                        {/* Drop Cap & Typography */}
+                        <div className="prose dark:prose-invert prose-lg md:prose-xl max-w-none
+                            prose-headings:font-bold prose-headings:tracking-tight
+                            prose-p:text-text-secondary-light dark:prose-p:text-[#b3b3b3] prose-p:leading-loose prose-p:font-serif
+                            prose-a:text-brand-green prose-a:no-underline hover:prose-a:underline
+                            prose-blockquote:border-l-2 prose-blockquote:border-brand-green prose-blockquote:font-normal prose-blockquote:italic
+                            prose-img:rounded-xl prose-img:w-full first-letter:float-left first-letter:text-7xl first-letter:font-black first-letter:mr-3 first-letter:mt-[-10px] first-letter:text-brand-green
+                        ">
+                            {renderContentWithEmbeds(post.content)}
+                        </div>
+
+                        {/* Community Footer Card */}
+                        {post.community_id && (
+                            <div className="mt-20">
+                                <Link
+                                    href={`/communities/${post.community_id}`}
+                                    className="group block relative overflow-hidden rounded-3xl bg-black/5 dark:bg-white/5 border border-transparent hover:border-brand-green/30 transition-all"
+                                >
+                                    <div className="p-8 md:p-12 text-center relative z-10">
+                                        <p className="text-xs font-bold uppercase tracking-widest text-brand-green mb-4">
+                                            Read more in
+                                        </p>
+                                        <h3 className="text-3xl font-black mb-2">The Community</h3>
+                                        <p className="text-sm opacity-60 mb-6 max-w-md mx-auto">
+                                            Dive deeper into discussions and discover more stories like this one.
+                                        </p>
+                                        <span className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-brand-green text-white font-bold text-sm group-hover:bg-brand-green-dark transition-colors">
+                                            Visit Community <ArrowLeftIcon className="w-4 h-4 rotate-180" />
+                                        </span>
+                                    </div>
+                                    {/* Hover effect background */}
+                                    <div className="absolute inset-0 bg-gradient-to-br from-brand-green/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                                </Link>
+                            </div>
+                        )}
+                    </article>
                 </div>
             </main>
-        </article>
+
+            {/* --- FLOATING "DYNAMIC ISLAND" NAVIGATION --- */}
+            <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-slide-up">
+                <div className="flex items-center gap-1 p-2 pl-4 pr-2 rounded-full bg-white/80 dark:bg-[#1a1a1a]/80 backdrop-blur-xl border border-black/5 dark:border-white/10 shadow-2xl shadow-black/20 ring-1 ring-white/20">
+
+                    {/* Back Button */}
+                    <button
+                        onClick={() => router.back()}
+                        className="p-3 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-text-main-light dark:text-white transition-colors"
+                        aria-label="Go Back"
+                    >
+                        <ArrowLeftIcon className="w-5 h-5" />
+                    </button>
+
+                    <div className="w-px h-8 bg-black/10 dark:bg-white/10 mx-1"></div>
+
+                    {/* Interaction Buttons (Mockup) */}
+                    <button className="p-3 rounded-full hover:bg-pink-500/10 hover:text-pink-500 text-text-secondary-light dark:text-white/60 transition-colors">
+                        <HeartIcon className="w-5 h-5" />
+                    </button>
+
+                    <button className="p-3 rounded-full hover:bg-blue-500/10 hover:text-blue-500 text-text-secondary-light dark:text-white/60 transition-colors">
+                        <ShareIcon className="w-5 h-5" />
+                    </button>
+
+                    <div className="w-px h-8 bg-black/10 dark:bg-white/10 mx-1"></div>
+
+                    {/* Circular Scroll Progress */}
+                    <div className="relative w-12 h-12 flex items-center justify-center">
+                        <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 36 36">
+                            {/* Background Circle */}
+                            <path
+                                className="text-black/5 dark:text-white/10"
+                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="3"
+                            />
+                            {/* Progress Circle */}
+                            <path
+                                className="text-brand-green transition-all duration-100 ease-out"
+                                strokeDasharray={`${scrollProgress}, 100`}
+                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="3"
+                            />
+                        </svg>
+                        <span className="absolute text-[10px] font-bold opacity-50 select-none">
+                            {Math.round(scrollProgress)}%
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
     );
 };
 
