@@ -37,6 +37,8 @@ const BlogPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [scrollProgress, setScrollProgress] = useState(0);
+    const [isLiked, setIsLiked] = useState(false);
+    const [likeCount, setLikeCount] = useState(0);
 
     // Scroll Progress Logic
     useEffect(() => {
@@ -83,6 +85,8 @@ const BlogPage: React.FC = () => {
                     }
                 };
                 setPost(formattedPost);
+                setLikeCount(formattedPost.like_count || 0);
+                setIsLiked(formattedPost.user_vote === 'like');
             } catch (err: unknown) {
                 console.error(err);
                 setError(err instanceof Error ? err.message : 'An unknown error occurred.');
@@ -90,8 +94,60 @@ const BlogPage: React.FC = () => {
                 setLoading(false);
             }
         };
+
         fetchBlogPost();
     }, [id]);
+
+    const handleLike = async () => {
+        if (!user) {
+            router.push('/login');
+            return;
+        }
+
+        const newIsLiked = !isLiked;
+        const newLikeCount = newIsLiked ? likeCount + 1 : likeCount - 1;
+
+        setIsLiked(newIsLiked);
+        setLikeCount(newLikeCount);
+
+        try {
+            if (newIsLiked) {
+                await supabase.from('likes').upsert(
+                    { user_id: user.id, post_id: id, like_type: 'like' },
+                    { onConflict: 'user_id, post_id' }
+                );
+            } else {
+                await supabase.from('likes').delete().match({ user_id: user.id, post_id: id });
+            }
+        } catch (error) {
+            console.error('Failed to update like:', error);
+            setIsLiked(!newIsLiked);
+            setLikeCount(likeCount);
+        }
+    };
+
+    const handleShare = async () => {
+        const url = window.location.href;
+
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: post?.title || 'Blog Post',
+                    text: post?.content?.substring(0, 100) || 'Check out this blog post!',
+                    url: url,
+                });
+            } catch (error) {
+                console.error('Error sharing:', error);
+            }
+        } else {
+            try {
+                await navigator.clipboard.writeText(url);
+                alert('Link copied to clipboard!');
+            } catch (error) {
+                console.error('Failed to copy:', error);
+            }
+        }
+    };
 
     if (loading) return <div className="flex items-center justify-center min-h-screen bg-surface dark:bg-black"><Spinner /></div>;
     if (error || !post) return <div className="p-10 text-center text-red-500">{error || 'Post not found'}</div>;
@@ -106,7 +162,7 @@ const BlogPage: React.FC = () => {
                     <div className="absolute inset-0 z-0">
                         <Image
                             src={post.image_url}
-                            alt={post.title}
+                            alt={post.title || 'Blog cover image'}
                             fill
                             className="object-cover"
                             priority
@@ -120,13 +176,8 @@ const BlogPage: React.FC = () => {
 
                 <div className="relative z-10 w-full max-w-7xl mx-auto px-6 pb-16 md:pb-24">
                     <div className="max-w-4xl space-y-6">
-                        {/* Community Badge */}
+                        {/* Timestamp only - Community badge removed */}
                         <div className="flex items-center gap-3 animate-fade-in">
-                            {post.community_id && (
-                                <span className="px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-white text-xs font-bold tracking-widest uppercase">
-                                    Community
-                                </span>
-                            )}
                             <span className="text-white/80 text-sm font-medium tracking-wide">
                                 {formatExactTimestamp(post.created_at)}
                             </span>
@@ -160,7 +211,9 @@ const BlogPage: React.FC = () => {
                                         Written by
                                     </p>
                                     <p className="text-xl font-bold">{post.author.author_name}</p>
-                                    <p className="text-sm opacity-60">@{post.author.author_username}</p>
+                                    {post.author.author_type !== 'community' && (
+                                        <p className="text-sm opacity-60">@{post.author.author_username}</p>
+                                    )}
                                 </div>
                             </div>
 
@@ -190,7 +243,9 @@ const BlogPage: React.FC = () => {
                             />
                             <div>
                                 <p className="font-bold">{post.author.author_name}</p>
-                                <p className="text-xs opacity-60">{formatExactTimestamp(post.created_at)}</p>
+                                {post.author.author_type !== 'community' && (
+                                    <p className="text-xs opacity-60">@{post.author.author_username}</p>
+                                )}
                             </div>
                         </div>
 
@@ -216,9 +271,10 @@ const BlogPage: React.FC = () => {
                                         <p className="text-xs font-bold uppercase tracking-widest text-brand-green mb-4">
                                             Read more in
                                         </p>
-                                        <h3 className="text-3xl font-black mb-2">The Community</h3>
+                                        <h3 className="text-3xl font-black mb-2">{post.author.author_name}</h3>
+
                                         <p className="text-sm opacity-60 mb-6 max-w-md mx-auto">
-                                            Dive deeper into discussions and discover more stories like this one.
+                                            Check out the community to discover more stories like this one.
                                         </p>
                                         <span className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-brand-green text-white font-bold text-sm group-hover:bg-brand-green-dark transition-colors">
                                             Visit Community <ArrowLeftIcon className="w-4 h-4 rotate-180" />
@@ -248,12 +304,23 @@ const BlogPage: React.FC = () => {
 
                     <div className="w-px h-8 bg-black/10 dark:bg-white/10 mx-1"></div>
 
-                    {/* Interaction Buttons (Mockup) */}
-                    <button className="p-3 rounded-full hover:bg-pink-500/10 hover:text-pink-500 text-text-secondary-light dark:text-white/60 transition-colors">
+                    {/* Interaction Buttons */}
+                    <button
+                        onClick={handleLike}
+                        className={`p-3 rounded-full transition-colors ${isLiked
+                            ? 'bg-pink-500/10 text-pink-500'
+                            : 'hover:bg-pink-500/10 hover:text-pink-500 text-text-secondary-light dark:text-white/60'
+                            }`}
+                        aria-label={isLiked ? 'Unlike' : 'Like'}
+                    >
                         <HeartIcon className="w-5 h-5" />
                     </button>
 
-                    <button className="p-3 rounded-full hover:bg-blue-500/10 hover:text-blue-500 text-text-secondary-light dark:text-white/60 transition-colors">
+                    <button
+                        onClick={handleShare}
+                        className="p-3 rounded-full hover:bg-blue-500/10 hover:text-blue-500 text-text-secondary-light dark:text-white/60 transition-colors"
+                        aria-label="Share"
+                    >
                         <ShareIcon className="w-5 h-5" />
                     </button>
 
