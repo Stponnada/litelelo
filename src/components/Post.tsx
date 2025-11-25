@@ -323,7 +323,7 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => 
                                         <div className="mt-2 group/blog cursor-pointer" onClick={(e) => { e.stopPropagation(); router.push(`/blog/${post.id}`); }}>
                                             <div className="relative overflow-hidden rounded-xl bg-black/5 dark:bg-black/20 border border-tertiary-light dark:border-white/10 transition-all hover:border-brand-green/50 dark:hover:border-brand-green/50">
                                                 {post.image_url && (
-                                                    <div className="h-48 w-full overflow-hidden">
+                                                    <div className="relative h-48 w-full overflow-hidden">
                                                         <Image
                                                             src={post.image_url}
                                                             alt={post.title || 'Blog cover'}
