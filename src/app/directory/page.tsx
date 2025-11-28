@@ -8,6 +8,7 @@ import { DirectoryProfile } from '@/types';
 import Spinner from '@/components/Spinner';
 import UserCard from '@/components/UserCard';
 import { GlobeIcon } from '@/components/icons';
+import { getResizedAvatarUrl } from '@/utils/imageUtils';
 
 // --- Icons ---
 const FilterIcon: React.FC<{ className?: string }> = ({ className }) => (
@@ -36,7 +37,7 @@ type TabType = 'users' | 'communities';
 type UserFilterTab = 'all' | 'following' | 'followers' | 'friends';
 
 const DirectoryPage: React.FC = () => {
-    const { user: currentUser } = useAuth();
+    const { user: currentUser, profile: currentProfile } = useAuth();
     const router = useRouter();
 
     // --- Data State ---
@@ -317,6 +318,7 @@ const DirectoryPage: React.FC = () => {
                         profiles={userProfiles}
                         searchQuery={searchQuery}
                         currentUser={currentUser}
+                        currentProfile={currentProfile}
                         onSelectNode={setSelectedProfile}
                     />
                 )}
@@ -340,7 +342,7 @@ const DirectoryPage: React.FC = () => {
 // ----------------------------------------------------------------------
 // INTERACTIVE NETWORK COMPONENT ("Mindblowing" Version)
 // ----------------------------------------------------------------------
-const InteractiveNetworkCanvas = ({ profiles, searchQuery, currentUser, onSelectNode }: any) => {
+const InteractiveNetworkCanvas = ({ profiles, searchQuery, currentUser, currentProfile, onSelectNode }: any) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -366,6 +368,12 @@ const InteractiveNetworkCanvas = ({ profiles, searchQuery, currentUser, onSelect
         // A. Filter & Prepare Data
         let networkProfiles = profiles.filter((p: DirectoryProfile) => {
             return p.id === currentUser?.id || p.is_following;
+        }).map((p: DirectoryProfile) => {
+            // Patch current user's avatar if missing in the directory list
+            if (currentUser && p.id === currentUser.id && !p.avatar_url && currentProfile?.avatar_url) {
+                return { ...p, avatar_url: currentProfile.avatar_url };
+            }
+            return p;
         });
 
         // Ensure "Me" exists
@@ -373,11 +381,11 @@ const InteractiveNetworkCanvas = ({ profiles, searchQuery, currentUser, onSelect
         if (!isMePresent && currentUser) {
             networkProfiles.push({
                 id: currentUser.id,
-                name: currentUser.user_metadata?.full_name || "You",
-                username: currentUser.user_metadata?.username || "You",
+                name: currentProfile?.full_name || currentUser.user_metadata?.full_name || "You",
+                username: currentProfile?.username || currentUser.user_metadata?.username || "You",
                 type: 'user',
                 is_following: false,
-                avatar_url: currentUser.user_metadata?.avatar_url
+                avatar_url: currentProfile?.avatar_url || currentUser.user_metadata?.avatar_url
             });
         }
 
@@ -400,29 +408,26 @@ const InteractiveNetworkCanvas = ({ profiles, searchQuery, currentUser, onSelect
 
         // Create clusters with varying distances
         const baseRadius = Math.min(width, height) * 0.3;
-        const nodes = networkProfiles.map((p: DirectoryProfile, _index: number) => {
+        let nodes = networkProfiles.map((p: DirectoryProfile, _index: number) => {
             const isMe = currentUser && p.id === currentUser.id;
 
-            // Preload Image - FIXED: Also load current user's avatar
+            // Preload Image
             if (p.avatar_url && !imagesRef.current[p.id]) {
                 const img = new Image();
-                img.src = p.avatar_url;
-                img.crossOrigin = 'anonymous'; // Handle CORS if needed
+                img.src = getResizedAvatarUrl(p.avatar_url, 320, 320); // Load high res for zoom (Retina ready)
+                img.crossOrigin = 'anonymous';
                 imagesRef.current[p.id] = img;
             }
 
             let x, y;
             if (isMe) {
-                // Center position for "Me"
                 x = center.x;
                 y = center.y;
             } else {
-                // Organic arrangement - random angles and varying distances
+                // Initial random position
                 const angle = Math.random() * 2 * Math.PI;
-                const radiusVariation = 0.7 + Math.random() * 0.6; // 70% to 130% of base radius
+                const radiusVariation = 0.7 + Math.random() * 0.6;
                 const distance = baseRadius * radiusVariation;
-
-                // Add some noise for organic feel
                 const noise = (Math.random() - 0.5) * 40;
                 x = center.x + distance * Math.cos(angle) + noise;
                 y = center.y + distance * Math.sin(angle) + noise;
@@ -436,6 +441,43 @@ const InteractiveNetworkCanvas = ({ profiles, searchQuery, currentUser, onSelect
                 isMe: !!isMe
             };
         });
+
+        // Collision Avoidance (Iterative Spacing)
+        const iterations = 50;
+        for (let k = 0; k < iterations; k++) {
+            for (let i = 0; i < nodes.length; i++) {
+                const nodeA = nodes[i];
+                if (nodeA.isMe) continue; // Keep "Me" fixed
+
+                for (let j = 0; j < nodes.length; j++) {
+                    if (i === j) continue;
+                    const nodeB = nodes[j];
+
+                    const dx = nodeA.x - nodeB.x;
+                    const dy = nodeA.y - nodeB.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const minDist = nodeA.radius + nodeB.radius + 15; // 15px padding
+
+                    if (dist < minDist) {
+                        // Push nodeA away from nodeB
+                        const angle = Math.atan2(dy, dx);
+                        const pushDist = (minDist - dist) / 2; // Move both equally (or just A if B is fixed)
+
+                        if (nodeB.isMe) {
+                            // If colliding with Me, move A fully away
+                            nodeA.x += Math.cos(angle) * (minDist - dist);
+                            nodeA.y += Math.sin(angle) * (minDist - dist);
+                        } else {
+                            // Move both away from each other
+                            nodeA.x += Math.cos(angle) * pushDist;
+                            nodeA.y += Math.sin(angle) * pushDist;
+                            nodeB.x -= Math.cos(angle) * pushDist;
+                            nodeB.y -= Math.sin(angle) * pushDist;
+                        }
+                    }
+                }
+            }
+        }
 
         // D. Create Links
         const links: any[] = [];
@@ -490,13 +532,25 @@ const InteractiveNetworkCanvas = ({ profiles, searchQuery, currentUser, onSelect
 
         const render = () => {
             if (!containerRef.current) return;
-            // Resize if needed
-            if (canvas.width !== containerRef.current.clientWidth || canvas.height !== containerRef.current.clientHeight) {
-                canvas.width = containerRef.current.clientWidth;
-                canvas.height = containerRef.current.clientHeight;
+
+            // High-DPI Scaling
+            const dpr = window.devicePixelRatio || 1;
+            const rect = containerRef.current.getBoundingClientRect();
+
+            // Only resize if dimensions changed
+            if (canvas.width !== rect.width * dpr || canvas.height !== rect.height * dpr) {
+                canvas.width = rect.width * dpr;
+                canvas.height = rect.height * dpr;
+                canvas.style.width = `${rect.width}px`;
+                canvas.style.height = `${rect.height}px`;
             }
 
+            // Clear with correct scale
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Enable High Quality Scaling
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
 
             // Background Grid (Subtle)
             ctx.save();
@@ -511,7 +565,8 @@ const InteractiveNetworkCanvas = ({ profiles, searchQuery, currentUser, onSelect
             ctx.restore();
 
             ctx.save();
-            // Apply Transform (Pan/Zoom)
+            // Apply DPR scale globally, then user transform
+            ctx.scale(dpr, dpr);
             ctx.translate(transformRef.current.x, transformRef.current.y);
             ctx.scale(transformRef.current.k, transformRef.current.k);
 
@@ -670,7 +725,7 @@ const InteractiveNetworkCanvas = ({ profiles, searchQuery, currentUser, onSelect
         e.preventDefault(); // Prevent page scroll
         const zoomSensitivity = 0.001;
         const delta = -e.deltaY * zoomSensitivity;
-        const newScale = Math.min(Math.max(0.1, transformRef.current.k + delta), 5);
+        const newScale = Math.min(Math.max(0.1, transformRef.current.k + delta), 4); // Clamped max zoom to 4
 
         // Zoom towards mouse pointer
         // (Simplified: Zoom center for now to avoid complex math bugs in this iteration)
