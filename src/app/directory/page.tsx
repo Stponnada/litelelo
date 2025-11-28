@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import Fuse from 'fuse.js';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/hooks/useAuth';
@@ -146,8 +147,13 @@ const DirectoryPage: React.FC = () => {
 
         // 2. Search Filter
         if (searchQuery.trim()) {
-            const query = searchQuery.toLowerCase();
-            filtered = filtered.filter(p => p.name?.toLowerCase().includes(query) || p.username?.toLowerCase().includes(query) || p.branch?.toLowerCase().includes(query));
+            const fuse = new Fuse<DirectoryProfile>(filtered, {
+                keys: ['name', 'username', 'branch'],
+                threshold: 0.4, // 0.0 is exact match, 1.0 is match anything. 0.4 is good for typos.
+                distance: 100,
+                minMatchCharLength: 2,
+            });
+            filtered = fuse.search(searchQuery).map(result => result.item);
         }
 
         // 3. Grid View Specific Filters (Only apply in Grid Mode)
@@ -317,6 +323,7 @@ const DirectoryPage: React.FC = () => {
                     <InteractiveNetworkCanvas
                         profiles={userProfiles}
                         searchQuery={searchQuery}
+                        matchedProfileIds={new Set(filteredProfiles.map(p => p.id))}
                         currentUser={currentUser}
                         currentProfile={currentProfile}
                         onSelectNode={setSelectedProfile}
@@ -342,7 +349,7 @@ const DirectoryPage: React.FC = () => {
 // ----------------------------------------------------------------------
 // INTERACTIVE NETWORK COMPONENT ("Mindblowing" Version)
 // ----------------------------------------------------------------------
-const InteractiveNetworkCanvas = ({ profiles, searchQuery, currentUser, currentProfile, onSelectNode }: any) => {
+const InteractiveNetworkCanvas = ({ profiles, searchQuery, matchedProfileIds, currentUser, currentProfile, onSelectNode }: any) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -598,7 +605,7 @@ const InteractiveNetworkCanvas = ({ profiles, searchQuery, currentUser, currentP
 
             // Draw Nodes
             nodesRef.current.forEach(node => {
-                const isMatch = !searchQuery || node.profile.name?.toLowerCase().includes(searchQuery.toLowerCase());
+                const isMatch = !searchQuery || matchedProfileIds?.has(node.profile.id);
                 const isHovered = hoveredNode === node.profile.id;
 
                 ctx.globalAlpha = (!isMatch && searchQuery) ? 0.1 : 1;
@@ -666,7 +673,7 @@ const InteractiveNetworkCanvas = ({ profiles, searchQuery, currentUser, currentP
         return () => {
             if (animationRef.current) cancelAnimationFrame(animationRef.current);
         };
-    }, [searchQuery, hoveredNode]);
+    }, [searchQuery, hoveredNode, matchedProfileIds]);
 
     // 3. Event Handlers
     const handleMouseDown = (e: React.MouseEvent) => {
