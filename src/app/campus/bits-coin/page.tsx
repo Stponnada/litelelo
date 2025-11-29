@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Image from 'next/image';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/hooks/useAuth';
@@ -10,10 +10,19 @@ import { formatDeadline } from '@/utils/timeUtils';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import RateBitsCoinUserModal from '@/components/RateBitsCoinUserModal';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useMotionTemplate, useMotionValue, useSpring } from 'framer-motion';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
+// --- Utility for Tailwind ---
+function cn(...inputs: ClassValue[]) {
+    return twMerge(clsx(inputs));
+}
+
+// --- CONSTANTS ---
 const CATEGORIES = ["Delivery", "Academic Help", "Errands", "Shopping", "Technical", "Other"];
 
+// --- TYPES ---
 interface BitsCoinRequest {
     id: string;
     created_at: string;
@@ -27,6 +36,95 @@ interface BitsCoinRequest {
     deadline: string | null;
 }
 
+// --- CUSTOM ANIMATION COMPONENTS (REACT BITS STYLE) ---
+
+/**
+ * Decrypted Text Effect
+ * Scrambles text and reveals it character by character
+ */
+const DecryptedText = ({ text, className, onClick }: { text: string, className?: string, onClick?: () => void }) => {
+    const [displayText, setDisplayText] = useState(text);
+    const [isScrambling, setIsScrambling] = useState(false);
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()_+";
+
+    const scramble = () => {
+        if (isScrambling) return;
+        setIsScrambling(true);
+        let iteration = 0;
+        const interval = setInterval(() => {
+            setDisplayText(text
+                .split("")
+                .map((letter, index) => {
+                    if (index < iteration) return text[index];
+                    return chars[Math.floor(Math.random() * chars.length)];
+                })
+                .join("")
+            );
+            if (iteration >= text.length) {
+                clearInterval(interval);
+                setIsScrambling(false);
+            }
+            iteration += 1 / 3;
+        }, 30);
+    };
+
+    useEffect(() => { scramble(); }, []);
+
+    return (
+        <span
+            className={cn("font-mono cursor-pointer hover:text-brand-green transition-colors", className)}
+            onMouseEnter={scramble}
+            onClick={onClick}
+        >
+            {displayText}
+        </span>
+    );
+};
+
+/**
+ * Spotlight Card
+ * Adds a glowing gradient that follows the mouse cursor
+ */
+const SpotlightCard = ({ children, className = "", onClick }: { children: React.ReactNode, className?: string, onClick?: () => void }) => {
+    const mouseX = useMotionValue(0);
+    const mouseY = useMotionValue(0);
+
+    function handleMouseMove({ currentTarget, clientX, clientY }: React.MouseEvent) {
+        const { left, top } = currentTarget.getBoundingClientRect();
+        mouseX.set(clientX - left);
+        mouseY.set(clientY - top);
+    }
+
+    return (
+        <motion.div
+            className={cn(
+                "group relative border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 overflow-hidden rounded-xl",
+                className
+            )}
+            onMouseMove={handleMouseMove}
+            onClick={onClick}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+        >
+            <motion.div
+                className="pointer-events-none absolute -inset-px rounded-xl opacity-0 transition duration-300 group-hover:opacity-100"
+                style={{
+                    background: useMotionTemplate`
+            radial-gradient(
+              650px circle at ${mouseX}px ${mouseY}px,
+              rgba(16, 185, 129, 0.15),
+              transparent 80%
+            )
+          `,
+                }}
+            />
+            <div className="relative h-full">{children}</div>
+        </motion.div>
+    );
+};
+
+// --- MAIN PAGE COMPONENT ---
+
 const BitsCoinPage: React.FC = () => {
     const { profile } = useAuth();
     const [requests, setRequests] = useState<BitsCoinRequest[]>([]);
@@ -36,7 +134,7 @@ const BitsCoinPage: React.FC = () => {
     const [selectedRequest, setSelectedRequest] = useState<BitsCoinRequest | null>(null);
     const [selectedCategory, setSelectedCategory] = useState('All');
 
-    // --- FIX: Logic for the 7-click easter egg ---
+    // Easter Egg Logic
     const [clickCount, setClickCount] = useState(0);
     const router = useRouter();
 
@@ -52,9 +150,8 @@ const BitsCoinPage: React.FC = () => {
         const timer = setTimeout(() => setClickCount(0), 1500);
         return () => clearTimeout(timer);
     }, [clickCount, router]);
-    // --- End of fix ---
 
-    // Initial data fetch
+    // Data Fetching
     useEffect(() => {
         const fetchRequests = async () => {
             if (!profile?.campus) {
@@ -67,11 +164,7 @@ const BitsCoinPage: React.FC = () => {
                 if (error) throw error;
                 setRequests((data as BitsCoinRequest[]) || []);
             } catch (err: unknown) {
-                if (err instanceof Error) {
-                    setError(err.message);
-                } else {
-                    setError('An unknown error occurred.');
-                }
+                setError(err instanceof Error ? err.message : 'An unknown error occurred.');
             } finally {
                 setLoading(false);
             }
@@ -80,24 +173,16 @@ const BitsCoinPage: React.FC = () => {
         fetchRequests();
     }, [profile?.campus]);
 
-    // Real-time subscription
+    // Real-time updates
     useEffect(() => {
         if (!profile?.campus) return;
-
         const fetchUpdates = async () => {
-            try {
-                const { data, error } = await supabase.rpc('get_bits_coin_requests', { p_campus: profile.campus });
-                if (error) throw error;
-                setRequests((data as BitsCoinRequest[]) || []);
-            } catch (err: unknown) {
-                console.error('Error fetching request updates:', err);
-            }
+            const { data } = await supabase.rpc('get_bits_coin_requests', { p_campus: profile.campus });
+            if (data) setRequests(data as BitsCoinRequest[]);
         };
-
-        const channel = supabase.channel('bits_coin_requests_channel').on('postgres_changes', { event: '*', schema: 'public', table: 'bits_coin_requests', filter: `campus=eq.${profile.campus}` }, (_payload) => {
-            fetchUpdates();
-        }).subscribe();
-
+        const channel = supabase.channel('bits_coin_requests_channel')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'bits_coin_requests', filter: `campus=eq.${profile.campus}` }, () => fetchUpdates())
+            .subscribe();
         return () => { supabase.removeChannel(channel); };
     }, [profile?.campus]);
 
@@ -112,8 +197,8 @@ const BitsCoinPage: React.FC = () => {
     };
 
     const allCategories = useMemo(() => {
-        const uniqueCategories = Array.from(new Set(requests.map(r => r.category).filter(Boolean)));
-        return ['All', ...uniqueCategories.sort()];
+        const unique = Array.from(new Set(requests.map(r => r.category).filter(Boolean)));
+        return ['All', ...unique.sort()];
     }, [requests]);
 
     const filteredRequests = useMemo(() => {
@@ -121,12 +206,20 @@ const BitsCoinPage: React.FC = () => {
         return requests.filter(r => r.category === selectedCategory);
     }, [requests, selectedCategory]);
 
-    if (loading) { return <div className="flex justify-center items-center min-h-[60vh]"><Spinner /></div>; }
-    if (error) { return <div className="text-center p-8 text-red-400">Error: {error}</div>; }
+    if (loading) return <div className="h-screen flex items-center justify-center bg-black"><Spinner /></div>;
+    if (error) return <div className="h-screen flex items-center justify-center text-red-500 bg-black">{error}</div>;
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20 dark:from-background dark:to-secondary/10">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 font-sans selection:bg-brand-green/30">
+            {/* Ambient Background */}
+            <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-green/10 rounded-full blur-[120px] animate-pulse" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/10 rounded-full blur-[120px] animate-pulse delay-1000" />
+            </div>
+
+            <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+
+                {/* Modals */}
                 <AnimatePresence>
                     {isCreateModalOpen && profile && (
                         <CreateRequestModal campus={profile.campus!} onClose={() => setCreateModalOpen(false)} onRequestCreated={handleRequestCreated} />
@@ -136,101 +229,70 @@ const BitsCoinPage: React.FC = () => {
                     )}
                 </AnimatePresence>
 
-                {/* Enhanced Header with Glassmorphism and Animation */}
-                <motion.header
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mb-8 md:mb-12 relative overflow-hidden rounded-3xl bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/20 dark:border-white/10 p-6 md:p-10 shadow-2xl"
-                >
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-brand-green/20 rounded-full blur-[100px] -mr-20 -mt-20 pointer-events-none"></div>
-                    <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-500/20 rounded-full blur-[80px] -ml-10 -mb-10 pointer-events-none"></div>
+                {/* Header Section */}
+                <header className="mb-16 flex flex-col md:flex-row md:items-end justify-between gap-8">
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="h-px w-8 bg-brand-green" />
+                            <span className="text-brand-green font-mono text-xs tracking-widest uppercase">Decentralized Tasks</span>
+                        </div>
+                        <h1 className="text-5xl md:text-7xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-neutral-900 via-neutral-600 to-neutral-900 dark:from-white dark:via-neutral-400 dark:to-neutral-600">
+                            <DecryptedText text="Request Board" onClick={handleTitleClick} />
+                        </h1>
+                        <p className="text-neutral-500 dark:text-neutral-400 max-w-md text-lg leading-relaxed">
+                            Earn rewards by solving problems on campus. <br />
+                            <span className="text-brand-green font-semibold">Peer-to-peer assistance.</span>
+                        </p>
+                    </div>
 
-                    <div className="relative z-10 flex flex-col md:flex-row md:justify-between md:items-center gap-6">
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-4">
-                                <motion.div
-                                    whileHover={{ rotate: 180 }}
-                                    transition={{ duration: 0.5 }}
-                                    className="p-3 bg-gradient-to-br from-brand-green to-emerald-600 rounded-2xl shadow-lg shadow-brand-green/30"
-                                >
-                                    <CurrencyRupeeIcon className="w-8 h-8 text-white" />
-                                </motion.div>
-                                <div>
-                                    <h1
-                                        className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-green via-accent-emerald to-accent-teal cursor-pointer"
-                                        onClick={handleTitleClick}
-                                        title="What are you clicking at?"
-                                    >
-                                        Request Board
-                                    </h1>
-                                    <p className="text-sm md:text-lg text-text-secondary-light dark:text-text-secondary font-medium mt-1">
-                                        Earn rewards by helping others on campus
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="flex flex-wrap items-center gap-3 text-xs md:text-sm font-bold">
-                                <div className="flex items-center gap-2 bg-accent-blue/10 text-accent-blue px-4 py-2 rounded-full border border-accent-blue/20 backdrop-blur-sm">
-                                    <span className="relative flex h-2.5 w-2.5">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500"></span>
-                                    </span>
-                                    <span>{requests.filter(r => r.status === 'open').length} Open Tasks</span>
-                                </div>
-                                <div className="flex items-center gap-2 bg-accent-yellow/10 text-accent-yellow px-4 py-2 rounded-full border border-accent-yellow/20 backdrop-blur-sm">
-                                    <div className="w-2.5 h-2.5 bg-yellow-500 rounded-full"></div>
-                                    <span>{requests.filter(r => r.status === 'claimed').length} In Progress</span>
-                                </div>
-                            </div>
+                    <div className="flex flex-col items-end gap-6">
+                        <div className="flex gap-4">
+                            <StatBadge label="Open" count={requests.filter(r => r.status === 'open').length} color="blue" />
+                            <StatBadge label="Active" count={requests.filter(r => r.status === 'claimed').length} color="yellow" />
                         </div>
 
                         <motion.button
-                            whileHover={{ scale: 1.05, boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)" }}
+                            whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => setCreateModalOpen(true)}
-                            className="group relative overflow-hidden bg-gradient-to-r from-brand-green to-emerald-600 text-white font-bold py-4 px-8 rounded-2xl shadow-xl transition-all duration-300"
+                            className="relative group overflow-hidden bg-neutral-900 dark:bg-white text-white dark:text-black px-8 py-4 rounded-full font-bold text-lg shadow-2xl shadow-brand-green/20"
                         >
-                            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                            <div className="relative flex items-center justify-center gap-3">
-                                <span className="text-2xl leading-none">+</span>
-                                <span>Create Request</span>
-                            </div>
+                            <span className="relative z-10 flex items-center gap-2">
+                                <span className="text-xl">+</span> Create Request
+                            </span>
+                            <div className="absolute inset-0 bg-brand-green/80 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
                         </motion.button>
                     </div>
-                </motion.header>
+                </header>
 
-                {/* Enhanced Category Filter */}
-                <div className="mb-8 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide">
-                    <motion.div
-                        className="flex gap-3 w-max mx-auto md:mx-0"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 }}
-                    >
-                        {allCategories.map((cat, index) => (
-                            <motion.button
+                {/* Filter Bar */}
+                <div className="sticky top-4 z-30 mb-10 p-2 rounded-2xl bg-white/70 dark:bg-neutral-900/70 backdrop-blur-xl border border-neutral-200 dark:border-neutral-800 shadow-sm w-fit mx-auto md:mx-0 overflow-x-auto max-w-full">
+                    <div className="flex gap-1 min-w-max">
+                        {allCategories.map((cat) => (
+                            <button
                                 key={cat}
-                                initial={{ opacity: 0, scale: 0.8 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ delay: 0.1 + index * 0.05 }}
                                 onClick={() => setSelectedCategory(cat)}
-                                className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 whitespace-nowrap border ${selectedCategory === cat
-                                    ? 'bg-brand-green text-white border-brand-green shadow-lg shadow-brand-green/25'
-                                    : 'bg-white/50 dark:bg-black/20 text-text-secondary-light dark:text-text-secondary border-transparent hover:bg-white/80 dark:hover:bg-white/10 hover:border-brand-green/30'
-                                    }`}
+                                className={cn(
+                                    "relative px-4 py-2 rounded-xl text-sm font-medium transition-colors z-10",
+                                    selectedCategory === cat ? "text-white" : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
+                                )}
                             >
+                                {selectedCategory === cat && (
+                                    <motion.div
+                                        layoutId="activeCategory"
+                                        className="absolute inset-0 bg-neutral-900 dark:bg-brand-green rounded-xl -z-10"
+                                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                    />
+                                )}
                                 {cat}
-                            </motion.button>
+                            </button>
                         ))}
-                    </motion.div>
+                    </div>
                 </div>
 
-                {/* Enhanced Request Grid */}
+                {/* Grid */}
                 {filteredRequests.length > 0 ? (
-                    <motion.div
-                        layout
-                        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-                    >
+                    <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <AnimatePresence mode='popLayout'>
                             {filteredRequests.map((req, index) => (
                                 <RequestCard key={req.id} request={req} onClick={() => setSelectedRequest(req)} index={index} />
@@ -238,251 +300,227 @@ const BitsCoinPage: React.FC = () => {
                         </AnimatePresence>
                     </motion.div>
                 ) : (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="text-center py-20 bg-white/30 dark:bg-black/20 backdrop-blur-md rounded-3xl border-2 border-dashed border-gray-300 dark:border-gray-700"
-                    >
-                        <div className="inline-block p-6 bg-brand-green/10 rounded-full mb-4 animate-bounce">
-                            <CurrencyRupeeIcon className="w-16 h-16 text-brand-green opacity-50" />
-                        </div>
-                        <h3 className="text-2xl font-bold mb-2 text-text-main-light dark:text-text-main">No requests found</h3>
-                        <p className="text-text-secondary-light dark:text-text-secondary">
-                            {selectedCategory === 'All' ? 'Be the first to post a request!' : 'Try selecting a different category.'}
-                        </p>
-                    </motion.div>
+                    <EmptyState category={selectedCategory} />
                 )}
             </div>
         </div>
     );
 };
 
-const RequestCard: React.FC<{ request: BitsCoinRequest, onClick: () => void, index: number }> = ({ request, onClick, index }) => {
-    const formattedDeadline = formatDeadline(request.deadline);
+// --- SUB COMPONENTS ---
+
+const StatBadge = ({ label, count, color }: { label: string, count: number, color: 'blue' | 'yellow' }) => {
+    const colorStyles = {
+        blue: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+        yellow: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+    };
+    return (
+        <div className={cn("flex flex-col items-center px-4 py-2 rounded-2xl border backdrop-blur-sm", colorStyles[color])}>
+            <span className="text-2xl font-bold leading-none">{count}</span>
+            <span className="text-[10px] uppercase font-bold tracking-wider opacity-80">{label}</span>
+        </div>
+    );
+};
+
+const RequestCard = ({ request, onClick, index }: { request: BitsCoinRequest, onClick: () => void, index: number }) => {
     const isOverdue = request.deadline && new Date(request.deadline) < new Date();
 
     return (
         <motion.div
-            layout
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9 }}
+            exit={{ opacity: 0, scale: 0.95 }}
             transition={{ delay: index * 0.05 }}
-            onClick={onClick}
-            whileHover={{ y: -5, scale: 1.02 }}
-            className="group cursor-pointer bg-white/60 dark:bg-gray-900/60 backdrop-blur-md rounded-2xl shadow-lg hover:shadow-2xl border border-white/20 dark:border-white/5 p-6 flex flex-col gap-4 relative overflow-hidden transition-all duration-300"
+            className="h-full"
         >
-            {/* Decorative elements */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-brand-green/10 to-transparent rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
+            <SpotlightCard onClick={onClick} className="h-full flex flex-col p-6 cursor-pointer shadow-lg hover:shadow-2xl dark:shadow-neutral-950/50 transition-shadow">
+                <div className="flex justify-between items-start mb-4">
+                    <span className="px-3 py-1 text-xs font-bold rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700">
+                        {request.category}
+                    </span>
+                    <div className="flex items-center gap-1 text-brand-green font-bold text-lg">
+                        <CurrencyRupeeIcon className="w-5 h-5" />
+                        <span>{request.reward}</span>
+                    </div>
+                </div>
 
-            <div className="relative z-10 flex justify-between items-start gap-3">
-                <h3 className="font-bold text-xl text-text-main-light dark:text-text-main leading-tight group-hover:text-brand-green transition-colors">
+                <h3 className="text-xl font-bold text-neutral-900 dark:text-neutral-100 mb-2 leading-tight line-clamp-2">
                     {request.title}
                 </h3>
-                <div className="flex items-center gap-1 bg-brand-green/10 text-brand-green px-3 py-1.5 rounded-xl font-black text-lg shadow-sm border border-brand-green/20">
-                    <CurrencyRupeeIcon className="w-5 h-5" />
-                    <span>{request.reward}</span>
-                </div>
-            </div>
 
-            <div className="relative z-10 flex items-center gap-2 flex-wrap">
-                <span className="px-3 py-1 bg-gray-100 dark:bg-gray-800 text-text-secondary-light dark:text-text-secondary text-xs font-bold rounded-lg border border-gray-200 dark:border-gray-700 uppercase tracking-wider">
-                    {request.category}
-                </span>
-                {formattedDeadline && (
-                    <span className={`px-3 py-1 text-xs font-bold rounded-lg border flex items-center gap-1 ${isOverdue
-                        ? 'bg-accent-red/10 text-accent-red border-accent-red/20'
-                        : 'bg-accent-blue/10 text-accent-blue border-accent-blue/20'
-                        }`}>
-                        <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
-                        {formattedDeadline}
-                    </span>
-                )}
-            </div>
+                <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-6 line-clamp-2 flex-grow">
+                    {request.description}
+                </p>
 
-            <p className="relative z-10 text-sm text-text-secondary-light dark:text-text-secondary line-clamp-2 flex-grow">
-                {request.description}
-            </p>
-
-            <div className="relative z-10 flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-800">
-                <div className="flex items-center gap-2">
-                    <div className="relative w-8 h-8">
-                        <Image
-                            src={request.requester.avatar_url || ''}
-                            alt="requester"
-                            width={32}
-                            height={32}
-                            className="w-full h-full rounded-full object-cover ring-2 ring-white dark:ring-gray-800 shadow-sm"
-                            unoptimized
-                        />
-                        <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white dark:border-gray-900 rounded-full"></div>
+                <div className="mt-auto pt-4 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <div className="relative w-8 h-8 rounded-full overflow-hidden ring-2 ring-neutral-100 dark:ring-neutral-800">
+                            <Image src={request.requester.avatar_url || ''} alt="" fill className="object-cover" unoptimized />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-xs font-medium text-neutral-900 dark:text-neutral-200">@{request.requester.username}</span>
+                            {request.deadline && (
+                                <span className={cn("text-[10px]", isOverdue ? "text-red-500" : "text-neutral-400")}>
+                                    {isOverdue ? "Overdue" : formatDeadline(request.deadline)}
+                                </span>
+                            )}
+                        </div>
                     </div>
-                    <span className="text-xs font-bold text-text-secondary-light dark:text-text-secondary">
-                        @{request.requester.username}
-                    </span>
+                    <StatusIndicator status={request.status} />
                 </div>
-
-                <div>
-                    {request.status === 'open' && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-accent-blue/30 dark:text-accent-blue">
-                            Open
-                        </span>
-                    )}
-                    {request.status === 'claimed' && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-accent-yellow/30 dark:text-accent-yellow">
-                            Claimed
-                        </span>
-                    )}
-                </div>
-            </div>
+            </SpotlightCard>
         </motion.div>
     );
 };
 
+const StatusIndicator = ({ status }: { status: string }) => {
+    if (status === 'open') return <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]" title="Open" />;
+    if (status === 'claimed') return <div className="w-2 h-2 rounded-full bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.5)] animate-pulse" title="In Progress" />;
+    return <div className="w-2 h-2 rounded-full bg-neutral-500" />;
+};
+
+const EmptyState = ({ category }: { category: string }) => (
+    <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="col-span-full py-24 flex flex-col items-center justify-center text-center border-2 border-dashed border-neutral-200 dark:border-neutral-800 rounded-3xl"
+    >
+        <div className="w-16 h-16 bg-neutral-100 dark:bg-neutral-800 rounded-full flex items-center justify-center mb-4">
+            <CurrencyRupeeIcon className="w-8 h-8 text-neutral-400" />
+        </div>
+        <h3 className="text-xl font-bold text-neutral-900 dark:text-white">No requests found</h3>
+        <p className="text-neutral-500">There are no {category !== 'All' ? category.toLowerCase() : ''} requests right now.</p>
+    </motion.div>
+);
+
+// --- MODALS ---
+
+const ModalBackdrop = ({ onClick, children }: { onClick: () => void, children: React.ReactNode }) => (
+    <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-neutral-900/60 backdrop-blur-lg z-50 flex items-center justify-center p-4 sm:p-6"
+        onClick={onClick}
+    >
+        {children}
+    </motion.div>
+);
+
 const CreateRequestModal: React.FC<{ campus: string; onClose: () => void; onRequestCreated: (newRequest: BitsCoinRequest) => void; }> = ({ campus, onClose, onRequestCreated }) => {
     const { user, profile } = useAuth();
-    const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
-    const [reward, setReward] = useState('');
-    const [category, setCategory] = useState('');
-    const [deadline, setDeadline] = useState('');
+    const [formData, setFormData] = useState({ title: '', description: '', reward: '', category: '', deadline: '' });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!user || !profile || !title || !reward || !category) { setError('Title, reward, and category are required.'); return; }
-        setIsSubmitting(true); setError('');
+        setIsSubmitting(true);
         try {
-            const { data, error } = await supabase.from('bits_coin_requests').insert({ requester_id: user.id, campus, title, description, reward: parseFloat(reward), category, deadline: deadline ? new Date(deadline).toISOString() : null }).select().single();
+            const { data, error } = await supabase.from('bits_coin_requests').insert({
+                requester_id: user?.id,
+                campus,
+                title: formData.title,
+                description: formData.description,
+                reward: parseFloat(formData.reward),
+                category: formData.category,
+                deadline: formData.deadline ? new Date(formData.deadline).toISOString() : null
+            }).select().single();
             if (error) throw error;
-            const newRequest: BitsCoinRequest = { ...data, requester: { user_id: profile.user_id, username: profile.username, full_name: profile.full_name || '', avatar_url: profile.avatar_url || '' }, claimer: null };
-            onRequestCreated(newRequest);
-        } catch (err: unknown) {
-            if (err instanceof Error) {
-                setError(err.message);
-            } else {
-                setError('An unknown error occurred.');
-            }
-        } finally { setIsSubmitting(false); }
+            onRequestCreated({ ...data, requester: { user_id: profile!.user_id, username: profile!.username, full_name: profile!.full_name || '', avatar_url: profile!.avatar_url || '' }, claimer: null });
+        } catch (err: unknown) { setError(err instanceof Error ? err.message : 'Error'); }
+        finally { setIsSubmitting(false); }
     };
 
     return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={onClose}
-        >
+        <ModalBackdrop onClick={onClose}>
             <motion.div
-                initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-lg border border-white/20 overflow-hidden"
+                initial={{ scale: 0.9, y: 20, opacity: 0 }}
+                animate={{ scale: 1, y: 0, opacity: 1 }}
+                exit={{ scale: 0.9, y: 20, opacity: 0 }}
+                className="bg-white dark:bg-neutral-900 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden border border-neutral-200 dark:border-neutral-800"
                 onClick={e => e.stopPropagation()}
             >
-                <form onSubmit={handleSubmit} className="flex flex-col max-h-[90vh]">
-                    <header className="p-6 bg-gradient-to-r from-brand-green/10 to-transparent border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
-                        <div>
-                            <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-green to-emerald-600">
-                                Create Request
-                            </h2>
-                            <p className="text-sm text-text-secondary-light dark:text-text-secondary">Post a task and set your reward</p>
-                        </div>
-                        <button type="button" onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
-                            <XCircleIcon className="w-6 h-6 text-gray-400" />
-                        </button>
-                    </header>
+                <div className="p-8">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-2xl font-bold text-neutral-900 dark:text-white">New Request</h2>
+                        <button onClick={onClose}><XCircleIcon className="w-6 h-6 text-neutral-400 hover:text-red-500 transition-colors" /></button>
+                    </div>
 
-                    <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar">
-                        <div>
-                            <label className="block text-sm font-bold mb-2 text-text-main-light dark:text-text-main">Task Title*</label>
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        <InputGroup label="Title">
                             <input
-                                type="text"
-                                value={title}
-                                onChange={e => setTitle(e.target.value)}
                                 required
-                                placeholder="e.g., Deliver food from Redi"
-                                className="w-full p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border-2 border-transparent focus:border-brand-green focus:bg-white dark:focus:bg-gray-800 transition-all outline-none font-medium"
+                                className="w-full bg-neutral-50 dark:bg-neutral-800 border-none rounded-xl p-4 font-medium focus:ring-2 focus:ring-brand-green outline-none transition-all"
+                                placeholder="What do you need?"
+                                value={formData.title}
+                                onChange={e => setFormData({ ...formData, title: e.target.value })}
                             />
-                        </div>
+                        </InputGroup>
 
                         <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-bold mb-2 text-text-main-light dark:text-text-main">Reward (₹)*</label>
-                                <div className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₹</span>
-                                    <input
-                                        type="number"
-                                        value={reward}
-                                        onChange={e => setReward(e.target.value)}
-                                        required
-                                        min="0"
-                                        placeholder="50"
-                                        className="w-full pl-8 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border-2 border-transparent focus:border-brand-green focus:bg-white dark:focus:bg-gray-800 transition-all outline-none font-bold"
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-bold mb-2 text-text-main-light dark:text-text-main">Category*</label>
+                            <InputGroup label="Reward (₹)">
+                                <input
+                                    required type="number" min="0"
+                                    className="w-full bg-neutral-50 dark:bg-neutral-800 border-none rounded-xl p-4 font-bold text-brand-green focus:ring-2 focus:ring-brand-green outline-none"
+                                    placeholder="50"
+                                    value={formData.reward}
+                                    onChange={e => setFormData({ ...formData, reward: e.target.value })}
+                                />
+                            </InputGroup>
+                            <InputGroup label="Category">
                                 <select
-                                    value={category}
-                                    onChange={e => setCategory(e.target.value)}
                                     required
-                                    className="w-full p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border-2 border-transparent focus:border-brand-green focus:bg-white dark:focus:bg-gray-800 transition-all outline-none appearance-none"
+                                    className="w-full bg-neutral-50 dark:bg-neutral-800 border-none rounded-xl p-4 focus:ring-2 focus:ring-brand-green outline-none appearance-none"
+                                    value={formData.category}
+                                    onChange={e => setFormData({ ...formData, category: e.target.value })}
                                 >
                                     <option value="" disabled>Select...</option>
                                     {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                                 </select>
-                            </div>
+                            </InputGroup>
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-bold mb-2 text-text-main-light dark:text-text-main">Description</label>
+                        <InputGroup label="Details">
                             <textarea
-                                value={description}
-                                onChange={e => setDescription(e.target.value)}
-                                rows={4}
-                                placeholder="Provide details about the task..."
-                                className="w-full p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border-2 border-transparent focus:border-brand-green focus:bg-white dark:focus:bg-gray-800 transition-all outline-none resize-none"
+                                rows={3}
+                                className="w-full bg-neutral-50 dark:bg-neutral-800 border-none rounded-xl p-4 focus:ring-2 focus:ring-brand-green outline-none resize-none"
+                                placeholder="Extra instructions..."
+                                value={formData.description}
+                                onChange={e => setFormData({ ...formData, description: e.target.value })}
                             />
-                        </div>
+                        </InputGroup>
 
-                        <div>
-                            <label className="block text-sm font-bold mb-2 text-text-main-light dark:text-text-main">Deadline (Optional)</label>
+                        <InputGroup label="Deadline (Optional)">
                             <input
                                 type="datetime-local"
-                                value={deadline}
-                                onChange={e => setDeadline(e.target.value)}
-                                className="w-full p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border-2 border-transparent focus:border-brand-green focus:bg-white dark:focus:bg-gray-800 transition-all outline-none"
+                                className="w-full bg-neutral-50 dark:bg-neutral-800 border-none rounded-xl p-4 focus:ring-2 focus:ring-brand-green outline-none text-neutral-500"
+                                value={formData.deadline}
+                                onChange={e => setFormData({ ...formData, deadline: e.target.value })}
                             />
-                        </div>
-                    </div>
+                        </InputGroup>
 
-                    {error && <p className="mx-6 mb-4 text-accent-red text-sm p-3 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-800">{error}</p>}
+                        {error && <p className="text-red-500 text-sm bg-red-500/10 p-3 rounded-lg">{error}</p>}
 
-                    <footer className="p-6 border-t border-gray-100 dark:border-gray-800 flex justify-end gap-3 bg-gray-50/50 dark:bg-gray-800/30">
                         <button
-                            type="button"
-                            onClick={onClose}
-                            className="py-3 px-6 rounded-xl font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
                             disabled={isSubmitting}
-                            className="py-3 px-8 rounded-xl font-bold text-white bg-gradient-to-r from-brand-green to-emerald-600 hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                            className="w-full py-4 bg-brand-green hover:bg-emerald-600 text-white font-bold rounded-xl transition-all shadow-lg shadow-brand-green/25 disabled:opacity-50 disabled:cursor-not-allowed mt-4"
                         >
-                            {isSubmitting ? <Spinner /> : 'Post Request'}
+                            {isSubmitting ? <Spinner className="w-6 h-6 mx-auto text-white" /> : 'Post to Board'}
                         </button>
-                    </footer>
-                </form>
+                    </form>
+                </div>
             </motion.div>
-        </motion.div>
+        </ModalBackdrop>
     );
 };
+
+const InputGroup = ({ label, children }: { label: string, children: React.ReactNode }) => (
+    <div>
+        <label className="block text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider mb-2 ml-1">{label}</label>
+        {children}
+    </div>
+);
 
 const RequestDetailModal: React.FC<{ request: BitsCoinRequest, onClose: () => void, onRequestUpdate: (updatedRequest: BitsCoinRequest) => void }> = ({ request, onClose, onRequestUpdate }) => {
     const { user, profile } = useAuth();
@@ -493,196 +531,107 @@ const RequestDetailModal: React.FC<{ request: BitsCoinRequest, onClose: () => vo
     const handleAction = async (action: 'claim' | 'unclaim' | 'complete' | 'cancel') => {
         if (!user || !profile) return;
         setIsSubmitting(true);
-        interface UpdateData {
-            status?: 'open' | 'claimed' | 'completed' | 'cancelled';
-            claimed_by_id?: string | null;
-        }
-        let updateData: UpdateData = {};
-        if (action === 'claim') updateData = { status: 'claimed', claimed_by_id: user.id };
-        if (action === 'unclaim') updateData = { status: 'open', claimed_by_id: null };
-        if (action === 'complete') updateData = { status: 'completed' };
-        if (action === 'cancel') updateData = { status: 'cancelled' };
-
         try {
-            const { data, error } = await supabase.from('bits_coin_requests').update(updateData).eq('id', request.id).select().single();
+            const updates = {
+                status: action === 'claim' ? 'claimed' : action === 'unclaim' ? 'open' : action === 'complete' ? 'completed' : 'cancelled',
+                claimed_by_id: action === 'claim' ? user.id : action === 'unclaim' ? null : undefined
+            };
+            const { data, error } = await supabase.from('bits_coin_requests').update(updates).eq('id', request.id).select().single();
             if (error) throw error;
 
-            const updatedRequest: BitsCoinRequest = { ...request, ...data, claimer: action === 'claim' ? { user_id: profile.user_id, username: profile.username, full_name: profile.full_name || '', avatar_url: profile.avatar_url || '' } : (action === 'unclaim' ? null : request.claimer) };
-
-            if (action === 'complete' && user.id === request.requester.user_id) {
-                setShowRatingModalFor('claimer');
-            } else {
-                onRequestUpdate(updatedRequest);
-            }
-        } catch (err: unknown) {
-            console.error('Error updating request status:', err);
-            // Optionally, set an error state here as well if needed
-        } finally { setIsSubmitting(false); }
+            if (action === 'complete' && user.id === request.requester.user_id) setShowRatingModalFor('claimer');
+            else onRequestUpdate({ ...request, ...data, claimer: action === 'claim' ? { user_id: profile.user_id, username: profile.username, full_name: profile.full_name || '', avatar_url: profile.avatar_url || '' } : (action === 'unclaim' ? null : request.claimer) });
+        } catch (err) { console.error(err); }
+        finally { setIsSubmitting(false); }
     };
 
-    const handleContact = (personToContact: BitsCoinRequest['requester'] | BitsCoinRequest['claimer']) => {
-        if (!personToContact) return;
-        router.push(`/chat?recipient=${personToContact.user_id}`);
-    };
+    if (showRatingModalFor && request.claimer) {
+        return <RateBitsCoinUserModal request={request} personToRate={showRatingModalFor} onClose={() => onRequestUpdate({ ...request, status: 'completed' })} />
+    }
 
     const isOwner = user?.id === request.requester.user_id;
     const isClaimer = user?.id === request.claimer?.user_id;
 
-    if (showRatingModalFor && request.claimer) {
-        return <RateBitsCoinUserModal
-            request={request}
-            personToRate={showRatingModalFor}
-            onClose={() => onRequestUpdate({ ...request, status: 'completed' })}
-        />
-    }
-
     return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={onClose}
-        >
+        <ModalBackdrop onClick={onClose}>
             <motion.div
-                initial={{ scale: 0.95, opacity: 0, y: 20 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col border border-white/20 overflow-hidden"
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="bg-white dark:bg-neutral-900 w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden border border-neutral-200 dark:border-neutral-800 flex flex-col max-h-[90vh]"
                 onClick={e => e.stopPropagation()}
             >
-                <header className="flex items-start justify-between p-6 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-brand-green/5 to-transparent">
-                    <div className="flex-1">
-                        <h2 className="text-2xl md:text-3xl font-black text-text-main-light dark:text-text-main mb-2">{request.title}</h2>
-                        <div className="flex items-center gap-3 flex-wrap">
-                            <Link
-                                href={`/reputation/${request.requester.username}`}
-                                className="flex items-center gap-2 text-sm text-text-tertiary-light dark:text-text-tertiary hover:text-brand-green transition-colors group"
-                            >
-                                <Image src={request.requester.avatar_url || ''} alt="requester" width={24} height={24} className="w-6 h-6 rounded-full ring-2 ring-gray-100 dark:ring-gray-800 group-hover:ring-brand-green transition-all" unoptimized />
-                                <span className="font-semibold">Posted by @{request.requester.username}</span>
-                            </Link>
-                            <span className="px-3 py-1 bg-gray-100 dark:bg-gray-800 text-text-secondary-light dark:text-text-secondary text-xs font-bold rounded-lg">
-                                {request.category}
-                            </span>
+                <div className="relative h-32 bg-gradient-to-r from-brand-green/20 to-blue-500/20">
+                    <div className="absolute top-4 right-4">
+                        <button onClick={onClose} className="p-2 bg-white/20 hover:bg-white/40 backdrop-blur-md rounded-full transition-colors"><XCircleIcon className="w-6 h-6 text-neutral-900 dark:text-white" /></button>
+                    </div>
+                </div>
+
+                <div className="px-8 -mt-10 pb-8 flex-1 overflow-y-auto custom-scrollbar">
+                    <div className="flex justify-between items-end mb-6">
+                        <div className="flex items-center gap-4">
+                            <div className="relative w-20 h-20 rounded-2xl border-4 border-white dark:border-neutral-900 shadow-xl overflow-hidden bg-neutral-100">
+                                <Image src={request.requester.avatar_url || ''} alt="" fill className="object-cover" unoptimized />
+                            </div>
+                            <div className="mb-2">
+                                <h2 className="text-2xl font-bold text-neutral-900 dark:text-white leading-tight">{request.title}</h2>
+                                <Link href={`/reputation/${request.requester.username}`} className="text-neutral-500 hover:text-brand-green transition-colors text-sm font-medium">@{request.requester.username}</Link>
+                            </div>
+                        </div>
+                        <div className="mb-4 bg-brand-green/10 text-brand-green px-4 py-2 rounded-xl font-bold text-xl flex items-center gap-1 border border-brand-green/20">
+                            <CurrencyRupeeIcon className="w-6 h-6" /> {request.reward}
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
-                        <XCircleIcon className="w-8 h-8 text-gray-400" />
-                    </button>
-                </header>
 
-                <main className="p-6 flex-grow overflow-y-auto space-y-6 custom-scrollbar">
-                    <div className="bg-gray-50 dark:bg-gray-800/50 p-6 rounded-2xl border border-gray-100 dark:border-gray-800">
-                        <p className="text-lg text-text-main-light dark:text-text-main whitespace-pre-wrap leading-relaxed font-medium">
-                            {request.description || "No description provided."}
-                        </p>
-                    </div>
+                    <div className="space-y-6">
+                        <div className="p-6 bg-neutral-50 dark:bg-neutral-800/50 rounded-2xl border border-neutral-100 dark:border-neutral-800">
+                            <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2">Description</h4>
+                            <p className="text-neutral-800 dark:text-neutral-200 whitespace-pre-wrap leading-relaxed">{request.description || "No description provided."}</p>
+                        </div>
 
-                    {request.claimer && (
-                        <div className="bg-gradient-to-r from-brand-green/10 to-transparent p-6 rounded-2xl border-l-4 border-brand-green">
-                            <p className="text-xs font-bold text-brand-green mb-4 uppercase tracking-wider flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-brand-green animate-pulse"></span>
-                                Task Claimed By
-                            </p>
-                            <div className="flex items-center justify-between">
-                                <Link href={`/reputation/${request.claimer.username}`} className="flex items-center gap-4 group">
-                                    <Image
-                                        src={request.claimer.avatar_url || ''}
-                                        alt="claimer"
-                                        width={56}
-                                        height={56}
-                                        className="w-14 h-14 rounded-full ring-4 ring-white dark:ring-gray-900 group-hover:ring-brand-green transition-all"
-                                        unoptimized
-                                    />
+                        {request.claimer && (
+                            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-500/10 to-transparent rounded-2xl border border-blue-500/20">
+                                <div className="flex items-center gap-3">
+                                    <Image src={request.claimer.avatar_url || ''} alt="" width={40} height={40} className="rounded-full ring-2 ring-blue-500/50" unoptimized />
                                     <div>
-                                        <span className="font-bold text-xl text-text-main-light dark:text-text-main group-hover:text-brand-green transition-colors block">
-                                            @{request.claimer.username}
-                                        </span>
-                                        <span className="text-sm text-text-secondary-light dark:text-text-secondary">Click to view profile</span>
+                                        <p className="text-xs text-blue-500 font-bold uppercase">Claimed By</p>
+                                        <p className="font-bold text-neutral-900 dark:text-white">@{request.claimer.username}</p>
                                     </div>
-                                </Link>
+                                </div>
                                 {!isClaimer && (
-                                    <button
-                                        disabled={isSubmitting}
-                                        onClick={() => handleContact(request.claimer!)}
-                                        className="flex items-center gap-2 text-sm font-bold bg-white dark:bg-gray-800 text-brand-green py-3 px-5 rounded-xl shadow-sm hover:shadow-md hover:scale-105 transition-all border border-brand-green/20"
-                                    >
+                                    <button onClick={() => router.push(`/chat?recipient=${request.claimer?.user_id}`)} className="p-2 bg-white dark:bg-neutral-800 rounded-full shadow-sm text-blue-500 hover:scale-110 transition-transform">
                                         <ChatIcon className="w-5 h-5" />
-                                        Message
                                     </button>
                                 )}
                             </div>
-                        </div>
-                    )}
-                </main>
-
-                <footer className="p-6 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30 flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2 text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-green to-emerald-600">
-                            <div className="p-2 bg-brand-green/10 rounded-xl">
-                                <CurrencyRupeeIcon className="w-10 h-10 text-brand-green" />
-                            </div>
-                            <span>{request.reward}</span>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 flex-wrap justify-end">
-                        {isOwner && request.status === 'open' && (
-                            <button
-                                disabled={isSubmitting}
-                                onClick={() => handleAction('cancel')}
-                                className="font-bold py-3 px-6 rounded-xl border-2 border-red-200 dark:border-red-900 text-accent-red hover:bg-red-50 dark:hover:bg-red-900/20 hover:scale-105 transition-all"
-                            >
-                                {isSubmitting ? <Spinner /> : 'Cancel Request'}
-                            </button>
-                        )}
-
-                        {isOwner && request.status === 'claimed' && (
-                            <button
-                                disabled={isSubmitting}
-                                onClick={() => handleContact(request.claimer!)}
-                                className="flex items-center gap-2 font-bold py-3 px-6 rounded-xl border-2 border-brand-green text-brand-green hover:bg-brand-green/10 hover:scale-105 transition-all"
-                            >
-                                <ChatIcon className="w-5 h-5" />
-                                Contact Claimer
-                            </button>
-                        )}
-
-                        {isClaimer && request.status === 'claimed' && (
-                            <button
-                                disabled={isSubmitting}
-                                onClick={() => handleAction('unclaim')}
-                                className="font-bold py-3 px-6 rounded-xl border-2 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 hover:scale-105 transition-all"
-                            >
-                                {isSubmitting ? <Spinner /> : 'Un-claim Task'}
-                            </button>
-                        )}
-
-                        {isOwner && request.status === 'claimed' && (
-                            <button
-                                disabled={isSubmitting}
-                                onClick={() => handleAction('complete')}
-                                className="font-bold py-4 px-10 rounded-xl text-white bg-gradient-to-r from-brand-green to-emerald-600 hover:shadow-lg hover:shadow-brand-green/30 hover:scale-105 transition-all"
-                            >
-                                {isSubmitting ? <Spinner /> : '✓ Mark Complete'}
-                            </button>
-                        )}
-
-                        {!isOwner && request.status === 'open' && (
-                            <button
-                                disabled={isSubmitting}
-                                onClick={() => handleAction('claim')}
-                                className="font-bold py-4 px-10 rounded-xl text-white bg-gradient-to-r from-brand-green to-emerald-600 hover:shadow-lg hover:shadow-brand-green/30 hover:scale-105 transition-all"
-                            >
-                                {isSubmitting ? <Spinner /> : 'Claim Task'}
-                            </button>
                         )}
                     </div>
-                </footer>
+                </div>
+
+                <div className="p-6 border-t border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/50 backdrop-blur-sm flex justify-end gap-3">
+                    {isOwner && request.status === 'open' && <ActionButton onClick={() => handleAction('cancel')} label="Cancel" variant="danger" loading={isSubmitting} />}
+                    {isOwner && request.status === 'claimed' && <ActionButton onClick={() => handleAction('complete')} label="Mark Complete" variant="primary" loading={isSubmitting} />}
+                    {isOwner && request.status === 'claimed' && <ActionButton onClick={() => router.push(`/chat?recipient=${request.claimer?.user_id}`)} label="Contact" variant="secondary" loading={isSubmitting} />}
+
+                    {isClaimer && request.status === 'claimed' && <ActionButton onClick={() => handleAction('unclaim')} label="Unclaim" variant="secondary" loading={isSubmitting} />}
+                    {!isOwner && request.status === 'open' && <ActionButton onClick={() => handleAction('claim')} label="Claim Task" variant="primary" loading={isSubmitting} />}
+                </div>
             </motion.div>
-        </motion.div>
+        </ModalBackdrop>
     );
 };
+
+const ActionButton = ({ onClick, label, variant, loading }: { onClick: () => void, label: string, variant: 'primary' | 'secondary' | 'danger', loading: boolean }) => {
+    const styles = {
+        primary: "bg-brand-green text-white hover:bg-emerald-600 shadow-lg shadow-brand-green/20",
+        secondary: "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700",
+        danger: "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900 hover:bg-red-100 dark:hover:bg-red-900/40"
+    };
+    return (
+        <button onClick={onClick} disabled={loading} className={cn("px-6 py-3 rounded-xl font-bold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed", styles[variant])}>
+            {loading ? <Spinner className="w-5 h-5" /> : label}
+        </button>
+    );
+}
 
 export default BitsCoinPage;
