@@ -234,7 +234,7 @@ const BitsCoinPage: React.FC = () => {
                     <div className="space-y-4">
                         <div className="flex items-center gap-3 mb-2">
                             <div className="h-px w-8 bg-brand-green" />
-                            <span className="text-brand-green font-mono text-xs tracking-widest uppercase">Decentralized Tasks</span>
+                            <span className="text-brand-green font-mono text-xs tracking-widest uppercase">Can you collect my package from CP?</span>
                         </div>
                         <h1 className="text-5xl md:text-7xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-neutral-900 via-neutral-600 to-neutral-900 dark:from-white dark:via-neutral-400 dark:to-neutral-600">
                             <DecryptedText text="Request Board" onClick={handleTitleClick} />
