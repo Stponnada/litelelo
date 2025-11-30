@@ -714,7 +714,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
             return (
                 // FIXED: Link to href
                 <Link href={`/chat/group/${conversation.conversation_id}`} className="flex items-center space-x-3 group min-w-0 flex-1">
-                    <div className="w-11 h-11 rounded-full bg-gradient-to-br from-brand-green to-green-600 flex items-center justify-center ring-2 ring-brand-green/20 group-hover:ring-brand-green/40 transition-all flex-shrink-0">
+                    <div className="w-11 h-11 rounded-full bg-gradient-to-br from-green-600 to-green-600 flex items-center justify-center ring-2 ring-brand-green/20 group-hover:ring-brand-green/40 transition-all flex-shrink-0">
                         <UserGroupIcon className="w-6 h-6 text-white" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -884,7 +884,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
 
                                     <div className={`relative flex items-center gap-1 max-w-[85%] sm:max-w-[75%] md:max-w-[65%] ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
                                         <div className={`relative w-full rounded-2xl shadow-sm transition-all duration-200 hover:shadow-md ${isOwn
-                                            ? 'bg-gradient-to-br from-brand-green to-green-500 text-black rounded-br-md'
+                                            ? 'bg-gradient-to-br from-green-500 to-green-500 text-black rounded-br-md'
                                             : 'bg-secondary-light dark:bg-secondary text-text-main-light dark:text-text-main border border-tertiary-light dark:border-tertiary rounded-bl-md'
                                             }`}>
                                             {isEditing ? (
@@ -1132,7 +1132,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
 
             <div className="px-4 md:px-6 py-4 border-t border-tertiary-light dark:border-tertiary bg-secondary-light dark:bg-secondary flex-shrink-0">
                 {replyingTo && (
-                    <div className="mb-3 px-4 py-3 bg-gradient-to-r from-brand-green/10 to-green-500/10 dark:from-brand-green/20 dark:to-green-500/20 rounded-xl text-sm border-l-4 border-brand-green">
+                    <div className="mb-3 px-4 py-3 bg-gradient-to-r from-green-500/10 to-green-500/10 dark:from-green-500/20 dark:to-green-500/20 rounded-xl text-sm border-l-4 border-brand-green">
                         <div className="flex justify-between items-center">
                             <div className="min-w-0 flex-1">
                                 <p className="font-bold text-brand-green mb-1">
@@ -1257,7 +1257,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                     <button
                         type="submit"
                         disabled={!newMessage.trim() && !imageFile && !attachedFile}
-                        className="p-3 bg-gradient-to-br from-brand-green to-green-500 text-black rounded-full hover:shadow-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex-shrink-0"
+                        className="p-3 bg-gradient-to-br from-green-500 to-green-500 text-black rounded-full hover:shadow-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex-shrink-0"
                     >
                         <SendIcon className="w-5 h-5" />
                     </button>
