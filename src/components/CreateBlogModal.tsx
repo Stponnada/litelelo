@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import Image from 'next/image';
-import { XMarkIcon, PhotoIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, PhotoIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
 
@@ -34,6 +34,14 @@ export default function CreateBlogModal({ isOpen, onClose, communityId, onSucces
         }
     };
 
+    const handleRemoveImage = () => {
+        setImageFile(null);
+        setImagePreview(null);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!title.trim() || !content.trim() || !user) return;
@@ -48,7 +56,7 @@ export default function CreateBlogModal({ isOpen, onClose, communityId, onSucces
                 const filePath = `${user.id}/blog-images/${fileName}`;
 
                 const { error: uploadError } = await supabase.storage
-                    .from('post-images') // Reusing post-images bucket
+                    .from('post-images')
                     .upload(filePath, imageFile);
 
                 if (uploadError) throw uploadError;
@@ -84,30 +92,85 @@ export default function CreateBlogModal({ isOpen, onClose, communityId, onSucces
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-surface-light dark:bg-surface w-full max-w-2xl rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
-                {/* Header */}
-                <div className="p-4 border-b border-border-light dark:border-border flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-text-main-light dark:text-text-main">Write a Blog</h2>
-                    <button onClick={onClose} className="p-2 hover:bg-hover-light dark:hover:bg-hover rounded-full transition-colors">
-                        <XMarkIcon className="w-6 h-6 text-text-secondary-light dark:text-text-secondary" />
-                    </button>
-                </div>
-
-                {/* Form */}
-                <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
-                    {/* Image Upload */}
-                    <div
-                        onClick={() => fileInputRef.current?.click()}
-                        className={`relative w-full h-48 rounded-xl border-2 border-dashed border-border-light dark:border-border flex flex-col items-center justify-center cursor-pointer hover:bg-hover-light dark:hover:bg-hover transition-colors overflow-hidden ${imagePreview ? 'border-none' : ''}`}
+        <div className="fixed inset-0 z-50 bg-white dark:bg-[#0a0a0a] overflow-y-auto">
+            {/* Top Navigation Bar */}
+            <div className="sticky top-0 z-10 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-gray-200 dark:border-white/10">
+                <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+                    <button
+                        onClick={onClose}
+                        className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors group"
                     >
+                        <ArrowLeftIcon className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                        <span className="font-medium">Back</span>
+                    </button>
+
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={onClose}
+                            className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleSubmit}
+                            disabled={loading || !title.trim() || !content.trim()}
+                            className="px-6 py-2.5 bg-brand-green text-white font-semibold rounded-full hover:bg-brand-green-dark disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-brand-green/20 hover:shadow-xl hover:shadow-brand-green/30"
+                        >
+                            {loading ? 'Publishing...' : 'Publish'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Main Content Area */}
+            <div className="max-w-4xl mx-auto px-6 py-12">
+                <form onSubmit={handleSubmit} className="space-y-8">
+                    {/* Cover Image Section */}
+                    <div className="space-y-4">
                         {imagePreview ? (
-                            <Image src={imagePreview} alt="Preview" fill className="object-cover" unoptimized />
+                            <div className="relative w-full aspect-[21/9] rounded-2xl overflow-hidden group">
+                                <Image
+                                    src={imagePreview}
+                                    alt="Cover preview"
+                                    fill
+                                    className="object-cover"
+                                    unoptimized
+                                />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="px-4 py-2 bg-white text-gray-900 rounded-lg font-medium hover:bg-gray-100 transition-colors"
+                                    >
+                                        Change Image
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleRemoveImage}
+                                        className="px-4 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors"
+                                    >
+                                        Remove
+                                    </button>
+                                </div>
+                            </div>
                         ) : (
-                            <>
-                                <PhotoIcon className="w-12 h-12 text-text-tertiary-light dark:text-text-tertiary mb-2" />
-                                <span className="text-sm text-text-tertiary-light dark:text-text-tertiary">Add Cover Image</span>
-                            </>
+                            <button
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                className="w-full aspect-[21/9] rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-brand-green dark:hover:border-brand-green flex flex-col items-center justify-center gap-3 transition-all hover:bg-gray-50 dark:hover:bg-white/5 group"
+                            >
+                                <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center group-hover:bg-brand-green/10 transition-colors">
+                                    <PhotoIcon className="w-8 h-8 text-gray-400 dark:text-gray-500 group-hover:text-brand-green transition-colors" />
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-lg font-semibold text-gray-700 dark:text-gray-300 group-hover:text-brand-green transition-colors">
+                                        Add a cover image
+                                    </p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
+                                        Make your story stand out with a stunning visual
+                                    </p>
+                                </div>
+                            </button>
                         )}
                         <input
                             type="file"
@@ -122,40 +185,54 @@ export default function CreateBlogModal({ isOpen, onClose, communityId, onSucces
                     <div>
                         <input
                             type="text"
-                            placeholder="Headline"
+                            placeholder="Give your story a captivating title..."
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
-                            className="w-full bg-transparent text-3xl font-bold text-text-main-light dark:text-text-main placeholder-text-tertiary-light dark:placeholder-text-tertiary border-none focus:ring-0 p-0"
-                            maxLength={100}
+                            className="w-full bg-transparent text-4xl md:text-5xl font-black text-gray-900 dark:text-white placeholder-gray-300 dark:placeholder-gray-700 border-none focus:ring-0 p-0 leading-tight"
+                            autoFocus
                         />
                     </div>
 
+                    {/* Divider */}
+                    <div className="border-t border-gray-200 dark:border-gray-800"></div>
+
                     {/* Content Input */}
-                    <div className="flex-1">
+                    <div>
                         <textarea
-                            placeholder="Write your story..."
+                            placeholder="Tell your story...
+
+Write freely. Use line breaks to create paragraphs. Share your thoughts, experiences, and insights with the community."
                             value={content}
                             onChange={(e) => setContent(e.target.value)}
-                            className="w-full h-64 bg-transparent text-lg text-text-main-light dark:text-text-main placeholder-text-tertiary-light dark:placeholder-text-tertiary border-none focus:ring-0 p-0 resize-none"
+                            className="w-full min-h-[500px] bg-transparent text-xl text-gray-800 dark:text-gray-200 placeholder-gray-300 dark:placeholder-gray-700 border-none focus:ring-0 p-0 resize-none leading-relaxed font-serif"
+                            style={{ lineHeight: '1.8' }}
                         />
                     </div>
                 </form>
 
-                {/* Footer */}
-                <div className="p-4 border-t border-border-light dark:border-border flex justify-end gap-3">
-                    <button
-                        onClick={onClose}
-                        className="px-4 py-2 text-text-secondary-light dark:text-text-secondary hover:bg-hover-light dark:hover:bg-hover rounded-lg transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={handleSubmit}
-                        disabled={loading || !title.trim() || !content.trim()}
-                        className="px-6 py-2 bg-primary text-white font-medium rounded-lg hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                        {loading ? 'Publishing...' : 'Publish'}
-                    </button>
+                {/* Writing Tips */}
+                <div className="mt-16 p-6 bg-gradient-to-br from-brand-green/5 to-blue-500/5 dark:from-brand-green/10 dark:to-blue-500/10 rounded-2xl border border-brand-green/20 dark:border-brand-green/30">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">
+                        ✨ Writing Tips
+                    </h3>
+                    <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                        <li className="flex items-start gap-2">
+                            <span className="text-brand-green mt-0.5">•</span>
+                            <span>Start with a hook that grabs attention</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                            <span className="text-brand-green mt-0.5">•</span>
+                            <span>Break up long paragraphs for better readability</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                            <span className="text-brand-green mt-0.5">•</span>
+                            <span>Use a conversational tone to connect with readers</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                            <span className="text-brand-green mt-0.5">•</span>
+                            <span>End with a thought-provoking conclusion</span>
+                        </li>
+                    </ul>
                 </div>
             </div>
         </div>

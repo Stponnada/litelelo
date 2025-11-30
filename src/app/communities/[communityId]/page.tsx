@@ -66,7 +66,22 @@ const CommunityPage: React.FC = () => {
             setCommunity(communityResult.data as CommunityDetailsType);
 
             if (postsResult.error) throw postsResult.error;
-            setPosts((postsResult.data as PostType[]) || []);
+
+            // Transform flat RPC result to nested Post structure
+            const rawPosts = postsResult.data as any[];
+            const formattedPosts: PostType[] = rawPosts.map(post => ({
+                ...post,
+                author: post.author || {
+                    author_id: post.author_id,
+                    author_type: post.author_type,
+                    author_name: post.author_name,
+                    author_username: post.author_username,
+                    author_avatar_url: post.author_avatar_url,
+                    author_flair_details: post.author_flair_details
+                }
+            }));
+
+            setPosts(formattedPosts);
 
             if (subcommunitiesResult.error) throw subcommunitiesResult.error;
             setSubcommunities(subcommunitiesResult.data || []);
@@ -219,6 +234,7 @@ const CommunityPage: React.FC = () => {
     const isOwner = community.is_admin;
     const canPostInCurrentView = community.is_member && ['private', 'public'].includes(activeView);
     const placeholderText = activeView === 'public' ? "Share something with everyone..." : "What&apos;s on your mind, member?";
+
     const blogPosts = posts.filter(p => p.post_type === 'blog');
     const publicPosts = posts.filter(p => p.is_public && p.post_type !== 'blog');
     const privatePosts = posts.filter(p => !p.is_public);
@@ -320,7 +336,7 @@ const CommunityPage: React.FC = () => {
                             <div className="space-y-1">
                                 <SubcommunityLink label="Member Posts" isActive={activeView === 'private'} onClick={() => setActiveView('private')} />
                                 <SubcommunityLink label="Public Feed" isActive={activeView === 'public'} onClick={() => setActiveView('public')} />
-                                {blogPosts.length > 0 && <SubcommunityLink label="Blog" isActive={activeView === 'blog'} onClick={() => setActiveView('blog')} />}
+                                <SubcommunityLink label="Blogs" isActive={activeView === 'blog'} onClick={() => setActiveView('blog')} />
                             </div>
                             <hr className="my-3 border-tertiary-light/50 dark:border-tertiary/50" />
                             <div className="flex justify-between items-center mb-2 px-2">

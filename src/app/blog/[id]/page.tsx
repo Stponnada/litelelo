@@ -39,6 +39,8 @@ const BlogPage: React.FC = () => {
     const [scrollProgress, setScrollProgress] = useState(0);
     const [isLiked, setIsLiked] = useState(false);
     const [likeCount, setLikeCount] = useState(0);
+    const [originalPosterName, setOriginalPosterName] = useState<string | null>(null);
+    const [originalPosterAvatar, setOriginalPosterAvatar] = useState<string | null>(null);
 
     // Scroll Progress Logic
     useEffect(() => {
@@ -97,6 +99,29 @@ const BlogPage: React.FC = () => {
 
         fetchBlogPost();
     }, [id]);
+
+    useEffect(() => {
+        const fetchOriginalPoster = async () => {
+            if (!post?.original_poster_username) return;
+
+            try {
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('full_name, avatar_url')
+                    .eq('username', post.original_poster_username)
+                    .single();
+
+                if (!error && data) {
+                    setOriginalPosterName(data.full_name);
+                    setOriginalPosterAvatar(data.avatar_url);
+                }
+            } catch (err) {
+                console.error('Error fetching original poster:', err);
+            }
+        };
+
+        fetchOriginalPoster();
+    }, [post?.original_poster_username]);
 
     const handleLike = async () => {
         if (!user) {
@@ -199,7 +224,7 @@ const BlogPage: React.FC = () => {
                         <div className="sticky top-12 space-y-8 py-8 animate-fade-in">
                             <div className="flex items-center gap-4">
                                 <Image
-                                    src={post.author.author_avatar_url || `https://ui-avatars.com/api/?name=${post.author.author_name}`}
+                                    src={originalPosterAvatar || post.author.author_avatar_url || `https://ui-avatars.com/api/?name=${originalPosterName || post.author.author_name}`}
                                     alt="Author"
                                     width={64}
                                     height={64}
@@ -210,9 +235,13 @@ const BlogPage: React.FC = () => {
                                     <p className="text-xs font-bold uppercase tracking-widest text-text-tertiary-light dark:text-neutral-500 mb-1">
                                         Written by
                                     </p>
-                                    <p className="text-xl font-bold">{post.author.author_name}</p>
-                                    {post.author.author_type !== 'community' && (
-                                        <p className="text-sm opacity-60">@{post.author.author_username}</p>
+                                    {post.original_poster_username ? (
+                                        <Link href={`/profile/${post.original_poster_username}`} className="hover:text-brand-green transition-colors">
+                                            <p className="text-xl font-bold">{originalPosterName || post.author.author_name}</p>
+                                            <p className="text-sm opacity-60">@{post.original_poster_username}</p>
+                                        </Link>
+                                    ) : (
+                                        <p className="text-xl font-bold">{post.author.author_name}</p>
                                     )}
                                 </div>
                             </div>
@@ -234,7 +263,7 @@ const BlogPage: React.FC = () => {
                         {/* Mobile Author View */}
                         <div className="lg:hidden flex items-center gap-4 mb-10 pb-8 border-b border-border-light dark:border-white/10">
                             <Image
-                                src={post.author.author_avatar_url || `https://ui-avatars.com/api/?name=${post.author.author_name}`}
+                                src={originalPosterAvatar || post.author.author_avatar_url || `https://ui-avatars.com/api/?name=${originalPosterName || post.author.author_name}`}
                                 alt="Author"
                                 width={48}
                                 height={48}
@@ -242,9 +271,13 @@ const BlogPage: React.FC = () => {
                                 unoptimized
                             />
                             <div>
-                                <p className="font-bold">{post.author.author_name}</p>
-                                {post.author.author_type !== 'community' && (
-                                    <p className="text-xs opacity-60">@{post.author.author_username}</p>
+                                {post.original_poster_username ? (
+                                    <Link href={`/profile/${post.original_poster_username}`} className="hover:text-brand-green transition-colors">
+                                        <p className="font-bold">{originalPosterName || post.author.author_name}</p>
+                                        <p className="text-xs opacity-60">@{post.original_poster_username}</p>
+                                    </Link>
+                                ) : (
+                                    <p className="font-bold">{post.author.author_name}</p>
                                 )}
                             </div>
                         </div>
