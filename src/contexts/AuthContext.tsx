@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (err) {
       console.error("Error checking session:", err);
     }
-  }, [session?.access_token]);
+  }, [session]);
 
   useEffect(() => {
     let mounted = true;
@@ -137,6 +137,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       window.removeEventListener('visibilitychange', handleFocus);
       window.removeEventListener('focus', handleFocus);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshSession]); // Dependencies reduced to avoid loops
 
   const value = {

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
-import { Profile, DirectoryProfile } from '../types';
+import { DirectoryProfile } from '../types';
 import Spinner from './Spinner';
 import { XCircleIcon, UserGroupIcon } from './icons';
 
@@ -210,34 +210,30 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ onClose, onGroupCre
                     <button
                       key={profile.id}
                       onClick={() => handleToggleUser(profile)}
-                      className={`group flex items-center gap-4 p-3.5 w-full rounded-xl transition-all duration-200 ${
-                        isSelected
+                      className={`group flex items-center gap-4 p-3.5 w-full rounded-xl transition-all duration-200 ${isSelected
                           ? 'bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/30'
                           : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
-                      }`}
+                        }`}
                     >
                       <div className="relative">
-                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200 ${
-                          isSelected
+                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200 ${isSelected
                             ? 'bg-emerald-500 border-emerald-500'
                             : 'border-gray-300 dark:border-gray-600 group-hover:border-emerald-400'
-                        }`}>
+                          }`}>
                           {isSelected && <CheckIcon className="w-3.5 h-3.5 text-white" />}
                         </div>
                       </div>
-                      
+
                       <img
                         src={profile.avatar_url || `https://ui-avatars.com/api/?name=${profile.name || profile.username}&background=random&color=fff&bold=true`}
                         alt={profile.username!}
-                        className={`w-11 h-11 rounded-xl object-cover shadow-sm transition-all duration-200 ${
-                          isSelected ? 'ring-2 ring-emerald-400 shadow-emerald-200 dark:shadow-emerald-900/50' : ''
-                        }`}
+                        className={`w-11 h-11 rounded-xl object-cover shadow-sm transition-all duration-200 ${isSelected ? 'ring-2 ring-emerald-400 shadow-emerald-200 dark:shadow-emerald-900/50' : ''
+                          }`}
                       />
-                      
+
                       <div className="flex-1 text-left min-w-0">
-                        <p className={`font-semibold truncate transition-colors ${
-                          isSelected ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-900 dark:text-white'
-                        }`}>
+                        <p className={`font-semibold truncate transition-colors ${isSelected ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-900 dark:text-white'
+                          }`}>
                           {profile.name}
                         </p>
                         <p className="text-sm text-gray-500 dark:text-gray-400 truncate">

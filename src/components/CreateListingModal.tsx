@@ -25,7 +25,7 @@ const CreateListingModal: React.FC<CreateListingModalProps> = ({ campus, onClose
     const [description, setDescription] = useState('');
     const [price, setPrice] = useState('');
     const [category, setCategory] = useState('');
-    
+
     const [imageFiles, setImageFiles] = useState<File[]>([]);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
     const [imagesToRemove, setImagesToRemove] = useState<string[]>([]); // URLs of existing images to delete
@@ -43,7 +43,7 @@ const CreateListingModal: React.FC<CreateListingModalProps> = ({ campus, onClose
             setImagePreviews(existingListing.all_images || []);
         }
     }, [isEditMode, existingListing]);
-    
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             const files = Array.from(e.target.files);
@@ -58,11 +58,12 @@ const CreateListingModal: React.FC<CreateListingModalProps> = ({ campus, onClose
             setImagePreviews(prev => [...prev, ...newPreviews]);
         }
     };
-    
+
     const removeImage = (index: number, previewUrl: string) => {
         const fileIndex = imagePreviews.slice(0, index).filter(p => p.startsWith('blob:')).length;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const existingUrlIndex = index - imagePreviews.slice(0, index).filter(p => p.startsWith('blob:')).length;
-        
+
         if (previewUrl.startsWith('blob:')) { // It's a new file
             setImageFiles(prev => prev.filter((_, i) => i !== fileIndex));
         } else { // It's an existing image URL
@@ -85,6 +86,7 @@ const CreateListingModal: React.FC<CreateListingModalProps> = ({ campus, onClose
             if (isEditMode && existingListing) {
                 // --- EDIT LOGIC ---
                 // 1. Update listing text details
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 const { data: updatedListingData, error: updateError } = await supabase
                     .from('marketplace_listings')
                     .update({ title, description, price: parseFloat(price), category })
@@ -92,7 +94,7 @@ const CreateListingModal: React.FC<CreateListingModalProps> = ({ campus, onClose
                     .select()
                     .single();
                 if (updateError) throw updateError;
-                
+
                 // 2. Remove old images
                 if (imagesToRemove.length > 0) {
                     const imagePaths = imagesToRemove.map(url => url.substring(url.lastIndexOf('/' + user.id)));
@@ -101,8 +103,9 @@ const CreateListingModal: React.FC<CreateListingModalProps> = ({ campus, onClose
                 }
 
                 // 3. Upload new images
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 const newImageUrls = await uploadImages(imageFiles, existingListing.id);
-                
+
                 // 4. Fetch the complete updated listing to pass back
                 const { data: finalListing, error: rpcError } = await supabase
                     .rpc('get_marketplace_listings', { p_campus: campus })
@@ -118,9 +121,9 @@ const CreateListingModal: React.FC<CreateListingModalProps> = ({ campus, onClose
                     .from('marketplace_listings').insert({ seller_id: user.id, title, description, price: parseFloat(price), category, campus }).select().single();
                 if (insertError) throw insertError;
                 const listingId = listingData.id;
-                
+
                 await uploadImages(imageFiles, listingId);
-                
+
                 const { data: newListing, error: rpcError } = await supabase.rpc('get_marketplace_listings', { p_campus: campus }).eq('id', listingId).single();
                 if (rpcError) throw rpcError;
                 onListingCreated(newListing as MarketplaceListing);
@@ -151,7 +154,7 @@ const CreateListingModal: React.FC<CreateListingModalProps> = ({ campus, onClose
         if (imageInsertError) throw imageInsertError;
         return imageUrls;
     };
-    
+
     const maxImages = 5;
     const canAddMoreImages = (imagePreviews.length - imagesToRemove.length) < maxImages;
 
@@ -163,9 +166,9 @@ const CreateListingModal: React.FC<CreateListingModalProps> = ({ campus, onClose
                         <h2 className="text-xl font-bold">{isEditMode ? 'Edit Listing' : 'Create a New Listing'}</h2>
                         <button type="button" onClick={onClose}><XCircleIcon className="w-8 h-8 text-text-tertiary-light dark:text-text-tertiary" /></button>
                     </header>
-                    
+
                     <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                         <div className="md:col-span-2"><label className="block text-sm font-medium">Title*</label><input type="text" value={title} onChange={e => setTitle(e.target.value)} required className="mt-1 w-full p-2 bg-tertiary-light dark:bg-tertiary rounded border border-tertiary-light dark:border-gray-600" /></div>
+                        <div className="md:col-span-2"><label className="block text-sm font-medium">Title*</label><input type="text" value={title} onChange={e => setTitle(e.target.value)} required className="mt-1 w-full p-2 bg-tertiary-light dark:bg-tertiary rounded border border-tertiary-light dark:border-gray-600" /></div>
                         <div><label className="block text-sm font-medium">Price (₹)*</label><input type="number" value={price} onChange={e => setPrice(e.target.value)} required min="0" step="0.01" className="mt-1 w-full p-2 bg-tertiary-light dark:bg-tertiary rounded border border-tertiary-light dark:border-gray-600" /></div>
                         <div><label className="block text-sm font-medium">Category*</label><select value={category} onChange={e => setCategory(e.target.value)} required className="mt-1 w-full p-2 bg-tertiary-light dark:bg-tertiary rounded border border-tertiary-light dark:border-gray-600"><option value="" disabled>Select a category</option>{CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}</select></div>
                         <div className="md:col-span-2"><label className="block text-sm font-medium">Description</label><textarea value={description} onChange={e => setDescription(e.target.value)} rows={4} className="mt-1 w-full p-2 bg-tertiary-light dark:bg-tertiary rounded border border-tertiary-light dark:border-gray-600" /></div>
@@ -179,15 +182,15 @@ const CreateListingModal: React.FC<CreateListingModalProps> = ({ campus, onClose
                                     </div>
                                 ))}
                                 {canAddMoreImages && (
-                                    <button type="button" onClick={() => imageInputRef.current?.click()} className="w-24 h-24 flex flex-col items-center justify-center text-sm p-2 rounded bg-tertiary-light dark:bg-tertiary hover:bg-gray-300 dark:hover:bg-gray-600 border-2 border-dashed border-tertiary-light dark:border-gray-600"><ImageIcon className="w-8 h-8"/><span>Add Image</span></button>
+                                    <button type="button" onClick={() => imageInputRef.current?.click()} className="w-24 h-24 flex flex-col items-center justify-center text-sm p-2 rounded bg-tertiary-light dark:bg-tertiary hover:bg-gray-300 dark:hover:bg-gray-600 border-2 border-dashed border-tertiary-light dark:border-gray-600"><ImageIcon className="w-8 h-8" /><span>Add Image</span></button>
                                 )}
                             </div>
-                             <input type="file" ref={imageInputRef} onChange={handleFileChange} accept="image/*" multiple hidden />
+                            <input type="file" ref={imageInputRef} onChange={handleFileChange} accept="image/*" multiple hidden />
                         </div>
                     </div>
 
                     {error && <p className="text-red-400 text-sm mt-4 text-center">{error}</p>}
-                    
+
                     <footer className="flex justify-end space-x-4 pt-6 mt-4 border-t border-tertiary-light dark:border-tertiary">
                         <button type="button" onClick={onClose} className="py-2 px-6 rounded-full hover:bg-tertiary-light/60 dark:hover:bg-tertiary">Cancel</button>
                         <button type="submit" disabled={isSubmitting} className="py-2 px-6 rounded-full text-black bg-brand-green hover:bg-brand-green-darker disabled:opacity-50">{isSubmitting ? <Spinner /> : isEditMode ? 'Save Changes' : 'Post Listing'}</button>

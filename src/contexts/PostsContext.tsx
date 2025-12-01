@@ -63,10 +63,10 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (sessionError) throw sessionError;
         if (!session) {
-            // If the session is gone, stop and likely let the UI redirect to login
-            setIsFetching(false);
-            setLoading(false);
-            return;
+          // If the session is gone, stop and likely let the UI redirect to login
+          setIsFetching(false);
+          setLoading(false);
+          return;
         }
       }
 
@@ -143,6 +143,7 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // --- THIS IS THE FIX ---
   // Instead of optimistically adding the post, we now force a clean refetch of the current feed.
   // This is more robust and guarantees no duplicates.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const addPostToContext = (_newPost: FeedItem) => {
     // To give immediate feedback, we can clear the posts for the current feed
     // and reset its page count, which will trigger a fresh load.
