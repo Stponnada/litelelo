@@ -29,22 +29,22 @@ const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) => {
     return (
         <div
             onClick={onClick}
-            className="group cursor-pointer bg-secondary-light dark:bg-secondary rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 border border-tertiary-light dark:border-tertiary flex gap-3 p-3"
+            className="group cursor-pointer bg-secondary-light dark:bg-secondary rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 border border-tertiary-light dark:border-tertiary flex flex-col"
         >
-            <div className="relative w-24 h-24 flex-shrink-0 overflow-hidden rounded-lg">
+            <div className="relative w-full aspect-square overflow-hidden">
                 <Image
-                    src={getResizedImageUrl(listing.primary_image_url, 200, 200)}
+                    src={getResizedImageUrl(listing.primary_image_url, 400, 400)}
                     alt={listing.title}
-                    width={200}
-                    height={200}
+                    width={400}
+                    height={400}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     unoptimized
                 />
             </div>
-            <div className="flex flex-col flex-grow min-w-0">
-                <h3 className="font-bold text-text-main-light dark:text-text-main text-sm truncate group-hover:text-brand-green transition-colors">{listing.title}</h3>
-                <p className="text-xs text-text-tertiary-light dark:text-text-tertiary mt-0.5">{listing.category}</p>
-                <p className="mt-auto text-lg font-bold text-brand-green pt-1">₹{listing.price.toLocaleString()}</p>
+            <div className="p-4 flex flex-col flex-grow">
+                <h3 className="font-bold text-text-main-light dark:text-text-main text-lg truncate group-hover:text-brand-green">{listing.title}</h3>
+                <p className="text-sm text-text-tertiary-light dark:text-text-tertiary mt-1">{listing.category}</p>
+                <p className="mt-auto text-xl font-semibold text-brand-green pt-2">₹{listing.price.toLocaleString()}</p>
             </div>
         </div>
     );
