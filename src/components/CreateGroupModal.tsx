@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
-import { DirectoryProfile } from '../types';
+import { Profile, DirectoryProfile } from '../types';
 import Spinner from './Spinner';
 import { XCircleIcon, UserGroupIcon } from './icons';
 

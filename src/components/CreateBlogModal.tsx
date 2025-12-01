@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import Image from 'next/image';
-import { PhotoIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, PhotoIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
 

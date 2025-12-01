@@ -61,7 +61,6 @@ const CreateListingModal: React.FC<CreateListingModalProps> = ({ campus, onClose
 
     const removeImage = (index: number, previewUrl: string) => {
         const fileIndex = imagePreviews.slice(0, index).filter(p => p.startsWith('blob:')).length;
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const existingUrlIndex = index - imagePreviews.slice(0, index).filter(p => p.startsWith('blob:')).length;
 
         if (previewUrl.startsWith('blob:')) { // It's a new file
@@ -86,7 +85,6 @@ const CreateListingModal: React.FC<CreateListingModalProps> = ({ campus, onClose
             if (isEditMode && existingListing) {
                 // --- EDIT LOGIC ---
                 // 1. Update listing text details
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 const { data: updatedListingData, error: updateError } = await supabase
                     .from('marketplace_listings')
                     .update({ title, description, price: parseFloat(price), category })
@@ -103,7 +101,6 @@ const CreateListingModal: React.FC<CreateListingModalProps> = ({ campus, onClose
                 }
 
                 // 3. Upload new images
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 const newImageUrls = await uploadImages(imageFiles, existingListing.id);
 
                 // 4. Fetch the complete updated listing to pass back

@@ -103,6 +103,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -356,12 +357,10 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
             .subscribe();
 
         return () => {
-            const timeouts = typingTimeoutRefs.current;
             supabase.removeChannel(channel);
-            timeouts.forEach(timeoutId => clearTimeout(timeoutId));
+            typingTimeoutRefs.current.forEach(timeoutId => clearTimeout(timeoutId));
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentConversationId, user, setPinnedMessageIfDifferent, setMessages, setReadTimestamps, setTypingUsers, typingTimeoutRefs]);
+    }, [currentConversationId, user, setPinnedMessageIfDifferent, setMessages, setReadTimestamps, setTypingUsers, typingTimeoutRefs, mapShallowEqual]);
 
     useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 

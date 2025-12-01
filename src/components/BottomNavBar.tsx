@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useChat } from '../hooks/useChat';
 import {
-  HomeIcon, BuildingLibraryIcon, ChatIcon, SearchIcon, GlobeIcon, UserGroupIcon
+  HomeIcon, BuildingLibraryIcon, ChatIcon, SearchIcon, GlobeIcon, UserGroupIcon, MapIcon
 } from './icons';
 
 
