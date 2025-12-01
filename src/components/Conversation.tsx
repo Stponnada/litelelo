@@ -691,7 +691,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                 <Link href={`/profile/${otherParticipant.username}`} className="flex items-center space-x-3 group min-w-0 flex-1">
                     <div className="relative flex-shrink-0">
                         <Image
-                            src={otherParticipant.avatar_url || `https://ui-avatars.com/api/?name=${otherParticipant.full_name || otherParticipant.username}`}
+                            src={otherParticipant.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(otherParticipant.full_name || otherParticipant.username)}`}
                             className="rounded-full object-cover ring-2 ring-brand-green/20 group-hover:ring-brand-green/40 transition-all"
                             alt="avatar"
                             width={44}
@@ -863,7 +863,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                                 >
                                     {!isOwn && msg.profiles && (
                                         <Image
-                                            src={msg.profiles.avatar_url || `https://ui-avatars.com/api/?name=${msg.profiles.username}`}
+                                            src={msg.profiles.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(msg.profiles.username)}`}
                                             className="rounded-full mb-1 ring-2 ring-secondary-light dark:ring-secondary shadow-sm flex-shrink-0"
                                             alt="avatar"
                                             width={32}
@@ -1111,7 +1111,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                                     {readersOfLastMessage.slice(0, 3).map(reader => (
                                         <Image
                                             key={reader.user_id}
-                                            src={reader.avatar_url || `https://ui-avatars.com/api/?name=${reader.full_name}`}
+                                            src={reader.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(reader.full_name || 'User')}`}
                                             alt={reader.full_name || ''}
                                             title={reader.full_name || ''}
                                             className="rounded-full object-cover ring-2 ring-secondary-light dark:ring-secondary"

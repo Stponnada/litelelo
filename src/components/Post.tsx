@@ -45,11 +45,12 @@ const Flair: React.FC<{ flair: { id: string; name: string; avatar_url: string | 
         title={flair.name}
     >
         <Image
-            src={flair.avatar_url || `https://ui-avatars.com/api/?name=${flair.name}`}
+            src={flair.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(flair.name)}`}
             alt={flair.name}
             width={12}
             height={12}
             className="rounded-full object-cover"
+            unoptimized
         />
         <span className="text-[9px] font-bold text-brand-green uppercase tracking-wide leading-none">{flair.name}</span>
     </Link >
@@ -236,11 +237,12 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => 
                         {/* Avatar - Smaller Size */}
                         <Link href={authorLink} onClick={e => e.stopPropagation()} className="flex-shrink-0 relative group/avatar">
                             <Image
-                                src={author.author_avatar_url ? getResizedAvatarUrl(author.author_avatar_url, 80, 80) : `https://ui-avatars.com/api/?name=${author.author_name || author.author_username}&background=random&color=fff&bold=true`}
+                                src={author.author_avatar_url ? getResizedAvatarUrl(author.author_avatar_url, 80, 80) : `https://ui-avatars.com/api/?name=${encodeURIComponent((author.author_name || author.author_username || 'User'))}&background=random&color=fff&bold=true`}
                                 alt={author.author_name || ''}
                                 width={40}
                                 height={40}
                                 className="relative rounded-full object-cover ring-1 ring-white dark:ring-white/10 shadow-sm"
+                                unoptimized
                             />
                         </Link>
 

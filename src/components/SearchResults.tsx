@@ -48,7 +48,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ results, loading, onNavig
               <li key={user.username}>
                 {/* FIXED: Link href */}
                 <Link href={`/profile/${user.username}`} onClick={onNavigate} className="flex items-center space-x-3 p-3 hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors">
-                  <Image src={user.avatar_url || `https://ui-avatars.com/api/?name=${user.full_name}`} alt={user.username} width={40} height={40} className="rounded-full object-cover border border-tertiary-light dark:border-tertiary" />
+                  <Image src={user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name || user.username)}`} alt={user.username} width={40} height={40} className="rounded-full object-cover border border-tertiary-light dark:border-tertiary" unoptimized />
                   <div>
                     <p className="font-semibold text-text-main-light dark:text-text-main text-sm">{user.full_name}</p>
                     <p className="text-xs text-text-secondary-light dark:text-text-secondary">@{user.username}</p>

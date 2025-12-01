@@ -14,7 +14,7 @@ const FollowSuggestionCard: React.FC<{ user: FollowSuggestion; onFollow: (userId
     {/* FIXED: to -> href */}
     <Link href={`/profile/${user.username}`}>
       <Image
-        src={user.avatar_url || `https://ui-avatars.com/api/?name=${user.full_name || user.username}&background=random&color=fff&bold=true`}
+        src={user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name || user.username)}&background=random&color=fff&bold=true`}
         alt={user.username}
         width={40}
         height={40}

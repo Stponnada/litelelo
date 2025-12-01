@@ -68,11 +68,12 @@ const NotificationItem: React.FC<{ notification: NotificationType, onClose: () =
         <div onClick={handleClick} className="p-3 flex items-start gap-3 hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50 cursor-pointer transition-colors relative">
             {!notification.is_read && <div className="absolute left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-blue-500 rounded-full"></div>}
             <Image
-                src={notification.actor.avatar_url || `https://ui-avatars.com/api/?name=${notification.actor.full_name || notification.actor.username}&background=random&color=fff&bold=true`}
+                src={notification.actor.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(notification.actor.full_name || notification.actor.username)}&background=random&color=fff&bold=true`}
                 alt={notification.actor.username}
                 width={40}
                 height={40}
                 className="rounded-full object-cover flex-shrink-0 ml-3 bg-tertiary"
+                unoptimized
             />
             <div className="flex-1">
                 <p className="text-sm text-text-secondary-light dark:text-text-secondary">
