@@ -269,7 +269,7 @@ const Login: React.FC = () => {
         <div className="relative flex flex-col lg:flex-row items-center justify-center min-h-screen bg-primary-light dark:bg-primary overflow-hidden">
             <div className={`absolute inset-0 z-0 transition-all duration-[2s] ${isPlaying ? 'opacity-0' : 'opacity-100'}`}>
                 {/* Modern Professional Background */}
-                <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-black to-gray-900 dark:from-black dark:via-gray-900 dark:to-black"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-100 via-white to-slate-100 dark:from-black dark:via-gray-900 dark:to-black"></div>
 
                 {/* Subtle Animated Gradient Orbs */}
                 <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-brand-green/10 blur-[120px] animate-pulse-slow"></div>
@@ -290,7 +290,7 @@ const Login: React.FC = () => {
                         {typedText}{typedText.length < 45 && <span className="animate-pulse">|</span>}
                     </p>
                 </div>
-                <div className="w-full max-w-md bg-white/5 dark:bg-black/20 backdrop-blur-xl border border-white/10 dark:border-white/5 p-6 sm:p-8 rounded-2xl shadow-2xl relative">
+                <div className="w-full max-w-md bg-white/80 dark:bg-black/20 backdrop-blur-xl border border-gray-200 dark:border-white/5 p-6 sm:p-8 rounded-2xl shadow-2xl relative">
                     <h2 className="text-xl sm:text-2xl font-bold text-center text-text-main-light dark:text-text-main mb-5 sm:mb-6 tracking-tight">
                         {view === 'login' && 'Welcome Back'}
                         {view === 'signup' && 'Create Account'}
@@ -298,11 +298,11 @@ const Login: React.FC = () => {
                     </h2>
                     {view !== 'reset_request' && (
                         <>
-                            <button type="button" onClick={handleGoogleSignIn} disabled={loading} className="w-full flex items-center justify-center gap-3 p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-medium text-text-main-light dark:text-text-main transition-all duration-200 disabled:opacity-50">
+                            <button type="button" onClick={handleGoogleSignIn} disabled={loading} className="w-full flex items-center justify-center gap-3 p-3 bg-white hover:bg-gray-50 dark:bg-white/5 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10 rounded-xl text-sm font-medium text-text-main-light dark:text-text-main transition-all duration-200 disabled:opacity-50">
                                 <GoogleIcon className="w-5 h-5" /> Continue with Google
                             </button>
                             <div className="relative my-6">
-                                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10" /></div>
+                                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200 dark:border-white/10" /></div>
                                 <div className="relative flex justify-center text-xs uppercase tracking-wider"><span className="bg-transparent px-2 text-text-tertiary-light dark:text-text-tertiary font-medium">Or</span></div>
                             </div>
                         </>
@@ -334,7 +334,7 @@ const Login: React.FC = () => {
 
             {/* Desktop: Login Card on right */}
             <div className="relative z-10 hidden lg:flex w-1/2 flex-col items-start justify-center p-8 pl-20">
-                <div className="w-full max-w-[420px] bg-white/5 dark:bg-black/20 backdrop-blur-2xl border border-white/10 dark:border-white/5 p-10 rounded-3xl shadow-2xl relative overflow-hidden group">
+                <div className="w-full max-w-[420px] bg-white/80 dark:bg-black/20 backdrop-blur-2xl border border-gray-200 dark:border-white/5 p-10 rounded-3xl shadow-2xl relative overflow-hidden group">
                     <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
                     <h2 className="text-3xl font-bold text-center text-text-main-light dark:text-text-main mb-8 tracking-tight">
                         {view === 'login' && 'Welcome Back'}
@@ -343,11 +343,11 @@ const Login: React.FC = () => {
                     </h2>
                     {view !== 'reset_request' && (
                         <>
-                            <button type="button" onClick={handleGoogleSignIn} disabled={loading} className="w-full flex items-center justify-center gap-3 p-3.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-medium text-text-main-light dark:text-text-main transition-all duration-200 disabled:opacity-50 hover:scale-[1.02] active:scale-[0.98]">
+                            <button type="button" onClick={handleGoogleSignIn} disabled={loading} className="w-full flex items-center justify-center gap-3 p-3.5 bg-white hover:bg-gray-50 dark:bg-white/5 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10 rounded-xl text-sm font-medium text-text-main-light dark:text-text-main transition-all duration-200 disabled:opacity-50 hover:scale-[1.02] active:scale-[0.98]">
                                 <GoogleIcon className="w-5 h-5" /> Continue with Google
                             </button>
                             <div className="relative my-8">
-                                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10" /></div>
+                                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200 dark:border-white/10" /></div>
                                 <div className="relative flex justify-center text-xs uppercase tracking-wider"><span className="bg-transparent px-3 text-text-tertiary-light dark:text-text-tertiary font-medium">Or</span></div>
                             </div>
                         </>
