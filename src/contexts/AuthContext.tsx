@@ -13,6 +13,7 @@ interface AuthContextType {
   isLoading: boolean;
   updateProfileContext: (newProfile: Profile | null) => void;
   refreshSession: () => Promise<void>;
+  isProfileLoading: boolean;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,6 +23,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
 
   const updateProfileContext = (newProfile: Profile | null) => {
     setProfile(newProfile);
@@ -54,6 +56,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Independent function to fetch profile without blocking the UI
     const fetchProfile = async (userId: string) => {
       try {
+        setIsProfileLoading(true);
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
@@ -64,6 +67,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (data && mounted) setProfile(data as Profile);
       } catch (error) {
         console.error("Profile fetch error", error);
+      } finally {
+        if (mounted) setIsProfileLoading(false);
       }
     };
 
@@ -84,6 +89,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // 3. Fetch Profile in background if user exists
         if (initialSession?.user) {
           await fetchProfile(initialSession.user.id);
+        } else {
+          if (mounted) setIsProfileLoading(false);
         }
 
       } catch (error) {
@@ -100,6 +107,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (mounted && isLoading) {
         console.warn("Forcing loading completion via safety timeout");
         setIsLoading(false);
+        setIsProfileLoading(false);
       }
     }, 2000);
 
@@ -113,6 +121,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (event === 'SIGNED_OUT') {
         setProfile(null);
         setIsLoading(false);
+        setIsProfileLoading(false);
       } else if (session?.user && event !== 'INITIAL_SESSION') {
         // On sign-in or token refresh, ensure profile is up to date
         // We don't set isLoading(true) here to avoid flashing
@@ -145,7 +154,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     profile,
     isLoading,
     updateProfileContext,
-    refreshSession
+    refreshSession,
+    isProfileLoading
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

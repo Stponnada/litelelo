@@ -9,7 +9,7 @@ import { Profile, Post as PostType, CampusEvent, MarketplaceListing, LostAndFoun
 import Spinner from './Spinner';
 import LightBox from './lightbox';
 import PostSkeleton from './PostSkeleton';
-import { XCircleIcon, PencilIcon, UserGroupIcon, CubeIcon } from './icons';
+import { XCircleIcon, PencilIcon, UserGroupIcon, CubeIcon, UserIcon } from './icons';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -50,7 +50,13 @@ const LostFoundFeedCard: React.FC<{ item: LostAndFoundItem }> = ({ item }) => {
 const ProfileCard: React.FC<{ profile: Profile }> = ({ profile }) => (
     <div className="bg-secondary-light/70 dark:bg-secondary/70 backdrop-blur-xl rounded-xl border border-tertiary-light/50 dark:border-white/5 p-4 shadow-sm">
         <Link href={`/profile/${profile.username}`} className="flex items-center gap-3 group">
-            <Image src={profile.avatar_url || ''} alt="Your avatar" width={40} height={40} className="w-10 h-10 rounded-full object-cover border border-brand-green/20 group-hover:border-brand-green transition-colors" unoptimized />
+            <div className="w-10 h-10 rounded-full overflow-hidden object-cover border border-brand-green/20 group-hover:border-brand-green transition-colors bg-tertiary-light dark:bg-tertiary flex items-center justify-center">
+                {profile.avatar_url ? (
+                    <Image src={profile.avatar_url} alt="Your avatar" width={40} height={40} className="w-full h-full object-cover" unoptimized />
+                ) : (
+                    <UserIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary" />
+                )}
+            </div>
             <div className="flex-1 min-w-0">
                 <h3 className="font-bold text-sm text-text-main-light dark:text-text-main truncate group-hover:text-brand-green transition-colors">{profile.full_name}</h3>
                 <p className="text-xs text-text-tertiary-light dark:text-text-tertiary">@{profile.username}</p>

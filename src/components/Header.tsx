@@ -97,8 +97,14 @@ const Header: React.FC<HeaderProps> = ({ isSidebarExpanded, onOpenAboutModal }) 
                                     <button onClick={handleSignOut} className="flex items-center gap-3 w-full text-left px-3 py-2 rounded-md text-sm font-medium text-red-500 hover:bg-red-500/10"><LogoutIcon className="w-5 h-5" /> Logout</button>
                                 </div>
                             </div>
-                            <button onClick={() => setMenuOpen(prev => !prev)} className="w-9 h-9 rounded-full overflow-hidden border border-tertiary-light dark:border-tertiary">
-                                <Image src={profile.avatar_url || ''} alt="My Profile" width={36} height={36} className="w-full h-full object-cover" unoptimized />
+                            <button onClick={() => setMenuOpen(prev => !prev)} className="w-9 h-9 rounded-full overflow-hidden border border-tertiary-light dark:border-tertiary bg-tertiary-light dark:bg-tertiary">
+                                {profile.avatar_url ? (
+                                    <Image src={profile.avatar_url} alt="My Profile" width={36} height={36} className="w-full h-full object-cover" unoptimized />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-text-tertiary-light dark:text-text-tertiary">
+                                        <UserIcon className="w-5 h-5" />
+                                    </div>
+                                )}
                             </button>
                         </div>
                     )}

@@ -17,8 +17,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
     const [username, setUsername] = useState<string | null>(null);
 
-    // Logic to hide layout on Login/Landing pages
-    const isAuthPage = pathname === '/login';
+    // Logic to hide layout on Login/Landing/Profile Setup pages
+    const isAuthPage = pathname === '/login' || pathname === '/profile-setup';
     const isChatPage = pathname?.startsWith('/chat');
 
     useEffect(() => {

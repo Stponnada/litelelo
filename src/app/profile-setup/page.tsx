@@ -12,7 +12,7 @@ import { BITS_BRANCHES, isMscBranch } from '@/data/bitsBranches';
 import ImageCropper from '@/components/ImageCropper';
 import { BITS_DORMS } from '@/data/bitsDorms';
 
-const RELATIONSHIP_STATUSES = ['Single', 'In a Relationship', 'Married', "It&apos;s Complicated"];
+const RELATIONSHIP_STATUSES = ['Single', 'In a Relationship', 'Married', "It's Complicated"];
 const DINING_HALLS = ['Mess 1', 'Mess 2'];
 const MONTHS = [
     { value: '01', label: 'January' }, { value: '02', label: 'February' },
