@@ -269,11 +269,11 @@ const Login: React.FC = () => {
         <div className="relative flex flex-col lg:flex-row items-center justify-center min-h-screen bg-primary-light dark:bg-primary overflow-hidden">
             <div className={`absolute inset-0 z-0 transition-all duration-[2s] ${isPlaying ? 'opacity-0' : 'opacity-100'}`}>
                 {/* Modern Professional Background */}
-                <div className="absolute inset-0 bg-gradient-to-br from-slate-100 via-white to-slate-100 dark:from-black dark:via-gray-900 dark:to-black"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-100 via-white to-slate-100 dark:from-black dark:via-gray-900 dark:to-black [.bw_&]:dark:via-black"></div>
 
                 {/* Subtle Animated Gradient Orbs */}
                 <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-brand-green/10 blur-[120px] animate-pulse-slow"></div>
-                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-emerald-600/10 blur-[120px] animate-pulse-slow delay-1000"></div>
+                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-emerald-600/10 [.bw_&]:bg-white/5 blur-[120px] animate-pulse-slow delay-1000"></div>
 
                 {/* Grid Pattern Overlay */}
                 <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
@@ -283,14 +283,14 @@ const Login: React.FC = () => {
             {/* Mobile: Combined container for branding and login */}
             <div className="relative z-10 w-full lg:w-1/2 flex flex-col items-center justify-center gap-8 px-4 py-8 lg:hidden">
                 <div className="text-center">
-                    <h1 className={`logo-transform text-6xl sm:text-7xl select-none tracking-tight ${isPlaying ? 'font-rubik-glitch text-neon-green animate-neon-glitch' : 'font-raleway font-bold text-transparent bg-clip-text bg-gradient-to-r from-brand-green to-emerald-400'}`}>
+                    <h1 className={`logo-transform text-6xl sm:text-7xl select-none tracking-tight ${isPlaying ? 'font-rubik-glitch text-neon-green animate-neon-glitch' : 'font-raleway font-bold text-transparent bg-clip-text bg-gradient-to-r from-brand-green to-emerald-400 [.bw_&]:to-gray-300'}`}>
                         litelelo.
                     </h1>
                     <p className="text-text-tertiary-light dark:text-text-tertiary mt-3 text-sm sm:text-base min-h-[24px] font-medium tracking-wide">
                         {typedText}{typedText.length < 45 && <span className="animate-pulse">|</span>}
                     </p>
                 </div>
-                <div className="w-full max-w-md bg-white/80 dark:bg-black/20 backdrop-blur-xl border border-gray-200 dark:border-white/5 p-6 sm:p-8 rounded-2xl shadow-2xl relative">
+                <div className="w-full max-w-md bg-white/80 dark:bg-black/20 [.bw_&]:dark:bg-black/40 backdrop-blur-xl border border-gray-200 dark:border-white/5 [.bw_&]:dark:border-white/10 p-6 sm:p-8 rounded-2xl shadow-2xl relative">
                     <h2 className="text-xl sm:text-2xl font-bold text-center text-text-main-light dark:text-text-main mb-5 sm:mb-6 tracking-tight">
                         {view === 'login' && 'Welcome Back'}
                         {view === 'signup' && 'Create Account'}
@@ -323,7 +323,7 @@ const Login: React.FC = () => {
             {/* Desktop: Branding on left */}
             <div className="relative z-10 hidden lg:flex w-1/2 items-center justify-end p-8 pr-20">
                 <div className="text-left">
-                    <h1 className={`logo-transform text-8xl select-none tracking-tighter ${isPlaying ? 'font-rubik-glitch text-neon-green animate-neon-glitch' : 'font-raleway font-bold text-transparent bg-clip-text bg-gradient-to-r from-brand-green to-emerald-400'}`}>
+                    <h1 className={`logo-transform text-8xl select-none tracking-tighter ${isPlaying ? 'font-rubik-glitch text-neon-green animate-neon-glitch' : 'font-raleway font-bold text-transparent bg-clip-text bg-gradient-to-r from-brand-green to-emerald-400 [.bw_&]:to-gray-300'}`}>
                         litelelo.
                     </h1>
                     <p className="text-text-tertiary-light dark:text-text-tertiary mt-4 text-lg min-h-[24px] font-medium tracking-wide max-w-md leading-relaxed">
@@ -334,7 +334,7 @@ const Login: React.FC = () => {
 
             {/* Desktop: Login Card on right */}
             <div className="relative z-10 hidden lg:flex w-1/2 flex-col items-start justify-center p-8 pl-20">
-                <div className="w-full max-w-[420px] bg-white/80 dark:bg-black/20 backdrop-blur-2xl border border-gray-200 dark:border-white/5 p-10 rounded-3xl shadow-2xl relative overflow-hidden group">
+                <div className="w-full max-w-[420px] bg-white/80 dark:bg-black/20 [.bw_&]:dark:bg-black/40 backdrop-blur-2xl border border-gray-200 dark:border-white/5 [.bw_&]:dark:border-white/10 p-10 rounded-3xl shadow-2xl relative overflow-hidden group">
                     <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
                     <h2 className="text-3xl font-bold text-center text-text-main-light dark:text-text-main mb-8 tracking-tight">
                         {view === 'login' && 'Welcome Back'}
@@ -370,7 +370,7 @@ const Login: React.FC = () => {
                     {isPlaying ? <PauseIcon className="w-5 h-5 sm:w-6 sm:h-6" /> : <MusicIcon className="w-5 h-5 sm:w-6 sm:h-6" />}
                 </button>
                 <button onClick={toggleTheme} title={`Switch to ${theme === 'light' ? 'Dark' : theme === 'dark' ? 'Ultradark' : 'Light'} Mode`} className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-secondary-light dark:bg-secondary border border-tertiary-light dark:border-tertiary shadow-lg flex items-center justify-center text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors">
-                    {theme === 'light' ? <MoonIcon className="w-5 h-5 sm:w-6 sm:h-6" /> : theme === 'dark' ? <span className="text-xl">✨</span> : <SunIcon className="w-5 h-5 sm:w-6 sm:h-6" />}
+                    {theme === 'light' ? <MoonIcon className="w-5 h-5 sm:w-6 sm:h-6" /> : theme === 'dark' ? <span className="text-xl">🌑</span> : <SunIcon className="w-5 h-5 sm:w-6 sm:h-6" />}
                 </button>
             </div>
         </div>
