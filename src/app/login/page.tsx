@@ -27,7 +27,6 @@ interface AuthFormProps {
     view: 'login' | 'signup';
     handleAuth: (e: React.FormEvent) => Promise<void>;
     email: string; setEmail: (v: string) => void;
-    username: string; setUsername: (v: string) => void;
     password: string; setPassword: (v: string) => void;
     confirmPassword: string; setConfirmPassword: (v: string) => void;
     loading: boolean;
@@ -37,11 +36,10 @@ interface AuthFormProps {
 }
 
 const AuthForm: React.FC<AuthFormProps> = ({
-    view, handleAuth, email, setEmail, username, setUsername, password, setPassword,
+    view, handleAuth, email, setEmail, password, setPassword,
     confirmPassword, setConfirmPassword, loading, setView, setError, setMessage
 }) => (
     <form onSubmit={handleAuth} className="flex flex-col gap-3 sm:gap-4">
-        {view === 'signup' && <input type="text" placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />}
         <input type="email" placeholder={view === 'signup' ? 'BITS Email' : 'Email'} value={email} onChange={e => setEmail(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />
         <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />
         {view === 'signup' && <input type="password" placeholder="Confirm Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />}
@@ -73,7 +71,6 @@ const ResetRequestForm: React.FC<ResetFormProps> = ({ handlePasswordResetRequest
 const Login: React.FC = () => {
     const [view, setView] = useState<AuthView>('signup');
     const [email, setEmail] = useState('');
-    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -228,14 +225,10 @@ const Login: React.FC = () => {
                 if (error) throw error;
                 fadeOutAudio(() => { setLoading(false); router.push('/'); });
             } else { // signup
-                if (/\s/.test(username)) throw new Error('Username cannot contain spaces.');
                 if (password !== confirmPassword) throw new Error('Passwords do not match.');
                 if (!validateEmail(email)) throw new Error('Please use a valid BITS Pilani email address.');
-                const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
+                const { error: signUpError } = await supabase.auth.signUp({ email, password });
                 if (signUpError) throw signUpError;
-                if (!data.user) throw new Error('Sign up returned no user.');
-                const { error: profileError } = await supabase.from('profiles').insert({ user_id: data.user.id, username: username.trim(), email: data.user.email });
-                if (profileError) throw profileError;
                 fadeOutAudio(() => { setLoading(false); router.push('/'); });
             }
         } catch (err: unknown) {
@@ -314,7 +307,7 @@ const Login: React.FC = () => {
                             </div>
                         </>
                     )}
-                    {view === 'reset_request' ? <ResetRequestForm handlePasswordResetRequest={handlePasswordResetRequest} email={email} setEmail={setEmail} loading={loading} /> : <AuthForm view={view} handleAuth={handleAuth} email={email} setEmail={setEmail} username={username} setUsername={setUsername} password={password} setPassword={setPassword} confirmPassword={confirmPassword} setConfirmPassword={setConfirmPassword} loading={loading} setView={setView} setError={setError} setMessage={setMessage} />}
+                    {view === 'reset_request' ? <ResetRequestForm handlePasswordResetRequest={handlePasswordResetRequest} email={email} setEmail={setEmail} loading={loading} /> : <AuthForm view={view} handleAuth={handleAuth} email={email} setEmail={setEmail} password={password} setPassword={setPassword} confirmPassword={confirmPassword} setConfirmPassword={setConfirmPassword} loading={loading} setView={setView} setError={setError} setMessage={setMessage} />}
                     {error && <p className="mt-3 sm:mt-4 text-red-400 text-center text-sm bg-red-500/10 py-2 rounded-lg border border-red-500/20">{error}</p>}
                     {message && <p className="mt-3 sm:mt-4 text-brand-green text-center text-sm bg-brand-green/10 py-2 rounded-lg border border-brand-green/20">{message}</p>}
                     <div className="mt-6 text-center">
@@ -359,7 +352,7 @@ const Login: React.FC = () => {
                             </div>
                         </>
                     )}
-                    {view === 'reset_request' ? <ResetRequestForm handlePasswordResetRequest={handlePasswordResetRequest} email={email} setEmail={setEmail} loading={loading} /> : <AuthForm view={view} handleAuth={handleAuth} email={email} setEmail={setEmail} username={username} setUsername={setUsername} password={password} setPassword={setPassword} confirmPassword={confirmPassword} setConfirmPassword={setConfirmPassword} loading={loading} setView={setView} setError={setError} setMessage={setMessage} />}
+                    {view === 'reset_request' ? <ResetRequestForm handlePasswordResetRequest={handlePasswordResetRequest} email={email} setEmail={setEmail} loading={loading} /> : <AuthForm view={view} handleAuth={handleAuth} email={email} setEmail={setEmail} password={password} setPassword={setPassword} confirmPassword={confirmPassword} setConfirmPassword={setConfirmPassword} loading={loading} setView={setView} setError={setError} setMessage={setMessage} />}
                     {error && <p className="mt-4 text-red-400 text-center text-sm bg-red-500/10 py-2.5 rounded-lg border border-red-500/20">{error}</p>}
                     {message && <p className="mt-4 text-brand-green text-center text-sm bg-brand-green/10 py-2.5 rounded-lg border border-brand-green/20">{message}</p>}
                     <div className="mt-8 text-center">

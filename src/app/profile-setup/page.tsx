@@ -28,7 +28,7 @@ const ProfileSetup: React.FC = () => {
     const router = useRouter();
 
     const [formData, setFormData] = useState({
-        full_name: '', campus: '', admission_year: '', branch: '',
+        username: '', full_name: '', campus: '', admission_year: '', branch: '',
         dual_degree_branch: '', relationship_status: '', dorm_building: '',
         dorm_room: '', dining_hall: '', bio: '',
         phone: '',
@@ -156,6 +156,7 @@ const ProfileSetup: React.FC = () => {
             }
 
             const { data: updatedProfile, error: updateError } = await supabase.from('profiles').update({
+                username: formData.username,
                 full_name: formData.full_name, campus: formData.campus, admission_year: parseInt(formData.admission_year),
                 branch: formData.branch, dual_degree_branch: formData.dual_degree_branch || null,
                 relationship_status: formData.relationship_status, dorm_building: formData.dorm_building,
@@ -309,6 +310,22 @@ const ProfileSetup: React.FC = () => {
                                         required
                                         className="w-full p-4 bg-tertiary-light dark:bg-tertiary border-2 border-transparent focus:border-brand-green rounded-xl text-text-main-light dark:text-text-main transition-all duration-300 outline-none"
                                         placeholder="Enter your full name"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label htmlFor="username" className="block text-text-secondary-light dark:text-text-secondary text-sm font-semibold mb-2">
+                                        Username <span className="text-brand-green">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="username"
+                                        id="username"
+                                        value={formData.username}
+                                        onChange={handleChange}
+                                        required
+                                        className="w-full p-4 bg-tertiary-light dark:bg-tertiary border-2 border-transparent focus:border-brand-green rounded-xl text-text-main-light dark:text-text-main transition-all duration-300 outline-none"
+                                        placeholder="Choose a unique username"
                                     />
                                 </div>
 
@@ -581,7 +598,7 @@ const ProfileSetup: React.FC = () => {
                                     </button>
                                     <button
                                         type="submit"
-                                        disabled={isSaving || !formData.campus || !formData.full_name}
+                                        disabled={isSaving || !formData.campus || !formData.full_name || !formData.username}
                                         className="px-8 py-3 bg-gradient-to-r from-brand-green to-emerald-400 hover:from-brand-green-darker hover:to-emerald-500 text-black font-bold rounded-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center gap-2"
                                     >
                                         {isSaving ? (

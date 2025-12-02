@@ -8,7 +8,8 @@ import {
   XCircleIcon,
   UserGroupIcon,
   GlobeAmericasIcon,
-  LockClosedIcon
+  LockClosedIcon,
+  UserIcon
 } from './icons';
 import UserSelectorModal from './UserSelectorModal';
 
@@ -260,14 +261,20 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, profile, communi
       <div className="p-5">
         <form onSubmit={handleSubmit}>
           <div className="flex items-start gap-4">
-            <Image
-              src={profile.avatar_url || 'https://placehold.co/44x44'}
-              alt="Avatar"
-              width={44}
-              height={44}
-              className="w-11 h-11 rounded-full object-cover ring-2 ring-white dark:ring-tertiary shadow-sm"
-              unoptimized
-            />
+            <div className="w-11 h-11 rounded-full overflow-hidden ring-2 ring-white dark:ring-tertiary shadow-sm bg-tertiary-light dark:bg-tertiary flex items-center justify-center">
+              {profile.avatar_url ? (
+                <Image
+                  src={profile.avatar_url}
+                  alt="Avatar"
+                  width={44}
+                  height={44}
+                  className="w-full h-full object-cover"
+                  unoptimized
+                />
+              ) : (
+                <UserIcon className="w-6 h-6 text-text-tertiary-light dark:text-text-tertiary" />
+              )}
+            </div>
 
             <div className="flex-1 min-w-0">
               {/* Input Area */}
