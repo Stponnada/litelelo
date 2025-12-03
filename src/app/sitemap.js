@@ -1,21 +1,35 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import { createClient } from "@supabase/supabase-js";
 
 export default async function sitemap() {
     const baseUrl = "https://litelelo.in";
 
-    // Server-side Supabase client with anon key (safe)
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    );
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    // Fetch dynamic routes
-    const { data: posts } = await supabase.from("posts").select("id");
-    const { data: blogs } = await supabase.from("blogs").select("id");
-    const { data: lost } = await supabase.from("lost_items").select("id");
-    const { data: profiles } = await supabase
-        .from("profiles")
-        .select("username");
+    let supabase = null;
+    if (url && anon) {
+        supabase = createClient(url, anon);
+    }
+
+    // Fetch dynamic routes safely
+    const posts = supabase
+        ? (await supabase.from("posts").select("id")).data
+        : [];
+
+    const blogs = supabase
+        ? (await supabase.from("blogs").select("id")).data
+        : [];
+
+    const lost = supabase
+        ? (await supabase.from("lost_items").select("id")).data
+        : [];
+
+    const profiles = supabase
+        ? (await supabase.from("profiles").select("username")).data
+        : [];
 
     // Static routes
     const staticRoutes = [
