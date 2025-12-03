@@ -1,17 +1,25 @@
+import { createClient } from "@supabase/supabase-js";
+
 export default async function sitemap() {
     const baseUrl = "https://litelelo.in";
 
-    // Fetch dynamic route data at runtime
-    const res = await fetch(`${baseUrl}/api/sitemap-data`, {
-        // Always revalidate so sitemap stays fresh
-        next: { revalidate: 60 },
-    });
+    // Server-side Supabase client with anon key (safe)
+    const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    );
 
-    const { posts, blogs, lost, profiles } = await res.json();
+    // Fetch dynamic routes
+    const { data: posts } = await supabase.from("posts").select("id");
+    const { data: blogs } = await supabase.from("blogs").select("id");
+    const { data: lost } = await supabase.from("lost_items").select("id");
+    const { data: profiles } = await supabase
+        .from("profiles")
+        .select("username");
 
-    // ---------- STATIC ROUTES ----------
+    // Static routes
     const staticRoutes = [
-        "", // homepage
+        "",
         "blog",
         "campus/bits-coin",
         "campus/events",
@@ -41,26 +49,26 @@ export default async function sitemap() {
         lastModified: new Date().toISOString(),
     }));
 
-    // ---------- DYNAMIC ROUTES ----------
-    const blogRoutes = blogs.map((b) => ({
+    // Dynamic routes
+    const blogRoutes = blogs?.map((b) => ({
         url: `${baseUrl}/blog/${b.id}`,
         lastModified: new Date().toISOString(),
-    }));
+    })) ?? [];
 
-    const postRoutes = posts.map((p) => ({
+    const postRoutes = posts?.map((p) => ({
         url: `${baseUrl}/post/${p.id}`,
         lastModified: new Date().toISOString(),
-    }));
+    })) ?? [];
 
-    const lostRoutes = lost.map((l) => ({
+    const lostRoutes = lost?.map((l) => ({
         url: `${baseUrl}/campus/lost-and-found/${l.id}`,
         lastModified: new Date().toISOString(),
-    }));
+    })) ?? [];
 
-    const profileRoutes = profiles.map((u) => ({
+    const profileRoutes = profiles?.map((u) => ({
         url: `${baseUrl}/profile/${u.username}`,
         lastModified: new Date().toISOString(),
-    }));
+    })) ?? [];
 
     return [
         ...staticRoutes,
