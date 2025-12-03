@@ -1,21 +1,15 @@
-import { createClient } from "@supabase/supabase-js";
-
 export default async function sitemap() {
     const baseUrl = "https://litelelo.in";
 
-    // --- 1. SETUP SUPABASE CLIENT ---
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY // service key needed for listing all rows
-    );
+    // Fetch dynamic route data at runtime
+    const res = await fetch(`${baseUrl}/api/sitemap-data`, {
+        // Always revalidate so sitemap stays fresh
+        next: { revalidate: 60 },
+    });
 
-    // --- 2. FETCH DYNAMIC ROUTES ---
-    const { data: posts } = await supabase.from("posts").select("id");
-    const { data: blogs } = await supabase.from("blogs").select("id");
-    const { data: lost } = await supabase.from("lost_items").select("id");
-    const { data: profiles } = await supabase.from("profiles").select("username");
+    const { posts, blogs, lost, profiles } = await res.json();
 
-    // --- 3. BUILD STATIC ROUTES ---
+    // ---------- STATIC ROUTES ----------
     const staticRoutes = [
         "", // homepage
         "blog",
@@ -44,35 +38,30 @@ export default async function sitemap() {
         "terms",
     ].map((route) => ({
         url: `${baseUrl}/${route}`,
-        lastModified: new Date(),
+        lastModified: new Date().toISOString(),
     }));
 
-    // --- 4. DYNAMIC ROUTES ---
-    const blogRoutes =
-        blogs?.map((b) => ({
-            url: `${baseUrl}/blog/${b.id}`,
-            lastModified: new Date(),
-        })) ?? [];
+    // ---------- DYNAMIC ROUTES ----------
+    const blogRoutes = blogs.map((b) => ({
+        url: `${baseUrl}/blog/${b.id}`,
+        lastModified: new Date().toISOString(),
+    }));
 
-    const postRoutes =
-        posts?.map((p) => ({
-            url: `${baseUrl}/post/${p.id}`,
-            lastModified: new Date(),
-        })) ?? [];
+    const postRoutes = posts.map((p) => ({
+        url: `${baseUrl}/post/${p.id}`,
+        lastModified: new Date().toISOString(),
+    }));
 
-    const lostRoutes =
-        lost?.map((l) => ({
-            url: `${baseUrl}/campus/lost-and-found/${l.id}`,
-            lastModified: new Date(),
-        })) ?? [];
+    const lostRoutes = lost.map((l) => ({
+        url: `${baseUrl}/campus/lost-and-found/${l.id}`,
+        lastModified: new Date().toISOString(),
+    }));
 
-    const profileRoutes =
-        profiles?.map((u) => ({
-            url: `${baseUrl}/profile/${u.username}`,
-            lastModified: new Date(),
-        })) ?? [];
+    const profileRoutes = profiles.map((u) => ({
+        url: `${baseUrl}/profile/${u.username}`,
+        lastModified: new Date().toISOString(),
+    }));
 
-    // --- 5. RETURN COMPLETE SITEMAP ---
     return [
         ...staticRoutes,
         ...blogRoutes,
