@@ -233,7 +233,7 @@ const CommunityPage: React.FC = () => {
 
     const isOwner = community.is_admin;
     const canPostInCurrentView = community.is_member && ['private', 'public'].includes(activeView);
-    const placeholderText = activeView === 'public' ? "Share something with everyone..." : "What&apos;s on your mind, member?";
+    const placeholderText = activeView === 'public' ? "Share something with everyone..." : "What's on your mind, member?";
 
     const blogPosts = posts.filter(p => p.post_type === 'blog');
     const publicPosts = posts.filter(p => p.is_public && p.post_type !== 'blog');

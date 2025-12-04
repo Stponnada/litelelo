@@ -1212,7 +1212,7 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
                                     <option value="">Select Status</option>
                                     <option value="Single">Single</option>
                                     <option value="In a relationship">In a relationship</option>
-                                    <option value="It's complicated">It&apos;s complicated</option>
+                                    <option value="It's complicated">It's complicated</option>
                                     <option value="Married">Married</option>
                                 </select>
                             </div>
@@ -1290,13 +1290,22 @@ const EditProfileModal: React.FC<{ userProfile: Profile, onClose: () => void, on
 
 const ProfileDetail: React.FC<{ label: string; value?: string | number | null }> = ({ label, value }) => {
     if (!value) return null;
+
+    // Decode HTML entities
+    const decodeHtmlEntities = (text: string | number): string => {
+        if (typeof text === 'number') return text.toString();
+        const textarea = document.createElement('textarea');
+        textarea.innerHTML = text;
+        return textarea.value;
+    };
+
     return (
         <div className="flex items-start gap-2">
             <span className="font-semibold text-text-main-light dark:text-text-main min-w-fit">
                 {label}:
             </span>
             <span className="text-text-secondary-light dark:text-text-secondary">
-                {value}
+                {decodeHtmlEntities(value)}
             </span>
         </div>
     );
