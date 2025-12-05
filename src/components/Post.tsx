@@ -39,7 +39,7 @@ import { getResizedAvatarUrl } from '../utils/imageUtils';
 
 const Flair: React.FC<{ flair: { id: string; name: string; avatar_url: string | null } }> = ({ flair }) => (
     <Link
-        href={`/ communities / ${flair.id}`}
+        href={`/communities/${flair.id}`}
         onClick={(e) => e.stopPropagation()}
         className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-brand-green/10 border border-brand-green/20 hover:bg-brand-green/20 transition-colors group ml-1.5"
         title={flair.name}
