@@ -34,8 +34,16 @@ const LostFoundFeedCard: React.FC<{ item: LostAndFoundItem }> = ({ item }) => {
     return (
         <div onClick={handleClick} className={`block cursor-pointer p-3.5 rounded-xl shadow-sm border transition-all duration-300 hover:-translate-y-1 backdrop-blur-md mb-2 ${isLost ? 'bg-red-500/5 border-red-500/20 hover:border-red-500/40' : 'bg-green-500/5 border-green-500/20 hover:border-green-500/40'}`}>
             <div className="flex items-center gap-3">
-                <div className={`flex-shrink-0 w-20 h-20 rounded-lg bg-tertiary-light dark:bg-tertiary overflow-hidden`}>
-                    {item.image_url && <Image src={item.image_url} alt={item.title} width={80} height={80} className="w-full h-full object-cover" unoptimized />}
+                <div className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden ${item.image_url ? 'bg-tertiary-light dark:bg-tertiary' : isLost ? 'bg-gradient-to-br from-red-500/20 to-red-600/30' : 'bg-gradient-to-br from-green-500/20 to-green-600/30'}`}>
+                    {item.image_url ? (
+                        <Image src={item.image_url} alt={item.title} width={80} height={80} className="w-full h-full object-cover" unoptimized />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                            <span className={`text-2xl font-black ${isLost ? 'text-red-500' : 'text-green-500'}`}>
+                                {isLost ? '⚠' : '✓'}
+                            </span>
+                        </div>
+                    )}
                 </div>
                 <div className="flex-1 min-w-0">
                     <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold mb-1.5 ${isLost ? 'bg-red-500/20 text-red-500' : 'bg-green-500/20 text-green-500'}`}>{isLost ? 'LOST' : 'FOUND'}</span>

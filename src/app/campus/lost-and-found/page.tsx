@@ -237,7 +237,7 @@ const ItemCard: React.FC<{ item: ItemType; onItemReclaimed: (itemId: string) => 
             <div className={`absolute top-0 right-0 w-32 h-32 ${isFound ? 'bg-green-500/5' : 'bg-red-500/5'} rounded-full blur-2xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500`}></div>
 
             {/* Image */}
-            <div className="relative overflow-hidden">
+            <div className="relative overflow-hidden h-48">
                 <Image
                     className="object-cover transition-transform duration-500 group-hover:scale-110"
                     src={item.image_url || `https://placehold.co/600x400/1e293b/3cfba2?text=${item.item_type === 'lost' ? 'Lost+Item' : 'Found+Item'}`}
@@ -282,27 +282,27 @@ const ItemCard: React.FC<{ item: ItemType; onItemReclaimed: (itemId: string) => 
                 </p>
 
                 {/* Footer */}
-                <div className="flex items-center justify-between mt-auto pt-3 md:pt-4 border-t border-tertiary-light dark:border-tertiary">
+                <div className="flex flex-col gap-3 mt-auto pt-3 md:pt-4 border-t border-tertiary-light dark:border-tertiary">
                     <Link
                         href={`/profile/${poster?.username}`}
-                        className="min-w-0 flex items-center gap-2 group/avatar"
+                        className="flex items-center gap-2.5 group/avatar"
                     >
-                        <div className="relative">
+                        <div className="relative flex-shrink-0">
                             <Image
                                 src={poster?.avatar_url || `https://ui-avatars.com/api/?name=${poster?.username}&background=10b981&color=fff`}
                                 alt={poster?.username || 'User'}
-                                width={36}
-                                height={36}
-                                className="w-8 h-8 md:w-9 md:h-9 rounded-full ring-2 ring-tertiary-light dark:ring-tertiary group-hover/avatar:ring-orange-500 transition-all duration-200"
+                                width={40}
+                                height={40}
+                                className="w-10 h-10 rounded-full object-cover aspect-square ring-2 ring-tertiary-light dark:ring-tertiary group-hover/avatar:ring-orange-500 transition-all duration-200"
                                 unoptimized
                             />
                             <div className="absolute inset-0 rounded-full bg-orange-500 opacity-0 group-hover/avatar:opacity-20 transition-opacity duration-200"></div>
                         </div>
-                        <div className="min-w-0">
-                            <p className="text-[9px] md:text-[10px] font-bold uppercase text-text-tertiary-light dark:text-text-tertiary tracking-wide">
+                        <div className="flex-1 min-w-0">
+                            <p className="text-[10px] font-semibold uppercase text-text-tertiary-light dark:text-text-tertiary tracking-wide mb-0.5">
                                 Posted by
                             </p>
-                            <p className="text-xs md:text-sm font-bold text-text-main-light dark:text-text-main group-hover/avatar:text-orange-500 transition-colors duration-200 truncate">
+                            <p className="text-sm font-bold text-text-main-light dark:text-text-main group-hover/avatar:text-orange-500 transition-colors duration-200 truncate">
                                 @{poster?.username || 'Unknown'}
                             </p>
                         </div>
@@ -311,16 +311,16 @@ const ItemCard: React.FC<{ item: ItemType; onItemReclaimed: (itemId: string) => 
                     {isOwner ? (
                         <button
                             onClick={() => onItemReclaimed(item.id)}
-                            className="flex-shrink-0 font-bold py-1.5 px-3 md:py-2 md:px-4 rounded-lg text-xs transition-all bg-gradient-to-r from-green-500/20 to-green-600/20 border-2 border-green-500/30 text-green-500 hover:from-green-500 hover:to-green-600 hover:text-white hover:border-transparent hover:scale-105"
+                            className="w-full font-bold py-2.5 px-4 rounded-lg text-sm transition-all bg-gradient-to-r from-green-500/20 to-green-600/20 border-2 border-green-500/30 text-green-500 hover:from-green-500 hover:to-green-600 hover:text-white hover:border-transparent hover:scale-105"
                         >
                             Mark {isFound ? 'Reclaimed' : 'Found'}
                         </button>
                     ) : (
                         <button
                             onClick={handleContact}
-                            className="flex-shrink-0 flex items-center gap-2 bg-gradient-to-r from-orange-500/20 to-red-600/20 border-2 border-orange-500/30 font-bold text-xs md:text-sm py-1.5 px-3 md:py-2 md:px-4 rounded-lg hover:from-orange-500 hover:to-red-600 hover:border-transparent text-orange-500 hover:text-white transition-all hover:scale-105"
+                            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500/20 to-red-600/20 border-2 border-orange-500/30 font-bold text-sm py-2.5 px-4 rounded-lg hover:from-orange-500 hover:to-red-600 hover:border-transparent text-orange-500 hover:text-white transition-all hover:scale-105"
                         >
-                            <ChatIcon className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                            <ChatIcon className="w-4 h-4" />
                             <span>Contact</span>
                         </button>
                     )}
@@ -487,7 +487,7 @@ const CreateItemModal: React.FC<{ campus: string; itemType: 'lost' | 'found'; on
                             <input type="file" ref={imageInputRef} onChange={handleFileChange} accept="image/*" hidden />
 
                             {imagePreview ? (
-                                <div className="relative rounded-xl overflow-hidden border-2 border-tertiary-light dark:border-tertiary">
+                                <div className="relative rounded-xl overflow-hidden border-2 border-tertiary-light dark:border-tertiary h-64">
                                     <Image src={imagePreview} alt="Preview" fill className="object-cover" unoptimized />
                                     <button
                                         type="button"

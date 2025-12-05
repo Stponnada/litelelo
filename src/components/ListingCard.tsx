@@ -29,22 +29,30 @@ const ListingCard: React.FC<ListingCardProps> = ({ listing, onClick }) => {
     return (
         <div
             onClick={onClick}
-            className="group cursor-pointer bg-secondary-light dark:bg-secondary rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 border border-tertiary-light dark:border-tertiary flex flex-col"
+            className="group cursor-pointer bg-gradient-to-r from-emerald-500/5 to-green-500/5 dark:from-emerald-500/10 dark:to-green-500/10 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-emerald-500/20 hover:border-emerald-500/40 backdrop-blur-md mb-2 p-3.5"
         >
-            <div className="relative w-full aspect-square overflow-hidden">
-                <Image
-                    src={getResizedImageUrl(listing.primary_image_url, 400, 400)}
-                    alt={listing.title}
-                    width={400}
-                    height={400}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    unoptimized
-                />
-            </div>
-            <div className="p-4 flex flex-col flex-grow">
-                <h3 className="font-bold text-text-main-light dark:text-text-main text-lg truncate group-hover:text-brand-green">{listing.title}</h3>
-                <p className="text-sm text-text-tertiary-light dark:text-text-tertiary mt-1">{listing.category}</p>
-                <p className="mt-auto text-xl font-semibold text-brand-green pt-2">₹{listing.price.toLocaleString()}</p>
+            <div className="flex items-center gap-3">
+                <div className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-tertiary-light dark:bg-tertiary">
+                    <Image
+                        src={getResizedImageUrl(listing.primary_image_url, 80, 80)}
+                        alt={listing.title}
+                        width={80}
+                        height={80}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        unoptimized
+                    />
+                </div>
+                <div className="flex-1 min-w-0">
+                    <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold mb-1.5 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                        {listing.category}
+                    </span>
+                    <h3 className="font-bold text-base text-text-main-light dark:text-text-main truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                        {listing.title}
+                    </h3>
+                    <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                        ₹{listing.price.toLocaleString()}
+                    </p>
+                </div>
             </div>
         </div>
     );

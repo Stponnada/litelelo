@@ -21,7 +21,7 @@ const PlaceCard: React.FC<{ place: CampusPlace; onEditImages: (place: CampusPlac
             <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-2xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
 
             <Link href={`/campus/reviews/${place.id}`} className="block">
-                <div className="relative overflow-hidden">
+                <div className="relative overflow-hidden h-48">
                     <Image
                         className="object-cover transition-transform duration-500 group-hover:scale-110"
                         src={place.primary_image_url || 'https://placehold.co/600x400/1e293b/3cfba2?text=No+Image'}
