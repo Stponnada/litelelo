@@ -163,7 +163,7 @@ const CommunitiesListPage: React.FC = () => {
                 <div className="absolute bottom-20 right-1/4 w-96 h-96 bg-brand-green/5 rounded-full blur-3xl"></div>
             </div>
 
-            <div className="max-w-7xl mx-auto px-4 py-6 sm:py-12">
+            <div className="max-w-7xl mx-auto px-4 py-4 sm:py-12">
                 {isCreateModalOpen && profile?.campus && (
                     <CreateCommunityModal
                         campus={profile.campus}
@@ -173,14 +173,10 @@ const CommunitiesListPage: React.FC = () => {
                 )}
 
                 {/* Hero Section */}
-                <div className="mb-8 sm:mb-16">
-                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 sm:gap-8 mb-6 sm:mb-10">
+                <div className="mb-4 sm:mb-16">
+                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-3 sm:gap-8 mb-4 sm:mb-10">
                         <div className="flex-1">
-                            <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-brand-green/10 border border-brand-green/20 text-brand-green text-xs sm:text-sm font-semibold mb-4 sm:mb-6">
-                                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-brand-green animate-pulse"></div>
-                                Campus Communities
-                            </div>
-                            <h1 className="text-3xl sm:text-5xl lg:text-7xl font-black text-text-main-light dark:text-text-main mb-3 sm:mb-4 tracking-tight leading-none flex flex-wrap items-center gap-2 sm:gap-4">
+                            <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black text-text-main-light dark:text-text-main mb-2 sm:mb-4 tracking-tight leading-none flex flex-wrap items-center gap-2 sm:gap-4">
                                 <span>Find Your</span>
                                 <div className="relative">
                                     <div className="absolute inset-0 bg-brand-green/30 blur-2xl rounded-full"></div>
@@ -189,13 +185,14 @@ const CommunitiesListPage: React.FC = () => {
                                 <br className="w-full" />
                                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-green to-brand-green/60">Community</span>
                             </h1>
-                            <p className="text-base sm:text-xl text-text-secondary-light dark:text-text-secondary max-w-2xl">
+                            <p className="hidden sm:block text-sm sm:text-xl text-text-secondary-light dark:text-text-secondary max-w-2xl">
                                 Connect with <span className="font-bold text-brand-green">{communities.length}</span> vibrant communities on your campus
                             </p>
                         </div>
+                        {/* Desktop Create Button - hidden on mobile */}
                         <button
                             onClick={() => setCreateModalOpen(true)}
-                            className="w-full lg:w-auto group relative overflow-hidden bg-brand-green hover:bg-brand-green/90 text-black font-bold py-3 sm:py-4 px-6 sm:px-8 rounded-xl sm:rounded-2xl transition-all shadow-2xl shadow-brand-green/25 hover:shadow-brand-green/40 hover:scale-105"
+                            className="hidden lg:block group relative overflow-hidden bg-brand-green hover:bg-brand-green/90 text-black font-bold py-3 sm:py-4 px-6 sm:px-8 rounded-xl sm:rounded-2xl transition-all shadow-2xl shadow-brand-green/25 hover:shadow-brand-green/40 hover:scale-105"
                         >
                             <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
                             <span className="relative flex items-center justify-center gap-2">
@@ -205,58 +202,67 @@ const CommunitiesListPage: React.FC = () => {
                         </button>
                     </div>
 
-                    {/* Search Bar */}
-                    <div className="relative max-w-2xl">
-                        <div className="absolute inset-0 bg-gradient-to-r from-brand-green/5 to-transparent rounded-xl sm:rounded-2xl blur-2xl"></div>
-                        <div className="relative flex items-center">
-                            <svg className="absolute left-4 sm:left-6 w-4 h-4 sm:w-5 sm:h-5 text-text-tertiary-light dark:text-text-tertiary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                            <input
-                                type="text"
-                                placeholder="Search communities..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-11 sm:pl-14 pr-4 sm:pr-6 py-3.5 sm:py-5 bg-white/60 dark:bg-secondary/60 backdrop-blur-xl border border-white/20 dark:border-white/5 rounded-xl sm:rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-green/30 focus:border-brand-green/30 transition-all shadow-xl shadow-black/5 dark:shadow-black/20 placeholder:text-text-tertiary-light/60 dark:placeholder:text-text-tertiary/60 text-base sm:text-lg"
-                            />
-                            {searchTerm && (
-                                <button
-                                    onClick={() => setSearchTerm('')}
-                                    className="absolute right-4 sm:right-6 w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center transition-all"
-                                >
-                                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
-                            )}
+                    {/* Search Bar and Tabs Row */}
+                    <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
+                        {/* Search Bar */}
+                        <div className="relative w-full sm:flex-1 max-w-2xl">
+                            <div className="absolute inset-0 bg-gradient-to-r from-brand-green/5 to-transparent rounded-xl sm:rounded-2xl blur-2xl"></div>
+                            <div className="relative flex items-center">
+                                <svg className="absolute left-3 sm:left-6 w-4 h-4 sm:w-5 sm:h-5 text-text-tertiary-light dark:text-text-tertiary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                <input
+                                    type="text"
+                                    placeholder="Search communities..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full pl-10 sm:pl-14 pr-4 sm:pr-6 py-2.5 sm:py-5 bg-white/60 dark:bg-secondary/60 backdrop-blur-xl border border-white/20 dark:border-white/5 rounded-xl sm:rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-green/30 focus:border-brand-green/30 transition-all shadow-xl shadow-black/5 dark:shadow-black/20 placeholder:text-text-tertiary-light/60 dark:placeholder:text-text-tertiary/60 text-sm sm:text-lg"
+                                />
+                                {searchTerm && (
+                                    <button
+                                        onClick={() => setSearchTerm('')}
+                                        className="absolute right-3 sm:right-6 w-6 h-6 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center transition-all"
+                                    >
+                                        <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Tabs - Next to search on desktop, below on mobile */}
+                        <div className="inline-flex bg-secondary-light dark:bg-secondary rounded-full p-2 border border-tertiary-light/50 dark:border-tertiary/50 shrink-0">
+                            <button
+                                onClick={() => setActiveTab('discover')}
+                                className={`px-8 py-4 rounded-full font-semibold text-sm transition-all duration-200 ${activeTab === 'discover'
+                                    ? 'bg-brand-green text-black shadow-md'
+                                    : 'text-text-secondary-light dark:text-text-secondary hover:text-text-main-light dark:hover:text-text-main'
+                                    }`}
+                            >
+                                Discover
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('my')}
+                                className={`px-8 py-4 rounded-full font-semibold text-sm transition-all duration-200 ${activeTab === 'my'
+                                    ? 'bg-brand-green text-black shadow-md'
+                                    : 'text-text-secondary-light dark:text-text-secondary hover:text-text-main-light dark:hover:text-text-main'
+                                    }`}
+                            >
+                                My Communities
+                            </button>
                         </div>
                     </div>
                 </div>
 
-                {/* --- THIS IS THE NEW PART --- */}
-                <div className="flex justify-center mb-8 sm:mb-12">
-                    <div className="inline-flex bg-secondary-light dark:bg-secondary rounded-xl p-1.5 border border-tertiary-light/50 dark:border-tertiary/50">
-                        <button
-                            onClick={() => setActiveTab('discover')}
-                            className={`px-6 py-2 rounded-lg font-semibold text-sm transition-all duration-200 ${activeTab === 'discover'
-                                ? 'bg-brand-green text-black shadow-md'
-                                : 'text-text-secondary-light dark:text-text-secondary hover:text-text-main-light dark:hover:text-text-main'
-                                }`}
-                        >
-                            Discover
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('my')}
-                            className={`px-6 py-2 rounded-lg font-semibold text-sm transition-all duration-200 ${activeTab === 'my'
-                                ? 'bg-brand-green text-black shadow-md'
-                                : 'text-text-secondary-light dark:text-text-secondary hover:text-text-main-light dark:hover:text-text-main'
-                                }`}
-                        >
-                            My Communities
-                        </button>
-                    </div>
-                </div>
-                {/* --- END OF NEW PART --- */}
+                {/* Floating Create Button - Mobile Only */}
+                <button
+                    onClick={() => setCreateModalOpen(true)}
+                    className="lg:hidden fixed bottom-20 right-4 z-50 w-14 h-14 bg-brand-green hover:bg-brand-green/90 text-black rounded-full shadow-2xl shadow-brand-green/40 hover:shadow-brand-green/60 flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                    aria-label="Create Community"
+                >
+                    <PlusIcon className="w-6 h-6" />
+                </button>
 
                 {/* Communities Grid */}
                 {filteredCommunities.length > 0 ? (
