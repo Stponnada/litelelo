@@ -91,7 +91,7 @@ export const CameraIcon: React.FC<{ className?: string }> = ({ className = "w-6 
   </svg>
 );
 
-// src/components/icons.tsx
+// src/components/
 
 // ... keep all your existing icons (HomeIcon, ChatIcon, etc.) ...
 

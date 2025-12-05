@@ -447,7 +447,7 @@ const CampusPage: React.FC = () => {
                         Quick Actions
                     </h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <QuickAction to="/campus/bits-coin" icon={CurrencyDollarIcon} label="Bits Coin" colorClass="text-amber-600 dark:text-amber-500" />
+                        <QuickAction to="/campus/bits-coin" icon={CurrencyDollarIcon} label="HelpOut" colorClass="text-amber-600 dark:text-amber-500" />
                         <QuickAction to="/campus/rideshare" icon={CarIcon} label="Ride Share" colorClass="text-sky-600 dark:text-sky-500" />
                         <QuickAction to="/campus/map" icon={MapIcon} label="Campus Map" colorClass="text-emerald-600 dark:text-emerald-500" />
                         <QuickAction to="/campus/marketplace" icon={TagIcon} label="Sell Item" colorClass="text-purple-600 dark:text-purple-500" />
