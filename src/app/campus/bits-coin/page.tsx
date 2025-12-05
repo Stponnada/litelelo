@@ -211,11 +211,7 @@ const BitsCoinPage: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 font-sans selection:bg-brand-green/30">
-            {/* Ambient Background */}
-            <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-green/10 rounded-full blur-[120px] animate-pulse" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/10 rounded-full blur-[120px] animate-pulse delay-1000" />
-            </div>
+
 
             <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 
@@ -237,7 +233,7 @@ const BitsCoinPage: React.FC = () => {
                             <span className="text-brand-green font-mono text-xs tracking-widest uppercase">Can you collect my package from CP?</span>
                         </div>
                         <h1 className="text-5xl md:text-7xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-neutral-900 via-neutral-600 to-neutral-900 dark:from-white dark:via-neutral-400 dark:to-neutral-600">
-                            <DecryptedText text="Request Board" onClick={handleTitleClick} />
+                            <DecryptedText text="HelpOut" onClick={handleTitleClick} />
                         </h1>
                         <p className="text-neutral-500 dark:text-neutral-400 max-w-md text-lg leading-relaxed">
                             Earn rewards by solving problems on campus. <br />
