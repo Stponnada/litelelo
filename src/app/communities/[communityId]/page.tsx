@@ -254,76 +254,86 @@ const CommunityPage: React.FC = () => {
                 />
             )}
 
-            <div className="max-w-7xl mx-auto px-4 py-6">
-                <Link href="/communities" className="inline-flex items-center gap-2 text-sm text-text-secondary-light dark:text-text-secondary hover:text-brand-green dark:hover:text-brand-green transition-colors mb-6 group">
+            <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4">
+                <Link href="/communities" className="inline-flex items-center gap-2 text-sm text-text-secondary-light dark:text-text-secondary hover:text-brand-green dark:hover:text-brand-green transition-colors mb-3 group">
                     <ArrowLeftIcon className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
                     Back to all communities
                 </Link>
 
-                <div className="bg-white/80 dark:bg-secondary/80 backdrop-blur-sm rounded-3xl shadow-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50 overflow-hidden mb-8">
-                    <div className="relative h-48 md:h-56 bg-gradient-to-br from-brand-green/30 via-brand-green/20 to-tertiary-light dark:to-tertiary group">
+                <div className="bg-white/80 dark:bg-secondary/80 backdrop-blur-sm rounded-2xl shadow-lg border border-tertiary-light/50 dark:border-tertiary/50 overflow-hidden mb-4">
+                    {/* Banner - Profile Page Style */}
+                    <div className="relative h-32 sm:h-48 bg-gradient-to-br from-brand-green/30 via-brand-green/20 to-tertiary-light dark:to-tertiary group">
                         {community.banner_url && <Image src={community.banner_url} alt="Banner" fill className="object-cover" unoptimized />}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent"></div>
                         {isOwner && (<>
                             <button type="button" onClick={() => bannerInputRef.current?.click()} className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                <CameraIcon className="w-10 h-10 text-white" />
+                                <CameraIcon className="w-8 h-8 text-white" />
                             </button>
                             <input type="file" ref={bannerInputRef} onChange={(e) => handleFileChange(e, 'banner')} accept="image/*" hidden />
                         </>)}
                     </div>
 
-                    <div className="px-6 md:px-8 pt-4">
-                        <div className="flex justify-between items-end -mt-28 md:-mt-32">
-                            <div className="relative group">
+                    {/* Info Section - Profile Page Style */}
+                    <div className="px-4 sm:px-6 pb-4">
+                        {/* Avatar and Buttons Row - Profile Page Style */}
+                        <div className="relative -mt-12 sm:-mt-16 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+                            {/* Avatar - centered on mobile, left on desktop */}
+                            <div className="relative group flex-shrink-0 mx-auto sm:mx-0">
                                 <div className="absolute inset-0 bg-brand-green/30 blur-2xl rounded-full"></div>
-                                <Image src={community.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(community.name)}&background=3cfba2&color=000`} alt={community.name} width={144} height={144} className="relative w-32 h-32 md:w-36 md:h-36 rounded-3xl border-4 border-white dark:border-secondary object-cover shadow-2xl" unoptimized />
+                                <Image
+                                    src={community.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(community.name)}&background=3cfba2&color=000`}
+                                    alt={community.name}
+                                    width={128}
+                                    height={128}
+                                    className="relative w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 border-white dark:border-secondary object-cover shadow-2xl"
+                                    unoptimized
+                                />
                                 {isOwner && (<>
-                                    <button type="button" onClick={() => avatarInputRef.current?.click()} className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl">
-                                        <CameraIcon className="w-8 h-8 text-white" />
+                                    <button type="button" onClick={() => avatarInputRef.current?.click()} className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
+                                        <CameraIcon className="w-6 h-6 text-white" />
                                     </button>
                                     <input type="file" ref={avatarInputRef} onChange={(e) => handleFileChange(e, 'avatar')} accept="image/*" hidden />
                                 </>)}
                             </div>
-                            <div className="flex items-center gap-3 flex-shrink-0 transform translate-y-8">
+
+                            {/* Action Buttons - below avatar on mobile, right side on desktop */}
+                            <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2 sm:mb-2">
                                 {isEditing ? (<>
-                                    <button onClick={handleCancelEdit} className="font-semibold py-2.5 px-6 rounded-xl bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main hover:bg-tertiary-light/80 dark:hover:bg-tertiary/80 transition-colors">Cancel</button>
-                                    <button onClick={handleSaveChanges} disabled={isSaving} className="font-bold py-2.5 px-6 rounded-xl bg-brand-green text-black hover:bg-brand-green-darker transition-colors">{isSaving ? <Spinner /> : 'Save'}</button>
-                                </>) : isOwner ? (
-                                    <div className="flex gap-2">
-                                        <button onClick={() => setCreateBlogModalOpen(true)} className="font-semibold py-2.5 px-6 rounded-full bg-brand-green text-black hover:bg-brand-green-darker transition-colors shadow-lg shadow-brand-green/20">
-                                            Write Blog
-                                        </button>
-                                        <button onClick={handleStartEdit} className="font-semibold py-2.5 px-6 rounded-full bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main hover:bg-tertiary-light/80 dark:hover:bg-tertiary/80 transition-colors">
-                                            Edit Community
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <button onClick={() => handleJoinToggle(community.id, community.access_type, community.is_member, community.has_pending_request)} className={`font-bold py-2.5 px-6 rounded-full transition-all disabled:opacity-50 min-w-[150px] ${community.is_member ? 'bg-transparent border-2 border-tertiary-light dark:border-tertiary text-text-main-light dark:text-text-main hover:border-red-500 hover:text-red-500 hover:bg-red-500/5' : community.has_pending_request ? 'bg-tertiary-light/60 dark:bg-tertiary/60 text-text-secondary-light dark:text-text-secondary cursor-not-allowed' : 'bg-brand-green text-black hover:bg-brand-green-darker shadow-lg shadow-brand-green/20'}`} disabled={!community.is_member && community.has_pending_request}>
-                                        {community.is_member ? 'Leave' : (community.has_pending_request ? 'Request Sent' : (community.access_type === 'public' ? 'Join' : 'Request to Join'))}
+                                    <button onClick={handleCancelEdit} className="text-sm font-semibold py-2 px-5 rounded-lg bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main hover:bg-tertiary-light/80 dark:hover:bg-tertiary/80 transition-colors">Cancel</button>
+                                    <button onClick={handleSaveChanges} disabled={isSaving} className="text-sm font-bold py-2 px-5 rounded-lg bg-brand-green text-black hover:bg-brand-green-darker transition-colors">{isSaving ? <Spinner /> : 'Save'}</button>
+                                    <select value={editedAccessType} onChange={(e) => setEditedAccessType(e.target.value as 'public' | 'restricted')} className="text-sm bg-tertiary-light dark:bg-tertiary rounded-lg py-2 px-4"><option value="public">Public</option><option value="restricted">Restricted</option></select>
+                                </>) : isOwner ? (<>
+                                    <button onClick={() => setCreateBlogModalOpen(true)} className="text-sm font-semibold py-2 px-5 rounded-lg bg-brand-green text-black hover:bg-brand-green-darker transition-colors shadow-lg shadow-brand-green/20">
+                                        Write Blog
+                                    </button>
+                                    <button onClick={handleStartEdit} className="text-sm font-semibold py-2 px-5 rounded-lg bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main hover:bg-tertiary-light/80 dark:hover:bg-tertiary/80 transition-colors">
+                                        Edit Community
+                                    </button>
+                                </>) : (
+                                    <button onClick={() => handleJoinToggle(community.id, community.access_type, community.is_member, community.has_pending_request)} className={`text-sm font-bold py-2 px-6 rounded-lg transition-all disabled:opacity-50 ${community.is_member ? 'bg-transparent border border-tertiary-light dark:border-tertiary text-text-main-light dark:text-text-main hover:border-red-500 hover:text-red-500' : community.has_pending_request ? 'bg-tertiary-light/60 dark:bg-tertiary/60 text-text-secondary-light dark:text-text-secondary cursor-not-allowed' : 'bg-brand-green text-black hover:bg-brand-green-darker shadow-lg shadow-brand-green/20'}`} disabled={!community.is_member && community.has_pending_request}>
+                                        {community.is_member ? 'Leave' : (community.has_pending_request ? 'Request Sent' : 'Join')}
                                     </button>
                                 )}
                             </div>
                         </div>
-                    </div>
 
-                    <div className="p-6 md:p-8 pt-4">
-                        <div className="mt-6">
+                        {/* Community Info - centered on mobile, left-aligned on desktop */}
+                        <div className="mt-4 text-center sm:text-left">
                             {isEditing ? (
-                                <input type="text" value={editedName} onChange={(e) => setEditedName(e.target.value)} className="w-full text-3xl sm:text-4xl font-black bg-tertiary-light dark:bg-tertiary rounded-lg p-2 mb-4" />
+                                <input type="text" value={editedName} onChange={(e) => setEditedName(e.target.value)} className="w-full text-2xl sm:text-3xl font-black bg-tertiary-light dark:bg-tertiary rounded-lg p-2 mb-2" />
                             ) : (
-                                <h1 className="text-3xl md:text-4xl font-black text-text-main-light dark:text-text-main mb-2">{community.name}</h1>
+                                <h1 className="text-2xl sm:text-3xl font-black text-text-main-light dark:text-text-main mb-2">{community.name}</h1>
                             )}
-                            <Link href={`/communities/${community.id}/members`} className="inline-flex items-center gap-2 bg-brand-green/10 rounded-full px-4 py-2 border border-brand-green/20 hover:bg-brand-green/20 hover:border-brand-green/30 transition-colors cursor-pointer">
-                                <UserGroupIcon className="w-5 h-5 text-brand-green" />
-                                <span className="text-sm font-bold text-text-main-light dark:text-text-main">{community.member_count}</span>
-                                <span className="text-sm text-text-secondary-light dark:text-text-secondary">{community.member_count === 1 ? 'member' : 'members'}</span>
+
+                            <Link href={`/communities/${community.id}/members`} className="inline-flex items-center gap-2 text-sm text-text-secondary-light dark:text-text-secondary hover:text-brand-green transition-colors mb-2">
+                                <UserGroupIcon className="w-4 h-4" />
+                                <span className="font-semibold">{community.member_count} {community.member_count === 1 ? 'member' : 'members'}</span>
                             </Link>
 
-                            {isEditing ? (<>
-                                <textarea value={editedDescription} onChange={(e) => setEditedDescription(e.target.value)} className="w-full mt-4 text-text-secondary-light dark:text-text-secondary text-base leading-relaxed max-w-3xl bg-tertiary-light dark:bg-tertiary rounded-lg p-2" rows={3} />
-                                <div className="mt-4"><label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2">Access Type</label><select value={editedAccessType} onChange={(e) => setEditedAccessType(e.target.value as 'public' | 'restricted')} className="w-full bg-tertiary-light dark:bg-tertiary rounded-lg p-3"><option value="public">Public (Anyone can join)</option><option value="restricted">Restricted (Join by approval)</option></select></div>
-                            </>) : community.description && (
-                                <p className="mt-4 text-text-secondary-light dark:text-text-secondary text-base leading-relaxed max-w-3xl">{community.description}</p>
+                            {isEditing ? (
+                                <textarea value={editedDescription} onChange={(e) => setEditedDescription(e.target.value)} className="w-full mt-2 text-sm text-text-secondary-light dark:text-text-secondary bg-tertiary-light dark:bg-tertiary rounded-lg p-2" rows={2} />
+                            ) : community.description && (
+                                <p className="text-sm text-text-secondary-light dark:text-text-secondary max-w-2xl mx-auto sm:mx-0">{community.description}</p>
                             )}
                         </div>
                     </div>
