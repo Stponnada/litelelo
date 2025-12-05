@@ -8,7 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { DirectoryProfile } from '@/types';
 import Spinner from '@/components/Spinner';
 import UserCard from '@/components/UserCard';
-import { GlobeIcon } from '@/components/icons';
+import { GlobeIcon, UserIcon, UserGroupIcon } from '@/components/icons';
 import { getResizedAvatarUrl } from '@/utils/imageUtils';
 
 // --- Icons ---
@@ -172,6 +172,13 @@ const DirectoryPage: React.FC = () => {
             );
         }
 
+        // 4. Sort alphabetically by name
+        filtered.sort((a, b) => {
+            const nameA = (a.name || '').toLowerCase();
+            const nameB = (b.name || '').toLowerCase();
+            return nameA.localeCompare(nameB);
+        });
+
         return filtered;
     }, [allProfiles, searchQuery, activeTab, viewMode, userFilterTab, followerIds, filters]);
 
@@ -185,16 +192,37 @@ const DirectoryPage: React.FC = () => {
 
             {/* --- HEADER SECTION --- */}
             <div className="flex-none bg-background-light dark:bg-background border-b border-tertiary-light/50 dark:border-tertiary/50 z-20">
-                <div className="max-w-7xl mx-auto px-4 py-4">
+                <div className="max-w-7xl mx-auto px-4 py-2 md:py-4">
 
                     {/* Top Row: Title & Stats */}
-                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-4">
-                        <div>
-                            <h1 className="text-5xl font-bold flex items-center gap-2 text-text-main-light dark:text-text-main">
-                                <GlobeIcon className="w-8 h-8 text-brand-green" />
-                                <span>Directory</span>
-                            </h1>
-                            <p className="text-sm text-text-secondary-light dark:text-text-secondary">Discover people and communities</p>
+                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-2 md:gap-4 mb-2 md:mb-4">
+                        {/* Left side: Title + Mobile Toggle */}
+                        <div className="flex items-start justify-between w-full lg:w-auto">
+                            <div>
+                                <h1 className="text-3xl md:text-5xl font-bold flex items-center gap-2 text-text-main-light dark:text-text-main">
+                                    <GlobeIcon className="w-6 h-6 md:w-8 md:h-8 text-brand-green" />
+                                    <span>Directory</span>
+                                </h1>
+                                <p className="text-xs md:text-sm text-text-secondary-light dark:text-text-secondary">Discover people and communities</p>
+                            </div>
+
+                            {/* Users / Communities Switch - Mobile (top right) */}
+                            <div className="flex lg:hidden bg-secondary-light dark:bg-secondary rounded-xl p-1 border border-tertiary-light/50 dark:border-tertiary/50 ml-2">
+                                <button
+                                    onClick={() => setActiveTab('users')}
+                                    className={`relative px-2 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${activeTab === 'users' ? 'bg-brand-green text-black shadow-md' : 'text-text-secondary-light dark:text-text-secondary'}`}
+                                >
+                                    <UserIcon className="w-4 h-4" />
+                                    <span className="text-[10px] opacity-70">{allProfiles.filter(p => p.type === 'user').length}</span>
+                                </button>
+                                <button
+                                    onClick={() => { setActiveTab('communities'); setViewMode('grid'); }}
+                                    className={`relative px-2 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${activeTab === 'communities' ? 'bg-brand-green text-black shadow-md' : 'text-text-secondary-light dark:text-text-secondary'}`}
+                                >
+                                    <UserGroupIcon className="w-4 h-4" />
+                                    <span className="text-[10px] opacity-70">{allProfiles.filter(p => p.type === 'community').length}</span>
+                                </button>
+                            </div>
                         </div>
 
                         {/* Right: Stats & Tabs */}
@@ -213,8 +241,8 @@ const DirectoryPage: React.FC = () => {
                                 </div>
                             )}
 
-                            {/* Users / Communities Switch */}
-                            <div className="flex bg-secondary-light dark:bg-secondary rounded-xl p-1 border border-tertiary-light/50 dark:border-tertiary/50">
+                            {/* Users / Communities Switch - Desktop only */}
+                            <div className="hidden lg:flex bg-secondary-light dark:bg-secondary rounded-xl p-1 border border-tertiary-light/50 dark:border-tertiary/50">
                                 <button onClick={() => setActiveTab('users')} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'users' ? 'bg-brand-green text-black shadow-md' : 'text-text-secondary-light dark:text-text-secondary'}`}>
                                     Users <span className="text-xs opacity-70 ml-1">{allProfiles.filter(p => p.type === 'user').length}</span>
                                 </button>
@@ -226,48 +254,55 @@ const DirectoryPage: React.FC = () => {
                     </div>
 
                     {/* Bottom Row: Controls (Search, Filters, View Toggle) */}
-                    <div className="flex flex-col sm:flex-row gap-3">
-                        {/* Search */}
+                    <div className="flex gap-2">
+                        {/* Search - takes most of the space */}
                         <div className="relative flex-1">
                             <input
                                 type="text"
                                 placeholder={viewMode === 'network' ? "Find in your network..." : "Search directory..."}
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2.5 bg-secondary-light dark:bg-secondary border border-tertiary-light/50 dark:border-tertiary/50 rounded-xl focus:ring-2 focus:ring-brand-green outline-none"
+                                className="w-full pl-10 pr-4 py-2 md:py-2.5 bg-secondary-light dark:bg-secondary border border-tertiary-light/50 dark:border-tertiary/50 rounded-xl focus:ring-2 focus:ring-brand-green outline-none text-sm"
                             />
                             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                             {searchQuery && <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-tertiary-light dark:hover:bg-tertiary rounded-full"><XMarkIcon className="w-4 h-4" /></button>}
                         </div>
 
-                        {/* Filters Button (Grid Only) */}
-                        {activeTab === 'users' && viewMode === 'grid' && (
-                            <button onClick={() => setShowFilters(!showFilters)} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all border ${showFilters ? 'bg-brand-green/20 text-brand-green border-brand-green' : 'bg-secondary-light dark:bg-secondary border-tertiary-light/50 dark:border-tertiary/50'}`}>
-                                <FilterIcon className="w-5 h-5" />
-                                <span>Filters</span>
-                                {activeFilterCount > 0 && <span className="bg-brand-green text-black text-xs w-5 h-5 rounded-full flex items-center justify-center">{activeFilterCount}</span>}
-                            </button>
-                        )}
+                        {/* Compact icon buttons on the right */}
+                        <div className="flex gap-2 items-center">
+                            {/* Filters Button (Grid Only) - Icon only on mobile */}
+                            {activeTab === 'users' && viewMode === 'grid' && (
+                                <button
+                                    onClick={() => setShowFilters(!showFilters)}
+                                    className={`relative p-2 md:px-4 md:py-2.5 rounded-xl font-semibold text-sm transition-all border flex items-center gap-2 ${showFilters ? 'bg-brand-green/20 text-brand-green border-brand-green' : 'bg-secondary-light dark:bg-secondary border-tertiary-light/50 dark:border-tertiary/50'}`}
+                                    title="Filters"
+                                >
+                                    <FilterIcon className="w-5 h-5" />
+                                    <span className="hidden md:inline">Filters</span>
+                                    {activeFilterCount > 0 && <span className="absolute -top-1 -right-1 md:static bg-brand-green text-black text-xs w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center font-bold">{activeFilterCount}</span>}
+                                </button>
+                            )}
 
-                        {/* Grid/Network Toggle (Only for Users tab) */}
-                        {activeTab === 'users' && (
-                            <div className="flex bg-secondary-light dark:bg-secondary rounded-xl p-1 border border-tertiary-light/50 dark:border-tertiary/50 shrink-0">
-                                <button onClick={() => setViewMode('grid')} className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-brand-green text-black shadow-sm' : 'text-text-secondary-light dark:text-text-secondary'}`} title="Grid View">
-                                    <GridIcon className="w-5 h-5" />
-                                </button>
-                                <button onClick={() => setViewMode('network')} className={`relative p-2 rounded-lg transition-all group ${viewMode === 'network' ? 'bg-brand-green text-black shadow-sm' : 'text-text-secondary-light dark:text-text-secondary'}`} title="Your Network">
-                                    <NetworkIcon className="w-5 h-5" />
-                                    {/* Tooltip for Network */}
-                                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">Your Network</span>
-                                </button>
-                            </div>
-                        )}
+                            {/* Grid/Network Toggle (Only for Users tab) - More compact on mobile */}
+                            {activeTab === 'users' && (
+                                <div className="flex bg-secondary-light dark:bg-secondary rounded-xl p-1 border border-tertiary-light/50 dark:border-tertiary/50">
+                                    <button onClick={() => setViewMode('grid')} className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-brand-green text-black shadow-sm' : 'text-text-secondary-light dark:text-text-secondary'}`} title="Grid View">
+                                        <GridIcon className="w-5 h-5" />
+                                    </button>
+                                    <button onClick={() => setViewMode('network')} className={`relative p-2 rounded-lg transition-all group ${viewMode === 'network' ? 'bg-brand-green text-black shadow-sm' : 'text-text-secondary-light dark:text-text-secondary'}`} title="Your Network">
+                                        <NetworkIcon className="w-5 h-5" />
+                                        {/* Tooltip for Network */}
+                                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">Your Network</span>
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Expandable Filters Panel (Grid Only) */}
                     {showFilters && activeTab === 'users' && viewMode === 'grid' && (
-                        <div className="mt-4 p-4 bg-secondary-light dark:bg-secondary rounded-xl border border-tertiary-light/50 dark:border-tertiary/50 animate-fadeIn">
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="mt-2 md:mt-4 p-3 md:p-4 bg-secondary-light dark:bg-secondary rounded-xl border border-tertiary-light/50 dark:border-tertiary/50 animate-fadeIn">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
                                 <select name="admission_year" value={filters.admission_year} onChange={handleFilterChange} className="p-2 bg-tertiary-light dark:bg-tertiary rounded-lg text-sm"><option value="">Batch</option>{admissionYears.map(y => <option key={y} value={y}>{y}</option>)}</select>
                                 <select name="branch" value={filters.branch} onChange={handleFilterChange} className="p-2 bg-tertiary-light dark:bg-tertiary rounded-lg text-sm"><option value="">Branch</option>{branches.map(b => <option key={b} value={b}>{b}</option>)}</select>
                                 <select name="dorm_building" value={filters.dorm_building} onChange={handleFilterChange} className="p-2 bg-tertiary-light dark:bg-tertiary rounded-lg text-sm"><option value="">Dorm</option>{dorms.map(d => <option key={d} value={d}>{d}</option>)}</select>
@@ -279,12 +314,12 @@ const DirectoryPage: React.FC = () => {
 
                     {/* Sub-Tabs (All, Following, etc) - Grid Only */}
                     {activeTab === 'users' && viewMode === 'grid' && currentUser && (
-                        <div className="mt-4 flex space-x-6 border-b border-tertiary-light/50 dark:border-tertiary/50 overflow-x-auto">
+                        <div className="mt-2 md:mt-4 flex space-x-4 md:space-x-6 border-b border-tertiary-light/50 dark:border-tertiary/50 overflow-x-auto">
                             {(['all', 'following', 'followers', 'friends'] as UserFilterTab[]).map((tab) => (
                                 <button
                                     key={tab}
                                     onClick={() => setUserFilterTab(tab)}
-                                    className={`pb-2 capitalize text-sm font-semibold border-b-2 transition-all ${userFilterTab === tab ? 'border-brand-green text-brand-green' : 'border-transparent text-text-secondary-light dark:text-text-secondary hover:text-text-main'}`}
+                                    className={`pb-1.5 md:pb-2 capitalize text-xs md:text-sm font-semibold border-b-2 transition-all whitespace-nowrap ${userFilterTab === tab ? 'border-brand-green text-brand-green' : 'border-transparent text-text-secondary-light dark:text-text-secondary hover:text-text-main'}`}
                                 >
                                     {tab}
                                 </button>
