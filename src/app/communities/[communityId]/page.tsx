@@ -241,7 +241,7 @@ const CommunityPage: React.FC = () => {
 
 
     return (
-        <div className="w-full min-h-screen bg-gradient-to-b from-transparent via-brand-green/5 to-transparent dark:via-brand-green/10">
+        <div className="w-full min-h-screen">
             {cropperState.isOpen && cropperState.src && <ImageCropper imageSrc={cropperState.src} aspect={cropperState.type === 'avatar' ? 1 : 16 / 6} cropShape={cropperState.type === 'avatar' ? 'round' : 'rect'} onSave={handleCropSave} onClose={() => setCropperState({ isOpen: false, type: null, src: null })} isSaving={isSaving} />}
             {lightboxUrl && <LightBox imageUrl={lightboxUrl} onClose={() => setLightboxUrl(null)} />}
             {isCreateSubcommunityModalOpen && <CreateSubcommunityModal parentCommunityId={community.id} onClose={() => setCreateSubcommunityModalOpen(false)} onSubcommunityCreated={fetchCommunityData} />}
@@ -279,7 +279,7 @@ const CommunityPage: React.FC = () => {
                         <div className="relative -mt-12 sm:-mt-16 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
                             {/* Avatar - centered on mobile, left on desktop */}
                             <div className="relative group flex-shrink-0 mx-auto sm:mx-0">
-                                <div className="absolute inset-0 bg-brand-green/30 blur-2xl rounded-full"></div>
+                                <div className="absolute inset-0 rounded-full"></div>
                                 <Image
                                     src={community.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(community.name)}&background=3cfba2&color=000`}
                                     alt={community.name}
@@ -294,26 +294,6 @@ const CommunityPage: React.FC = () => {
                                     </button>
                                     <input type="file" ref={avatarInputRef} onChange={(e) => handleFileChange(e, 'avatar')} accept="image/*" hidden />
                                 </>)}
-                            </div>
-
-                            {/* Action Buttons - below avatar on mobile, right side on desktop */}
-                            <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2 sm:mb-2">
-                                {isEditing ? (<>
-                                    <button onClick={handleCancelEdit} className="text-sm font-semibold py-2 px-5 rounded-lg bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main hover:bg-tertiary-light/80 dark:hover:bg-tertiary/80 transition-colors">Cancel</button>
-                                    <button onClick={handleSaveChanges} disabled={isSaving} className="text-sm font-bold py-2 px-5 rounded-lg bg-brand-green text-black hover:bg-brand-green-darker transition-colors">{isSaving ? <Spinner /> : 'Save'}</button>
-                                    <select value={editedAccessType} onChange={(e) => setEditedAccessType(e.target.value as 'public' | 'restricted')} className="text-sm bg-tertiary-light dark:bg-tertiary rounded-lg py-2 px-4"><option value="public">Public</option><option value="restricted">Restricted</option></select>
-                                </>) : isOwner ? (<>
-                                    <button onClick={() => setCreateBlogModalOpen(true)} className="text-sm font-semibold py-2 px-5 rounded-lg bg-brand-green text-black hover:bg-brand-green-darker transition-colors shadow-lg shadow-brand-green/20">
-                                        Write Blog
-                                    </button>
-                                    <button onClick={handleStartEdit} className="text-sm font-semibold py-2 px-5 rounded-lg bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main hover:bg-tertiary-light/80 dark:hover:bg-tertiary/80 transition-colors">
-                                        Edit Community
-                                    </button>
-                                </>) : (
-                                    <button onClick={() => handleJoinToggle(community.id, community.access_type, community.is_member, community.has_pending_request)} className={`text-sm font-bold py-2 px-6 rounded-lg transition-all disabled:opacity-50 ${community.is_member ? 'bg-transparent border border-tertiary-light dark:border-tertiary text-text-main-light dark:text-text-main hover:border-red-500 hover:text-red-500' : community.has_pending_request ? 'bg-tertiary-light/60 dark:bg-tertiary/60 text-text-secondary-light dark:text-text-secondary cursor-not-allowed' : 'bg-brand-green text-black hover:bg-brand-green-darker shadow-lg shadow-brand-green/20'}`} disabled={!community.is_member && community.has_pending_request}>
-                                        {community.is_member ? 'Leave' : (community.has_pending_request ? 'Request Sent' : 'Join')}
-                                    </button>
-                                )}
                             </div>
                         </div>
 
@@ -336,61 +316,132 @@ const CommunityPage: React.FC = () => {
                                 <p className="text-sm text-text-secondary-light dark:text-text-secondary max-w-2xl mx-auto sm:mx-0">{community.description}</p>
                             )}
                         </div>
+
+                        {/* Action Buttons - below avatar on mobile, right side on desktop */}
+                        <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2 mt-3 sm:mb-2">
+                            {isEditing ? (<>
+                                <button onClick={handleCancelEdit} className="text-sm font-semibold py-2 px-5 rounded-lg bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main hover:bg-tertiary-light/80 dark:hover:bg-tertiary/80 transition-colors">Cancel</button>
+                                <button onClick={handleSaveChanges} disabled={isSaving} className="text-sm font-bold py-2 px-5 rounded-lg bg-brand-green text-black hover:bg-brand-green-darker transition-colors">{isSaving ? <Spinner /> : 'Save'}</button>
+                                <select value={editedAccessType} onChange={(e) => setEditedAccessType(e.target.value as 'public' | 'restricted')} className="text-sm bg-tertiary-light dark:bg-tertiary rounded-lg py-2 px-4"><option value="public">Public</option><option value="restricted">Restricted</option></select>
+                            </>) : isOwner ? (<>
+                                <button onClick={() => setCreateBlogModalOpen(true)} className="text-sm font-semibold py-2 px-5 rounded-lg bg-brand-green text-black hover:bg-brand-green-darker transition-colors shadow-lg shadow-brand-green/20">
+                                    Write Blog
+                                </button>
+                                <button onClick={handleStartEdit} className="text-sm font-semibold py-2 px-5 rounded-lg bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main hover:bg-tertiary-light/80 dark:hover:bg-tertiary/80 transition-colors">
+                                    Edit Community
+                                </button>
+                            </>) : (
+                                <button onClick={() => handleJoinToggle(community.id, community.access_type, community.is_member, community.has_pending_request)} className={`text-sm font-bold py-2 px-6 rounded-lg transition-all disabled:opacity-50 ${community.is_member ? 'bg-transparent border border-tertiary-light dark:border-tertiary text-text-main-light dark:text-text-main hover:border-red-500 hover:text-red-500' : community.has_pending_request ? 'bg-tertiary-light/60 dark:bg-tertiary/60 text-text-secondary-light dark:text-text-secondary cursor-not-allowed' : 'bg-brand-green text-black hover:bg-brand-green-darker shadow-lg shadow-brand-green/20'}`} disabled={!community.is_member && community.has_pending_request}>
+                                    {community.is_member ? 'Leave' : (community.has_pending_request ? 'Request Sent' : 'Join')}
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
 
-                <div className="flex flex-col md:flex-row gap-6">
-                    <aside className="w-full md:w-64 lg:w-72 flex-shrink-0">
-                        <div className="bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl p-4 border-2 border-tertiary-light/50 dark:border-tertiary/50 sticky top-6">
-                            <h3 className="font-bold mb-2 px-2 text-text-main-light dark:text-text-main">Channels</h3>
-                            <div className="space-y-1">
-                                <SubcommunityLink label="Member Posts" isActive={activeView === 'private'} onClick={() => setActiveView('private')} />
-                                <SubcommunityLink label="Public Feed" isActive={activeView === 'public'} onClick={() => setActiveView('public')} />
-                                <SubcommunityLink label="Blogs" isActive={activeView === 'blog'} onClick={() => setActiveView('blog')} />
-                            </div>
-                            <hr className="my-3 border-tertiary-light/50 dark:border-tertiary/50" />
-                            <div className="flex justify-between items-center mb-2 px-2">
-                                <h4 className="font-bold text-text-main-light dark:text-text-main">Subcommunities</h4>
-                                {isOwner && <button onClick={() => setCreateSubcommunityModalOpen(true)} className="p-1 rounded-md hover:bg-tertiary-light dark:hover:bg-tertiary"><PlusIcon className="w-4 h-4 text-brand-green" /></button>}
-                            </div>
-                            <div className="space-y-1">
-                                {subcommunities.map(sub => <SubcommunityLink key={sub.id} subcommunity={sub} isActive={activeView === sub.id} onClick={() => setActiveView(sub.id)} onJoinToggle={handleJoinToggle} />)}
-                            </div>
+                {/* Horizontal Tabs - YouTube Style */}
+                <div className="mb-4">
+                    <div className="bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-full border border-tertiary-light/50 dark:border-tertiary/50 overflow-hidden">
+                        <div className="flex items-center gap-1 p-2 overflow-x-auto scrollbar-hide">
+                            {/* Main Channel Tabs */}
+                            <button
+                                onClick={() => setActiveView('private')}
+                                className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all ${activeView === 'private'
+                                    ? 'bg-brand-green text-black'
+                                    : 'text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50'
+                                    }`}
+                            >
+                                Member Posts
+                            </button>
+                            <button
+                                onClick={() => setActiveView('public')}
+                                className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all ${activeView === 'public'
+                                    ? 'bg-brand-green text-black'
+                                    : 'text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50'
+                                    }`}
+                            >
+                                Public Feed
+                            </button>
+                            <button
+                                onClick={() => setActiveView('blog')}
+                                className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all ${activeView === 'blog'
+                                    ? 'bg-brand-green text-black'
+                                    : 'text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50'
+                                    }`}
+                            >
+                                Blogs
+                            </button>
+
+                            {/* Subcommunities */}
+                            {subcommunities.length > 0 && (
+                                <>
+                                    <div className="w-px h-6 bg-tertiary-light/50 dark:bg-tertiary/50 mx-2 flex-shrink-0"></div>
+                                    {subcommunities.map(sub => (
+                                        <button
+                                            key={sub.id}
+                                            onClick={() => sub.is_member ? setActiveView(sub.id) : undefined}
+                                            disabled={!sub.is_member}
+                                            className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all flex items-center gap-2 ${activeView === sub.id
+                                                ? 'bg-brand-green text-black'
+                                                : sub.is_member
+                                                    ? 'text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50'
+                                                    : 'text-text-tertiary-light dark:text-text-tertiary opacity-50 cursor-not-allowed'
+                                                }`}
+                                        >
+                                            <UserGroupIcon className="w-4 h-4" />
+                                            {sub.name}
+                                            {sub.access_type === 'restricted' && <LockClosedIcon className="w-3 h-3" />}
+                                        </button>
+                                    ))}
+                                </>
+                            )}
+
+                            {/* Add Subcommunity Button */}
+                            {isOwner && (
+                                <button
+                                    onClick={() => setCreateSubcommunityModalOpen(true)}
+                                    className="flex-shrink-0 p-2 rounded-lg text-brand-green hover:bg-brand-green/10 transition-colors ml-1"
+                                    title="Create Subcommunity"
+                                >
+                                    <PlusIcon className="w-5 h-5" />
+                                </button>
+                            )}
                         </div>
-                    </aside>
+                    </div>
+                </div>
 
-                    <main className="flex-1 min-w-0">
-                        {selectedSubcommunityConversation ? (
-                            <div className="h-[calc(100vh-200px)] bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl overflow-hidden border-2 border-tertiary-light/50 dark:border-tertiary/50">
-                                <Conversation conversation={selectedSubcommunityConversation} onConversationCreated={() => { }} />
-                            </div>
-                        ) : !community.is_member ? (
-                            <div className="text-center py-24 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50">
-                                <div className="relative inline-block mb-6">
-                                    <div className="absolute inset-0 bg-brand-green/20 blur-2xl rounded-full"></div>
-                                    <div className="relative w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-brand-green/20 to-brand-green/10 border-2 border-brand-green/30 flex items-center justify-center">
-                                        <svg className="w-12 h-12 text-brand-green" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                                    </div>
+                {/* Main Content */}
+                <div className="w-full">
+                    {selectedSubcommunityConversation ? (
+                        <div className="h-[calc(100vh-200px)] bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl overflow-hidden border border-tertiary-light/50 dark:border-tertiary/50">
+                            <Conversation conversation={selectedSubcommunityConversation} onConversationCreated={() => { }} />
+                        </div>
+                    ) : !community.is_member ? (
+                        <div className="text-center py-24 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border border-tertiary-light/50 dark:border-tertiary/50">
+                            <div className="relative inline-block mb-6">
+                                <div className="absolute inset-0 bg-brand-green/20 blur-2xl rounded-full"></div>
+                                <div className="relative w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-brand-green/20 to-brand-green/10 border-2 border-brand-green/30 flex items-center justify-center">
+                                    <svg className="w-12 h-12 text-brand-green" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                                 </div>
-                                <h3 className="text-2xl font-bold text-text-main-light dark:text-text-main mb-3">Join to see posts</h3>
-                                <p className="text-text-secondary-light dark:text-text-secondary mb-6 max-w-md mx-auto">Become a member to view and create posts in this community.</p>
-                                <button onClick={() => handleJoinToggle(community.id, community.access_type, community.is_member, community.has_pending_request)} className="bg-brand-green text-black font-bold py-3 px-8 rounded-xl hover:bg-brand-green/90 transition-all shadow-lg shadow-brand-green/20 hover:shadow-xl hover:shadow-brand-green/30">Join Community</button>
                             </div>
-                        ) : (
-                            <div className="space-y-5">
-                                {canPostInCurrentView && currentUserProfile && <div className="mb-6"><CreatePost onPostCreated={fetchCommunityData} profile={currentUserProfile} communityId={community.id} isPublicPost={activeView === 'public'} placeholderText={placeholderText} /></div>}
+                            <h3 className="text-2xl font-bold text-text-main-light dark:text-text-main mb-3">Join to see posts</h3>
+                            <p className="text-text-secondary-light dark:text-text-secondary mb-6 max-w-md mx-auto">Become a member to view and create posts in this community.</p>
+                            <button onClick={() => handleJoinToggle(community.id, community.access_type, community.is_member, community.has_pending_request)} className="bg-brand-green text-black font-bold py-3 px-8 rounded-xl hover:bg-brand-green/90 transition-all shadow-lg shadow-brand-green/20 hover:shadow-xl hover:shadow-brand-green/30">Join Community</button>
+                        </div>
+                    ) : (
+                        <div className="space-y-5">
+                            {canPostInCurrentView && currentUserProfile && <div className="mb-6"><CreatePost onPostCreated={fetchCommunityData} profile={currentUserProfile} communityId={community.id} isPublicPost={activeView === 'public'} placeholderText={placeholderText} /></div>}
 
-                                {activeView === 'private' && privatePosts.map((post, i) => <div key={post.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}><PostComponent post={post} onImageClick={setLightboxUrl} /></div>)}
-                                {activeView === 'public' && publicPosts.map((post, i) => <div key={post.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}><PostComponent post={post} onImageClick={setLightboxUrl} /></div>)}
-                                {activeView === 'blog' && blogPosts.map((post, i) => <div key={post.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}><PostComponent post={post} onImageClick={setLightboxUrl} /></div>)}
+                            {activeView === 'private' && privatePosts.map((post, i) => <div key={post.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}><PostComponent post={post} onImageClick={setLightboxUrl} /></div>)}
+                            {activeView === 'public' && publicPosts.map((post, i) => <div key={post.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}><PostComponent post={post} onImageClick={setLightboxUrl} /></div>)}
+                            {activeView === 'blog' && blogPosts.map((post, i) => <div key={post.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}><PostComponent post={post} onImageClick={setLightboxUrl} /></div>)}
 
 
-                                {(activeView === 'private' && privatePosts.length === 0) && <div className="text-center py-20 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50"><p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No member posts yet</p><p className="text-text-secondary-light dark:text-text-secondary">Be the first to share something with the community!</p></div>}
-                                {(activeView === 'public' && publicPosts.length === 0) && <div className="text-center py-20 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50"><p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No public posts yet</p><p className="text-text-secondary-light dark:text-text-secondary">This community hasn&apos;t shared anything publicly yet.</p></div>}
-                                {(activeView === 'blog' && blogPosts.length === 0) && <div className="text-center py-20 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50"><p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No blog posts yet</p><p className="text-text-secondary-light dark:text-text-secondary">This community has no blog posts.</p></div>}
-                            </div>
-                        )}
-                    </main>
+                            {(activeView === 'private' && privatePosts.length === 0) && <div className="text-center py-20 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50"><p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No member posts yet</p><p className="text-text-secondary-light dark:text-text-secondary">Be the first to share something with the community!</p></div>}
+                            {(activeView === 'public' && publicPosts.length === 0) && <div className="text-center py-20 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50"><p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No public posts yet</p><p className="text-text-secondary-light dark:text-text-secondary">This community hasn&apos;t shared anything publicly yet.</p></div>}
+                            {(activeView === 'blog' && blogPosts.length === 0) && <div className="text-center py-20 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50"><p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No blog posts yet</p><p className="text-text-secondary-light dark:text-text-secondary">This community has no blog posts.</p></div>}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
