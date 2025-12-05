@@ -125,22 +125,28 @@ const TermsPage: React.FC = () => {
 
                 <TOSSection title="10. Contact Us">
                     <p>
-                        If you have any questions about these Terms, please contact us at{' '}
-                        <a
-                            href="mailto:f20250080@hyderabad.bits-pilani.ac.in"
-                            className="text-brand-green hover:underline"
-                        >
-                            f20250080@hyderabad.bits-pilani.ac.in
-                        </a>{' '}
-
-                        or {' '}
-                        <a
-                            href="mailto:f20252422@hyderabad.bits-pilani.ac.in"
-                            className="text-brand-green hover:underline"
-                        >
-                            f20252422@hyderabad.bits-pilani.ac.in
-                        </a>{' '}
+                        If you have any questions about these Terms, please contact us:
                     </p>
+                    <ul className="list-none space-y-2 mt-3">
+                        <li>
+                            <strong>Sriniketh Ponnada</strong> -{' '}
+                            <a
+                                href="mailto:f20250080@hyderabad.bits-pilani.ac.in"
+                                className="text-brand-green hover:underline"
+                            >
+                                f20250080@hyderabad.bits-pilani.ac.in
+                            </a>
+                        </li>
+                        <li>
+                            <strong>Saathvik Manikandan</strong> -{' '}
+                            <a
+                                href="mailto:f20252422@hyderabad.bits-pilani.ac.in"
+                                className="text-brand-green hover:underline"
+                            >
+                                f20252422@hyderabad.bits-pilani.ac.in
+                            </a>
+                        </li>
+                    </ul>
                 </TOSSection>
             </div>
         </div>

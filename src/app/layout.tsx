@@ -25,6 +25,11 @@ const rubikGlitch = Rubik_Glitch({
 export const metadata: Metadata = {
   title: "litelelo.",
   description: "Social media for BITSians",
+  icons: {
+    icon: "https://phnrjmvfowtptnonftcs.supabase.co/storage/v1/object/public/Logo%20bucket/Litelogolemontea4.png",
+    shortcut: "https://phnrjmvfowtptnonftcs.supabase.co/storage/v1/object/public/Logo%20bucket/Litelogolemontea4.png",
+    apple: "https://phnrjmvfowtptnonftcs.supabase.co/storage/v1/object/public/Logo%20bucket/Litelogolemontea4.png",
+  },
 };
 
 export default function RootLayout({
