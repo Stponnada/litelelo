@@ -43,6 +43,8 @@ const QuotePostModal: React.FC<QuotePostModalProps> = ({ postToQuote, onClose, o
       const { data, error: rpcError } = await supabase.rpc('create_quote_post', {
         p_content: content.trim(),
         p_quoted_post_id: postToQuote.id,
+        p_community_id: undefined,
+        p_is_public: true
       }).single();
 
       if (rpcError) throw rpcError;
@@ -50,9 +52,12 @@ const QuotePostModal: React.FC<QuotePostModalProps> = ({ postToQuote, onClose, o
       onPostCreated(data as PostType);
       onClose();
 
-    } catch (err: unknown) {
-      if (err instanceof Error) {
+    } catch (err: any) {
+      console.error("Quote post error:", err);
+      if (err?.message) {
         setError(err.message);
+      } else if (typeof err === 'object') {
+        setError(JSON.stringify(err));
       } else {
         setError('An unknown error occurred.');
       }
