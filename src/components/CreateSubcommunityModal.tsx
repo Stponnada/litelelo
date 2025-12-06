@@ -21,6 +21,15 @@ const CreateSubcommunityModal: React.FC<Props> = ({ parentCommunityId, onClose, 
     const [selectedConsuls, setSelectedConsuls] = useState<string[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
+    const [isConsulModalOpen, setIsConsulModalOpen] = useState(false);
+
+    // Prevent background scrolling when modal is open
+    useEffect(() => {
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, []);
 
     useEffect(() => {
         const fetchParentMembers = async () => {
@@ -65,68 +74,258 @@ const CreateSubcommunityModal: React.FC<Props> = ({ parentCommunityId, onClose, 
 
     return (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-            <div className="bg-secondary-light dark:bg-secondary rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-                <form onSubmit={handleSubmit} className="flex flex-col h-full">
-                    <header className="p-6 flex justify-between items-start border-b border-tertiary-light dark:border-tertiary">
+            <div className="bg-secondary-light dark:bg-secondary rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] sm:max-h-[85vh] flex flex-col border border-tertiary-light/50 dark:border-white/10 overflow-hidden" onClick={e => e.stopPropagation()}>
+                <form onSubmit={handleSubmit} className="flex flex-col h-full min-h-0">
+                    {/* Header */}
+                    <header className="px-8 py-6 flex justify-between items-start border-b border-tertiary-light/50 dark:border-white/10">
                         <div>
-                            <h2 className="text-2xl font-bold text-text-main-light dark:text-text-main">Create Subcommunity</h2>
-                            <p className="text-sm text-text-secondary-light dark:text-text-secondary mt-1">Create a new channel within your community.</p>
+                            <h2 className="text-3xl font-bold text-text-main-light dark:text-text-main">Create Subcommunity</h2>
+                            <p className="text-sm text-text-secondary-light dark:text-text-secondary mt-2">Create a new channel within your community.</p>
                         </div>
-                        <button type="button" onClick={onClose}><XCircleIcon className="w-7 h-7" /></button>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="p-2 rounded-full hover:bg-tertiary-light dark:hover:bg-white/10 transition-colors"
+                        >
+                            <XCircleIcon className="w-6 h-6 text-text-tertiary-light dark:text-text-tertiary" />
+                        </button>
                     </header>
 
-                    <main className="flex-1 p-6 overflow-y-auto space-y-6">
-                        <div>
-                            <label htmlFor="name" className="block text-sm font-medium">Name*</label>
-                            <input type="text" id="name" value={name} onChange={e => setName(e.target.value)} required className="mt-1 w-full p-2 bg-tertiary-light dark:bg-tertiary rounded-md" />
-                        </div>
-                        <div>
-                            <label htmlFor="description" className="block text-sm font-medium">Description</label>
-                            <textarea id="description" value={description} onChange={e => setDescription(e.target.value)} rows={2} className="mt-1 w-full p-2 bg-tertiary-light dark:bg-tertiary rounded-md" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium">Access Type</label>
-                            <div className="mt-2 flex gap-4">
-                                <label className={`flex-1 p-3 border rounded-md cursor-pointer ${accessType === 'public' ? 'border-brand-green bg-brand-green/10' : 'border-tertiary-light dark:border-gray-600'}`}>
-                                    <input type="radio" value="public" checked={accessType === 'public'} onChange={() => setAccessType('public')} className="sr-only" />
-                                    <p className="font-semibold">Public</p><p className="text-xs">Any community member can join.</p>
+                    {/* Main Content */}
+                    <main className="flex-1 px-8 py-6 overflow-y-auto pb-20 lg:pb-6">
+                        <div className="grid lg:grid-cols-2 gap-8 h-full">
+                            {/* Left Column - Consul Selection (Desktop Only) */}
+                            <div className="hidden lg:flex lg:order-1 flex-col">
+                                <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-3">
+                                    Assign Consuls <span className="text-text-tertiary-light dark:text-text-tertiary text-xs">(Optional)</span>
                                 </label>
-                                <label className={`flex-1 p-3 border rounded-md cursor-pointer ${accessType === 'restricted' ? 'border-brand-green bg-brand-green/10' : 'border-tertiary-light dark:border-gray-600'}`}>
-                                    <input type="radio" value="restricted" checked={accessType === 'restricted'} onChange={() => setAccessType('restricted')} className="sr-only" />
-                                    <p className="font-semibold">Restricted</p><p className="text-xs">Join by approval from Consul.</p>
-                                </label>
+                                <div className="flex-1 overflow-y-auto space-y-2 p-3 bg-tertiary-light/50 dark:bg-tertiary/50 rounded-xl border border-tertiary-light dark:border-white/5">
+                                    {parentMembers.length === 0 ? (
+                                        <p className="text-center text-text-tertiary-light dark:text-text-tertiary text-sm py-4">No members available</p>
+                                    ) : (
+                                        parentMembers.map(member => (
+                                            <div
+                                                key={member.user_id}
+                                                onClick={() => handleToggleConsul(member.user_id)}
+                                                className={`flex items-center gap-3.5 p-3.5 rounded-lg cursor-pointer transition-all ${selectedConsuls.includes(member.user_id) ? 'bg-brand-green/15 border-2 border-brand-green/30' : 'bg-secondary-light dark:bg-secondary border-2 border-transparent hover:bg-tertiary-light/50 dark:hover:bg-white/5'}`}
+                                            >
+                                                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${selectedConsuls.includes(member.user_id) ? 'bg-brand-green border-brand-green' : 'border-tertiary-light dark:border-white/20'}`}>
+                                                    {selectedConsuls.includes(member.user_id) && (
+                                                        <svg className="w-3.5 h-3.5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                        </svg>
+                                                    )}
+                                                </div>
+                                                <Image
+                                                    src={member.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.full_name || member.username)}&background=random&color=fff&bold=true`}
+                                                    alt={member.username}
+                                                    width={40}
+                                                    height={40}
+                                                    className="w-10 h-10 rounded-full ring-2 ring-white/10"
+                                                    unoptimized
+                                                />
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-semibold text-text-main-light dark:text-text-main truncate">{member.full_name || member.username}</p>
+                                                    <p className="text-xs text-text-tertiary-light dark:text-text-tertiary truncate">@{member.username}</p>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium mb-2">Assign Consuls (Optional)</label>
-                            <div className="max-h-48 overflow-y-auto space-y-2 p-2 bg-tertiary-light dark:bg-tertiary rounded-md">
-                                {parentMembers.map(member => (
-                                    <div key={member.user_id} onClick={() => handleToggleConsul(member.user_id)} className="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 cursor-pointer">
-                                        <input type="checkbox" checked={selectedConsuls.includes(member.user_id)} readOnly className="form-checkbox rounded text-brand-green" />
-                                        <Image
-                                            src={member.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.full_name || member.username)}&background=random&color=fff&bold=true`}
-                                            alt={member.username}
-                                            width={32}
-                                            height={32}
-                                            className="w-8 h-8 rounded-full"
-                                            unoptimized
-                                        />
-                                        <span>{member.full_name || member.username}</span>
+
+                            {/* Right Column - Form Fields */}
+                            <div className="order-1 lg:order-2 space-y-6">
+                                {/* Name Input */}
+                                <div>
+                                    <label htmlFor="name" className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2.5">
+                                        Subcommunity Name <span className="text-red-400">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="name"
+                                        value={name}
+                                        onChange={e => setName(e.target.value)}
+                                        required
+                                        placeholder="e.g., General Discussion"
+                                        className="w-full px-4 py-3.5 bg-tertiary-light dark:bg-tertiary rounded-xl border-2 border-transparent focus:border-brand-green/50 focus:ring-2 focus:ring-brand-green/20 outline-none transition-all text-base placeholder:text-text-tertiary-light dark:placeholder:text-text-tertiary"
+                                    />
+                                </div>
+
+                                {/* Description Input */}
+                                <div>
+                                    <label htmlFor="description" className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2.5">
+                                        Description <span className="text-text-tertiary-light dark:text-text-tertiary text-xs">(Optional)</span>
+                                    </label>
+                                    <textarea
+                                        id="description"
+                                        value={description}
+                                        onChange={e => setDescription(e.target.value)}
+                                        rows={3}
+                                        placeholder="What's this subcommunity about?"
+                                        className="w-full px-4 py-3.5 bg-tertiary-light dark:bg-tertiary rounded-xl border-2 border-transparent focus:border-brand-green/50 focus:ring-2 focus:ring-brand-green/20 outline-none transition-all text-base resize-none placeholder:text-text-tertiary-light dark:placeholder:text-text-tertiary"
+                                    />
+                                </div>
+
+                                {/* Mobile Only - Consul Selection Button */}
+                                <div className="lg:hidden">
+                                    <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-2.5">
+                                        Assign Consuls <span className="text-text-tertiary-light dark:text-text-tertiary text-xs">(Optional)</span>
+                                    </label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsConsulModalOpen(true)}
+                                        className="w-full px-4 py-3.5 bg-tertiary-light dark:bg-tertiary rounded-xl border-2 border-tertiary-light dark:border-white/10 hover:border-brand-green/30 transition-all text-left flex items-center justify-between"
+                                    >
+                                        <span className="text-text-main-light dark:text-text-main">
+                                            {selectedConsuls.length === 0
+                                                ? 'Select Consuls'
+                                                : `${selectedConsuls.length} Consul${selectedConsuls.length === 1 ? '' : 's'} Selected`
+                                            }
+                                        </span>
+                                        <svg className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </button>
+                                </div>
+
+                                {/* Access Type */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-text-main-light dark:text-text-main mb-3">
+                                        Access Type
+                                    </label>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <label className={`relative p-4 border-2 rounded-xl cursor-pointer transition-all ${accessType === 'public' ? 'border-brand-green bg-brand-green/10 shadow-lg shadow-brand-green/20' : 'border-tertiary-light dark:border-white/10 hover:border-brand-green/30 hover:bg-brand-green/5'}`}>
+                                            <input type="radio" value="public" checked={accessType === 'public'} onChange={() => setAccessType('public')} className="sr-only" />
+                                            <div className="flex items-start gap-2.5">
+                                                <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${accessType === 'public' ? 'border-brand-green bg-brand-green' : 'border-tertiary-light dark:border-white/20'}`}>
+                                                    {accessType === 'public' && <div className="w-2 h-2 bg-black rounded-full" />}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="font-bold text-sm text-text-main-light dark:text-text-main mb-0.5">Public</p>
+                                                    <p className="text-xs text-text-secondary-light dark:text-text-secondary leading-relaxed">Any member can join instantly.</p>
+                                                </div>
+                                            </div>
+                                        </label>
+                                        <label className={`relative p-4 border-2 rounded-xl cursor-pointer transition-all ${accessType === 'restricted' ? 'border-brand-green bg-brand-green/10 shadow-lg shadow-brand-green/20' : 'border-tertiary-light dark:border-white/10 hover:border-brand-green/30 hover:bg-brand-green/5'}`}>
+                                            <input type="radio" value="restricted" checked={accessType === 'restricted'} onChange={() => setAccessType('restricted')} className="sr-only" />
+                                            <div className="flex items-start gap-2.5">
+                                                <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${accessType === 'restricted' ? 'border-brand-green bg-brand-green' : 'border-tertiary-light dark:border-white/20'}`}>
+                                                    {accessType === 'restricted' && <div className="w-2 h-2 bg-black rounded-full" />}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="font-bold text-sm text-text-main-light dark:text-text-main mb-0.5">Restricted</p>
+                                                    <p className="text-xs text-text-secondary-light dark:text-text-secondary leading-relaxed">Requires Consul approval.</p>
+                                                </div>
+                                            </div>
+                                        </label>
                                     </div>
-                                ))}
+                                </div>
+
+
+
+                                {/* Error Message */}
+                                {error && (
+                                    <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
+                                        <p className="text-red-400 text-sm font-medium">{error}</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
-                        {error && <p className="text-red-400 text-sm mt-4">{error}</p>}
                     </main>
 
-                    <footer className="px-6 py-4 bg-tertiary-light/30 dark:bg-tertiary/30 flex justify-end items-center space-x-3">
-                        <button type="button" onClick={onClose}>Cancel</button>
-                        <button type="submit" disabled={isSubmitting} className="px-6 py-2 bg-brand-green text-black font-bold rounded-md disabled:opacity-50">
-                            {isSubmitting ? <Spinner /> : 'Create'}
+                    {/* Footer */}
+                    <footer className="px-8 py-5 bg-tertiary-light/30 dark:bg-tertiary/30 border-t border-tertiary-light/50 dark:border-white/10 flex justify-end items-center gap-3">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-6 py-3 rounded-xl font-semibold text-text-main-light dark:text-text-main hover:bg-tertiary-light dark:hover:bg-white/10 transition-all"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={isSubmitting}
+                            className="px-8 py-3 bg-brand-green text-black font-bold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-brand-green-darker hover:shadow-lg hover:shadow-brand-green/30 transition-all flex items-center gap-2"
+                        >
+                            {isSubmitting ? (
+                                <>
+                                    <Spinner />
+                                    <span>Creating...</span>
+                                </>
+                            ) : (
+                                'Create Subcommunity'
+                            )}
                         </button>
                     </footer>
                 </form>
             </div>
+
+            {/* Mobile Consul Selection Modal */}
+            {isConsulModalOpen && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-end sm:items-center justify-center" onClick={() => setIsConsulModalOpen(false)}>
+                    <div
+                        className="bg-secondary-light dark:bg-secondary w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col max-h-[90vh] border-t sm:border border-tertiary-light/50 dark:border-white/10"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="px-6 py-5 border-b border-tertiary-light/50 dark:border-white/10 flex items-center justify-between">
+                            <h3 className="text-xl font-bold text-text-main-light dark:text-text-main">Select Consuls</h3>
+                            <button
+                                onClick={() => setIsConsulModalOpen(false)}
+                                className="p-2 rounded-full hover:bg-tertiary-light dark:hover:bg-white/10 transition-colors"
+                            >
+                                <XCircleIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary" />
+                            </button>
+                        </div>
+
+                        {/* Member List */}
+                        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                            {parentMembers.length === 0 ? (
+                                <p className="text-center text-text-tertiary-light dark:text-text-tertiary text-sm py-8">No members available</p>
+                            ) : (
+                                parentMembers.map(member => (
+                                    <div
+                                        key={member.user_id}
+                                        onClick={() => handleToggleConsul(member.user_id)}
+                                        className={`flex items-center gap-3.5 p-4 rounded-xl cursor-pointer transition-all ${selectedConsuls.includes(member.user_id) ? 'bg-brand-green/15 border-2 border-brand-green/30' : 'bg-tertiary-light/50 dark:bg-tertiary/50 border-2 border-transparent'}`}
+                                    >
+                                        <div className={`w-6 h-6 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${selectedConsuls.includes(member.user_id) ? 'bg-brand-green border-brand-green' : 'border-tertiary-light dark:border-white/20'}`}>
+                                            {selectedConsuls.includes(member.user_id) && (
+                                                <svg className="w-4 h-4 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            )}
+                                        </div>
+                                        <Image
+                                            src={member.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.full_name || member.username)}&background=random&color=fff&bold=true`}
+                                            alt={member.username}
+                                            width={48}
+                                            height={48}
+                                            className="w-12 h-12 rounded-full ring-2 ring-white/10"
+                                            unoptimized
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-semibold text-text-main-light dark:text-text-main truncate">{member.full_name || member.username}</p>
+                                            <p className="text-sm text-text-tertiary-light dark:text-text-tertiary truncate">@{member.username}</p>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="p-4 border-t border-tertiary-light/50 dark:border-white/10">
+                            <button
+                                onClick={() => setIsConsulModalOpen(false)}
+                                className="w-full px-6 py-3.5 bg-brand-green text-black font-bold rounded-xl hover:bg-brand-green-darker transition-all"
+                            >
+                                Done {selectedConsuls.length > 0 && `(${selectedConsuls.length} selected)`}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
