@@ -6,6 +6,7 @@ import { renderWithMentions } from './renderMentions';
 
 const YOUTUBE_REGEX = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9\-_]{11})/;
 const TWITTER_REGEX = /(?:https?:\/\/)?(?:www\.)?(?:twitter\.com|x\.com)\/(?:[a-zA-Z0-9_]+)\/status\/(\d+)/;
+const URL_REGEX = /(https?:\/\/[^\s]+)/g;
 
 const YouTubeEmbed: React.FC<{ videoId: string }> = ({ videoId }) => (
   <div className="my-4 rounded-lg overflow-hidden">
@@ -21,6 +22,31 @@ const YouTubeEmbed: React.FC<{ videoId: string }> = ({ videoId }) => (
     </div>
   </div>
 );
+
+// Helper function to convert URLs in text to clickable links
+const linkifyText = (text: string): React.ReactNode => {
+  const parts = text.split(URL_REGEX);
+
+  return parts.map((part, i) => {
+    // Check if this part is a URL
+    if (part.match(/^https?:\/\//)) {
+      return (
+        <a
+          key={i}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {part}
+        </a>
+      );
+    }
+    // Otherwise, render with mentions
+    return <React.Fragment key={i}>{renderWithMentions(part)}</React.Fragment>;
+  });
+};
 
 export const renderContentWithEmbeds = (text: string): React.ReactNode[] => {
   if (!text) return [];
@@ -52,12 +78,12 @@ export const renderContentWithEmbeds = (text: string): React.ReactNode[] => {
     }
 
     if (line.trim() === '') {
-        return null;
+      return null;
     }
-    
+
     return (
       <p key={`text-${index}`} className="whitespace-pre-wrap">
-        {renderWithMentions(line)}
+        {linkifyText(line)}
       </p>
     );
   });

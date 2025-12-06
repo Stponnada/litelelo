@@ -103,7 +103,14 @@ const CreateSubcommunityModal: React.FC<Props> = ({ parentCommunityId, onClose, 
                                 {parentMembers.map(member => (
                                     <div key={member.user_id} onClick={() => handleToggleConsul(member.user_id)} className="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 cursor-pointer">
                                         <input type="checkbox" checked={selectedConsuls.includes(member.user_id)} readOnly className="form-checkbox rounded text-brand-green" />
-                                        <Image src={member.avatar_url || ''} alt={member.username} width={32} height={32} className="w-8 h-8 rounded-full" unoptimized />
+                                        <Image
+                                            src={member.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.full_name || member.username)}&background=random&color=fff&bold=true`}
+                                            alt={member.username}
+                                            width={32}
+                                            height={32}
+                                            className="w-8 h-8 rounded-full"
+                                            unoptimized
+                                        />
                                         <span>{member.full_name || member.username}</span>
                                     </div>
                                 ))}
