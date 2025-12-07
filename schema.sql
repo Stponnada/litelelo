@@ -707,17 +707,35 @@ $$;
 ALTER FUNCTION "public"."create_post_with_poll"("p_content" "text", "p_image_url" "text", "p_community_id" "uuid", "p_is_public" boolean, "p_poll_options" "text"[], "p_allow_multiple_answers" boolean) OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."create_post_with_poll"("p_content" "text", "p_image_url" "text", "p_community_id" "uuid", "p_is_public" boolean, "p_poll_options" "text"[], "p_allow_multiple_answers" boolean, "p_visibility" "text" DEFAULT 'public'::"text", "p_allowed_viewers" "uuid"[] DEFAULT '{}'::"uuid"[]) RETURNS "jsonb"
+CREATE OR REPLACE FUNCTION "public"."create_post_with_poll"("p_content" "text", "p_image_url" "text", "p_community_id" "uuid", "p_is_public" boolean, "p_poll_options" "text"[], "p_allow_multiple_answers" boolean, "p_visibility" "text" DEFAULT 'public'::"text", "p_allowed_viewers" "uuid"[] DEFAULT '{}'::"uuid"[], "p_parent_post_id" "uuid" DEFAULT NULL::"uuid") RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
 DECLARE
     v_post_id uuid;
     v_poll_id uuid;
     v_post_data jsonb;
+    v_root_post_id uuid;
 BEGIN
+    -- Determine root_post_id
+    IF p_parent_post_id IS NOT NULL THEN
+        SELECT COALESCE(root_post_id, id) INTO v_root_post_id
+        FROM public.posts
+        WHERE id = p_parent_post_id;
+        
+        -- If the parent doesn't exist (shouldn't happen due to FK but good to be safe), or something else, handle it.
+        -- If v_root_post_id is still null (meaning parent has no root, so parent is root), set it to parent.
+        -- The COALESCE above handles: if parent.root_post_id is null, use parent.id.
+    ELSE
+        v_root_post_id := NULL; -- It is a new root post
+    END IF;
+
     -- Insert the post
-    INSERT INTO posts (user_id, content, image_url, community_id, is_public, visibility, allowed_viewers)
-    VALUES (auth.uid(), p_content, p_image_url, p_community_id, p_is_public, p_visibility, p_allowed_viewers)
+    INSERT INTO posts (
+        user_id, content, image_url, community_id, is_public, visibility, allowed_viewers, parent_post_id, root_post_id
+    )
+    VALUES (
+        auth.uid(), p_content, p_image_url, p_community_id, p_is_public, p_visibility, p_allowed_viewers, p_parent_post_id, v_root_post_id
+    )
     RETURNING id INTO v_post_id;
 
     -- Create poll if options provided
@@ -731,6 +749,8 @@ BEGIN
     END IF;
 
     -- Return the created post data
+    -- We can reuse get_posts_with_details or build json manually.
+    -- Let's build manually to match previous behavior but include new fields if needed.
     SELECT jsonb_build_object(
         'id', p.id,
         'content', p.content,
@@ -741,6 +761,8 @@ BEGIN
         'visibility', p.visibility,
         'allowed_viewers', p.allowed_viewers,
         'user_id', p.user_id,
+        'parent_post_id', p.parent_post_id,
+        'root_post_id', p.root_post_id,
         'poll', (
             SELECT jsonb_build_object(
                 'id', pl.id,
@@ -767,7 +789,7 @@ END;
 $$;
 
 
-ALTER FUNCTION "public"."create_post_with_poll"("p_content" "text", "p_image_url" "text", "p_community_id" "uuid", "p_is_public" boolean, "p_poll_options" "text"[], "p_allow_multiple_answers" boolean, "p_visibility" "text", "p_allowed_viewers" "uuid"[]) OWNER TO "postgres";
+ALTER FUNCTION "public"."create_post_with_poll"("p_content" "text", "p_image_url" "text", "p_community_id" "uuid", "p_is_public" boolean, "p_poll_options" "text"[], "p_allow_multiple_answers" boolean, "p_visibility" "text", "p_allowed_viewers" "uuid"[], "p_parent_post_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."create_quote_post"("p_content" "text", "p_quoted_post_id" "uuid", "p_community_id" "uuid" DEFAULT NULL::"uuid", "p_is_public" boolean DEFAULT false) RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "repost_count" integer, "user_vote" "text", "is_bookmarked" boolean, "user_has_reposted" boolean, "original_poster_username" "text", "author_id" "text", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "author_flair_details" "jsonb", "poll" "jsonb", "quoted_post" "jsonb", "reposted_by" "jsonb")
@@ -2151,6 +2173,23 @@ $$;
 
 
 ALTER FUNCTION "public"."get_post_details_by_id"("p_post_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."get_post_thread"("p_root_post_id" "uuid") RETURNS SETOF "public"."post_with_details"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+BEGIN
+    RETURN QUERY
+    SELECT *
+    FROM public.get_posts_with_details()
+    WHERE root_post_id = p_root_post_id
+       OR id = p_root_post_id -- Include the root post itself
+    ORDER BY created_at ASC;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."get_post_thread"("p_root_post_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."get_posts"("p_limit" integer DEFAULT 10, "p_offset" integer DEFAULT 0) RETURNS TABLE("id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "repost_count" bigint, "user_vote" "text", "is_bookmarked" boolean, "user_has_reposted" boolean, "community_id" "uuid", "is_public" boolean, "visibility" "text", "author" "jsonb", "original_poster_username" "text", "poll" "jsonb", "is_edited" boolean, "is_deleted" boolean, "user_id" "uuid", "quoted_post" "jsonb", "reposted_by" "jsonb")
@@ -3796,11 +3835,26 @@ CREATE TABLE IF NOT EXISTS "public"."messages" (
     "conversation_id" "uuid",
     "is_edited" boolean DEFAULT false,
     "is_deleted" boolean DEFAULT false,
-    "attachment_file_id" "text"
+    "attachment_file_id" "text",
+    "file_name" "text",
+    "file_size" bigint,
+    CONSTRAINT "messages_message_type_check" CHECK (("message_type" = ANY (ARRAY['text'::"text", 'image'::"text", 'gif'::"text", 'video'::"text", 'audio'::"text", 'document'::"text", 'file'::"text"])))
 );
 
 
 ALTER TABLE "public"."messages" OWNER TO "postgres";
+
+
+COMMENT ON COLUMN "public"."messages"."message_type" IS 'Type of message: text, image, gif, video, audio, document, or file';
+
+
+
+COMMENT ON COLUMN "public"."messages"."file_name" IS 'Original filename for uploaded files';
+
+
+
+COMMENT ON COLUMN "public"."messages"."file_size" IS 'File size in bytes';
+
 
 
 ALTER TABLE "public"."messages" ALTER COLUMN "id" ADD GENERATED BY DEFAULT AS IDENTITY (
@@ -3907,6 +3961,8 @@ CREATE TABLE IF NOT EXISTS "public"."posts" (
     "allowed_viewers" "uuid"[] DEFAULT '{}'::"uuid"[],
     "title" "text",
     "post_type" "text" DEFAULT 'text'::"text",
+    "parent_post_id" "uuid",
+    "root_post_id" "uuid",
     CONSTRAINT "posts_post_type_check" CHECK (("post_type" = ANY (ARRAY['text'::"text", 'image'::"text", 'poll'::"text", 'blog'::"text"]))),
     CONSTRAINT "posts_visibility_check" CHECK (("visibility" = ANY (ARRAY['public'::"text", 'friends'::"text", 'specific'::"text"])))
 );
@@ -4286,6 +4342,18 @@ CREATE INDEX "idx_messages_conversation_id" ON "public"."messages" USING "btree"
 
 
 
+CREATE INDEX "idx_messages_message_type" ON "public"."messages" USING "btree" ("message_type");
+
+
+
+CREATE INDEX "idx_posts_parent_post_id" ON "public"."posts" USING "btree" ("parent_post_id");
+
+
+
+CREATE INDEX "idx_posts_root_post_id" ON "public"."posts" USING "btree" ("root_post_id");
+
+
+
 CREATE INDEX "messages_reply_to_message_id_idx" ON "public"."messages" USING "btree" ("reply_to_message_id");
 
 
@@ -4636,7 +4704,17 @@ ALTER TABLE ONLY "public"."posts"
 
 
 ALTER TABLE ONLY "public"."posts"
+    ADD CONSTRAINT "posts_parent_post_id_fkey" FOREIGN KEY ("parent_post_id") REFERENCES "public"."posts"("id");
+
+
+
+ALTER TABLE ONLY "public"."posts"
     ADD CONSTRAINT "posts_quoted_post_id_fkey" FOREIGN KEY ("quoted_post_id") REFERENCES "public"."posts"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."posts"
+    ADD CONSTRAINT "posts_root_post_id_fkey" FOREIGN KEY ("root_post_id") REFERENCES "public"."posts"("id");
 
 
 
@@ -5649,9 +5727,9 @@ GRANT ALL ON FUNCTION "public"."create_post_with_poll"("p_content" "text", "p_im
 
 
 
-GRANT ALL ON FUNCTION "public"."create_post_with_poll"("p_content" "text", "p_image_url" "text", "p_community_id" "uuid", "p_is_public" boolean, "p_poll_options" "text"[], "p_allow_multiple_answers" boolean, "p_visibility" "text", "p_allowed_viewers" "uuid"[]) TO "anon";
-GRANT ALL ON FUNCTION "public"."create_post_with_poll"("p_content" "text", "p_image_url" "text", "p_community_id" "uuid", "p_is_public" boolean, "p_poll_options" "text"[], "p_allow_multiple_answers" boolean, "p_visibility" "text", "p_allowed_viewers" "uuid"[]) TO "authenticated";
-GRANT ALL ON FUNCTION "public"."create_post_with_poll"("p_content" "text", "p_image_url" "text", "p_community_id" "uuid", "p_is_public" boolean, "p_poll_options" "text"[], "p_allow_multiple_answers" boolean, "p_visibility" "text", "p_allowed_viewers" "uuid"[]) TO "service_role";
+GRANT ALL ON FUNCTION "public"."create_post_with_poll"("p_content" "text", "p_image_url" "text", "p_community_id" "uuid", "p_is_public" boolean, "p_poll_options" "text"[], "p_allow_multiple_answers" boolean, "p_visibility" "text", "p_allowed_viewers" "uuid"[], "p_parent_post_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."create_post_with_poll"("p_content" "text", "p_image_url" "text", "p_community_id" "uuid", "p_is_public" boolean, "p_poll_options" "text"[], "p_allow_multiple_answers" boolean, "p_visibility" "text", "p_allowed_viewers" "uuid"[], "p_parent_post_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."create_post_with_poll"("p_content" "text", "p_image_url" "text", "p_community_id" "uuid", "p_is_public" boolean, "p_poll_options" "text"[], "p_allow_multiple_answers" boolean, "p_visibility" "text", "p_allowed_viewers" "uuid"[], "p_parent_post_id" "uuid") TO "service_role";
 
 
 
@@ -5874,6 +5952,12 @@ GRANT ALL ON FUNCTION "public"."get_pinned_message_for_conversation"("p_conversa
 GRANT ALL ON FUNCTION "public"."get_post_details_by_id"("p_post_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."get_post_details_by_id"("p_post_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_post_details_by_id"("p_post_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."get_post_thread"("p_root_post_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_post_thread"("p_root_post_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_post_thread"("p_root_post_id" "uuid") TO "service_role";
 
 
 

@@ -144,6 +144,8 @@ export interface Post {
     username: string;
     full_name: string | null;
   } | null;
+  parent_post_id: string | null;
+  root_post_id: string | null;
 }
 
 export interface CampusNotice {

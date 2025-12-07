@@ -59,12 +59,19 @@ const Flair: React.FC<{ flair: { id: string; name: string; avatar_url: string | 
 interface PostComponentProps {
     post: PostType;
     onImageClick?: (imageUrl: string) => void;
+    onReply?: (post: PostType) => void;
+    onUpdate?: (post: Partial<PostType> & { id: string }) => void;
 }
 
-const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => {
+const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick, onReply, onUpdate }) => {
     const router = useRouter();
     const { user } = useAuth();
-    const { updatePostInContext, addPostToContext, fetchPosts } = usePosts();
+    const { updatePostInContext: globalUpdatePost, addPostToContext, fetchPosts } = usePosts();
+
+    const updatePostInContext = (updates: Partial<PostType> & { id: string }) => {
+        globalUpdatePost(updates);
+        if (onUpdate) onUpdate(updates);
+    };
     const { author } = post;
     const [isMenuOpen, setMenuOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
@@ -389,16 +396,22 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick }) => 
                             {/* Action Bar - Compact & Fixed Icons */}
                             {!isEditing && !post.is_deleted && (
                                 <div className="flex items-center justify-between mt-2.5 pt-2 w-full max-w-md">
-                                    <Link
-                                        href={`/post/${post.id}`}
-                                        onClick={(e) => e.stopPropagation()}
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (onReply) {
+                                                onReply(post);
+                                            } else {
+                                                router.push(`/post/${post.id}`);
+                                            }
+                                        }}
                                         className="group/btn flex items-center gap-1.5 text-text-tertiary-light dark:text-text-tertiary hover:text-blue-500 transition-colors"
                                     >
                                         <div className="p-1.5 rounded-full group-hover/btn:bg-blue-500/10 transition-colors">
                                             <ChatBubbleOvalLeftEllipsisIcon className="w-5 h-5" />
                                         </div>
                                         <span className="text-xs font-medium">{post.comment_count || 0}</span>
-                                    </Link>
+                                    </button>
 
                                     <button
                                         className={`group/btn flex items-center gap-1.5 transition-colors ${post.user_has_reposted ? 'text-green-500' : 'text-text-tertiary-light dark:text-text-tertiary hover:text-green-500'}`}
