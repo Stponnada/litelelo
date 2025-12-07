@@ -124,7 +124,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setIsProfileLoading(false);
       } else if (session?.user && event !== 'INITIAL_SESSION') {
         // On sign-in or token refresh, ensure profile is up to date
-        // We don't set isLoading(true) here to avoid flashing
+        // We do NOT set isLoading(true) here to avoid flashing
+        // We also do NOT set profile to null before fetching
         fetchProfile(session.user.id);
       }
     });

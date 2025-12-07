@@ -244,7 +244,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
         fetchMessages();
         fetchPinnedMessage();
         fetchReadTimestamps();
-    }, [currentConversationId, user, conversation.participants, setMessagesIfDifferent, setPinnedMessageIfDifferent, setReadTimestampsIfDifferent]);
+    }, [currentConversationId, user?.id, conversation.participants, setMessagesIfDifferent, setPinnedMessageIfDifferent, setReadTimestampsIfDifferent]);
 
     useEffect(() => {
         console.debug('[Conversation] latestMessage effect', { latestMessageId: latestMessage?.id, currentConversationId });
@@ -360,7 +360,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
             supabase.removeChannel(channel);
             typingTimeoutRefs.current.forEach(timeoutId => clearTimeout(timeoutId));
         };
-    }, [currentConversationId, user, setPinnedMessageIfDifferent, setMessages, setReadTimestamps, setTypingUsers, typingTimeoutRefs, mapShallowEqual]);
+    }, [currentConversationId, user?.id, setPinnedMessageIfDifferent, setMessages, setReadTimestamps, setTypingUsers, typingTimeoutRefs, mapShallowEqual]);
 
     useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 

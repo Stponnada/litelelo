@@ -17,7 +17,7 @@ export default function Page() {
     }
   }, [user, isLoading, isProfileLoading, profile, router]);
 
-  if (isLoading || (user && isProfileLoading)) {
+  if (isLoading || (user && !profile && isProfileLoading)) {
     return (
       <div className="flex items-center justify-center h-screen bg-primary-light dark:bg-primary">
         <Spinner />
