@@ -121,7 +121,7 @@ const PostPage: React.FC = () => {
             }
 
             // Fetch post thread
-            const { data, error } = await supabase.rpc('get_post_thread', { p_root_post_id: postId });
+            const { data, error } = await supabase.rpc('get_post_thread', { p_post_id: postId });
 
             if (error) {
                 console.error("Error fetching thread:", error);
@@ -222,7 +222,7 @@ const PostPage: React.FC = () => {
 
             // Optimistic update or refetch
             // Refetching is safer for the tree structure
-            const { data: newThread, error: fetchError } = await supabase.rpc('get_post_thread', { p_root_post_id: postId });
+            const { data: newThread, error: fetchError } = await supabase.rpc('get_post_thread', { p_post_id: postId });
             if (newThread) {
                 const formattedPosts: PostType[] = newThread.map((p: any) => ({
                     ...p,

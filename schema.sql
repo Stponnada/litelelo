@@ -1197,7 +1197,10 @@ BEGIN
             NULL::jsonb AS item_data
         FROM public.posts p
         JOIN public.communities c ON p.community_id = c.id
-        WHERE p.is_deleted = false AND p.is_public = true AND c.campus = p_campus
+        WHERE p.is_deleted = false 
+          AND p.is_public = true 
+          AND c.campus = p_campus
+          AND p.parent_post_id IS NULL -- FILTER: Only show root posts
 
         UNION ALL
 
@@ -1256,11 +1259,11 @@ BEGIN
         WHERE laf.campus = p_campus AND laf.status = 'active'
     )
     SELECT
-        fi.id, -- FIXED: Use ID from feed_items, not p.id (which is null for non-posts)
+        fi.id,
         p.user_id,
         p.content,
         p.image_url,
-        fi.created_at, -- FIXED: Use created_at from feed_items
+        fi.created_at,
         p.is_edited,
         p.is_deleted,
         p.community_id,
@@ -2178,10 +2181,23 @@ $$;
 ALTER FUNCTION "public"."get_post_details_by_id"("p_post_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."get_post_thread"("p_root_post_id" "uuid") RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "repost_count" integer, "user_vote" "text", "is_bookmarked" boolean, "user_has_reposted" boolean, "original_poster_username" "text", "author_id" "text", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "author_flair_details" "jsonb", "poll" "jsonb", "quoted_post" "jsonb", "reposted_by" "jsonb", "visibility" "text", "title" "text", "post_type" "text", "parent_post_id" "uuid", "root_post_id" "uuid")
+CREATE OR REPLACE FUNCTION "public"."get_post_thread"("p_post_id" "uuid") RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "repost_count" integer, "user_vote" "text", "is_bookmarked" boolean, "user_has_reposted" boolean, "original_poster_username" "text", "author_id" "text", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "author_flair_details" "jsonb", "poll" "jsonb", "quoted_post" "jsonb", "reposted_by" "jsonb", "visibility" "text", "title" "text", "post_type" "text", "parent_post_id" "uuid", "root_post_id" "uuid")
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
+DECLARE
+    v_root_id UUID;
 BEGIN
+    -- 1. Determine the root ID of the requested post
+    SELECT COALESCE(p.root_post_id, p.id) INTO v_root_id
+    FROM public.posts p
+    WHERE p.id = p_post_id;
+
+    -- If post not found, return nothing
+    IF v_root_id IS NULL THEN
+        RETURN;
+    END IF;
+
+    -- 2. Fetch the entire thread belonging to that root
     RETURN QUERY
     SELECT
         p.id, p.user_id, p.content, p.image_url, p.created_at, p.is_edited, p.is_deleted, p.community_id, p.is_public,
@@ -2223,14 +2239,14 @@ BEGIN
         FROM polls po WHERE po.post_id = p.id
     ) poll_details ON TRUE
     WHERE
-        p.root_post_id = p_root_post_id
-        OR p.id = p_root_post_id
+        p.root_post_id = v_root_id
+        OR p.id = v_root_id
     ORDER BY p.created_at ASC;
 END;
 $$;
 
 
-ALTER FUNCTION "public"."get_post_thread"("p_root_post_id" "uuid") OWNER TO "postgres";
+ALTER FUNCTION "public"."get_post_thread"("p_post_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."get_posts"("p_limit" integer DEFAULT 10, "p_offset" integer DEFAULT 0) RETURNS TABLE("id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "repost_count" bigint, "user_vote" "text", "is_bookmarked" boolean, "user_has_reposted" boolean, "community_id" "uuid", "is_public" boolean, "visibility" "text", "author" "jsonb", "original_poster_username" "text", "poll" "jsonb", "is_edited" boolean, "is_deleted" boolean, "user_id" "uuid", "quoted_post" "jsonb", "reposted_by" "jsonb")
@@ -2532,7 +2548,7 @@ $$;
 ALTER FUNCTION "public"."get_profile_details"("profile_username" "text") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."get_public_feed_posts"() RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "repost_count" integer, "user_vote" "text", "is_bookmarked" boolean, "user_has_reposted" boolean, "original_poster_username" "text", "author_id" "text", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "author_flair_details" "jsonb", "poll" "jsonb", "quoted_post" "jsonb", "reposted_by" "jsonb", "visibility" "text", "title" "text", "post_type" "text")
+CREATE OR REPLACE FUNCTION "public"."get_public_feed_posts"() RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "repost_count" integer, "user_vote" "text", "is_bookmarked" boolean, "user_has_reposted" boolean, "original_poster_username" "text", "author_id" "text", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "author_flair_details" "jsonb", "poll" "jsonb", "quoted_post" "jsonb", "reposted_by" "jsonb", "visibility" "text", "title" "text", "post_type" "text", "parent_post_id" "uuid", "root_post_id" "uuid")
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
 BEGIN
@@ -2561,8 +2577,10 @@ BEGIN
         ) AS quoted_post,
         NULL::jsonb as reposted_by,
         p.visibility,
-        p.title,     -- NEW
-        p.post_type  -- NEW
+        p.title,
+        p.post_type,
+        p.parent_post_id,
+        p.root_post_id
     FROM public.posts p
     LEFT JOIN public.likes l ON p.id = l.post_id AND l.user_id = auth.uid()
     LEFT JOIN public.bookmarks b ON p.id = b.post_id AND b.user_id = auth.uid()
@@ -2576,6 +2594,7 @@ BEGIN
     ) poll_details ON TRUE
     WHERE
         p.is_deleted = false
+        AND p.parent_post_id IS NULL -- FILTER: Only show root posts
         AND (
             p.user_id = auth.uid()
             OR (p.visibility = 'public')
@@ -5996,9 +6015,9 @@ GRANT ALL ON FUNCTION "public"."get_post_details_by_id"("p_post_id" "uuid") TO "
 
 
 
-GRANT ALL ON FUNCTION "public"."get_post_thread"("p_root_post_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."get_post_thread"("p_root_post_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."get_post_thread"("p_root_post_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."get_post_thread"("p_post_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_post_thread"("p_post_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_post_thread"("p_post_id" "uuid") TO "service_role";
 
 
 
