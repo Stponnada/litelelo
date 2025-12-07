@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/hooks/useAuth';
@@ -10,6 +10,7 @@ import PostComponent from '@/components/Post';
 import { Post as PostType, Profile } from '@/types';
 import Spinner from '@/components/Spinner';
 import { formatExactTimestamp } from '@/utils/timeUtils';
+import { ArrowLeftIcon } from '@/components/icons';
 
 // Recursive component for rendering the comment tree
 const CommentNode: React.FC<{
@@ -98,6 +99,7 @@ const CommentNode: React.FC<{
 
 const PostPage: React.FC = () => {
     const params = useParams();
+    const router = useRouter();
     const postId = params?.postId as string;
     const { user } = useAuth();
     const { updatePostInContext } = usePosts(); // Removed addPostToContext as we manage local state for thread
@@ -259,6 +261,15 @@ const PostPage: React.FC = () => {
 
     return (
         <div className="max-w-4xl mx-auto pb-20">
+            <div className="mb-4 px-4 pt-4">
+                <button
+                    onClick={() => router.back()}
+                    className="flex items-center gap-2 text-text-tertiary-light dark:text-text-tertiary hover:text-text-main-light dark:hover:text-text-main transition-colors"
+                >
+                    <ArrowLeftIcon className="w-5 h-5" />
+                    <span className="font-medium">Back</span>
+                </button>
+            </div>
             {displayRoot && (
                 <>
                     <PostComponent post={displayRoot} onReply={handleReply} onUpdate={handleUpdate} />
