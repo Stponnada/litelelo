@@ -271,12 +271,6 @@ const Login: React.FC = () => {
                 {/* Modern Professional Background */}
                 <div className="absolute inset-0 bg-gradient-to-br from-slate-100 via-white to-slate-100 dark:from-black dark:via-gray-900 dark:to-black [.bw_&]:dark:via-black"></div>
 
-                {/* Subtle Animated Gradient Orbs */}
-                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-brand-green/10 blur-[120px] animate-pulse-slow"></div>
-                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-emerald-600/10 [.bw_&]:bg-white/5 blur-[120px] animate-pulse-slow delay-1000"></div>
-
-                {/* Grid Pattern Overlay */}
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
             </div>
             <canvas ref={canvasRef} className={`absolute inset-0 w-full h-full z-0 pointer-events-none transition-opacity duration-2000 ${isPlaying ? 'opacity-100' : 'opacity-0'}`} />
 
