@@ -129,24 +129,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     });
 
-    // 6. Window Focus Logic (Kept from previous fix)
-    const handleFocus = () => {
-      if (document.visibilityState === 'visible') {
-        refreshSession();
-      }
-    };
-
-    window.addEventListener('visibilitychange', handleFocus);
-    window.addEventListener('focus', handleFocus);
-
     return () => {
       mounted = false;
       clearTimeout(safetyTimeout);
       subscription.unsubscribe();
-      window.removeEventListener('visibilitychange', handleFocus);
-      window.removeEventListener('focus', handleFocus);
     };
-  }, [refreshSession]); // Dependencies reduced to avoid loops
+  }, []); // Dependencies reduced to avoid loops
 
   const value = {
     session,
