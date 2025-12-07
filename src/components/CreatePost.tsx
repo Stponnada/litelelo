@@ -226,6 +226,8 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, profile, communi
         user_id: rpcResult.user_id || profile.user_id,
         quoted_post: rpcResult.quoted_post || null,
         reposted_by: rpcResult.reposted_by || null,
+        parent_post_id: null,
+        root_post_id: null,
         // Any other properties that are part of PostType but not in CreatePostRpcResult will be undefined,
         // which might be fine if they are optional or handled elsewhere.
       };

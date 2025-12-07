@@ -182,7 +182,7 @@ const PostPage: React.FC = () => {
         // But for now, let's stick to the requested scope: "every comment to a post is a post in itself".
         // If I visit a comment, it is treated as a post.
 
-        return { rootPost: root, tree: root ? root.children : roots };
+        return { rootPost: root, tree: root ? (root as PostType & { children: any[] }).children : roots };
     }, [threadPosts, postId]);
 
     const handleReply = (post: PostType) => {
@@ -265,7 +265,7 @@ const PostPage: React.FC = () => {
 
                     {/* Main Reply Input (always visible for root) */}
                     {currentUserProfile && (
-                        <div className="p-4 border-b border-tertiary-light dark:border-tertiary bg-secondary-light dark:bg-secondary mb-4 rounded-b-xl">
+                        <div className="p-4 border-b border-tertiary-light dark:border-tertiary bg-secondary-light dark:bg-secondary mb-2 rounded-b-xl">
                             <form onSubmit={(e) => { e.preventDefault(); const form = e.target as HTMLFormElement; const input = form.elements.namedItem('content') as HTMLTextAreaElement; submitReply(input.value, displayRoot.id); input.value = ''; }} className="flex items-start gap-3">
                                 <img
                                     src={currentUserProfile.avatar_url || `https://ui-avatars.com/api/?name=${currentUserProfile.full_name || currentUserProfile.username}&background=random&color=fff&bold=true`}
@@ -295,8 +295,8 @@ const PostPage: React.FC = () => {
                 </>
             )}
 
-            <div className="space-y-4 mt-4">
-                {tree.map(child => (
+            <div className="space-y-2 mt-2">
+                {tree.map((child: PostType & { children: any[] }) => (
                     <CommentNode
                         key={child.id}
                         node={child}
