@@ -164,7 +164,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
             {/* Popover Menu - Adaptive Positioning */}
             <div className={`
                     absolute w-64 mb-2 p-2 z-50
-                    bg-secondary-light/95 dark:bg-[#0B101B]/95 backdrop-blur-xl
+                    bg-secondary-light/95 dark:bg-secondary/95 backdrop-blur-xl
                     border border-tertiary-light dark:border-white/10 
                     rounded-2xl shadow-2xl 
                     transition-all duration-200 
