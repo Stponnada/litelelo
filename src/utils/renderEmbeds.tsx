@@ -62,7 +62,7 @@ export const renderContentWithEmbeds = (text: string): React.ReactNode[] => {
     const twitterMatch = line.match(TWITTER_REGEX);
     if (twitterMatch && twitterMatch[1]) {
       return (
-        <div key={`tweet-${index}`} className="my-4 grid place-items-center">
+        <div key={`tweet-${index}`} className="my-4 grid place-items-center" onClick={(e) => e.stopPropagation()}>
           {/* --- THE FIX: Added style to remove internal padding --- */}
           <div
             // --- MY FIX: Changed max-w-sm to sm:max-w-sm to make it responsive. ---

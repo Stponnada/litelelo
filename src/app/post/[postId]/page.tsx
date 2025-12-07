@@ -144,7 +144,7 @@ const PostPage: React.FC = () => {
         };
 
         fetchThread();
-    }, [postId, user]);
+    }, [postId, user?.id]);
 
     // Build tree
     const { rootPost, tree } = useMemo(() => {
