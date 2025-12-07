@@ -5,7 +5,7 @@ import Spinner from './Spinner';
 import { TransactionProps } from './Transaction';
 import { BlockData } from './Block';
 
-const DIFFICULTY = '000';
+const DIFFICULTY = '00';
 
 // A debounced async effect hook
 const useDebouncedAsyncEffect = (effect: () => Promise<void>, deps: unknown[], delay: number) => {

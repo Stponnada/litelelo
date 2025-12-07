@@ -33,7 +33,7 @@ const CommentNode: React.FC<{
 
     return (
         <div className={`flex flex-col ${depth > 0 ? 'ml-4 md:ml-8 border-l-2 border-tertiary-light dark:border-white/5 pl-4' : ''}`}>
-            <PostComponent post={node} onReply={onReply} onUpdate={onUpdate} />
+            <PostComponent post={node} onReply={onReply} onUpdate={onUpdate} className="mb-0.5" />
 
             {/* Inline Reply Form */}
             {replyingToId === node.id && currentUserProfile && (
@@ -295,7 +295,7 @@ const PostPage: React.FC = () => {
                 </>
             )}
 
-            <div className="space-y-2 mt-2">
+            <div className="space-y-0.5 mt-1">
                 {tree.map((child: PostType & { children: any[] }) => (
                     <CommentNode
                         key={child.id}

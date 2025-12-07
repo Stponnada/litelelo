@@ -61,9 +61,10 @@ interface PostComponentProps {
     onImageClick?: (imageUrl: string) => void;
     onReply?: (post: PostType) => void;
     onUpdate?: (post: Partial<PostType> & { id: string }) => void;
+    className?: string;
 }
 
-const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick, onReply, onUpdate }) => {
+const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick, onReply, onUpdate, className = "mb-2" }) => {
     const router = useRouter();
     const { user } = useAuth();
     const { updatePostInContext: globalUpdatePost, addPostToContext, fetchPosts } = usePosts();
@@ -223,7 +224,7 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick, onRep
                     group relative bg-secondary-light/70 dark:bg-secondary/70 backdrop-blur-md
                     rounded-xl shadow-sm hover:shadow-md
                     border border-tertiary-light/60 dark:border-white/5 hover:border-brand-green/20 dark:hover:border-brand-green/20 
-                    transition-all duration-200 ease-out mb-2 overflow-hidden
+                    transition-all duration-200 ease-out ${className} overflow-hidden
                     ${!post.is_deleted ? 'cursor-pointer' : ''}
                 `}
                 onClick={() => !post.is_deleted && router.push(`/post/${post.id}`)}
