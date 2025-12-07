@@ -224,20 +224,41 @@ const PostPage: React.FC = () => {
 
             // Optimistic update or refetch
             // Refetching is safer for the tree structure
-            const { data: newThread, error: fetchError } = await supabase.rpc('get_post_thread', { p_post_id: postId });
-            if (newThread) {
-                const formattedPosts: PostType[] = newThread.map((p: any) => ({
-                    ...p,
-                    author: {
-                        author_id: p.author_id,
-                        author_type: p.author_type,
-                        author_name: p.author_name,
-                        author_username: p.author_username,
-                        author_avatar_url: p.author_avatar_url,
-                        author_flair_details: p.author_flair_details
-                    }
-                }));
-                setThreadPosts(formattedPosts);
+            const fetchThread = async () => {
+                const { data: newThread, error: fetchError } = await supabase.rpc('get_post_thread', { p_post_id: postId });
+                if (newThread) {
+                    const formattedPosts: PostType[] = newThread.map((p: any) => ({
+                        ...p,
+                        author: {
+                            author_id: p.author_id,
+                            author_type: p.author_type,
+                            author_name: p.author_name,
+                            author_username: p.author_username,
+                            author_avatar_url: p.author_avatar_url,
+                            author_flair_details: p.author_flair_details
+                        }
+                    }));
+                    setThreadPosts(formattedPosts);
+                }
+            };
+
+            await fetchThread();
+
+            // Check for @rock and call API
+            if (content.includes('@rock')) {
+                // Call API to generate AI reply
+                fetch('/api/ai-reply', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        postId: postId,
+                        content: content,
+                        parentId: parentId
+                    })
+                }).then(() => {
+                    // Refetch thread again to show the AI reply
+                    fetchThread();
+                }).catch(err => console.error("Error triggering AI reply:", err));
             }
 
             setReplyingToId(null);
