@@ -12,7 +12,7 @@ const SettingsPage: React.FC = () => {
         const stored = (localStorage.getItem(SETTINGS_KEY) as SidebarMode | null) || 'hover';
         return stored;
     });
-    const { theme, toggleTheme } = useTheme();
+    const { theme, toggleTheme, setTheme } = useTheme();
 
     const updateMode = (mode: SidebarMode) => {
         setSidebarMode(mode);
@@ -31,16 +31,22 @@ const SettingsPage: React.FC = () => {
                         <h2 className="text-lg font-semibold text-text-main-light dark:text-text-main mb-3">Appearance</h2>
                         <div className="flex items-center gap-3">
                             <button
-                                onClick={() => { if (theme !== 'light') toggleTheme(); }}
+                                onClick={() => { if (theme !== 'light') setTheme('light'); }}
                                 className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors border ${theme === 'light' ? 'bg-brand-green text-black border-brand-green' : 'border-tertiary-light dark:border-tertiary text-text-secondary-light dark:text-text-secondary hover:border-brand-green/50'}`}
                             >
                                 Lite Mode
                             </button>
                             <button
-                                onClick={() => { if (theme !== 'dark') toggleTheme(); }}
+                                onClick={() => { if (theme !== 'dark') setTheme('dark'); }}
                                 className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors border ${theme === 'dark' ? 'bg-brand-green text-black border-brand-green' : 'border-tertiary-light dark:border-tertiary text-text-secondary-light dark:text-text-secondary hover:border-brand-green/50'}`}
                             >
                                 Dark Mode
+                            </button>
+                            <button
+                                onClick={() => { if (theme !== 'bw') setTheme('bw'); }}
+                                className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors border ${theme === 'bw' ? 'bg-brand-green text-black border-brand-green' : 'border-tertiary-light dark:border-tertiary text-text-secondary-light dark:text-text-secondary hover:border-brand-green/50'}`}
+                            >
+                                Ultradark Mode
                             </button>
                         </div>
                     </section>

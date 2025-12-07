@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/contexts/ThemeContext';
-import { SunIcon, MoonIcon } from '@/components/icons';
+import { SunIcon, MoonIcon, UltradarkIcon } from '@/components/icons';
 import Spinner from '@/components/Spinner';
 
 // === Icon Components (Kept for brevity) ===
@@ -370,7 +370,7 @@ const Login: React.FC = () => {
                     {isPlaying ? <PauseIcon className="w-5 h-5 sm:w-6 sm:h-6" /> : <MusicIcon className="w-5 h-5 sm:w-6 sm:h-6" />}
                 </button>
                 <button onClick={toggleTheme} title={`Switch to ${theme === 'light' ? 'Dark' : theme === 'dark' ? 'Ultradark' : 'Light'} Mode`} className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-secondary-light dark:bg-secondary border border-tertiary-light dark:border-tertiary shadow-lg flex items-center justify-center text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors">
-                    {theme === 'light' ? <MoonIcon className="w-5 h-5 sm:w-6 sm:h-6" /> : theme === 'dark' ? <span className="text-xl">🌑</span> : <SunIcon className="w-5 h-5 sm:w-6 sm:h-6" />}
+                    {theme === 'dark' ? <SunIcon className="w-5 h-5 sm:w-6 sm:h-6" /> : theme === 'light' ? <UltradarkIcon className="w-5 h-5 sm:w-6 sm:h-6" /> : <MoonIcon className="w-5 h-5 sm:w-6 sm:h-6" />}
                 </button>
             </div>
         </div>

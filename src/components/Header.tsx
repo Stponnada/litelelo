@@ -9,7 +9,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useNotifications } from '../hooks/useNotifications';
 import { supabase } from '../services/supabase';
 import {
-    UserIcon, SunIcon, MoonIcon, InformationCircleIcon, LogoutIcon,
+    UserIcon, SunIcon, MoonIcon, UltradarkIcon, InformationCircleIcon, LogoutIcon,
     QuestionMarkCircleIcon, ShieldCheckIcon, LockClosedIcon, BellIcon, SearchIcon, XMarkIcon
 } from './icons';
 import NotificationPanel from './NotificationPanel';
@@ -86,7 +86,7 @@ const Header: React.FC<HeaderProps> = ({ isSidebarExpanded, onOpenAboutModal }) 
                             <div className={`absolute top-full mt-3 w-64 bg-secondary-light dark:bg-secondary rounded-xl shadow-2xl border border-tertiary-light dark:border-tertiary transition-all duration-300 ease-in-out origin-top-left left-0 ${isMenuOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
                                 <div className="p-2">
                                     <Link href={`/profile/${profile.username}`} onClick={() => setMenuOpen(false)} className="flex items-center gap-3 w-full text-left px-3 py-2 rounded-md text-sm font-medium text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary"><UserIcon className="w-5 h-5" /> Profile</Link>
-                                    <button onClick={toggleTheme} className="flex items-center gap-3 w-full text-left px-3 py-2 rounded-md text-sm font-medium text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary">{theme === 'light' ? <MoonIcon className="w-5 h-5" /> : theme === 'dark' ? <span className="text-lg">✨</span> : <SunIcon className="w-5 h-5" />}<span>{theme === 'light' ? 'Dark Mode' : theme === 'dark' ? 'Ultradark Mode' : 'Light Mode'}</span></button>
+                                    <button onClick={toggleTheme} className="flex items-center gap-3 w-full text-left px-3 py-2 rounded-md text-sm font-medium text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary">{theme === 'dark' ? <SunIcon className="w-5 h-5" /> : theme === 'light' ? <UltradarkIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}<span>{theme === 'dark' ? 'Light Mode' : theme === 'light' ? 'Ultradark Mode' : 'Dark Mode'}</span></button>
                                     <div className="my-1 h-px bg-tertiary-light dark:bg-tertiary/50" />
                                     <Link href="/help" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 w-full text-left px-3 py-2 rounded-md text-sm font-medium text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary"><QuestionMarkCircleIcon className="w-5 h-5" /> Help Center</Link>
                                     <button onClick={() => { onOpenAboutModal(); setMenuOpen(false); }} className="flex items-center gap-3 w-full text-left px-3 py-2 rounded-md text-sm font-medium text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary"><InformationCircleIcon className="w-5 h-5" /> About litelelo.</button>

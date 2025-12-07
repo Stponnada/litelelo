@@ -15,6 +15,7 @@ import {
   LogoutIcon,
   SunIcon,
   MoonIcon,
+  UltradarkIcon,
   BuildingLibraryIcon,
   UserGroupIcon,
   GlobeIcon,
@@ -192,8 +193,8 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
               <div className="space-y-1">
                 <button onClick={toggleTheme} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-white/5 rounded-lg transition-colors">
-                  {theme === 'light' ? <MoonIcon className="w-5 h-5" /> : theme === 'dark' ? <span className="text-lg">🌑</span> : <SunIcon className="w-5 h-5" />}
-                  <span>{theme === 'light' ? 'Dark Mode' : theme === 'dark' ? 'Ultradark Mode' : 'Light Mode'}</span>
+                  {theme === 'dark' ? <SunIcon className="w-5 h-5" /> : theme === 'light' ? <UltradarkIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
+                  <span>{theme === 'dark' ? 'Light Mode' : theme === 'light' ? 'Ultradark Mode' : 'Dark Mode'}</span>
                 </button>
                 <Link href="/settings" className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-white/5 rounded-lg transition-colors">
                   <SettingsCogIcon className="w-5 h-5" /> Settings
