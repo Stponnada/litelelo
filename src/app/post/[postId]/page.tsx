@@ -92,12 +92,13 @@ const PostPage: React.FC = () => {
     const post = localPost || postFromContext;
 
     useEffect(() => {
-        const fetchPostAndComments = async () => {
+        const fetchPost = async () => {
             if (!postId) return;
             setPageLoading(true);
 
             if (postFromContext) {
                 setLocalPost(null);
+                setPageLoading(false);
             } else {
                 // --- THIS IS THE FIX: Call the new, correct RPC function ---
                 const { data: postData, error: postError } = await supabase
@@ -122,24 +123,31 @@ const PostPage: React.FC = () => {
                     }
                 };
                 setLocalPost(formattedPost);
-            }
-
-            const { data: commentsData, error: commentsError } = await supabase.rpc('get_comments_for_post', { p_post_id: postId });
-            if (commentsError) {
-                console.error("Error fetching comments with flair:", commentsError);
-            } else {
-                setComments((commentsData as CommentType[]) || []);
+                setPageLoading(false);
             }
 
             if (user) {
                 const { data: profileData } = await supabase.from('profiles').select('*, flair_details:displayed_community_flair(id, name, avatar_url)').eq('user_id', user.id).single();
                 setCurrentUserProfile(profileData);
             }
+        };
 
-            setPageLoading(false);
-        }
-        fetchPostAndComments();
-    }, [postId, postFromContext, user, addPostToContext]);
+        fetchPost();
+    }, [postId, postFromContext, user]);
+
+    useEffect(() => {
+        const fetchComments = async () => {
+            if (!postId) return;
+            const { data: commentsData, error: commentsError } = await supabase.rpc('get_comments_for_post', { p_post_id: postId });
+            if (commentsError) {
+                console.error("Error fetching comments with flair:", commentsError);
+            } else {
+                setComments((commentsData as CommentType[]) || []);
+            }
+        };
+
+        fetchComments();
+    }, [postId]);
 
     const handleCommentSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
