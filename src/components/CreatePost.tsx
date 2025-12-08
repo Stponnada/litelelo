@@ -6,21 +6,13 @@ import Spinner from './Spinner';
 import {
   ImageIcon,
   XCircleIcon,
-  UserGroupIcon,
-  GlobeAmericasIcon,
-  LockClosedIcon,
   UserIcon
 } from './icons';
+import VisibilityDropdown from './VisibilityDropdown';
 import UserSelectorModal from './UserSelectorModal';
 
 // --- Icons ---
 // Included inline in case they are missing from your icons file
-const ChevronDown: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-  </svg>
-);
-
 const PollIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" }) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
@@ -250,16 +242,10 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, profile, communi
     }
   };
 
-  const getVisibilityIcon = () => {
-    switch (visibility) {
-      case 'friends': return <UserGroupIcon className="w-4 h-4" />;
-      case 'specific': return <LockClosedIcon className="w-4 h-4" />;
-      default: return <GlobeAmericasIcon className="w-4 h-4" />;
-    }
-  };
+
 
   return (
-    <div className="bg-white dark:bg-secondary rounded-2xl shadow-xl border border-gray-100 dark:border-tertiary overflow-hidden transition-all duration-300">
+    <div className="bg-white dark:bg-secondary rounded-2xl shadow-xl border border-gray-100 dark:border-tertiary transition-all duration-300">
       <div className="p-5">
         <form onSubmit={handleSubmit}>
           <div className="flex items-start gap-4">
@@ -415,41 +401,23 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, profile, communi
                 <input type="file" ref={imageInputRef} onChange={handleFileChange} accept="image/*" hidden />
               </div>
 
-              {/* Visibility Selector Pill */}
+              {/* Visibility Selector */}
               {!communityId && (
-                <div className="relative ml-2 group">
-                  <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10 rounded-full px-3 py-1.5 cursor-pointer transition-all">
-                    <span className="text-brand-green">
-                      {getVisibilityIcon()}
-                    </span>
-                    <span className="text-xs font-bold text-text-secondary-light dark:text-text-secondary capitalize">
-                      {visibility === 'specific'
-                        ? (allowedViewers.length > 0 ? `${allowedViewers.length} Friends` : 'Specific')
-                        : visibility}
-                    </span>
-                    <ChevronDown className="text-text-tertiary-light dark:text-text-tertiary w-3 h-3" />
-
-                    {/* Native Select Overlay */}
-                    <select
-                      value={visibility}
-                      onChange={(e) => {
-                        const val = e.target.value as 'public' | 'friends' | 'specific';
-                        setVisibility(val);
-                        if (val === 'specific') setShowUserSelector(true);
-                      }}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    >
-                      <option value="public">Public</option>
-                      <option value="friends">Friends Only</option>
-                      <option value="specific">Specific Friends</option>
-                    </select>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <VisibilityDropdown
+                    currentVisibility={visibility}
+                    onSelect={(val) => {
+                      setVisibility(val);
+                      if (val === 'specific') setShowUserSelector(true);
+                    }}
+                    allowedViewersCount={allowedViewers.length}
+                  />
 
                   {visibility === 'specific' && (
                     <button
                       type="button"
                       onClick={() => setShowUserSelector(true)}
-                      className="ml-2 text-xs font-medium text-brand-green hover:underline"
+                      className="text-xs font-medium text-brand-green hover:underline"
                     >
                       Edit
                     </button>
