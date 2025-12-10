@@ -147,6 +147,15 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, profile, communi
       return;
     }
 
+    // Check for duplicate options
+    if (isCreatingPoll) {
+      const uniqueOptions = new Set(validPollOptions.map(o => o.toLowerCase()));
+      if (uniqueOptions.size !== validPollOptions.length) {
+        setError('Poll options must be unique.');
+        return;
+      }
+    }
+
     if (visibility === 'specific' && allowedViewers.length === 0) {
       setError('Please select at least one friend to share with.');
       return;
@@ -235,7 +244,13 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, profile, communi
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError('An unknown error occurred.');
+        console.error('Unknown poll creation error:', err);
+        // Try to safe stringify in case of circular refs, though unlikely for Supabase error
+        try {
+          setError(`Unknown error: ${JSON.stringify(err)}`);
+        } catch (e) {
+          setError('An unknown error occurred (and failed to stringify).');
+        }
       }
     } finally {
       setIsSubmitting(false);

@@ -740,8 +740,8 @@ BEGIN
 
     -- Create poll if options provided
     IF array_length(p_poll_options, 1) > 0 THEN
-        INSERT INTO polls (post_id, allow_multiple_answers)
-        VALUES (v_post_id, p_allow_multiple_answers)
+        INSERT INTO polls (post_id, allow_multiple_answers, created_by)
+        VALUES (v_post_id, p_allow_multiple_answers, auth.uid())
         RETURNING id INTO v_poll_id;
 
         INSERT INTO poll_options (poll_id, option_text)
