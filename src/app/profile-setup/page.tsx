@@ -175,7 +175,7 @@ const ProfileSetup: React.FC = () => {
 
             updateProfileContext(updatedProfile);
 
-            router.push('/');
+            router.push('/welcome');
         } catch (err: unknown) {
             if (err instanceof Error) {
                 setError(err.message);

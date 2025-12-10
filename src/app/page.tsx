@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import LandingPage from '@/components/LandingPage';
 import HomePage from '@/components/HomePage';
 import Spinner from '@/components/Spinner';
 import { useRouter } from 'next/navigation';
 
-export default function Page() {
+function PageContent() {
   const { user, profile, isLoading, isProfileLoading } = useAuth();
   const router = useRouter();
 
@@ -30,4 +30,8 @@ export default function Page() {
   }
 
   return <HomePage />;
+}
+
+export default function Page() {
+  return <PageContent />;
 }
