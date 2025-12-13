@@ -98,16 +98,14 @@ const LandingPage: React.FC = () => {
           </div>
 
           <h1 className="text-5xl sm:text-7xl md:text-8xl font-black font-raleway tracking-tight mb-6 leading-[0.9]">
-            <span className="block text-white drop-shadow-2xl">Connect.</span>
+            <span className="block text-white drop-shadow-2xl">All of BITS. <br /> One social network.</span>
             <span className="block text-transparent bg-clip-text bg-gradient-to-r from-brand-green via-emerald-400 to-teal-500 animate-gradient-x">
-              Trade. Vibe.
+              litelelo.
             </span>
           </h1>
 
           <p className="text-lg sm:text-xl text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-            The ultimate social network for BITSians.
-            From finding friends to selling textbooks,
-            <span className="text-white font-bold"> litelelo.</span> handles it all.
+            Join the BITS community online.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -135,7 +133,6 @@ const LandingPage: React.FC = () => {
       <section id="features" className="relative z-10 py-20 px-6 max-w-7xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-5xl font-bold font-raleway mb-4">Everything you need,<br />in one place.</h2>
-          <p className="text-gray-400 max-w-xl mx-auto">Stop juggling WhatsApp groups and email threads.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -194,7 +191,7 @@ const LandingPage: React.FC = () => {
               <br />
               Trade essentials with ease, carpool safely, and recover lost items in no time.
               <br />
-              Create your own profile page and showcase who you are.
+              Create your own profile page to showcase to the community.
             </p>
           </div>
 
