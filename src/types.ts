@@ -101,6 +101,8 @@ export interface CommunityDetails {
   is_admin: boolean;
   access_type: 'public' | 'restricted';
   has_pending_request: boolean;
+  parent_community_id?: string;
+  parent_community_name?: string;
 }
 
 export interface ConversationSummary {

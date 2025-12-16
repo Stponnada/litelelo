@@ -186,8 +186,53 @@ const CommunityPage: React.FC = () => {
         setIsEditing(false);
     };
 
-    const handleJoinToggle = async (targetCommunityId: string, accessType: 'public' | 'restricted', isMember: boolean, hasPendingRequest: boolean) => {
+    const handleJoinToggle = async (targetCommunityId: string, accessType: 'public' | 'restricted', isMember: boolean, hasPendingRequest: boolean, parentId?: string) => {
         if (!user) return;
+
+        // If trying to join a subcommunity (has parentId), we actually need to join the parent instead.
+        // The user should already be a member of the parent to join/view subcommunity, 
+        // OR joining the subcommunity implies joining the parent.
+        // Based on requirements: "A user will have to join a community, to join any of its subommunities. If a user tries to join a subcommunity, the request should be routed directly to the communtiy"
+
+        const effectiveTargetId = parentId || targetCommunityId;
+        const effectiveAccessType = parentId && community?.id === parentId ? community.access_type : accessType; // Fallback logic if needed
+
+        // If we are in subcommunity view and click "Join", we are joining the parent.
+        // We need to know the parent's membership status. 
+        // Ideally, we should check `community.is_member` if `community` is the parent.
+        // But `community` in state is the *current* page's community.
+
+        // Scenario 1: User is on Subcommunity Page. `community` is the subcommunity. `community.parent_community_id` is present.
+        // User clicks "Join". We should join `community.parent_community_id`.
+
+        let targetIdToJoin = targetCommunityId;
+        if (community?.parent_community_id && targetCommunityId === community.id) {
+            targetIdToJoin = community.parent_community_id;
+        }
+
+        // Logic below assumes we are toggling the community we clicked on.
+        // If we redirect to parent, we need to handle that state update.
+        // Simpler approach: If it's a subcommunity join request, purely trigger the parent join action.
+
+        if (parentId) {
+            // Join parent instead
+            // We need to fetch parent details to know access type etc if we don't have it, 
+            // but usually we might assume public/same as standard for simplicity or fetch it.
+            // Be safe: Just use the standard flow but with parent ID.
+            // Note: This function updates LOCAL state. We need to be careful.
+            // If we join parent, we should likely reload or fetch parent state.
+
+            // For now, let's implement the requirement: "request should be routed directly to the community"
+            // If we are on subcommunity page, the `community` object IS the subcommunity.
+            // We can't easily optimistic update the parent state if we don't have it.
+            // So we will just fire the RPC for the parent.
+
+            // Actually, if we are on a subcommunity page, we probably shouldn't even SHOW a "Join Subcommunity" button
+            // We should show "Join [Parent Name]" button.
+
+            // Let's rely on the UI rendering to pass the correct ID (Parent ID) to this function if it's a subcommunity.
+        }
+
         const isSubcommunity = targetCommunityId !== community?.id;
 
         const updateState = (updater: (c: CommunityDetailsType | Subcommunity) => CommunityDetailsType | Subcommunity) => {
@@ -279,9 +324,9 @@ const CommunityPage: React.FC = () => {
             )}
 
             <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4">
-                <Link href="/communities" className="inline-flex items-center gap-2 text-sm text-text-secondary-light dark:text-text-secondary hover:text-brand-green dark:hover:text-brand-green transition-colors mb-3 group">
+                <Link href={community?.parent_community_id ? `/communities/${community.parent_community_id}` : "/communities"} className="inline-flex items-center gap-2 text-sm text-text-secondary-light dark:text-text-secondary hover:text-brand-green dark:hover:text-brand-green transition-colors mb-3 group">
                     <ArrowLeftIcon className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                    Back to all communities
+                    {community?.parent_community_id ? `Back to ${community.parent_community_name}` : 'Back to all communities'}
                 </Link>
 
                 <div className="bg-white/80 dark:bg-secondary/80 backdrop-blur-sm rounded-2xl shadow-lg border border-tertiary-light/50 dark:border-tertiary/50 overflow-hidden mb-4">
@@ -323,6 +368,11 @@ const CommunityPage: React.FC = () => {
 
                         {/* Community Info - centered on mobile, left-aligned on desktop */}
                         <div className="mt-4 text-center sm:text-left">
+                            {community.parent_community_id && (
+                                <Link href={`/communities/${community.parent_community_id}`} className="inline-block mb-1 text-xs font-bold uppercase tracking-wider text-brand-green hover:underline">
+                                    Subcommunity of {community.parent_community_name}
+                                </Link>
+                            )}
                             {isEditing ? (
                                 <input type="text" value={editedName} onChange={(e) => setEditedName(e.target.value)} className="w-full text-2xl sm:text-3xl font-black bg-tertiary-light dark:bg-tertiary rounded-lg p-2 mb-2" />
                             ) : (
@@ -355,180 +405,176 @@ const CommunityPage: React.FC = () => {
                                     Edit Community
                                 </button>
                             </>) : (
-                                <button onClick={() => handleJoinToggle(community.id, community.access_type, community.is_member, community.has_pending_request)} className={`text-sm font-bold py-2 px-6 rounded-lg transition-all disabled:opacity-50 ${community.is_member ? 'bg-transparent border border-tertiary-light dark:border-tertiary text-text-main-light dark:text-text-main hover:border-red-500 hover:text-red-500' : community.has_pending_request ? 'bg-tertiary-light/60 dark:bg-tertiary/60 text-text-secondary-light dark:text-text-secondary cursor-not-allowed' : 'bg-brand-green text-black hover:bg-brand-green-darker shadow-lg shadow-brand-green/20'}`} disabled={!community.is_member && community.has_pending_request}>
-                                    {community.is_member ? 'Leave' : (community.has_pending_request ? 'Request Sent' : 'Join')}
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Horizontal Tabs - YouTube Style */}
-                <div className="mb-4">
-                    <div className="bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-full border border-tertiary-light/50 dark:border-tertiary/50 overflow-hidden">
-                        <div className="flex items-center gap-1 p-2 overflow-x-auto scrollbar-hide">
-                            {/* Main Channel Tabs */}
-                            <button
-                                onClick={() => setActiveView('private')}
-                                className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all ${activeView === 'private'
-                                    ? 'bg-brand-green text-black'
-                                    : 'text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50'
-                                    }`}
-                            >
-                                Member Posts
-                            </button>
-                            <button
-                                onClick={() => setActiveView('public')}
-                                className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all ${activeView === 'public'
-                                    ? 'bg-brand-green text-black'
-                                    : 'text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50'
-                                    }`}
-                            >
-                                Public Feed
-                            </button>
-                            <button
-                                onClick={() => setActiveView('blog')}
-                                className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all ${activeView === 'blog'
-                                    ? 'bg-brand-green text-black'
-                                    : 'text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50'
-                                    }`}
-                            >
-                                Blogs
-                            </button>
-
-                            {/* Subcommunities */}
-                            {subcommunities.length > 0 && (
-                                <>
-                                    <div className="w-px h-6 bg-tertiary-light/50 dark:bg-tertiary/50 mx-2 flex-shrink-0"></div>
-                                    {subcommunities.map(sub => (
-                                        <button
-                                            key={sub.id}
-                                            onClick={() => sub.is_member ? setActiveView(sub.id) : undefined}
-                                            disabled={!sub.is_member}
-                                            className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all flex items-center gap-2 ${activeView === sub.id
-                                                ? 'bg-brand-green text-black'
-                                                : sub.is_member
-                                                    ? 'text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50'
-                                                    : 'text-text-tertiary-light dark:text-text-tertiary opacity-50 cursor-not-allowed'
-                                                }`}
-                                        >
-                                            <UserGroupIcon className="w-4 h-4" />
-                                            {sub.name}
-                                            {sub.access_type === 'restricted' && <LockClosedIcon className="w-3 h-3" />}
-                                        </button>
-                                    ))}
-                                </>
-                            )}
-
-                            {/* Add Subcommunity Button */}
-                            {isOwner && (
                                 <button
-                                    onClick={() => setCreateSubcommunityModalOpen(true)}
-                                    className="flex-shrink-0 p-2 rounded-lg text-brand-green hover:bg-brand-green/10 transition-colors ml-1"
-                                    title="Create Subcommunity"
-                                >
-                                    <PlusIcon className="w-5 h-5" />
+                                    onClick={() => {
+                                        if (community.parent_community_id) {
+                                            router.push(`/communities/${community.parent_community_id}`);
+                                        } else {
+                                            handleJoinToggle(community.id, community.access_type, community.is_member, community.has_pending_request);
+                                        }
+                                    }}
+                                    className={`text-sm font-bold py-2 px-6 rounded-lg transition-all disabled:opacity-50 ${community.is_member ? 'bg-transparent border border-tertiary-light dark:border-tertiary text-text-main-light dark:text-text-main hover:border-red-500 hover:text-red-500' : community.has_pending_request ? 'bg-tertiary-light/60 dark:bg-tertiary/60 text-text-secondary-light dark:text-text-secondary cursor-not-allowed' : 'bg-brand-green text-black hover:bg-brand-green-darker shadow-lg shadow-brand-green/20'}`} disabled={!community.is_member && community.has_pending_request}>
+                                    {community.is_member ? 'Leave' : (community.has_pending_request ? 'Request Sent' : (community.parent_community_id ? `Join ${community.parent_community_name}` : 'Join'))}
                                 </button>
                             )}
                         </div>
                     </div>
                 </div>
 
-                {/* Main Content */}
-                <div className="w-full">
-                    {!community.is_member ? (
-                        <div className="text-center py-24 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border border-tertiary-light/50 dark:border-tertiary/50">
-                            <div className="relative inline-block mb-6">
-                                <div className="absolute inset-0 bg-brand-green/20 blur-2xl rounded-full"></div>
-                                <div className="relative w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-brand-green/20 to-brand-green/10 border-2 border-brand-green/30 flex items-center justify-center">
-                                    <svg className="w-12 h-12 text-brand-green" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+            </div>
+
+            {/* Subcommunities List (Only for Parent Community) */}
+            {!community.parent_community_id && subcommunities.length > 0 && (
+                <div className="mb-6">
+                    <div className="flex items-center justify-between mb-3 px-2">
+                        <h3 className="text-sm font-bold text-text-secondary-light dark:text-text-secondary uppercase tracking-wider">Subcommunities</h3>
+                        {isOwner && (
+                            <button
+                                onClick={() => setCreateSubcommunityModalOpen(true)}
+                                className="p-1.5 rounded-lg text-brand-green hover:bg-brand-green/10 transition-colors"
+                                title="Create Subcommunity"
+                            >
+                                <PlusIcon className="w-5 h-5" />
+                            </button>
+                        )}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {subcommunities.map(sub => (
+                            <Link
+                                href={`/communities/${sub.id}`}
+                                key={sub.id}
+                                className="group block p-4 rounded-xl border border-tertiary-light/50 dark:border-tertiary/50 bg-white/40 dark:bg-secondary/40 hover:bg-white/60 dark:hover:bg-secondary/60 hover:border-brand-green/30 transition-all"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-tertiary-light dark:bg-tertiary flex items-center justify-center text-text-tertiary-light dark:text-text-tertiary group-hover:text-brand-green transition-colors">
+                                        <UserGroupIcon className="w-5 h-5" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-2">
+                                            <h4 className="font-semibold text-text-main-light dark:text-text-main truncate">{sub.name}</h4>
+                                            {sub.access_type === 'restricted' && <LockClosedIcon className="w-3 h-3 text-text-tertiary-light dark:text-text-tertiary" />}
+                                        </div>
+                                        <p className="text-xs text-text-secondary-light dark:text-text-secondary truncate">{sub.description || 'No description'}</p>
+                                    </div>
+                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0">
+                                        <svg className="w-5 h-5 text-brand-green" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </div>
                                 </div>
-                            </div>
-                            <h3 className="text-2xl font-bold text-text-main-light dark:text-text-main mb-3">Join to see posts</h3>
-                            <p className="text-text-secondary-light dark:text-text-secondary mb-6 max-w-md mx-auto">Become a member to view and create posts in this community.</p>
-                            <button onClick={() => handleJoinToggle(community.id, community.access_type, community.is_member, community.has_pending_request)} className="bg-brand-green text-black font-bold py-3 px-8 rounded-xl hover:bg-brand-green/90 transition-all shadow-lg shadow-brand-green/20 hover:shadow-xl hover:shadow-brand-green/30">Join Community</button>
-                        </div>
-                    ) : (
-                        <div className="space-y-5">
-                            {/* Create Post Input - Visible for all valid views if user is allowed to post */}
-                            {currentUserProfile && (
-                                <div className="mb-6">
-                                    <CreatePost
-                                        onPostCreated={() => {
-                                            // If in subcommunity, re-fetch subcommunity posts. Else re-fetch community data.
-                                            if (!['private', 'public', 'blog'].includes(activeView)) {
-                                                // Trigger re-fetch of subcommunity posts by toggling a dummy state or refetching directly
-                                                // For simplicity, we can just manually call the fetch logic or rely on the fact that CreatePost might trigger something.
-                                                // Actually, let's just re-run the fetch logic for the current view.
-                                                // Since fetchSubcommunityPosts is inside useEffect, we can't call it directly.
-                                                // A cleaner way is to have a refresh function.
-                                                // For now, let's just force a refresh by temporarily setting activeView to something else or adding a refresh trigger.
-                                                // Let's add a refresh trigger to the dependency array of the useEffect above?
-                                                // No, let's just copy the fetch logic here for now or extract it.
-                                                // Extracted logic:
-                                                const fetchSub = async () => {
-                                                    const { data } = await supabase.rpc('get_posts_for_community', { p_community_id: activeView });
-                                                    if (data) {
-                                                        const rawPosts = data as any[];
-                                                        const formattedPosts: PostType[] = rawPosts.map(post => ({
-                                                            ...post,
-                                                            author: post.author || {
-                                                                author_id: post.author_id,
-                                                                author_type: post.author_type,
-                                                                author_name: post.author_name,
-                                                                author_username: post.author_username,
-                                                                author_avatar_url: post.author_avatar_url,
-                                                                author_flair_details: post.author_flair_details
-                                                            }
-                                                        }));
-                                                        setSubcommunityPosts(formattedPosts);
-                                                    }
-                                                };
-                                                fetchSub();
-                                            } else {
-                                                fetchCommunityData();
-                                            }
-                                        }}
-                                        profile={currentUserProfile}
-                                        communityId={['private', 'public', 'blog'].includes(activeView) ? community.id : activeView} // Use activeView as communityId if it's a subcommunity
-                                        isPublicPost={activeView === 'public'} // Only true for main public feed
-                                        placeholderText={
-                                            activeView === 'public' ? "Share something with everyone..." :
-                                                activeView === 'blog' ? "Write a blog post..." :
-                                                    ['private'].includes(activeView) ? "What's on your mind, member?" :
-                                                        `Post to ${subcommunities.find(s => s.id === activeView)?.name || 'subcommunity'}...`
-                                        }
-                                    />
-                                </div>
-                            )}
-
-                            {activeView === 'private' && privatePosts.map((post, i) => <div key={post.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}><PostComponent post={post} onImageClick={setLightboxUrl} /></div>)}
-                            {activeView === 'public' && publicPosts.map((post, i) => <div key={post.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}><PostComponent post={post} onImageClick={setLightboxUrl} /></div>)}
-                            {activeView === 'blog' && blogPosts.map((post, i) => <div key={post.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}><PostComponent post={post} onImageClick={setLightboxUrl} /></div>)}
-
-                            {/* Subcommunity Posts Render */}
-                            {!['private', 'public', 'blog'].includes(activeView) && (
-                                loadingSubcommunityPosts ? (
-                                    <div className="flex justify-center py-10"><Spinner /></div>
-                                ) : (
-                                    subcommunityPosts.map((post, i) => <div key={post.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}><PostComponent post={post} onImageClick={setLightboxUrl} /></div>)
-                                )
-                            )}
-
-                            {(activeView === 'private' && privatePosts.length === 0) && <div className="text-center py-20 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50"><p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No member posts yet</p><p className="text-text-secondary-light dark:text-text-secondary">Be the first to share something with the community!</p></div>}
-                            {(activeView === 'public' && publicPosts.length === 0) && <div className="text-center py-20 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50"><p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No public posts yet</p><p className="text-text-secondary-light dark:text-text-secondary">This community hasn&apos;t shared anything publicly yet.</p></div>}
-                            {(activeView === 'blog' && blogPosts.length === 0) && <div className="text-center py-20 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50"><p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No blog posts yet</p><p className="text-text-secondary-light dark:text-text-secondary">This community has no blog posts.</p></div>}
-
-                            {/* Empty state for subcommunity */}
-                            {(!['private', 'public', 'blog'].includes(activeView) && !loadingSubcommunityPosts && subcommunityPosts.length === 0) && (
-                                <div className="text-center py-20 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50">
-                                    <p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No posts here yet</p>
-                                    <p className="text-text-secondary-light dark:text-text-secondary">Start the conversation!</p>
-                                </div>
-                            )}
-                        </div>
-                    )}
+                            </Link>
+                        ))}
+                    </div>
                 </div>
+            )}
+
+            {/* Just Create Button if no subcommunities yet */}
+            {!community.parent_community_id && subcommunities.length === 0 && isOwner && (
+                <div className="mb-6 flex justify-end px-2">
+                    <button
+                        onClick={() => setCreateSubcommunityModalOpen(true)}
+                        className="text-sm font-bold text-brand-green hover:underline flex items-center gap-1"
+                    >
+                        <PlusIcon className="w-4 h-4" />
+                        Create Subcommunity
+                    </button>
+                </div>
+            )}
+
+            {/* Main Content */}
+            <div className="w-full">
+                {!community.is_member ? (
+                    <div className="text-center py-24 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border border-tertiary-light/50 dark:border-tertiary/50">
+                        <div className="relative inline-block mb-6">
+                            <div className="absolute inset-0 bg-brand-green/20 blur-2xl rounded-full"></div>
+                            <div className="relative w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-brand-green/20 to-brand-green/10 border-2 border-brand-green/30 flex items-center justify-center">
+                                <svg className="w-12 h-12 text-brand-green" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                            </div>
+                        </div>
+                        <h3 className="text-2xl font-bold text-text-main-light dark:text-text-main mb-3">Join to see posts</h3>
+                        <p className="text-text-secondary-light dark:text-text-secondary mb-6 max-w-md mx-auto">
+                            {community.parent_community_id
+                                ? `Join ${community.parent_community_name} to view and participate in this subcommunity.`
+                                : "Become a member to view and create posts in this community."}
+                        </p>
+                        <button
+                            onClick={() => {
+                                if (community.parent_community_id) {
+                                    router.push(`/communities/${community.parent_community_id}`);
+                                } else {
+                                    handleJoinToggle(community.id, community.access_type, community.is_member, community.has_pending_request);
+                                }
+                            }}
+                            className="bg-brand-green text-black font-bold py-3 px-8 rounded-xl hover:bg-brand-green/90 transition-all shadow-lg shadow-brand-green/20 hover:shadow-xl hover:shadow-brand-green/30"
+                        >
+                            {community.parent_community_id ? `Go to ${community.parent_community_name}` : 'Join Community'}
+                        </button>
+                    </div>
+                ) : (
+                    <div className="space-y-5">
+                        {/* Create Post Input - Visible for all valid views if user is allowed to post */}
+                        {currentUserProfile && (
+                            <div className="mb-6">
+                                <CreatePost
+                                    onPostCreated={() => {
+                                        // If in subcommunity, re-fetch subcommunity posts. Else re-fetch community data.
+                                        if (!['private', 'public', 'blog'].includes(activeView)) {
+                                            // Trigger re-fetch of subcommunity posts by toggling a dummy state or refetching directly
+                                            // For simplicity, we can just manually call the fetch logic or rely on the fact that CreatePost might trigger something.
+                                            // Actually, let's just re-run the fetch logic for the current view.
+                                            // Since fetchSubcommunityPosts is inside useEffect, we can't call it directly.
+                                            // A cleaner way is to have a refresh function.
+                                            // For now, let's just force a refresh by temporarily setting activeView to something else or adding a refresh trigger.
+                                            // Let's add a refresh trigger to the dependency array of the useEffect above?
+                                            // No, let's just copy the fetch logic here for now or extract it.
+                                            // Extracted logic:
+                                            const fetchSub = async () => {
+                                                const { data } = await supabase.rpc('get_posts_for_community', { p_community_id: activeView });
+                                                if (data) {
+                                                    const rawPosts = data as any[];
+                                                    const formattedPosts: PostType[] = rawPosts.map(post => ({
+                                                        ...post,
+                                                        author: post.author || {
+                                                            author_id: post.author_id,
+                                                            author_type: post.author_type,
+                                                            author_name: post.author_name,
+                                                            author_username: post.author_username,
+                                                            author_avatar_url: post.author_avatar_url,
+                                                            author_flair_details: post.author_flair_details
+                                                        }
+                                                    }));
+                                                    setSubcommunityPosts(formattedPosts);
+                                                }
+                                            };
+                                            fetchSub();
+                                        } else {
+                                            fetchCommunityData();
+                                        }
+                                    }}
+                                    profile={currentUserProfile}
+                                    communityId={['private', 'public', 'blog'].includes(activeView) ? community.id : activeView} // Use activeView as communityId if it's a subcommunity
+                                    isPublicPost={activeView === 'public'} // Only true for main public feed
+                                    placeholderText={
+                                        activeView === 'public' ? "Share something with everyone..." :
+                                            activeView === 'blog' ? "Write a blog post..." :
+                                                ['private'].includes(activeView) ? "What's on your mind, member?" :
+                                                    `Post to ${subcommunities.find(s => s.id === activeView)?.name || 'subcommunity'}...`
+                                    }
+                                />
+                            </div>
+                        )}
+
+                        {activeView === 'private' && privatePosts.map((post, i) => <div key={post.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}><PostComponent post={post} onImageClick={setLightboxUrl} /></div>)}
+                        {activeView === 'public' && publicPosts.map((post, i) => <div key={post.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}><PostComponent post={post} onImageClick={setLightboxUrl} /></div>)}
+                        {activeView === 'blog' && blogPosts.map((post, i) => <div key={post.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}><PostComponent post={post} onImageClick={setLightboxUrl} /></div>)}
+
+                        {(activeView === 'private' && privatePosts.length === 0) && <div className="text-center py-20 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50"><p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No member posts yet</p><p className="text-text-secondary-light dark:text-text-secondary">Be the first to share something with the community!</p></div>}
+                        {(activeView === 'public' && publicPosts.length === 0) && <div className="text-center py-20 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50"><p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No public posts yet</p><p className="text-text-secondary-light dark:text-text-secondary">This community hasn&apos;t shared anything publicly yet.</p></div>}
+                        {(activeView === 'blog' && blogPosts.length === 0) && <div className="text-center py-20 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50"><p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No blog posts yet</p><p className="text-text-secondary-light dark:text-text-secondary">This community has no blog posts.</p></div>}
+                        <p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No posts here yet</p>
+                        <p className="text-text-secondary-light dark:text-text-secondary">Start the conversation!</p>
+                    </div>
+                )}
             </div>
         </div>
     );

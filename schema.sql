@@ -1451,7 +1451,7 @@ $$;
 ALTER FUNCTION "public"."get_communities_list"("p_campus" "text") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."get_community_details"("p_community_id" "uuid") RETURNS TABLE("id" "uuid", "name" "text", "description" "text", "campus" "text", "avatar_url" "text", "banner_url" "text", "created_by" "uuid", "member_count" bigint, "is_member" boolean, "is_admin" boolean, "has_pending_request" boolean, "access_type" "text")
+CREATE OR REPLACE FUNCTION "public"."get_community_details"("p_community_id" "uuid") RETURNS TABLE("id" "uuid", "name" "text", "description" "text", "campus" "text", "avatar_url" "text", "banner_url" "text", "created_by" "uuid", "member_count" bigint, "is_member" boolean, "is_admin" boolean, "has_pending_request" boolean, "access_type" "text", "parent_community_id" "uuid", "parent_community_name" "text")
     LANGUAGE "plpgsql"
     AS $$
 DECLARE
@@ -1464,8 +1464,11 @@ BEGIN
     EXISTS(SELECT 1 FROM public.community_members cm WHERE cm.community_id = c.id AND cm.user_id = current_user_id AND cm.status = 'approved') AS is_member,
     EXISTS(SELECT 1 FROM public.community_members cm WHERE cm.community_id = c.id AND cm.user_id = current_user_id AND cm.role = 'admin') AS is_admin,
     EXISTS(SELECT 1 FROM public.community_members cm WHERE cm.community_id = c.id AND cm.user_id = current_user_id AND cm.status = 'pending') AS has_pending_request,
-    c.access_type
+    c.access_type,
+    c.parent_community_id,
+    p.name AS parent_community_name
   FROM public.communities c
+  LEFT JOIN public.communities p ON c.parent_community_id = p.id
   WHERE c.id = p_community_id;
 END;
 $$;
