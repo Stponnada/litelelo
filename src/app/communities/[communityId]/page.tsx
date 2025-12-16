@@ -512,6 +512,40 @@ const CommunityPage: React.FC = () => {
                     </div>
                 ) : (
                     <div className="space-y-5">
+                        {/* Horizontal Tabs - YouTube Style */}
+                        <div className="mb-4">
+                            <div className="bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-full border border-tertiary-light/50 dark:border-tertiary/50 overflow-hidden inline-flex">
+                                <div className="flex items-center gap-1 p-1">
+                                    <button
+                                        onClick={() => setActiveView('private')}
+                                        className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${activeView === 'private'
+                                            ? 'bg-brand-green text-black'
+                                            : 'text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50'
+                                            }`}
+                                    >
+                                        Member Posts
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveView('public')}
+                                        className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${activeView === 'public'
+                                            ? 'bg-brand-green text-black'
+                                            : 'text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50'
+                                            }`}
+                                    >
+                                        Public Feed
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveView('blog')}
+                                        className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${activeView === 'blog'
+                                            ? 'bg-brand-green text-black'
+                                            : 'text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50'
+                                            }`}
+                                    >
+                                        Blogs
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                         {/* Create Post Input - Visible for all valid views if user is allowed to post */}
                         {currentUserProfile && (
                             <div className="mb-6">
@@ -571,8 +605,6 @@ const CommunityPage: React.FC = () => {
                         {(activeView === 'private' && privatePosts.length === 0) && <div className="text-center py-20 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50"><p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No member posts yet</p><p className="text-text-secondary-light dark:text-text-secondary">Be the first to share something with the community!</p></div>}
                         {(activeView === 'public' && publicPosts.length === 0) && <div className="text-center py-20 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50"><p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No public posts yet</p><p className="text-text-secondary-light dark:text-text-secondary">This community hasn&apos;t shared anything publicly yet.</p></div>}
                         {(activeView === 'blog' && blogPosts.length === 0) && <div className="text-center py-20 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50"><p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No blog posts yet</p><p className="text-text-secondary-light dark:text-text-secondary">This community has no blog posts.</p></div>}
-                        <p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No posts here yet</p>
-                        <p className="text-text-secondary-light dark:text-text-secondary">Start the conversation!</p>
                     </div>
                 )}
             </div>
