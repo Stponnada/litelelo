@@ -13,13 +13,12 @@ import CreatePost from '@/components/CreatePost';
 import ImageCropper from '@/components/ImageCropper';
 import LightBox from '@/components/lightbox';
 import { UserGroupIcon, ArrowLeftIcon, CameraIcon, LockClosedIcon, PlusIcon } from '@/components/icons';
-import Conversation from '@/components/Conversation';
 import CreateSubcommunityModal from '@/components/CreateSubcommunityModal';
 import CreateBlogModal from '@/components/CreateBlogModal';
 
-// This interface is a combination of the details for a subcommunity, which includes a conversation_id
+// Subcommunity interface now matches CommunityDetailsType minus the extra fields we don't need, but simpler to just extend
 interface Subcommunity extends CommunityDetailsType {
-    conversation_id: string;
+    // conversation_id removed
 }
 
 const CommunityPage: React.FC = () => {
@@ -31,6 +30,8 @@ const CommunityPage: React.FC = () => {
     const [community, setCommunity] = useState<CommunityDetailsType | null>(null);
     const [subcommunities, setSubcommunities] = useState<Subcommunity[]>([]);
     const [posts, setPosts] = useState<PostType[]>([]);
+    const [subcommunityPosts, setSubcommunityPosts] = useState<PostType[]>([]); // New state for subcommunity posts
+    const [loadingSubcommunityPosts, setLoadingSubcommunityPosts] = useState(false); // New loading state
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isEditing, setIsEditing] = useState(false);
@@ -100,6 +101,40 @@ const CommunityPage: React.FC = () => {
     useEffect(() => {
         fetchCommunityData();
     }, [fetchCommunityData]);
+
+    // Fetch subcommunity posts when activeView changes to a subcommunity ID
+    useEffect(() => {
+        const fetchSubcommunityPosts = async () => {
+            if (!['private', 'public', 'blog'].includes(activeView)) {
+                setLoadingSubcommunityPosts(true);
+                try {
+                    const { data, error } = await supabase.rpc('get_posts_for_community', { p_community_id: activeView });
+                    if (error) throw error;
+
+                    // Transform flat RPC result to nested Post structure
+                    const rawPosts = data as any[];
+                    const formattedPosts: PostType[] = rawPosts.map(post => ({
+                        ...post,
+                        author: post.author || {
+                            author_id: post.author_id,
+                            author_type: post.author_type,
+                            author_name: post.author_name,
+                            author_username: post.author_username,
+                            author_avatar_url: post.author_avatar_url,
+                            author_flair_details: post.author_flair_details
+                        }
+                    }));
+                    setSubcommunityPosts(formattedPosts);
+                } catch (err) {
+                    console.error("Failed to fetch subcommunity posts:", err);
+                } finally {
+                    setLoadingSubcommunityPosts(false);
+                }
+            }
+        };
+
+        fetchSubcommunityPosts();
+    }, [activeView]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'banner') => {
         if (e.target.files && e.target.files[0]) {
@@ -189,18 +224,7 @@ const CommunityPage: React.FC = () => {
         }
     };
 
-    const selectedSubcommunityConversation = useMemo(() => {
-        const sub = subcommunities.find(sc => sc.id === activeView);
-        if (!sub || !sub.conversation_id) return null;
-
-        return {
-            conversation_id: sub.conversation_id,
-            type: 'group',
-            name: sub.name,
-            participants: [],
-            last_message_content: null, last_message_at: null, last_message_sender_id: null, unread_count: 0
-        } as ConversationSummary;
-    }, [activeView, subcommunities]);
+    // selectSubcommunityConversation removed as we no longer use chat
 
     if (loading) {
         return (
@@ -412,11 +436,7 @@ const CommunityPage: React.FC = () => {
 
                 {/* Main Content */}
                 <div className="w-full">
-                    {selectedSubcommunityConversation ? (
-                        <div className="h-[calc(100vh-200px)] bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl overflow-hidden border border-tertiary-light/50 dark:border-tertiary/50">
-                            <Conversation conversation={selectedSubcommunityConversation} onConversationCreated={() => { }} />
-                        </div>
-                    ) : !community.is_member ? (
+                    {!community.is_member ? (
                         <div className="text-center py-24 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border border-tertiary-light/50 dark:border-tertiary/50">
                             <div className="relative inline-block mb-6">
                                 <div className="absolute inset-0 bg-brand-green/20 blur-2xl rounded-full"></div>
@@ -430,16 +450,82 @@ const CommunityPage: React.FC = () => {
                         </div>
                     ) : (
                         <div className="space-y-5">
-                            {canPostInCurrentView && currentUserProfile && <div className="mb-6"><CreatePost onPostCreated={fetchCommunityData} profile={currentUserProfile} communityId={community.id} isPublicPost={activeView === 'public'} placeholderText={placeholderText} /></div>}
+                            {/* Create Post Input - Visible for all valid views if user is allowed to post */}
+                            {currentUserProfile && (
+                                <div className="mb-6">
+                                    <CreatePost
+                                        onPostCreated={() => {
+                                            // If in subcommunity, re-fetch subcommunity posts. Else re-fetch community data.
+                                            if (!['private', 'public', 'blog'].includes(activeView)) {
+                                                // Trigger re-fetch of subcommunity posts by toggling a dummy state or refetching directly
+                                                // For simplicity, we can just manually call the fetch logic or rely on the fact that CreatePost might trigger something.
+                                                // Actually, let's just re-run the fetch logic for the current view.
+                                                // Since fetchSubcommunityPosts is inside useEffect, we can't call it directly.
+                                                // A cleaner way is to have a refresh function.
+                                                // For now, let's just force a refresh by temporarily setting activeView to something else or adding a refresh trigger.
+                                                // Let's add a refresh trigger to the dependency array of the useEffect above?
+                                                // No, let's just copy the fetch logic here for now or extract it.
+                                                // Extracted logic:
+                                                const fetchSub = async () => {
+                                                    const { data } = await supabase.rpc('get_posts_for_community', { p_community_id: activeView });
+                                                    if (data) {
+                                                        const rawPosts = data as any[];
+                                                        const formattedPosts: PostType[] = rawPosts.map(post => ({
+                                                            ...post,
+                                                            author: post.author || {
+                                                                author_id: post.author_id,
+                                                                author_type: post.author_type,
+                                                                author_name: post.author_name,
+                                                                author_username: post.author_username,
+                                                                author_avatar_url: post.author_avatar_url,
+                                                                author_flair_details: post.author_flair_details
+                                                            }
+                                                        }));
+                                                        setSubcommunityPosts(formattedPosts);
+                                                    }
+                                                };
+                                                fetchSub();
+                                            } else {
+                                                fetchCommunityData();
+                                            }
+                                        }}
+                                        profile={currentUserProfile}
+                                        communityId={['private', 'public', 'blog'].includes(activeView) ? community.id : activeView} // Use activeView as communityId if it's a subcommunity
+                                        isPublicPost={activeView === 'public'} // Only true for main public feed
+                                        placeholderText={
+                                            activeView === 'public' ? "Share something with everyone..." :
+                                                activeView === 'blog' ? "Write a blog post..." :
+                                                    ['private'].includes(activeView) ? "What's on your mind, member?" :
+                                                        `Post to ${subcommunities.find(s => s.id === activeView)?.name || 'subcommunity'}...`
+                                        }
+                                    />
+                                </div>
+                            )}
 
                             {activeView === 'private' && privatePosts.map((post, i) => <div key={post.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}><PostComponent post={post} onImageClick={setLightboxUrl} /></div>)}
                             {activeView === 'public' && publicPosts.map((post, i) => <div key={post.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}><PostComponent post={post} onImageClick={setLightboxUrl} /></div>)}
                             {activeView === 'blog' && blogPosts.map((post, i) => <div key={post.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}><PostComponent post={post} onImageClick={setLightboxUrl} /></div>)}
 
+                            {/* Subcommunity Posts Render */}
+                            {!['private', 'public', 'blog'].includes(activeView) && (
+                                loadingSubcommunityPosts ? (
+                                    <div className="flex justify-center py-10"><Spinner /></div>
+                                ) : (
+                                    subcommunityPosts.map((post, i) => <div key={post.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}><PostComponent post={post} onImageClick={setLightboxUrl} /></div>)
+                                )
+                            )}
 
                             {(activeView === 'private' && privatePosts.length === 0) && <div className="text-center py-20 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50"><p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No member posts yet</p><p className="text-text-secondary-light dark:text-text-secondary">Be the first to share something with the community!</p></div>}
                             {(activeView === 'public' && publicPosts.length === 0) && <div className="text-center py-20 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50"><p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No public posts yet</p><p className="text-text-secondary-light dark:text-text-secondary">This community hasn&apos;t shared anything publicly yet.</p></div>}
                             {(activeView === 'blog' && blogPosts.length === 0) && <div className="text-center py-20 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50"><p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No blog posts yet</p><p className="text-text-secondary-light dark:text-text-secondary">This community has no blog posts.</p></div>}
+
+                            {/* Empty state for subcommunity */}
+                            {(!['private', 'public', 'blog'].includes(activeView) && !loadingSubcommunityPosts && subcommunityPosts.length === 0) && (
+                                <div className="text-center py-20 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50">
+                                    <p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No posts here yet</p>
+                                    <p className="text-text-secondary-light dark:text-text-secondary">Start the conversation!</p>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

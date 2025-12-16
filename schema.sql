@@ -816,7 +816,6 @@ CREATE OR REPLACE FUNCTION "public"."create_subcommunity"("p_parent_community_id
     AS $$
 DECLARE
   new_subcommunity_id uuid;
-  new_conversation_id uuid;
   consul_id uuid;
   parent_campus text;
 BEGIN
@@ -833,16 +832,9 @@ BEGIN
     VALUES (p_name, p_description, parent_campus, auth.uid(), p_parent_community_id, p_access_type)
     RETURNING id INTO new_subcommunity_id;
     
-    -- Create an associated group conversation for the subcommunity
-    INSERT INTO public.conversations (name, type, created_by, community_id)
-    VALUES (p_name, 'group', auth.uid(), new_subcommunity_id)
-    RETURNING id INTO new_conversation_id;
-
-    -- Add the creator as an admin member to the subcommunity and its chat
+    -- Add the creator as an admin member to the subcommunity
     INSERT INTO public.community_members (community_id, user_id, role, status)
     VALUES (new_subcommunity_id, auth.uid(), 'admin', 'approved');
-    INSERT INTO public.conversation_participants (conversation_id, user_id)
-    VALUES (new_conversation_id, auth.uid());
 
     -- Add other assigned consuls
     FOREACH consul_id IN ARRAY p_consul_ids LOOP
@@ -851,11 +843,6 @@ BEGIN
             INSERT INTO public.community_members (community_id, user_id, role, status)
             VALUES (new_subcommunity_id, consul_id, 'admin', 'approved')
             ON CONFLICT (community_id, user_id) DO UPDATE SET role = 'admin', status = 'approved';
-            
-            -- Add to the chat
-            INSERT INTO public.conversation_participants (conversation_id, user_id)
-            VALUES (new_conversation_id, consul_id)
-            ON CONFLICT (conversation_id, user_id) DO NOTHING;
         END IF;
     END LOOP;
 
@@ -2732,7 +2719,7 @@ $$;
 ALTER FUNCTION "public"."get_search_recommendations"() OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."get_subcommunities"("p_parent_id" "uuid") RETURNS TABLE("id" "uuid", "name" "text", "description" "text", "avatar_url" "text", "access_type" "text", "member_count" bigint, "is_member" boolean, "has_pending_request" boolean, "conversation_id" "uuid")
+CREATE OR REPLACE FUNCTION "public"."get_subcommunities"("p_parent_id" "uuid") RETURNS TABLE("id" "uuid", "name" "text", "description" "text", "avatar_url" "text", "access_type" "text", "member_count" bigint, "is_member" boolean, "has_pending_request" boolean)
     LANGUAGE "plpgsql"
     AS $$
 BEGIN
@@ -2745,10 +2732,8 @@ BEGIN
         sub.access_type,
         (SELECT COUNT(*) FROM community_members cm WHERE cm.community_id = sub.id AND cm.status = 'approved') as member_count,
         EXISTS(SELECT 1 FROM community_members cm WHERE cm.community_id = sub.id AND cm.user_id = auth.uid() AND cm.status = 'approved') as is_member,
-        EXISTS(SELECT 1 FROM community_members cm WHERE cm.community_id = sub.id AND cm.user_id = auth.uid() AND cm.status = 'pending') as has_pending_request,
-        conv.id as conversation_id
+        EXISTS(SELECT 1 FROM community_members cm WHERE cm.community_id = sub.id AND cm.user_id = auth.uid() AND cm.status = 'pending') as has_pending_request
     FROM communities sub
-    LEFT JOIN conversations conv ON conv.community_id = sub.id
     WHERE sub.parent_community_id = p_parent_id
     ORDER BY sub.name;
 END;
