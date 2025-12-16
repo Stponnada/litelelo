@@ -1045,3 +1045,45 @@ export const UltradarkIcon: React.FC<{ className?: string }> = ({ className = "w
     </g>
   </svg>
 );
+
+export const QuoteIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="-2 -6 24 24"
+    strokeWidth={1.5}
+    stroke="currentColor"
+    className={className}
+  >
+    <path
+      d="M12 0v8h4v4h4v-12zm-12 0h8v12h-4v-4h-4z"
+    />
+  </svg>
+);
+
+export const RepostIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="-3 -3 30 30" strokeWidth={1.5} stroke="currentColor" className={className}>
+    <g id="SVGRepo_iconCarrier">
+      <g
+        id="Page-1"
+        fill="none"
+        fillRule="evenodd"
+        stroke="none"
+        strokeWidth="1"
+      >
+        <g
+          id="Dribbble-Light-Preview"
+          fill="#64748b"
+          transform="translate(-300 -7039)"
+        >
+          <g id="icons" transform="translate(56 160)">
+            <path
+              id="arrow_left-[#246]"
+              d="M244 6884.445c0 3.008 2.462 5.445 5.5 5.445h9c1.933 0 3.5 1.551 3.5 3.465s-1.567 3.465-3.5 3.465h-10.293a.495.495 0 0 1-.353-.846l1.682-1.665a.984.984 0 0 0 0-1.4 1.01 1.01 0 0 0-1.415 0l-3.535 3.501a1.966 1.966 0 0 0 0 2.8l3.535 3.5a1.01 1.01 0 0 0 1.415 0 .984.984 0 0 0 0-1.4l-1.682-1.665a.495.495 0 0 1 .353-.845H258.5c3.038 0 5.5-2.437 5.5-5.445s-2.462-5.445-5.5-5.445h-9c-1.933 0-3.5-1.551-3.5-3.465s1.567-3.465 3.5-3.465H263c.552 0 1-.444 1-.99a.995.995 0 0 0-1-.99h-13.5c-3.038 0-5.5 2.437-5.5 5.445"
+            ></path>
+          </g>
+        </g>
+      </g>
+    </g>
+  </svg>
+);
