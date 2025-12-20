@@ -1569,7 +1569,7 @@ BEGIN
           AND (
                 -- Use the new unique alias 'joined_comm_id' here
                 p.community_id IN (SELECT joined_comm_id FROM member_communities)
-                OR p.user_id IN (SELECT following_id FROM followed_users)
+                OR (p.user_id IN (SELECT following_id FROM followed_users) AND (p.community_id IS NULL OR p.is_public = true))
                 -- Always include user's own posts
                 OR p.user_id = (SELECT cur_uid FROM current_user_id)
               )
@@ -2145,7 +2145,13 @@ BEGIN
         FROM polls po WHERE po.post_id = p.id
     ) poll_details ON TRUE
     WHERE
-        p.id = p_post_id;
+        p.id = p_post_id
+        AND (
+            p.user_id = auth.uid()
+            OR p.community_id IS NULL
+            OR p.is_public = true
+            OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')
+        );
 END;
 $$;
 
@@ -2295,6 +2301,11 @@ BEGIN
     WHERE
         p.is_deleted = false
         AND p.community_id = p_community_id
+        AND (
+            p.is_public = true 
+            OR p.user_id = auth.uid()
+            OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')
+        )
     ORDER BY p.created_at DESC
     LIMIT 100;
 END;
@@ -2378,6 +2389,12 @@ BEGIN
       FROM polls po WHERE po.post_id = p.id
   ) poll_details ON TRUE
   WHERE p.is_deleted = false
+    AND (
+        p.user_id = auth.uid()
+        OR p.community_id IS NULL
+        OR p.is_public = true
+        OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')
+    )
   ORDER BY df.event_time DESC;
 END;
 $$;
@@ -2414,7 +2431,14 @@ BEGIN
     LEFT JOIN
         public.profiles pr ON p.user_id = pr.user_id
     WHERE
-        p_profile_id IS NULL OR p.user_id = p_profile_id
+        (p_profile_id IS NULL OR p.user_id = p_profile_id)
+        AND p.is_deleted = false
+        AND (
+            p.user_id = auth.uid()
+            OR p.community_id IS NULL
+            OR p.is_public = true
+            OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')
+        )
     ORDER BY
         p.created_at DESC;
 END;
@@ -2498,7 +2522,10 @@ BEGIN
         p.is_deleted = false
         AND (
             p.user_id = auth.uid()
-            OR (p.visibility = 'public')
+            OR (
+                p.visibility = 'public'
+                AND (p.community_id IS NULL OR p.is_public = true OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved'))
+            )
             OR (p.visibility = 'friends' AND 
              EXISTS (SELECT 1 FROM followers f1 WHERE f1.follower_id = auth.uid() AND f1.following_id = p.user_id) AND
              EXISTS (SELECT 1 FROM followers f2 WHERE f2.follower_id = p.user_id AND f2.following_id = auth.uid())
@@ -3069,7 +3096,14 @@ BEGIN
                 FROM posts p
                 LEFT JOIN profiles author ON p.user_id = author.user_id
                 LEFT JOIN communities comm ON p.community_id = comm.id
-                WHERE p.content ILIKE cleaned_search_term AND p.is_deleted = false
+                WHERE p.content ILIKE cleaned_search_term 
+                  AND p.is_deleted = false
+                  AND (
+                    p.user_id = auth.uid()
+                    OR p.community_id IS NULL
+                    OR p.is_public = true
+                    OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')
+                  )
                 LIMIT 10
             ) pc
         ),

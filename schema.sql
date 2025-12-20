@@ -792,7 +792,7 @@ $$;
 ALTER FUNCTION "public"."create_post_with_poll"("p_content" "text", "p_image_url" "text", "p_community_id" "uuid", "p_is_public" boolean, "p_poll_options" "text"[], "p_allow_multiple_answers" boolean, "p_visibility" "text", "p_allowed_viewers" "uuid"[], "p_parent_post_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."create_quote_post"("p_content" "text", "p_quoted_post_id" "uuid", "p_community_id" "uuid" DEFAULT NULL::"uuid", "p_is_public" boolean DEFAULT false) RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "repost_count" integer, "user_vote" "text", "is_bookmarked" boolean, "user_has_reposted" boolean, "original_poster_username" "text", "author_id" "text", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "author_flair_details" "jsonb", "poll" "jsonb", "quoted_post" "jsonb", "reposted_by" "jsonb")
+CREATE OR REPLACE FUNCTION "public"."create_quote_post"("p_content" "text", "p_quoted_post_id" "uuid", "p_community_id" "uuid" DEFAULT NULL::"uuid", "p_is_public" boolean DEFAULT false) RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "repost_count" integer, "user_vote" "text", "is_bookmarked" boolean, "user_has_reposted" boolean, "original_poster_username" "text", "author_id" "text", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "author_flair_details" "jsonb", "poll" "jsonb", "quoted_post" "jsonb", "reposted_by" "jsonb", "visibility" "text", "title" "text", "post_type" "text", "parent_post_id" "uuid", "root_post_id" "uuid")
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
 DECLARE
@@ -1582,7 +1582,7 @@ BEGIN
           AND p.parent_post_id IS NULL -- FILTER: Only show root posts
           AND (
                 p.community_id IN (SELECT joined_comm_id FROM member_communities)
-                OR p.user_id IN (SELECT following_id FROM followed_users)
+                OR (p.user_id IN (SELECT following_id FROM followed_users) AND (p.community_id IS NULL OR p.is_public = true))
                 OR p.user_id = (SELECT cur_uid FROM current_user_id)
               )
 
@@ -1912,6 +1912,12 @@ LEFT JOIN profiles up ON p.user_id = up.user_id AND p.community_id IS NULL
 LEFT JOIN communities c ON p.community_id = c.id
 LEFT JOIN profiles op ON p.user_id = op.user_id AND p.community_id IS NOT NULL
 WHERE p.is_deleted = false AND m.user_id = profile_user_id
+  AND (
+    p.user_id = auth.uid()
+    OR p.community_id IS NULL
+    OR p.is_public = true
+    OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')
+  )
 ORDER BY p.created_at DESC;
 $$;
 
@@ -2163,7 +2169,13 @@ BEGIN
         FROM polls po WHERE po.post_id = p.id
     ) poll_details ON TRUE
     WHERE
-        p.id = p_post_id;
+        p.id = p_post_id
+        AND (
+            p.user_id = auth.uid()
+            OR p.community_id IS NULL
+            OR p.is_public = true
+            OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')
+        );
 END;
 $$;
 
@@ -2229,8 +2241,13 @@ BEGIN
         FROM polls po WHERE po.post_id = p.id
     ) poll_details ON TRUE
     WHERE
-        p.root_post_id = v_root_id
-        OR p.id = v_root_id
+        (p.root_post_id = v_root_id OR p.id = v_root_id)
+        AND (
+            p.user_id = auth.uid()
+            OR p.community_id IS NULL
+            OR p.is_public = true
+            OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')
+        )
     ORDER BY p.created_at ASC;
 END;
 $$;
@@ -2381,6 +2398,11 @@ BEGIN
     WHERE
         p.is_deleted = false
         AND p.community_id = p_community_id
+        AND (
+            p.is_public = true 
+            OR p.user_id = auth.uid()
+            OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')
+        )
     ORDER BY p.created_at DESC
     LIMIT 100;
 END;
@@ -2464,6 +2486,12 @@ BEGIN
       FROM polls po WHERE po.post_id = p.id
   ) poll_details ON TRUE
   WHERE p.is_deleted = false
+    AND (
+        p.user_id = auth.uid()
+        OR p.community_id IS NULL
+        OR p.is_public = true
+        OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')
+    )
   ORDER BY df.event_time DESC;
 END;
 $$;
@@ -2500,7 +2528,14 @@ BEGIN
     LEFT JOIN
         public.profiles pr ON p.user_id = pr.user_id
     WHERE
-        p_profile_id IS NULL OR p.user_id = p_profile_id
+        (p_profile_id IS NULL OR p.user_id = p_profile_id)
+        AND p.is_deleted = false
+        AND (
+            p.user_id = auth.uid()
+            OR p.community_id IS NULL
+            OR p.is_public = true
+            OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')
+        )
     ORDER BY
         p.created_at DESC;
 END;
@@ -2587,7 +2622,10 @@ BEGIN
         AND p.parent_post_id IS NULL -- FILTER: Only show root posts
         AND (
             p.user_id = auth.uid()
-            OR (p.visibility = 'public')
+            OR (
+                p.visibility = 'public'
+                AND (p.community_id IS NULL OR p.is_public = true OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved'))
+            )
             OR (p.visibility = 'friends' AND 
              EXISTS (SELECT 1 FROM followers f1 WHERE f1.follower_id = auth.uid() AND f1.following_id = p.user_id) AND
              EXISTS (SELECT 1 FROM followers f2 WHERE f2.follower_id = p.user_id AND f2.following_id = auth.uid())
@@ -3156,7 +3194,14 @@ BEGIN
                 FROM posts p
                 LEFT JOIN profiles author ON p.user_id = author.user_id
                 LEFT JOIN communities comm ON p.community_id = comm.id
-                WHERE p.content ILIKE cleaned_search_term AND p.is_deleted = false
+                WHERE p.content ILIKE cleaned_search_term 
+                  AND p.is_deleted = false
+                  AND (
+                    p.user_id = auth.uid()
+                    OR p.community_id IS NULL
+                    OR p.is_public = true
+                    OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')
+                  )
                 LIMIT 10
             ) pc
         ),
@@ -3213,6 +3258,29 @@ $$;
 
 
 ALTER FUNCTION "public"."send_friend_request"("recipient_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."send_push_notification_on_insert"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+BEGIN
+  -- We use the supabase_functions extension to call our Edge Function
+  -- You must enable the "pg_net" extension in Supabase for this to work
+  PERFORM
+    net.http_post(
+      url := 'https://phnrjmvfowtptnonftcs.supabase.co/functions/v1/push-notifications',
+      headers := jsonb_build_object(
+        'Content-Type', 'application/json',
+        'Authorization', 'Bearer ' || '***REMOVED***'
+      ),
+      body := jsonb_build_object('record', row_to_json(NEW))
+    );
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."send_push_notification_on_insert"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."set_community_member_role"("p_community_id" "uuid", "p_target_user_id" "uuid", "p_new_role" "text") RETURNS "void"
@@ -3371,6 +3439,35 @@ $$;
 
 
 ALTER FUNCTION "public"."update_follow_counts"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."update_parent_post_comment_count"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+BEGIN
+    IF (TG_OP = 'INSERT') THEN
+        -- When a nested post (reply) is created, increment the parent's comment count
+        IF NEW.parent_post_id IS NOT NULL THEN
+            UPDATE public.posts 
+            SET comment_count = comment_count + 1 
+            WHERE id = NEW.parent_post_id;
+        END IF;
+        RETURN NEW;
+    ELSIF (TG_OP = 'DELETE') THEN
+        -- When a nested post (reply) is deleted, decrement the parent's comment count
+        IF OLD.parent_post_id IS NOT NULL THEN
+            UPDATE public.posts 
+            SET comment_count = GREATEST(0, comment_count - 1)
+            WHERE id = OLD.parent_post_id;
+        END IF;
+        RETURN OLD;
+    END IF;
+    RETURN NULL;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."update_parent_post_comment_count"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."update_post_comment_count"() RETURNS "trigger"
@@ -4052,6 +4149,7 @@ CREATE TABLE IF NOT EXISTS "public"."profiles" (
     "avatar_file_id" "text",
     "banner_file_id" "text",
     "phone" "text",
+    "push_token" "text",
     CONSTRAINT "username_format_check" CHECK (("username" ~ '^[a-zA-Z0-9_.]+$'::"text"))
 );
 
@@ -4430,6 +4528,10 @@ CREATE OR REPLACE TRIGGER "on_like_change" AFTER INSERT OR DELETE OR UPDATE ON "
 
 
 
+CREATE OR REPLACE TRIGGER "on_nested_post_change" AFTER INSERT OR DELETE ON "public"."posts" FOR EACH ROW EXECUTE FUNCTION "public"."update_parent_post_comment_count"();
+
+
+
 CREATE OR REPLACE TRIGGER "on_new_comment" AFTER INSERT ON "public"."comments" FOR EACH ROW EXECUTE FUNCTION "public"."handle_new_comment"();
 
 
@@ -4447,6 +4549,10 @@ CREATE OR REPLACE TRIGGER "on_new_like" AFTER INSERT ON "public"."likes" FOR EAC
 
 
 CREATE OR REPLACE TRIGGER "on_new_message" AFTER INSERT ON "public"."messages" FOR EACH ROW EXECUTE FUNCTION "public"."handle_new_message_notification"();
+
+
+
+CREATE OR REPLACE TRIGGER "on_notification_insert" AFTER INSERT ON "public"."notifications" FOR EACH ROW EXECUTE FUNCTION "public"."send_push_notification_on_insert"();
 
 
 
@@ -6184,6 +6290,12 @@ GRANT ALL ON FUNCTION "public"."send_friend_request"("recipient_id" "uuid") TO "
 
 
 
+GRANT ALL ON FUNCTION "public"."send_push_notification_on_insert"() TO "anon";
+GRANT ALL ON FUNCTION "public"."send_push_notification_on_insert"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."send_push_notification_on_insert"() TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."set_community_member_role"("p_community_id" "uuid", "p_target_user_id" "uuid", "p_new_role" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."set_community_member_role"("p_community_id" "uuid", "p_target_user_id" "uuid", "p_new_role" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."set_community_member_role"("p_community_id" "uuid", "p_target_user_id" "uuid", "p_new_role" "text") TO "service_role";
@@ -6223,6 +6335,12 @@ GRANT ALL ON FUNCTION "public"."update_community_details"("p_community_id" "uuid
 GRANT ALL ON FUNCTION "public"."update_follow_counts"() TO "anon";
 GRANT ALL ON FUNCTION "public"."update_follow_counts"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."update_follow_counts"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."update_parent_post_comment_count"() TO "anon";
+GRANT ALL ON FUNCTION "public"."update_parent_post_comment_count"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."update_parent_post_comment_count"() TO "service_role";
 
 
 

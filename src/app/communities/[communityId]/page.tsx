@@ -483,130 +483,125 @@ const CommunityPage: React.FC = () => {
 
             {/* Main Content */}
             <div className="w-full">
-                {!community.is_member ? (
-                    <div className="text-center py-24 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border border-tertiary-light/50 dark:border-tertiary/50">
-                        <div className="relative inline-block mb-6">
-                            <div className="absolute inset-0 bg-brand-green/20 blur-2xl rounded-full"></div>
-                            <div className="relative w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-brand-green/20 to-brand-green/10 border-2 border-brand-green/30 flex items-center justify-center">
-                                <svg className="w-12 h-12 text-brand-green" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                <div className="space-y-5">
+                    {/* Horizontal Tabs - YouTube Style */}
+                    <div className="mb-4">
+                        <div className="bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-full border border-tertiary-light/50 dark:border-tertiary/50 overflow-hidden inline-flex">
+                            <div className="flex items-center gap-1 p-1">
+                                <button
+                                    onClick={() => setActiveView('private')}
+                                    className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${activeView === 'private'
+                                        ? 'bg-brand-green text-black'
+                                        : 'text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50'
+                                        }`}
+                                >
+                                    Member Posts
+                                </button>
+                                <button
+                                    onClick={() => setActiveView('public')}
+                                    className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${activeView === 'public'
+                                        ? 'bg-brand-green text-black'
+                                        : 'text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50'
+                                        }`}
+                                >
+                                    Public Feed
+                                </button>
+                                <button
+                                    onClick={() => setActiveView('blog')}
+                                    className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${activeView === 'blog'
+                                        ? 'bg-brand-green text-black'
+                                        : 'text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50'
+                                        }`}
+                                >
+                                    Blogs
+                                </button>
                             </div>
                         </div>
-                        <h3 className="text-2xl font-bold text-text-main-light dark:text-text-main mb-3">Join to see posts</h3>
-                        <p className="text-text-secondary-light dark:text-text-secondary mb-6 max-w-md mx-auto">
-                            {community.parent_community_id
-                                ? `Join ${community.parent_community_name} to view and participate in this subcommunity.`
-                                : "Become a member to view and create posts in this community."}
-                        </p>
-                        <button
-                            onClick={() => {
-                                if (community.parent_community_id) {
-                                    router.push(`/communities/${community.parent_community_id}`);
-                                } else {
-                                    handleJoinToggle(community.id, community.access_type, community.is_member, community.has_pending_request);
-                                }
-                            }}
-                            className="bg-brand-green text-black font-bold py-3 px-8 rounded-xl hover:bg-brand-green/90 transition-all shadow-lg shadow-brand-green/20 hover:shadow-xl hover:shadow-brand-green/30"
-                        >
-                            {community.parent_community_id ? `Go to ${community.parent_community_name}` : 'Join Community'}
-                        </button>
                     </div>
-                ) : (
-                    <div className="space-y-5">
-                        {/* Horizontal Tabs - YouTube Style */}
-                        <div className="mb-4">
-                            <div className="bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-full border border-tertiary-light/50 dark:border-tertiary/50 overflow-hidden inline-flex">
-                                <div className="flex items-center gap-1 p-1">
-                                    <button
-                                        onClick={() => setActiveView('private')}
-                                        className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${activeView === 'private'
-                                            ? 'bg-brand-green text-black'
-                                            : 'text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50'
-                                            }`}
-                                    >
-                                        Member Posts
-                                    </button>
-                                    <button
-                                        onClick={() => setActiveView('public')}
-                                        className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${activeView === 'public'
-                                            ? 'bg-brand-green text-black'
-                                            : 'text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50'
-                                            }`}
-                                    >
-                                        Public Feed
-                                    </button>
-                                    <button
-                                        onClick={() => setActiveView('blog')}
-                                        className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${activeView === 'blog'
-                                            ? 'bg-brand-green text-black'
-                                            : 'text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50'
-                                            }`}
-                                    >
-                                        Blogs
-                                    </button>
+
+                    {/* Member restriction message for private posts */}
+                    {activeView === 'private' && !community.is_member ? (
+                        <div className="text-center py-24 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border border-tertiary-light/50 dark:border-tertiary/50">
+                            <div className="relative inline-block mb-6">
+                                <div className="absolute inset-0 bg-brand-green/20 blur-2xl rounded-full"></div>
+                                <div className="relative w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-brand-green/20 to-brand-green/10 border-2 border-brand-green/30 flex items-center justify-center">
+                                    <svg className="w-12 h-12 text-brand-green" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                                 </div>
                             </div>
-                        </div>
-                        {/* Create Post Input - Visible for all valid views if user is allowed to post */}
-                        {currentUserProfile && (
-                            <div className="mb-6">
-                                <CreatePost
-                                    onPostCreated={() => {
-                                        // If in subcommunity, re-fetch subcommunity posts. Else re-fetch community data.
-                                        if (!['private', 'public', 'blog'].includes(activeView)) {
-                                            // Trigger re-fetch of subcommunity posts by toggling a dummy state or refetching directly
-                                            // For simplicity, we can just manually call the fetch logic or rely on the fact that CreatePost might trigger something.
-                                            // Actually, let's just re-run the fetch logic for the current view.
-                                            // Since fetchSubcommunityPosts is inside useEffect, we can't call it directly.
-                                            // A cleaner way is to have a refresh function.
-                                            // For now, let's just force a refresh by temporarily setting activeView to something else or adding a refresh trigger.
-                                            // Let's add a refresh trigger to the dependency array of the useEffect above?
-                                            // No, let's just copy the fetch logic here for now or extract it.
-                                            // Extracted logic:
-                                            const fetchSub = async () => {
-                                                const { data } = await supabase.rpc('get_posts_for_community', { p_community_id: activeView });
-                                                if (data) {
-                                                    const rawPosts = data as any[];
-                                                    const formattedPosts: PostType[] = rawPosts.map(post => ({
-                                                        ...post,
-                                                        author: post.author || {
-                                                            author_id: post.author_id,
-                                                            author_type: post.author_type,
-                                                            author_name: post.author_name,
-                                                            author_username: post.author_username,
-                                                            author_avatar_url: post.author_avatar_url,
-                                                            author_flair_details: post.author_flair_details
-                                                        }
-                                                    }));
-                                                    setSubcommunityPosts(formattedPosts);
-                                                }
-                                            };
-                                            fetchSub();
-                                        } else {
-                                            fetchCommunityData();
-                                        }
-                                    }}
-                                    profile={currentUserProfile}
-                                    communityId={['private', 'public', 'blog'].includes(activeView) ? community.id : activeView} // Use activeView as communityId if it's a subcommunity
-                                    isPublicPost={activeView === 'public'} // Only true for main public feed
-                                    placeholderText={
-                                        activeView === 'public' ? "Share something with everyone..." :
-                                            activeView === 'blog' ? "Write a blog post..." :
-                                                ['private'].includes(activeView) ? "What's on your mind, member?" :
-                                                    `Post to ${subcommunities.find(s => s.id === activeView)?.name || 'subcommunity'}...`
+                            <h3 className="text-2xl font-bold text-text-main-light dark:text-text-main mb-3">Join to see posts</h3>
+                            <p className="text-text-secondary-light dark:text-text-secondary mb-6 max-w-md mx-auto">
+                                {community.parent_community_id
+                                    ? `Join ${community.parent_community_name} to view and participate in this subcommunity.`
+                                    : "Become a member to view and create internal posts in this community."}
+                            </p>
+                            <button
+                                onClick={() => {
+                                    if (community.parent_community_id) {
+                                        router.push(`/communities/${community.parent_community_id}`);
+                                    } else {
+                                        handleJoinToggle(community.id, community.access_type, community.is_member, community.has_pending_request);
                                     }
-                                />
-                            </div>
-                        )}
+                                }}
+                                className="bg-brand-green text-black font-bold py-3 px-8 rounded-xl hover:bg-brand-green/90 transition-all shadow-lg shadow-brand-green/20 hover:shadow-xl hover:shadow-brand-green/30"
+                            >
+                                {community.parent_community_id ? `Go to ${community.parent_community_name}` : 'Join Community'}
+                            </button>
+                        </div>
+                    ) : (
+                        <>
+                            {/* Create Post Input - Visible for all valid views if user is allowed to post */}
+                            {currentUserProfile && community.is_member && (
+                                <div className="mb-6">
+                                    <CreatePost
+                                        onPostCreated={() => {
+                                            // If in subcommunity, re-fetch subcommunity posts. Else re-fetch community data.
+                                            if (!['private', 'public', 'blog'].includes(activeView)) {
+                                                const fetchSub = async () => {
+                                                    const { data } = await supabase.rpc('get_posts_for_community', { p_community_id: activeView });
+                                                    if (data) {
+                                                        const rawPosts = data as any[];
+                                                        const formattedPosts: PostType[] = rawPosts.map(post => ({
+                                                            ...post,
+                                                            author: post.author || {
+                                                                author_id: post.author_id,
+                                                                author_type: post.author_type,
+                                                                author_name: post.author_name,
+                                                                author_username: post.author_username,
+                                                                author_avatar_url: post.author_avatar_url,
+                                                                author_flair_details: post.author_flair_details
+                                                            }
+                                                        }));
+                                                        setSubcommunityPosts(formattedPosts);
+                                                    }
+                                                };
+                                                fetchSub();
+                                            } else {
+                                                fetchCommunityData();
+                                            }
+                                        }}
+                                        profile={currentUserProfile}
+                                        communityId={['private', 'public', 'blog'].includes(activeView) ? community.id : activeView} // Use activeView as communityId if it's a subcommunity
+                                        isPublicPost={activeView === 'public'} // Only true for main public feed
+                                        placeholderText={
+                                            activeView === 'public' ? "Share something with everyone..." :
+                                                activeView === 'blog' ? "Write a blog post..." :
+                                                    ['private'].includes(activeView) ? "What's on your mind, member?" :
+                                                        `Post to ${subcommunities.find(s => s.id === activeView)?.name || 'subcommunity'}...`
+                                        }
+                                    />
+                                </div>
+                            )}
 
-                        {activeView === 'private' && privatePosts.map((post, i) => <div key={post.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}><PostComponent post={post} onImageClick={setLightboxUrl} /></div>)}
-                        {activeView === 'public' && publicPosts.map((post, i) => <div key={post.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}><PostComponent post={post} onImageClick={setLightboxUrl} /></div>)}
-                        {activeView === 'blog' && blogPosts.map((post, i) => <div key={post.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}><PostComponent post={post} onImageClick={setLightboxUrl} /></div>)}
+                            {activeView === 'private' && privatePosts.map((post, i) => <div key={post.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}><PostComponent post={post} onImageClick={setLightboxUrl} /></div>)}
+                            {activeView === 'public' && publicPosts.map((post, i) => <div key={post.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}><PostComponent post={post} onImageClick={setLightboxUrl} /></div>)}
+                            {activeView === 'blog' && blogPosts.map((post, i) => <div key={post.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}><PostComponent post={post} onImageClick={setLightboxUrl} /></div>)}
 
-                        {(activeView === 'private' && privatePosts.length === 0) && <div className="text-center py-20 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50"><p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No member posts yet</p><p className="text-text-secondary-light dark:text-text-secondary">Be the first to share something with the community!</p></div>}
-                        {(activeView === 'public' && publicPosts.length === 0) && <div className="text-center py-20 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50"><p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No public posts yet</p><p className="text-text-secondary-light dark:text-text-secondary">This community hasn&apos;t shared anything publicly yet.</p></div>}
-                        {(activeView === 'blog' && blogPosts.length === 0) && <div className="text-center py-20 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50"><p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No blog posts yet</p><p className="text-text-secondary-light dark:text-text-secondary">This community has no blog posts.</p></div>}
-                    </div>
-                )}
+                            {(activeView === 'private' && privatePosts.length === 0) && <div className="text-center py-20 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50"><p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No member posts yet</p><p className="text-text-secondary-light dark:text-text-secondary">Be the first to share something with the community!</p></div>}
+                            {(activeView === 'public' && publicPosts.length === 0) && <div className="text-center py-20 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50"><p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No public posts yet</p><p className="text-text-secondary-light dark:text-text-secondary">This community hasn&apos;t shared anything publicly yet.</p></div>}
+                            {(activeView === 'blog' && blogPosts.length === 0) && <div className="text-center py-20 px-6 bg-white/60 dark:bg-secondary/60 backdrop-blur-sm rounded-2xl border-2 border-tertiary-light/50 dark:border-tertiary/50"><p className="text-xl font-bold text-text-main-light dark:text-text-main mb-2">No blog posts yet</p><p className="text-text-secondary-light dark:text-text-secondary">This community has no blog posts.</p></div>}
+                        </>
+                    )}
+                </div>
             </div>
         </div>
     );
