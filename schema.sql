@@ -1581,9 +1581,25 @@ BEGIN
         WHERE p.is_deleted = false
           AND p.parent_post_id IS NULL -- FILTER: Only show root posts
           AND (
-                p.community_id IN (SELECT joined_comm_id FROM member_communities)
-                OR (p.user_id IN (SELECT following_id FROM followed_users) AND (p.community_id IS NULL OR p.is_public = true))
-                OR p.user_id = (SELECT cur_uid FROM current_user_id)
+                p.user_id = (SELECT cur_uid FROM current_user_id) -- 1. Author access
+                OR p.community_id IN (SELECT joined_comm_id FROM member_communities) -- 2. Joined community access
+                OR (
+                    p.user_id IN (SELECT following_id FROM followed_users) -- 3. Followed user access
+                    AND (
+                        (p.community_id IS NOT NULL AND p.is_public = true) -- Public community posts
+                        OR (
+                            p.community_id IS NULL -- Individual posts
+                            AND (
+                                p.visibility = 'public'
+                                OR (
+                                    p.visibility = 'friends' 
+                                    AND EXISTS (SELECT 1 FROM public.followers f2 WHERE f2.follower_id = p.user_id AND f2.following_id = (SELECT cur_uid FROM current_user_id) AND f2.status = 'approved')
+                                )
+                                OR (p.visibility = 'specific' AND (SELECT cur_uid FROM current_user_id) = ANY(p.allowed_viewers))
+                            )
+                        )
+                    )
+                )
               )
 
         UNION ALL
@@ -1914,9 +1930,19 @@ LEFT JOIN profiles op ON p.user_id = op.user_id AND p.community_id IS NOT NULL
 WHERE p.is_deleted = false AND m.user_id = profile_user_id
   AND (
     p.user_id = auth.uid()
-    OR p.community_id IS NULL
-    OR p.is_public = true
-    OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')
+    OR (p.community_id IS NOT NULL AND (p.is_public = true OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')))
+    OR (
+        p.community_id IS NULL 
+        AND (
+            p.visibility = 'public'
+            OR (
+                p.visibility = 'friends' 
+                AND EXISTS (SELECT 1 FROM public.followers f1 WHERE f1.follower_id = auth.uid() AND f1.following_id = p.user_id AND f1.status = 'approved')
+                AND EXISTS (SELECT 1 FROM public.followers f2 WHERE f2.follower_id = p.user_id AND f2.following_id = auth.uid() AND f2.status = 'approved')
+            )
+            OR (p.visibility = 'specific' AND auth.uid() = ANY(p.allowed_viewers))
+        )
+    )
   )
 ORDER BY p.created_at DESC;
 $$;
@@ -2172,9 +2198,19 @@ BEGIN
         p.id = p_post_id
         AND (
             p.user_id = auth.uid()
-            OR p.community_id IS NULL
-            OR p.is_public = true
-            OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')
+            OR (p.community_id IS NOT NULL AND (p.is_public = true OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')))
+            OR (
+                p.community_id IS NULL 
+                AND (
+                    p.visibility = 'public'
+                    OR (
+                        p.visibility = 'friends' 
+                        AND EXISTS (SELECT 1 FROM public.followers f1 WHERE f1.follower_id = auth.uid() AND f1.following_id = p.user_id AND f1.status = 'approved')
+                        AND EXISTS (SELECT 1 FROM public.followers f2 WHERE f2.follower_id = p.user_id AND f2.following_id = auth.uid() AND f2.status = 'approved')
+                    )
+                    OR (p.visibility = 'specific' AND auth.uid() = ANY(p.allowed_viewers))
+                )
+            )
         );
 END;
 $$;
@@ -2244,9 +2280,19 @@ BEGIN
         (p.root_post_id = v_root_id OR p.id = v_root_id)
         AND (
             p.user_id = auth.uid()
-            OR p.community_id IS NULL
-            OR p.is_public = true
-            OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')
+            OR (p.community_id IS NOT NULL AND (p.is_public = true OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')))
+            OR (
+                p.community_id IS NULL 
+                AND (
+                    p.visibility = 'public'
+                    OR (
+                        p.visibility = 'friends' 
+                        AND EXISTS (SELECT 1 FROM public.followers f1 WHERE f1.follower_id = auth.uid() AND f1.following_id = p.user_id AND f1.status = 'approved')
+                        AND EXISTS (SELECT 1 FROM public.followers f2 WHERE f2.follower_id = p.user_id AND f2.following_id = auth.uid() AND f2.status = 'approved')
+                    )
+                    OR (p.visibility = 'specific' AND auth.uid() = ANY(p.allowed_viewers))
+                )
+            )
         )
     ORDER BY p.created_at ASC;
 END;
@@ -2337,8 +2383,8 @@ BEGIN
             OR
             -- 3. Friends Only: (Viewer follows Author) AND (Author follows Viewer)
             (p.visibility = 'friends' AND 
-             EXISTS (SELECT 1 FROM follows f1 WHERE f1.follower_id = auth.uid() AND f1.following_id = p.user_id) AND
-             EXISTS (SELECT 1 FROM follows f2 WHERE f2.follower_id = p.user_id AND f2.following_id = auth.uid())
+             EXISTS (SELECT 1 FROM public.followers f1 WHERE f1.follower_id = auth.uid() AND f1.following_id = p.user_id AND f1.status = 'approved') AND
+             EXISTS (SELECT 1 FROM public.followers f2 WHERE f2.follower_id = p.user_id AND f2.following_id = auth.uid() AND f2.status = 'approved')
             )
             OR
             -- 4. Specific Friends: Viewer ID is in allowed_viewers array
@@ -2488,9 +2534,19 @@ BEGIN
   WHERE p.is_deleted = false
     AND (
         p.user_id = auth.uid()
-        OR p.community_id IS NULL
-        OR p.is_public = true
-        OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')
+        OR (p.community_id IS NOT NULL AND (p.is_public = true OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')))
+        OR (
+            p.community_id IS NULL 
+            AND (
+                p.visibility = 'public'
+                OR (
+                    p.visibility = 'friends' 
+                    AND EXISTS (SELECT 1 FROM public.followers f1 WHERE f1.follower_id = auth.uid() AND f1.following_id = p.user_id AND f1.status = 'approved')
+                    AND EXISTS (SELECT 1 FROM public.followers f2 WHERE f2.follower_id = p.user_id AND f2.following_id = auth.uid() AND f2.status = 'approved')
+                )
+                OR (p.visibility = 'specific' AND auth.uid() = ANY(p.allowed_viewers))
+            )
+        )
     )
   ORDER BY df.event_time DESC;
 END;
@@ -2532,9 +2588,19 @@ BEGIN
         AND p.is_deleted = false
         AND (
             p.user_id = auth.uid()
-            OR p.community_id IS NULL
-            OR p.is_public = true
-            OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')
+            OR (p.community_id IS NOT NULL AND (p.is_public = true OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')))
+            OR (
+                p.community_id IS NULL 
+                AND (
+                    p.visibility = 'public'
+                    OR (
+                        p.visibility = 'friends' 
+                        AND EXISTS (SELECT 1 FROM public.followers f1 WHERE f1.follower_id = auth.uid() AND f1.following_id = p.user_id AND f1.status = 'approved')
+                        AND EXISTS (SELECT 1 FROM public.followers f2 WHERE f2.follower_id = p.user_id AND f2.following_id = auth.uid() AND f2.status = 'approved')
+                    )
+                    OR (p.visibility = 'specific' AND auth.uid() = ANY(p.allowed_viewers))
+                )
+            )
         )
     ORDER BY
         p.created_at DESC;
@@ -2627,8 +2693,8 @@ BEGIN
                 AND (p.community_id IS NULL OR p.is_public = true OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved'))
             )
             OR (p.visibility = 'friends' AND 
-             EXISTS (SELECT 1 FROM followers f1 WHERE f1.follower_id = auth.uid() AND f1.following_id = p.user_id) AND
-             EXISTS (SELECT 1 FROM followers f2 WHERE f2.follower_id = p.user_id AND f2.following_id = auth.uid())
+             EXISTS (SELECT 1 FROM public.followers f1 WHERE f1.follower_id = auth.uid() AND f1.following_id = p.user_id AND f1.status = 'approved') AND
+             EXISTS (SELECT 1 FROM public.followers f2 WHERE f2.follower_id = p.user_id AND f2.following_id = auth.uid() AND f2.status = 'approved')
             )
             OR (p.visibility = 'specific' AND auth.uid() = ANY(p.allowed_viewers))
         )
@@ -3198,9 +3264,19 @@ BEGIN
                   AND p.is_deleted = false
                   AND (
                     p.user_id = auth.uid()
-                    OR p.community_id IS NULL
-                    OR p.is_public = true
-                    OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')
+                    OR (p.community_id IS NOT NULL AND (p.is_public = true OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')))
+                    OR (
+                        p.community_id IS NULL 
+                        AND (
+                            p.visibility = 'public'
+                            OR (
+                                p.visibility = 'friends' 
+                                AND EXISTS (SELECT 1 FROM public.followers f1 WHERE f1.follower_id = auth.uid() AND f1.following_id = p.user_id AND f1.status = 'approved')
+                                AND EXISTS (SELECT 1 FROM public.followers f2 WHERE f2.follower_id = p.user_id AND f2.following_id = auth.uid() AND f2.status = 'approved')
+                            )
+                            OR (p.visibility = 'specific' AND auth.uid() = ANY(p.allowed_viewers))
+                        )
+                    )
                   )
                 LIMIT 10
             ) pc
