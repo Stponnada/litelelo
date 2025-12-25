@@ -1,6 +1,7 @@
 // src/components/LightBox.tsx
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import { XCircleIcon } from './icons';
 
@@ -10,8 +11,13 @@ interface LightBoxProps {
 }
 
 const LightBox: React.FC<LightBoxProps> = ({ imageUrl, onClose }) => {
-    const [isLoading, setIsLoading] = React.useState(true);
+    const [isLoading, setIsLoading] = useState(true);
+    const [mounted, setMounted] = useState(false);
     const closeButtonRef = React.useRef<HTMLButtonElement>(null);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     // Prevents the modal from closing when the image itself is clicked.
     const handleContentClick = (e: React.MouseEvent) => {
@@ -45,9 +51,11 @@ const LightBox: React.FC<LightBoxProps> = ({ imageUrl, onClose }) => {
         closeButtonRef.current?.focus();
     }, []);
 
-    return (
+    if (!mounted) return null;
+
+    return createPortal(
         <div
-            className="fixed inset-0 bg-gradient-to-br from-black via-gray-900 to-black bg-opacity-95 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in"
+            className="fixed inset-0 bg-gradient-to-br from-black via-gray-900 to-black bg-opacity-95 z-[9999] flex items-center justify-center p-8 md:p-16 backdrop-blur-sm animate-fade-in"
             onClick={onClose}
             role="dialog"
             aria-modal="true"
@@ -56,21 +64,6 @@ const LightBox: React.FC<LightBoxProps> = ({ imageUrl, onClose }) => {
                 animation: 'fadeIn 0.2s ease-out'
             }}
         >
-            {/* Close button with modern styling */}
-            <button
-                ref={closeButtonRef}
-                onClick={onClose}
-                className="absolute top-6 right-6 text-white/90 hover:text-white hover:scale-110 active:scale-95 transition-all duration-200 z-50 focus:outline-none focus:ring-2 focus:ring-white/50 rounded-full p-1 bg-black/30 backdrop-blur-md hover:bg-black/50"
-                aria-label="Close image view"
-            >
-                <XCircleIcon className="w-10 h-10 drop-shadow-lg" />
-            </button>
-
-            {/* Image counter or metadata could go here */}
-            <div className="absolute top-6 left-6 text-white/80 text-sm font-medium bg-black/30 backdrop-blur-md px-4 py-2 rounded-full">
-                Press ESC to close
-            </div>
-
             <div
                 className="relative w-full h-full flex items-center justify-center"
                 onClick={handleContentClick}
@@ -116,6 +109,20 @@ const LightBox: React.FC<LightBoxProps> = ({ imageUrl, onClose }) => {
                 </div>
             </div>
 
+            {/* UI Controls - Rendered last to stay on top */}
+            <button
+                ref={closeButtonRef}
+                onClick={onClose}
+                className="absolute top-6 right-6 text-white/90 hover:text-white hover:scale-110 active:scale-95 transition-all duration-200 z-50 focus:outline-none focus:ring-2 focus:ring-white/50 rounded-full p-1 bg-black/30 backdrop-blur-md hover:bg-black/50"
+                aria-label="Close image view"
+            >
+                <XCircleIcon className="w-10 h-10 drop-shadow-lg" />
+            </button>
+
+            <div className="absolute top-6 left-6 text-white/80 text-sm font-medium bg-black/30 backdrop-blur-md px-4 py-2 rounded-full z-50 pointer-events-none shadow-xl">
+                Press ESC to close
+            </div>
+
             <style jsx>{`
                 @keyframes fadeIn {
                     from {
@@ -126,7 +133,8 @@ const LightBox: React.FC<LightBoxProps> = ({ imageUrl, onClose }) => {
                     }
                 }
             `}</style>
-        </div>
+        </div>,
+        document.body
     );
 };
 

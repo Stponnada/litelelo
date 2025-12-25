@@ -1,6 +1,7 @@
 // src/components/GifPickerModal.tsx
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import Spinner from './Spinner';
 import { XCircleIcon } from './icons';
@@ -29,6 +30,11 @@ const GifPickerModal: React.FC<GifPickerModalProps> = ({ onClose, onGifSelect })
   const [gifs, setGifs] = useState<Gif[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const fetchGifs = useCallback(async (term: string) => {
     setLoading(true);
@@ -54,8 +60,10 @@ const GifPickerModal: React.FC<GifPickerModalProps> = ({ onClose, onGifSelect })
     return () => clearTimeout(handler);
   }, [searchTerm, fetchGifs]);
 
-  return (
-    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
+  if (!mounted) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 bg-black/70 z-[10000] flex items-center justify-center p-4 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-secondary-light dark:bg-secondary rounded-xl shadow-lg w-full max-w-2xl max-h-[70vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <header className="p-4 border-b border-tertiary-light dark:border-tertiary">
           <div className="flex items-center justify-between">
@@ -75,7 +83,7 @@ const GifPickerModal: React.FC<GifPickerModalProps> = ({ onClose, onGifSelect })
           {loading ? <div className="flex justify-center p-8"><Spinner /></div> : (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
               {gifs.map(gif => (
-                <button key={gif.id} onClick={() => onGifSelect(gif.images.fixed_width.url)} className="aspect-square relative">
+                <button key={gif.id} onClick={() => onGifSelect(gif.images.fixed_width.url)} className="aspect-square relative transition-transform hover:scale-105 active:scale-95">
                   <Image src={gif.images.fixed_width.url} alt="GIF" fill className="object-cover rounded-md" unoptimized />
                 </button>
               ))}
@@ -83,7 +91,8 @@ const GifPickerModal: React.FC<GifPickerModalProps> = ({ onClose, onGifSelect })
           )}
         </main>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

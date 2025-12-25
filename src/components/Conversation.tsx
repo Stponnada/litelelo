@@ -132,6 +132,16 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
     const readTimestampsRef = useRef<Map<string, string>>(readTimestamps);
     useEffect(() => { readTimestampsRef.current = readTimestamps; }, [readTimestamps]);
 
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    // Auto-resize textarea
+    useEffect(() => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 150)}px`;
+        }
+    }, [newMessage]);
+
 
 
     const setMessagesIfDifferent = React.useCallback((next: Message[] | ((prev: Message[]) => Message[])) => {
@@ -827,10 +837,10 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                 </div>
             )}
 
-            <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 md:px-6 py-4 bg-primary-light dark:bg-primary">
-                <div className="max-w-full space-y-3">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide px-4 md:px-6 py-4 bg-primary-light dark:bg-primary">
+                <div className="max-w-full space-y-2">
                     {loading ? (
-                        <div className="space-y-6 py-4">
+                        <div className="space-y-3 py-4">
                             <MessageSkeleton align="left" />
                             <MessageSkeleton align="right" />
                             <MessageSkeleton align="left" />
@@ -848,8 +858,14 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                             </div>
                         </div>
                     ) : (
-                        messages.map((msg) => {
+                        messages.map((msg, index) => {
                             const isOwn = msg.sender_id === user?.id;
+                            const prevMsg = index > 0 ? messages[index - 1] : null;
+                            const nextMsg = index < messages.length - 1 ? messages[index + 1] : null;
+
+                            const isFirstOfCluster = !prevMsg || prevMsg.sender_id !== msg.sender_id;
+                            const isLastOfCluster = !nextMsg || nextMsg.sender_id !== msg.sender_id;
+
                             const isEditing = editingMessage?.id === msg.id;
                             const originalMessage = msg.reply_to_message_id ? messages.find(m => m.id === msg.reply_to_message_id) : null;
                             const isSending = isOwn && msg.status === 'sending';
@@ -861,32 +877,31 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                                     ref={el => { messageRefs.current.set(msg.id, el); }}
                                     className={`group flex items-end gap-2 w-full ${isOwn ? 'justify-end' : 'justify-start'} ${isSending ? 'opacity-60' : ''}`}
                                 >
-                                    {!isOwn && msg.profiles && (
-                                        <Link href={`/profile/${msg.profiles.username}`} className="flex-shrink-0 transition-transform hover:scale-105 active:scale-95 mb-1">
-                                            <Image
-                                                src={msg.profiles.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(msg.profiles.username)}`}
-                                                className="rounded-full ring-2 ring-secondary-light dark:ring-secondary shadow-sm"
-                                                alt="avatar"
-                                                width={32}
-                                                height={32}
-                                                unoptimized
-                                            />
-                                        </Link>
-                                    )}
-                                    {isOwn && !hasFailed && (
-                                        <p className="text-xs text-text-tertiary-light dark:text-text-tertiary mb-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0">
-                                            {formatMessageTime(msg.created_at)}
-                                        </p>
+                                    {!isOwn && (
+                                        <div className="w-8 flex-shrink-0 mb-1">
+                                            {isLastOfCluster && msg.profiles && (
+                                                <Link href={`/profile/${msg.profiles.username}`} className="transition-transform hover:scale-105 active:scale-95">
+                                                    <Image
+                                                        src={msg.profiles.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(msg.profiles.username)}`}
+                                                        className="rounded-full ring-2 ring-secondary-light dark:ring-secondary shadow-sm"
+                                                        alt="avatar"
+                                                        width={32}
+                                                        height={32}
+                                                        unoptimized
+                                                    />
+                                                </Link>
+                                            )}
+                                        </div>
                                     )}
                                     {hasFailed && (
-                                        <div className="text-red-500 mb-1.5 flex-shrink-0" title="Failed to send">
+                                        <div className="text-red-500 mb-1 flex-shrink-0" title="Failed to send">
                                             <ErrorIcon />
                                         </div>
                                     )}
 
-                                    <div className={`relative flex flex-col gap-0.5 max-w-[85%] sm:max-w-[75%] md:max-w-[65%] ${isOwn ? 'items-end' : 'items-start'}`}>
-                                        {conversation.type === 'group' && !isOwn && msg.profiles && (
-                                            <Link href={`/profile/${msg.profiles.username}`} className="text-[11px] font-bold text-text-tertiary-light dark:text-text-tertiary ml-1 hover:text-brand-green transition-colors">
+                                    <div className={`relative flex flex-col gap-0.5 max-w-[85%] sm:max-w-[75%] md:max-w-[65%] ${isOwn ? 'items-end' : 'items-start'} ${msg.reactions && msg.reactions.length > 0 ? 'mb-5' : ''}`}>
+                                        {conversation.type === 'group' && !isOwn && msg.profiles && isFirstOfCluster && (
+                                            <Link href={`/profile/${msg.profiles.username}`} className="text-[11px] font-bold text-text-tertiary-light dark:text-text-tertiary ml-1 hover:text-brand-green transition-colors mb-0.5">
                                                 {msg.profiles.full_name || msg.profiles.username}
                                             </Link>
                                         )}
@@ -945,7 +960,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                                                                 This message was deleted
                                                             </p>
                                                         ) : msg.message_type === 'text' ? (
-                                                            <div className="flex items-end px-4 py-2.5">
+                                                            <div className="flex items-end px-4 py-2">
                                                                 <p className="text-[15px] leading-relaxed break-words whitespace-pre-wrap">{msg.content}</p>
                                                                 {msg.is_edited && (
                                                                     <span className="text-[10px] text-gray-600 dark:text-gray-400 ml-2 select-none self-end flex-shrink-0 opacity-70">
@@ -987,7 +1002,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                                                                 />
                                                             </div>
                                                         ) : msg.message_type === 'audio' && msg.attachment_url ? (
-                                                            <div className="px-4 py-3">
+                                                            <div className="px-4 py-2">
                                                                 <audio
                                                                     src={msg.attachment_url}
                                                                     controls
@@ -1000,7 +1015,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                                                                 download={msg.file_name || 'download'}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
-                                                                className="flex items-center gap-3 px-4 py-3 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
+                                                                className="flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
                                                             >
                                                                 <div className="p-2 bg-brand-green/20 rounded-lg flex-shrink-0">
                                                                     <svg className="w-6 h-6 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1036,69 +1051,77 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                                                 )}
                                             </div>
                                             {!isEditing && !msg.is_deleted && (
-                                                <div className={`flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0 ${isOwn ? '' : 'order-first'}`}>
-                                                    <div className="relative group/react">
-                                                        <button className="p-1.5 rounded-full hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors">
-                                                            <FaceSmileIcon className="w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" />
-                                                        </button>
-                                                        <div className={`absolute bottom-full mb-2 flex gap-1 bg-secondary-light dark:bg-secondary p-2 rounded-xl shadow-xl border border-tertiary-light dark:border-tertiary opacity-0 invisible group-hover/react:opacity-100 group-hover/react:visible z-10 transition-all ${isOwn ? 'right-0' : 'left-0'}`}>
-                                                            {REACTION_EMOJIS.map(emoji => (
-                                                                <button
-                                                                    key={emoji}
-                                                                    onClick={() => handleReaction(emoji, msg.id)}
-                                                                    className="p-1 text-xl hover:scale-125 transition-transform rounded-lg hover:bg-tertiary-light dark:hover:bg-tertiary"
-                                                                >
-                                                                    {emoji}
-                                                                </button>
-                                                            ))}
-                                                            <button
-                                                                onClick={() => setEmojiPickerMessageId(msg.id)}
-                                                                className="p-1 text-xl hover:scale-125 transition-transform rounded-lg hover:bg-tertiary-light dark:hover:bg-tertiary border-l border-tertiary-light dark:border-tertiary pl-2"
-                                                            >
-                                                                <PlusIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary" />
+                                                <div className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0 z-10 ${isOwn ? 'right-full mr-3' : 'left-full ml-3'}`}>
+                                                    {isOwn && (
+                                                        <p className="text-[11px] text-text-tertiary-light dark:text-text-tertiary whitespace-nowrap order-first">
+                                                            {formatMessageTime(msg.created_at)}
+                                                        </p>
+                                                    )}
+                                                    <div className={`flex items-center gap-1 ${isOwn ? 'order-last' : 'order-first'}`}>
+                                                        <div className="relative group/react">
+                                                            <button className="p-1.5 rounded-full hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors">
+                                                                <FaceSmileIcon className="w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" />
                                                             </button>
+                                                            <div className={`absolute bottom-full mb-2 flex gap-1 bg-secondary-light dark:bg-secondary p-2 rounded-xl shadow-xl border border-tertiary-light dark:border-tertiary opacity-0 invisible group-hover/react:opacity-100 group-hover/react:visible z-10 transition-all ${isOwn ? 'right-0' : 'left-0'}`}>
+                                                                {REACTION_EMOJIS.map(emoji => (
+                                                                    <button
+                                                                        key={emoji}
+                                                                        onClick={() => handleReaction(emoji, msg.id)}
+                                                                        className="p-1 text-xl hover:scale-125 transition-transform rounded-lg hover:bg-tertiary-light dark:hover:bg-tertiary"
+                                                                    >
+                                                                        {emoji}
+                                                                    </button>
+                                                                ))}
+                                                                <button
+                                                                    onClick={() => setEmojiPickerMessageId(msg.id)}
+                                                                    className="p-1 text-xl hover:scale-125 transition-transform rounded-lg hover:bg-tertiary-light dark:hover:bg-tertiary border-l border-tertiary-light dark:border-tertiary pl-2"
+                                                                >
+                                                                    <PlusIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary" />
+                                                                </button>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                    <button
-                                                        className="p-1.5 rounded-full hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors"
-                                                        onClick={() => setReplyingTo(msg)}
-                                                    >
-                                                        <ReplyIcon className="w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" />
-                                                    </button>
-                                                    {isOwn && msg.message_type === 'text' && (
                                                         <button
                                                             className="p-1.5 rounded-full hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors"
-                                                            onClick={() => handleStartEdit(msg)}
+                                                            onClick={() => setReplyingTo(msg)}
                                                         >
-                                                            <PencilIcon className="w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" />
+                                                            <ReplyIcon className="w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" />
                                                         </button>
-                                                    )}
-                                                    <button
-                                                        className="p-1.5 rounded-full hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors"
-                                                        onClick={(e) => {
-                                                            const rect = e.currentTarget.getBoundingClientRect();
-                                                            setPinningOptions({ messageId: msg.id, x: rect.left - 150, y: rect.top - 120 });
-                                                        }}
-                                                    >
-                                                        <PinIcon className="w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" />
-                                                    </button>
-                                                    {isOwn && (
+                                                        {isOwn && msg.message_type === 'text' && (
+                                                            <button
+                                                                className="p-1.5 rounded-full hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors"
+                                                                onClick={() => handleStartEdit(msg)}
+                                                            >
+                                                                <PencilIcon className="w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" />
+                                                            </button>
+                                                        )}
                                                         <button
-                                                            className="p-1.5 rounded-full text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                                                            onClick={() => handleDeleteForEveryone(msg.id)}
+                                                            className="p-1.5 rounded-full hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors"
+                                                            onClick={(e) => {
+                                                                const rect = e.currentTarget.getBoundingClientRect();
+                                                                setPinningOptions({ messageId: msg.id, x: rect.left - 150, y: rect.top - 120 });
+                                                            }}
                                                         >
-                                                            <TrashIcon className="w-4 h-4" />
+                                                            <PinIcon className="w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" />
                                                         </button>
+                                                        {isOwn && (
+                                                            <button
+                                                                className="p-1.5 rounded-full text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                                                onClick={() => handleDeleteForEveryone(msg.id)}
+                                                            >
+                                                                <TrashIcon className="w-4 h-4" />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                    {!isOwn && (
+                                                        <p className="text-[11px] text-text-tertiary-light dark:text-text-tertiary whitespace-nowrap order-last">
+                                                            {formatMessageTime(msg.created_at)}
+                                                        </p>
                                                     )}
                                                 </div>
                                             )}
                                         </div>
                                     </div>
-                                    {!isOwn && (
-                                        <p className="text-xs text-text-tertiary-light dark:text-text-tertiary mb-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0">
-                                            {formatMessageTime(msg.created_at)}
-                                        </p>
-                                    )}
+                                    {/* Timestamp removed from here and moved to absolute action bar */}
                                 </div>
                             );
                         })
@@ -1253,16 +1276,23 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                         hidden
                     />
 
-                    <input
-                        type="text"
+                    <textarea
+                        ref={textareaRef}
+                        rows={1}
                         value={newMessage}
                         onChange={(e) => {
                             setNewMessage(e.target.value);
                             handleTyping();
                         }}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSendMessage();
+                            }
+                        }}
                         placeholder="Type a message..."
                         disabled={!!imagePreview}
-                        className="flex-1 min-w-0 py-3 px-4 bg-tertiary-light dark:bg-tertiary border-2 border-transparent focus:border-brand-green rounded-full text-text-main-light dark:text-text-main placeholder-text-tertiary-light dark:placeholder-text-tertiary focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 min-w-0 py-3 px-4 bg-tertiary-light dark:bg-tertiary border-2 border-transparent focus:border-brand-green rounded-[24px] text-text-main-light dark:text-text-main placeholder-text-tertiary-light dark:placeholder-text-tertiary focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed resize-none overflow-y-auto scrollbar-hide"
                     />
                     <button
                         type="submit"
