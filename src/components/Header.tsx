@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../contexts/ThemeContext';
@@ -24,6 +24,7 @@ const Header: React.FC<HeaderProps> = ({ isSidebarExpanded, onOpenAboutModal }) 
     const { profile } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const router = useRouter();
+    const pathname = usePathname();
 
     const [isMenuOpen, setMenuOpen] = useState(false);
     const [isNotificationsOpen, setNotificationsOpen] = useState(false);
@@ -31,7 +32,8 @@ const Header: React.FC<HeaderProps> = ({ isSidebarExpanded, onOpenAboutModal }) 
     const { unreadCount } = useNotifications();
 
     const menuRef = useRef<HTMLDivElement>(null);
-    const notificationRef = useRef<HTMLDivElement>(null);
+    const mobileNotificationRef = useRef<HTMLDivElement>(null);
+    const desktopNotificationRef = useRef<HTMLDivElement>(null);
 
     const handleSignOut = async () => {
         await supabase.auth.signOut();
@@ -43,13 +45,23 @@ const Header: React.FC<HeaderProps> = ({ isSidebarExpanded, onOpenAboutModal }) 
             if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
                 setMenuOpen(false);
             }
-            if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+            const isClickInsideMobile = mobileNotificationRef.current && mobileNotificationRef.current.contains(event.target as Node);
+            const isClickInsideDesktop = desktopNotificationRef.current && desktopNotificationRef.current.contains(event.target as Node);
+
+            if (!isClickInsideMobile && !isClickInsideDesktop) {
                 setNotificationsOpen(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    // Close menus on route change
+    useEffect(() => {
+        setMenuOpen(false);
+        setNotificationsOpen(false);
+        setIsSearchOverlayOpen(false);
+    }, [pathname]);
 
     return (
         <header
@@ -126,7 +138,7 @@ const Header: React.FC<HeaderProps> = ({ isSidebarExpanded, onOpenAboutModal }) 
                         <SearchIcon className="w-6 h-6 text-text-secondary-light dark:text-text-secondary" />
                     </button>
 
-                    <div ref={notificationRef} className="relative">
+                    <div ref={mobileNotificationRef} className="relative">
                         <button onClick={() => setNotificationsOpen(p => !p)} className="p-2 relative rounded-full hover:bg-tertiary-light dark:hover:bg-white/5 transition-colors">
                             <BellIcon className="w-6 h-6 text-text-secondary-light dark:text-text-secondary" />
                             {unreadCount > 0 && <span className="absolute top-1.5 right-2 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-secondary-light dark:ring-secondary" />}
@@ -149,7 +161,7 @@ const Header: React.FC<HeaderProps> = ({ isSidebarExpanded, onOpenAboutModal }) 
                 </div>
 
                 {/* Right Side Controls */}
-                <div ref={notificationRef} className="relative">
+                <div ref={desktopNotificationRef} className="relative">
                     <button
                         onClick={() => setNotificationsOpen(p => !p)}
                         className="p-2.5 relative rounded-full hover:bg-tertiary-light/50 dark:hover:bg-white/5 transition-colors"

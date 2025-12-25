@@ -2,8 +2,8 @@
 
 import React, { useEffect } from 'react';
 // FIXED: Use useRouter
-import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useNotifications } from '../hooks/useNotifications';
 import { Notification as NotificationType } from '../types';
 import Spinner from './Spinner';
@@ -15,9 +15,6 @@ interface NotificationPanelProps {
 }
 
 const NotificationItem: React.FC<{ notification: NotificationType, onClose: () => void }> = ({ notification, onClose }) => {
-    // FIXED: Initialize router
-    const router = useRouter();
-
     let text = '';
     let link = '/';
 
@@ -58,14 +55,18 @@ const NotificationItem: React.FC<{ notification: NotificationType, onClose: () =
             text = 'sent you a notification.';
     }
 
-    const handleClick = () => {
-        // FIXED: Use router.push
-        router.push(link);
-        onClose();
+    const handleClick = (e: React.MouseEvent) => {
+        // We no longer call onClose() here because it can unmount the component 
+        // before the browser processes the navigation on some mobile devices.
+        // Instead, the Header component now closes the panel on route change.
     };
 
     return (
-        <div onClick={handleClick} className="p-3 flex items-start gap-3 hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50 cursor-pointer transition-colors relative">
+        <Link
+            href={link}
+            onClick={handleClick}
+            className="p-3 flex items-start gap-3 hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50 cursor-pointer transition-colors relative block"
+        >
             {!notification.is_read && <div className="absolute left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-blue-500 rounded-full"></div>}
             <Image
                 src={notification.actor.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(notification.actor.full_name || notification.actor.username)}&background=random&color=fff&bold=true`}
@@ -81,7 +82,7 @@ const NotificationItem: React.FC<{ notification: NotificationType, onClose: () =
                 </p>
                 <p className="text-xs text-text-tertiary-light dark:text-text-tertiary mt-1">{formatTimestamp(notification.created_at)}</p>
             </div>
-        </div>
+        </Link>
     );
 };
 
@@ -106,8 +107,7 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, onClose }
     return (
         <div
             ref={panelRef}
-            onClick={onClose}
-            className="absolute top-full right-0 mt-3 w-80 md:w-96 bg-secondary-light dark:bg-secondary rounded-xl shadow-2xl border border-tertiary-light dark:border-tertiary animate-fadeIn origin-top-right"
+            className="absolute top-full right-0 mt-3 w-80 md:w-96 bg-secondary-light dark:bg-secondary rounded-xl shadow-2xl border border-tertiary-light dark:border-tertiary animate-fadeIn origin-top-right overflow-hidden"
         >
             <div className="p-4 border-b border-tertiary-light dark:border-tertiary">
                 <h3 className="font-bold text-lg">Notifications</h3>

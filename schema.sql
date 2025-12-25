@@ -24,6 +24,13 @@ COMMENT ON SCHEMA "public" IS 'standard public schema';
 
 
 
+CREATE EXTENSION IF NOT EXISTS "pg_net" WITH SCHEMA "public";
+
+
+
+
+
+
 CREATE EXTENSION IF NOT EXISTS "pg_graphql" WITH SCHEMA "graphql";
 
 
@@ -1169,124 +1176,152 @@ $$;
 ALTER FUNCTION "public"."get_campus_events"("p_campus" "text") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."get_campus_feed"("p_campus" "text") RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "repost_count" integer, "user_vote" "text", "is_bookmarked" boolean, "user_has_reposted" boolean, "original_poster_username" "text", "author_id" "text", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "author_flair_details" "jsonb", "poll" "jsonb", "quoted_post" "jsonb", "reposted_by" "jsonb", "item_type" "text", "item_data" "jsonb", "visibility" "text", "title" "text", "post_type" "text")
+CREATE OR REPLACE FUNCTION "public"."get_campus_feed"("p_campus" "text") RETURNS TABLE("id" "uuid", "item_type" "text", "item_data" "jsonb", "created_at" timestamp with time zone)
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
     AS $$
 BEGIN
     RETURN QUERY
-    WITH feed_items AS (
-        -- 1. Public Community Posts from this campus
-        SELECT
-            p.id,
-            p.created_at,
-            'post' AS item_type,
-            NULL::jsonb AS item_data
-        FROM public.posts p
-        JOIN public.communities c ON p.community_id = c.id
-        WHERE p.is_deleted = false 
-          AND p.is_public = true 
-          AND c.campus = p_campus
-          AND p.parent_post_id IS NULL -- FILTER: Only show root posts
-
-        UNION ALL
-
-        -- 2. New Marketplace Listings from this campus
-        SELECT
-            ml.id,
-            ml.created_at,
-            'listing' AS item_type,
-            jsonb_build_object(
-                'id', ml.id,
-                'title', ml.title,
-                'price', ml.price,
-                'category', ml.category,
-                'primary_image_url', (SELECT mi.image_url FROM marketplace_images mi WHERE mi.listing_id = ml.id ORDER BY mi.created_at LIMIT 1),
-                'seller_profile', (SELECT jsonb_build_object('user_id', p.user_id, 'username', p.username, 'full_name', p.full_name, 'avatar_url', p.avatar_url) FROM profiles p WHERE p.user_id = ml.seller_id),
-                'seller_id', ml.seller_id,
-                'all_images', (SELECT jsonb_agg(mi.image_url ORDER BY mi.created_at) FROM marketplace_images mi WHERE mi.listing_id = ml.id)
-            ) AS item_data
-        FROM public.marketplace_listings ml
-        WHERE ml.campus = p_campus AND ml.status = 'available'
-
-        UNION ALL
-
-        -- 3. Upcoming Events from this campus
-        SELECT
-            e.id,
-            e.start_time AS created_at,
-            'event' AS item_type,
-            jsonb_build_object(
-                'id', e.id,
-                'name', e.name,
-                'start_time', e.start_time,
-                'end_time', e.end_time,
-                'location', e.location,
-                'going_count', (SELECT count(*) FROM event_rsvps WHERE event_id = e.id AND rsvp_status = 'going'),
-                'interested_count', (SELECT count(*) FROM event_rsvps WHERE event_id = e.id AND rsvp_status = 'interested')
-            ) AS item_data
-        FROM public.events e
-        WHERE e.campus = p_campus AND e.start_time > now()
-        
-        UNION ALL
-        
-        -- 4. Active Lost & Found Items
-        SELECT
-            laf.id,
-            laf.created_at,
-            'lost_found' AS item_type,
-            jsonb_build_object(
-                'id', laf.id,
-                'title', laf.title,
-                'item_type', laf.item_type,
-                'location_found', laf.location_found,
-                'image_url', laf.image_url
-            ) AS item_data
-        FROM public.lost_and_found_items laf
-        WHERE laf.campus = p_campus AND laf.status = 'active'
-    )
+    -- 1. Marketplace Listings
     SELECT
-        fi.id,
-        p.user_id,
-        p.content,
-        p.image_url,
-        fi.created_at,
-        p.is_edited,
-        p.is_deleted,
-        p.community_id,
-        p.is_public,
-        p.like_count,
-        p.dislike_count,
-        p.comment_count,
-        p.repost_count,
-        l.like_type AS user_vote,
-        b.post_id IS NOT NULL AS is_bookmarked,
-        r.post_id IS NOT NULL AS user_has_reposted,
-        op.username AS original_poster_username,
-        COALESCE(p.community_id::text, p.user_id::text) AS author_id,
-        CASE WHEN p.community_id IS NOT NULL THEN 'community' ELSE 'user' END AS author_type,
-        COALESCE(c.name, up.full_name) AS author_name,
-        COALESCE(c.id::text, up.username) AS author_username,
-        COALESCE(c.avatar_url, up.avatar_url) AS author_avatar_url,
-        (SELECT CASE WHEN p.community_id IS NULL THEN (SELECT jsonb_build_object('id', flair_comm.id, 'name', flair_comm.name, 'avatar_url', flair_comm.avatar_url) FROM public.communities flair_comm WHERE flair_comm.id = up.displayed_community_flair) ELSE NULL END) AS author_flair_details,
-        poll_details.poll,
-        (SELECT jsonb_build_object('id', qp.id, 'content', qp.content, 'image_url', qp.image_url, 'created_at', qp.created_at, 'is_deleted', qp.is_deleted, 'author_name', qp_author.full_name, 'author_username', qp_author.username, 'author_avatar_url', qp_author.avatar_url) FROM posts qp JOIN profiles qp_author ON qp.user_id = qp_author.user_id WHERE qp.id = p.quoted_post_id) AS quoted_post,
-        NULL::jsonb as reposted_by,
-        fi.item_type,
-        fi.item_data,
-        p.visibility,
-        p.title,
-        p.post_type
-    FROM feed_items fi
-    LEFT JOIN public.posts p ON fi.id = p.id AND fi.item_type = 'post'
-    LEFT JOIN public.likes l ON p.id = l.post_id AND l.user_id = auth.uid()
-    LEFT JOIN public.bookmarks b ON p.id = b.post_id AND b.user_id = auth.uid()
-    LEFT JOIN public.reposts r ON p.id = r.post_id AND r.user_id = auth.uid()
-    LEFT JOIN public.profiles up ON p.user_id = up.user_id AND p.community_id IS NULL
-    LEFT JOIN public.communities c ON p.community_id = c.id
-    LEFT JOIN public.profiles op ON p.user_id = op.user_id AND p.community_id IS NOT NULL
-    LEFT JOIN LATERAL (SELECT jsonb_build_object('id', po.id, 'allow_multiple_answers', po.allow_multiple_answers, 'total_votes', COALESCE((SELECT SUM(opt.vote_count) FROM public.poll_options opt WHERE opt.poll_id = po.id), 0), 'user_votes', (SELECT jsonb_agg(pv.option_id) FROM public.poll_votes pv WHERE pv.poll_id = po.id AND pv.user_id = auth.uid()), 'options', (SELECT jsonb_agg(jsonb_build_object('id', opt.id, 'option_text', opt.option_text, 'vote_count', opt.vote_count, 'voters', (SELECT jsonb_agg(jsonb_build_object('user_id', voter_profile.user_id, 'username', voter_profile.username, 'full_name', voter_profile.full_name, 'avatar_url', voter_profile.avatar_url)) FROM public.poll_votes pv JOIN public.profiles voter_profile ON pv.user_id = voter_profile.user_id WHERE pv.option_id = opt.id)) ORDER BY opt.id) FROM poll_options opt WHERE opt.poll_id = po.id)) AS poll FROM polls po WHERE po.post_id = p.id) poll_details ON TRUE
-    ORDER BY fi.created_at DESC;
+        ml.id,
+        'listing'::text as item_type,
+        jsonb_build_object(
+            'id', ml.id,
+            'title', ml.title,
+            'description', ml.description,
+            'price', ml.price,
+            'category', ml.category,
+            'campus', ml.campus,
+            'status', ml.status,
+            'created_at', ml.created_at,
+            'primary_image_url', (SELECT image_url FROM marketplace_images WHERE listing_id = ml.id ORDER BY marketplace_images.created_at LIMIT 1),
+            'seller_profile', jsonb_build_object(
+                'user_id', p.user_id,
+                'username', p.username,
+                'full_name', p.full_name,
+                'avatar_url', p.avatar_url
+            )
+        ) as item_data,
+        ml.created_at
+    FROM marketplace_listings ml
+    JOIN profiles p ON ml.seller_id = p.user_id
+    WHERE ml.campus = p_campus AND ml.status = 'available'
+    
+    UNION ALL
+
+    -- 2. Lost & Found
+    SELECT
+        lf.id,
+        'lost_found'::text as item_type,
+        to_jsonb(lf) || jsonb_build_object(
+            'profiles', jsonb_build_object(
+                'user_id', p.user_id,
+                'username', p.username,
+                'full_name', p.full_name,
+                'avatar_url', p.avatar_url
+            )
+        ) as item_data,
+        lf.created_at
+    FROM lost_and_found_items lf
+    LEFT JOIN profiles p ON lf.user_id = p.user_id
+    WHERE lf.campus = p_campus AND lf.status = 'active'
+    
+    UNION ALL
+
+    -- 3. Events
+    SELECT
+        e.id,
+        'event'::text as item_type,
+        jsonb_build_object(
+             'id', e.id,
+             'name', e.name,
+             'description', e.description,
+             'start_time', e.start_time,
+             'end_time', e.end_time,
+             'location', e.location,
+             'campus', e.campus,
+             'image_url', e.image_url,
+             'created_at', e.created_at,
+             'created_by', jsonb_build_object(
+                 'user_id', p.user_id,
+                 'username', p.username,
+                 'full_name', p.full_name,
+                 'avatar_url', p.avatar_url
+             ),
+             'community', CASE WHEN c.id IS NOT NULL THEN jsonb_build_object(
+                 'id', c.id,
+                 'name', c.name,
+                 'avatar_url', c.avatar_url
+             ) ELSE null END,
+             'going_count', (SELECT count(*) FROM event_rsvps WHERE event_id = e.id AND rsvp_status = 'going'),
+             'interested_count', (SELECT count(*) FROM event_rsvps WHERE event_id = e.id AND rsvp_status = 'interested'),
+             'user_rsvp_status', (SELECT rsvp_status FROM event_rsvps WHERE event_id = e.id AND user_id = auth.uid())
+        ) as item_data,
+        e.created_at
+    FROM events e
+    JOIN profiles p ON e.created_by = p.user_id
+    LEFT JOIN communities c ON e.community_id = c.id
+    WHERE e.campus = p_campus AND e.start_time > now()
+
+    UNION ALL
+
+    -- 4. HelpOut (BitsCoin)
+    SELECT
+        b.id,
+        'bits_coin'::text as item_type,
+        jsonb_build_object(
+            'id', b.id,
+            'title', b.title,
+            'description', b.description,
+            'reward', b.reward,
+            'status', b.status,
+            'category', b.category,
+            'created_at', b.created_at,
+            'deadline', null, 
+            'claimer', null,
+            'requester', jsonb_build_object(
+                'user_id', p.user_id,
+                'username', p.username,
+                'full_name', p.full_name,
+                'avatar_url', p.avatar_url
+            )
+        ) as item_data,
+        b.created_at
+    FROM bits_coin_requests b
+    JOIN profiles p ON b.requester_id = p.user_id
+    WHERE b.campus = p_campus AND b.status = 'open'
+
+    UNION ALL
+
+    -- 5. RideShare
+    SELECT
+        r.id,
+        'ride_share'::text as item_type,
+        jsonb_build_object(
+            'id', r.id,
+            'type', r.type,
+            'origin', r.origin,
+            'destination', r.destination,
+            'departure_time', r.departure_time,
+            'seats', r.seats,
+            'status', r.status,
+            'description', r.description,
+            'created_at', r.created_at,
+            'campus', r.campus,
+            'user', jsonb_build_object(
+                'user_id', p.user_id,
+                'username', p.username,
+                'full_name', p.full_name,
+                'avatar_url', p.avatar_url
+            )
+        ) as item_data,
+        r.created_at
+    FROM ride_shares r
+    JOIN profiles p ON r.user_id = p.user_id
+    WHERE r.campus = p_campus AND r.status = 'active' AND r.departure_time > now()
+
+    ORDER BY 4 DESC -- Order by the 4th column (created_at) to avoid ambiguity
+    LIMIT 100;
 END;
 $$;
 
@@ -1601,9 +1636,7 @@ BEGIN
                     )
                 )
               )
-
         UNION ALL
-
         -- Posts reposted by followed users
         SELECT
             r.post_id,
@@ -1651,8 +1684,8 @@ BEGIN
         p.visibility,
         p.title,
         p.post_type,
-        p.parent_post_id, -- Added new column
-        p.root_post_id    -- Added new column
+        p.parent_post_id,
+        p.root_post_id
     FROM distinct_feed df
     JOIN public.posts p ON df.post_id = p.id
     LEFT JOIN public.likes l ON p.id = l.post_id AND l.user_id = auth.uid()
@@ -1665,8 +1698,7 @@ BEGIN
         SELECT jsonb_build_object('id', po.id, 'allow_multiple_answers', po.allow_multiple_answers, 'total_votes', COALESCE((SELECT SUM(opt.vote_count) FROM public.poll_options opt WHERE opt.poll_id = po.id), 0), 'user_votes', (SELECT jsonb_agg(pv.option_id) FROM public.poll_votes pv WHERE pv.poll_id = po.id AND pv.user_id = auth.uid()), 'options', (SELECT jsonb_agg(jsonb_build_object('id', opt.id, 'option_text', opt.option_text, 'vote_count', opt.vote_count) ORDER BY opt.id) FROM poll_options opt WHERE opt.poll_id = po.id)) AS poll
         FROM polls po WHERE po.post_id = p.id
     ) poll_details ON TRUE
-    ORDER BY df.event_time DESC
-    LIMIT 100;
+    ORDER BY df.event_time DESC;
 END;
 $$;
 
@@ -2225,17 +2257,12 @@ CREATE OR REPLACE FUNCTION "public"."get_post_thread"("p_post_id" "uuid") RETURN
 DECLARE
     v_root_id UUID;
 BEGIN
-    -- 1. Determine the root ID of the requested post
     SELECT COALESCE(p.root_post_id, p.id) INTO v_root_id
     FROM public.posts p
     WHERE p.id = p_post_id;
-
-    -- If post not found, return nothing
     IF v_root_id IS NULL THEN
         RETURN;
     END IF;
-
-    -- 2. Fetch the entire thread belonging to that root
     RETURN QUERY
     SELECT
         p.id, p.user_id, p.content, p.image_url, p.created_at, p.is_edited, p.is_deleted, p.community_id, p.is_public,
@@ -2428,8 +2455,8 @@ BEGIN
         ) AS quoted_post,
         NULL::jsonb as reposted_by,
         p.visibility,
-        p.title,     -- NEW
-        p.post_type  -- NEW
+        p.title,
+        p.post_type
     FROM public.posts p
     LEFT JOIN public.likes l ON p.id = l.post_id AND l.user_id = auth.uid()
     LEFT JOIN public.bookmarks b ON p.id = b.post_id AND b.user_id = auth.uid()
@@ -3340,17 +3367,22 @@ CREATE OR REPLACE FUNCTION "public"."send_push_notification_on_insert"() RETURNS
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
 BEGIN
-  -- We use the supabase_functions extension to call our Edge Function
-  -- You must enable the "pg_net" extension in Supabase for this to work
-  PERFORM
-    net.http_post(
-      url := 'https://phnrjmvfowtptnonftcs.supabase.co/functions/v1/push-notifications',
-      headers := jsonb_build_object(
-        'Content-Type', 'application/json',
-        'Authorization', 'Bearer ' || '***REMOVED***'
-      ),
-      body := jsonb_build_object('record', row_to_json(NEW))
-    );
+  BEGIN
+    -- We use the supabase_functions extension to call our Edge Function
+    -- You must enable the "pg_net" extension in Supabase for this to work
+    PERFORM
+      net.http_post(
+        url := 'https://phnrjmvfowtptnonftcs.supabase.co/functions/v1/push-notifications', 
+        headers := jsonb_build_object(
+          'Content-Type', 'application/json',
+          'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'service_role_key')
+        ),
+        body := jsonb_build_object('record', row_to_json(NEW))
+      );
+  EXCEPTION WHEN OTHERS THEN
+    -- If push fails (e.g. extension missing), we DON'T want to crash the whole app
+    RAISE WARNING 'Push notification failed: %', SQLERRM;
+  END;
   RETURN NEW;
 END;
 $$;
@@ -5692,6 +5724,9 @@ GRANT USAGE ON SCHEMA "public" TO "postgres";
 GRANT USAGE ON SCHEMA "public" TO "anon";
 GRANT USAGE ON SCHEMA "public" TO "authenticated";
 GRANT USAGE ON SCHEMA "public" TO "service_role";
+
+
+
 
 
 
