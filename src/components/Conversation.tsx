@@ -712,8 +712,8 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
 
         if (conversation.type === 'group') {
             return (
-                // FIXED: Link to href
-                <Link href={`/chat/group/${conversation.conversation_id}`} className="flex items-center space-x-3 group min-w-0 flex-1">
+                // FIXED: Link to group info
+                <Link href={`/chat/group/${conversation.conversation_id}/info`} className="flex items-center space-x-3 group min-w-0 flex-1">
                     <div className="w-11 h-11 rounded-full bg-gradient-to-br from-green-600 to-green-600 flex items-center justify-center ring-2 ring-brand-green/20 group-hover:ring-brand-green/40 transition-all flex-shrink-0">
                         <UserGroupIcon className="w-6 h-6 text-white" />
                     </div>
@@ -862,14 +862,16 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                                     className={`group flex items-end gap-2 w-full ${isOwn ? 'justify-end' : 'justify-start'} ${isSending ? 'opacity-60' : ''}`}
                                 >
                                     {!isOwn && msg.profiles && (
-                                        <Image
-                                            src={msg.profiles.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(msg.profiles.username)}`}
-                                            className="rounded-full mb-1 ring-2 ring-secondary-light dark:ring-secondary shadow-sm flex-shrink-0"
-                                            alt="avatar"
-                                            width={32}
-                                            height={32}
-                                            unoptimized
-                                        />
+                                        <Link href={`/profile/${msg.profiles.username}`} className="flex-shrink-0 transition-transform hover:scale-105 active:scale-95 mb-1">
+                                            <Image
+                                                src={msg.profiles.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(msg.profiles.username)}`}
+                                                className="rounded-full ring-2 ring-secondary-light dark:ring-secondary shadow-sm"
+                                                alt="avatar"
+                                                width={32}
+                                                height={32}
+                                                unoptimized
+                                            />
+                                        </Link>
                                     )}
                                     {isOwn && !hasFailed && (
                                         <p className="text-xs text-text-tertiary-light dark:text-text-tertiary mb-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0">
@@ -882,208 +884,215 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                                         </div>
                                     )}
 
-                                    <div className={`relative flex items-center gap-1 max-w-[85%] sm:max-w-[75%] md:max-w-[65%] ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
-                                        <div className={`relative w-full rounded-2xl shadow-sm transition-all duration-200 hover:shadow-md ${isOwn
-                                            ? 'bg-gradient-to-br from-green-500 to-green-500 text-black rounded-br-md'
-                                            : 'bg-secondary-light dark:bg-secondary text-text-main-light dark:text-text-main border border-tertiary-light dark:border-tertiary rounded-bl-md'
-                                            }`}>
-                                            {isEditing ? (
-                                                <div className="p-3 w-full">
-                                                    <textarea
-                                                        value={editingContent}
-                                                        onChange={e => setEditingContent(e.target.value)}
-                                                        className="w-full text-sm bg-black/10 dark:bg-white/10 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green resize-none text-black dark:text-white"
-                                                        rows={Math.max(2, editingContent.split('\n').length)}
-                                                        autoFocus
-                                                        onKeyDown={(e) => {
-                                                            if (e.key === 'Enter' && !e.shiftKey) {
-                                                                e.preventDefault();
-                                                                handleSaveEdit();
-                                                            }
-                                                            if (e.key === 'Escape') {
-                                                                handleCancelEdit();
-                                                            }
-                                                        }}
-                                                    />
-                                                    <div className="flex justify-end items-center mt-2 space-x-2">
-                                                        <button
-                                                            type="button"
-                                                            onClick={handleCancelEdit}
-                                                            className="py-1.5 px-3 text-xs font-medium rounded-lg hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-                                                        >
-                                                            Cancel
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={handleSaveEdit}
-                                                            className="py-1.5 px-3 text-xs font-medium rounded-lg bg-green-900/50 text-white hover:bg-green-900/70 transition-colors"
-                                                        >
-                                                            Save
-                                                        </button>
+                                    <div className={`relative flex flex-col gap-0.5 max-w-[85%] sm:max-w-[75%] md:max-w-[65%] ${isOwn ? 'items-end' : 'items-start'}`}>
+                                        {conversation.type === 'group' && !isOwn && msg.profiles && (
+                                            <Link href={`/profile/${msg.profiles.username}`} className="text-[11px] font-bold text-text-tertiary-light dark:text-text-tertiary ml-1 hover:text-brand-green transition-colors">
+                                                {msg.profiles.full_name || msg.profiles.username}
+                                            </Link>
+                                        )}
+                                        <div className={`relative flex items-center gap-1 w-full ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
+                                            <div className={`relative w-full rounded-2xl shadow-sm transition-all duration-200 hover:shadow-md ${isOwn
+                                                ? 'bg-gradient-to-br from-green-500 to-green-500 text-black rounded-br-md'
+                                                : 'bg-secondary-light dark:bg-secondary text-text-main-light dark:text-text-main border border-tertiary-light dark:border-tertiary rounded-bl-md'
+                                                }`}>
+                                                {isEditing ? (
+                                                    <div className="p-3 w-full">
+                                                        <textarea
+                                                            value={editingContent}
+                                                            onChange={e => setEditingContent(e.target.value)}
+                                                            className="w-full text-sm bg-black/10 dark:bg-white/10 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green resize-none text-black dark:text-white"
+                                                            rows={Math.max(2, editingContent.split('\n').length)}
+                                                            autoFocus
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter' && !e.shiftKey) {
+                                                                    e.preventDefault();
+                                                                    handleSaveEdit();
+                                                                }
+                                                                if (e.key === 'Escape') {
+                                                                    handleCancelEdit();
+                                                                }
+                                                            }}
+                                                        />
+                                                        <div className="flex justify-end items-center mt-2 space-x-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={handleCancelEdit}
+                                                                className="py-1.5 px-3 text-xs font-medium rounded-lg hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                                                            >
+                                                                Cancel
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={handleSaveEdit}
+                                                                className="py-1.5 px-3 text-xs font-medium rounded-lg bg-green-900/50 text-white hover:bg-green-900/70 transition-colors"
+                                                            >
+                                                                Save
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    {originalMessage && (
-                                                        <div className="px-3 pt-2 pb-1 opacity-80">
-                                                            <div className="border-l-3 border-green-700/60 dark:border-green-400/60 pl-2.5 py-1 text-xs bg-black/5 dark:bg-white/5 rounded-r">
-                                                                <p className="font-bold mb-0.5">{originalMessage.profiles?.full_name || 'User'}</p>
-                                                                <p className="truncate opacity-80">{originalMessage.content || 'Media'}</p>
+                                                ) : (
+                                                    <>
+                                                        {originalMessage && (
+                                                            <div className="px-3 pt-2 pb-1 opacity-80">
+                                                                <div className="border-l-3 border-green-700/60 dark:border-green-400/60 pl-2.5 py-1 text-xs bg-black/5 dark:bg-white/5 rounded-r">
+                                                                    <p className="font-bold mb-0.5">{originalMessage.profiles?.full_name || 'User'}</p>
+                                                                    <p className="truncate opacity-80">{originalMessage.content || 'Media'}</p>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    )}
-                                                    {msg.is_deleted ? (
-                                                        <p className="px-4 py-2.5 text-[15px] italic text-text-tertiary-light dark:text-text-tertiary">
-                                                            This message was deleted
-                                                        </p>
-                                                    ) : msg.message_type === 'text' ? (
-                                                        <div className="flex items-end px-4 py-2.5">
-                                                            <p className="text-[15px] leading-relaxed break-words whitespace-pre-wrap">{msg.content}</p>
-                                                            {msg.is_edited && (
-                                                                <span className="text-[10px] text-gray-600 dark:text-gray-400 ml-2 select-none self-end flex-shrink-0 opacity-70">
-                                                                    edited
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    ) : msg.message_type === 'image' && msg.attachment_url ? (
-                                                        <button
-                                                            onClick={() => setLightboxUrl(msg.attachment_url!)}
-                                                            className="block p-1.5 hover:opacity-95 transition-opacity w-full"
-                                                        >
-                                                            <Image
-                                                                src={msg.attachment_url}
-                                                                alt="attachment"
-                                                                className="rounded-xl w-full max-w-xs max-h-80 object-cover"
-                                                                width={320}
-                                                                height={320}
-                                                                unoptimized
-                                                            />
-                                                        </button>
-                                                    ) : msg.message_type === 'gif' && msg.attachment_url ? (
-                                                        <div className="p-1.5">
-                                                            <Image
-                                                                src={msg.attachment_url}
-                                                                alt="gif"
-                                                                className="rounded-xl w-full max-w-xs"
-                                                                width={320}
-                                                                height={320}
-                                                                unoptimized
-                                                            />
-                                                        </div>
-                                                    ) : msg.message_type === 'video' && msg.attachment_url ? (
-                                                        <div className="p-1.5">
-                                                            <video
-                                                                src={msg.attachment_url}
-                                                                controls
-                                                                className="rounded-xl w-full max-w-md max-h-80"
-                                                            />
-                                                        </div>
-                                                    ) : msg.message_type === 'audio' && msg.attachment_url ? (
-                                                        <div className="px-4 py-3">
-                                                            <audio
-                                                                src={msg.attachment_url}
-                                                                controls
-                                                                className="w-full max-w-sm"
-                                                            />
-                                                        </div>
-                                                    ) : (msg.message_type === 'document' || msg.message_type === 'file') && msg.attachment_url ? (
-                                                        <a
-                                                            href={msg.attachment_url}
-                                                            download={msg.file_name || 'download'}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="flex items-center gap-3 px-4 py-3 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
-                                                        >
-                                                            <div className="p-2 bg-brand-green/20 rounded-lg flex-shrink-0">
-                                                                <svg className="w-6 h-6 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                                                </svg>
-                                                            </div>
-                                                            <div className="flex-1 min-w-0">
-                                                                <p className="text-sm font-medium truncate">{msg.file_name || 'File'}</p>
-                                                                {msg.file_size && (
-                                                                    <p className="text-xs opacity-70">{formatFileSize(msg.file_size)}</p>
+                                                        )}
+                                                        {msg.is_deleted ? (
+                                                            <p className="px-4 py-2.5 text-[15px] italic text-text-tertiary-light dark:text-text-tertiary">
+                                                                This message was deleted
+                                                            </p>
+                                                        ) : msg.message_type === 'text' ? (
+                                                            <div className="flex items-end px-4 py-2.5">
+                                                                <p className="text-[15px] leading-relaxed break-words whitespace-pre-wrap">{msg.content}</p>
+                                                                {msg.is_edited && (
+                                                                    <span className="text-[10px] text-gray-600 dark:text-gray-400 ml-2 select-none self-end flex-shrink-0 opacity-70">
+                                                                        edited
+                                                                    </span>
                                                                 )}
                                                             </div>
-                                                            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                                            </svg>
-                                                        </a>
-                                                    ) : null}
-                                                </>
-                                            )}
-                                            {msg.reactions && msg.reactions.length > 0 && (
-                                                <div className={`absolute -bottom-6 flex gap-1 flex-wrap ${isOwn ? 'right-2' : 'left-2'}`}>
-                                                    {Object.entries(groupedReactions(msg.reactions)).map(([emoji, count]) => (
-                                                        <button
-                                                            key={emoji}
-                                                            onClick={() => handleReaction(emoji, msg.id)}
-                                                            className="px-2 py-0.5 bg-secondary-light dark:bg-secondary rounded-full text-xs font-medium shadow-lg border border-tertiary-light dark:border-tertiary hover:scale-110 transition-transform"
-                                                        >
-                                                            <span className="mr-1">{emoji}</span>
-                                                            <span className="text-text-secondary-light dark:text-text-secondary">{count}</span>
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                        {!isEditing && !msg.is_deleted && (
-                                            <div className={`flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0 ${isOwn ? '' : 'order-first'}`}>
-                                                <div className="relative group/react">
-                                                    <button className="p-1.5 rounded-full hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors">
-                                                        <FaceSmileIcon className="w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" />
-                                                    </button>
-                                                    <div className={`absolute bottom-full mb-2 flex gap-1 bg-secondary-light dark:bg-secondary p-2 rounded-xl shadow-xl border border-tertiary-light dark:border-tertiary opacity-0 invisible group-hover/react:opacity-100 group-hover/react:visible z-10 transition-all ${isOwn ? 'right-0' : 'left-0'}`}>
-                                                        {REACTION_EMOJIS.map(emoji => (
+                                                        ) : msg.message_type === 'image' && msg.attachment_url ? (
+                                                            <button
+                                                                onClick={() => setLightboxUrl(msg.attachment_url!)}
+                                                                className="block p-1.5 hover:opacity-95 transition-opacity w-full"
+                                                            >
+                                                                <Image
+                                                                    src={msg.attachment_url}
+                                                                    alt="attachment"
+                                                                    className="rounded-xl w-full max-w-xs max-h-80 object-cover"
+                                                                    width={320}
+                                                                    height={320}
+                                                                    unoptimized
+                                                                />
+                                                            </button>
+                                                        ) : msg.message_type === 'gif' && msg.attachment_url ? (
+                                                            <div className="p-1.5">
+                                                                <Image
+                                                                    src={msg.attachment_url}
+                                                                    alt="gif"
+                                                                    className="rounded-xl w-full max-w-xs"
+                                                                    width={320}
+                                                                    height={320}
+                                                                    unoptimized
+                                                                />
+                                                            </div>
+                                                        ) : msg.message_type === 'video' && msg.attachment_url ? (
+                                                            <div className="p-1.5">
+                                                                <video
+                                                                    src={msg.attachment_url}
+                                                                    controls
+                                                                    className="rounded-xl w-full max-w-md max-h-80"
+                                                                />
+                                                            </div>
+                                                        ) : msg.message_type === 'audio' && msg.attachment_url ? (
+                                                            <div className="px-4 py-3">
+                                                                <audio
+                                                                    src={msg.attachment_url}
+                                                                    controls
+                                                                    className="w-full max-w-sm"
+                                                                />
+                                                            </div>
+                                                        ) : (msg.message_type === 'document' || msg.message_type === 'file') && msg.attachment_url ? (
+                                                            <a
+                                                                href={msg.attachment_url}
+                                                                download={msg.file_name || 'download'}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="flex items-center gap-3 px-4 py-3 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
+                                                            >
+                                                                <div className="p-2 bg-brand-green/20 rounded-lg flex-shrink-0">
+                                                                    <svg className="w-6 h-6 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                                                    </svg>
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="text-sm font-medium truncate">{msg.file_name || 'File'}</p>
+                                                                    {msg.file_size && (
+                                                                        <p className="text-xs opacity-70">{formatFileSize(msg.file_size)}</p>
+                                                                    )}
+                                                                </div>
+                                                                <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                                                </svg>
+                                                            </a>
+                                                        ) : null}
+                                                    </>
+                                                )}
+                                                {msg.reactions && msg.reactions.length > 0 && (
+                                                    <div className={`absolute -bottom-6 flex gap-1 flex-wrap ${isOwn ? 'right-2' : 'left-2'}`}>
+                                                        {Object.entries(groupedReactions(msg.reactions)).map(([emoji, count]) => (
                                                             <button
                                                                 key={emoji}
                                                                 onClick={() => handleReaction(emoji, msg.id)}
-                                                                className="p-1 text-xl hover:scale-125 transition-transform rounded-lg hover:bg-tertiary-light dark:hover:bg-tertiary"
+                                                                className="px-2 py-0.5 bg-secondary-light dark:bg-secondary rounded-full text-xs font-medium shadow-lg border border-tertiary-light dark:border-tertiary hover:scale-110 transition-transform"
                                                             >
-                                                                {emoji}
+                                                                <span className="mr-1">{emoji}</span>
+                                                                <span className="text-text-secondary-light dark:text-text-secondary">{count}</span>
                                                             </button>
                                                         ))}
-                                                        <button
-                                                            onClick={() => setEmojiPickerMessageId(msg.id)}
-                                                            className="p-1 text-xl hover:scale-125 transition-transform rounded-lg hover:bg-tertiary-light dark:hover:bg-tertiary border-l border-tertiary-light dark:border-tertiary pl-2"
-                                                        >
-                                                            <PlusIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary" />
-                                                        </button>
                                                     </div>
-                                                </div>
-                                                <button
-                                                    className="p-1.5 rounded-full hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors"
-                                                    onClick={() => setReplyingTo(msg)}
-                                                >
-                                                    <ReplyIcon className="w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" />
-                                                </button>
-                                                {isOwn && msg.message_type === 'text' && (
-                                                    <button
-                                                        className="p-1.5 rounded-full hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors"
-                                                        onClick={() => handleStartEdit(msg)}
-                                                    >
-                                                        <PencilIcon className="w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" />
-                                                    </button>
-                                                )}
-                                                <button
-                                                    className="p-1.5 rounded-full hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors"
-                                                    onClick={(e) => {
-                                                        const rect = e.currentTarget.getBoundingClientRect();
-                                                        setPinningOptions({ messageId: msg.id, x: rect.left - 150, y: rect.top - 120 });
-                                                    }}
-                                                >
-                                                    <PinIcon className="w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" />
-                                                </button>
-                                                {isOwn && (
-                                                    <button
-                                                        className="p-1.5 rounded-full text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                                                        onClick={() => handleDeleteForEveryone(msg.id)}
-                                                    >
-                                                        <TrashIcon className="w-4 h-4" />
-                                                    </button>
                                                 )}
                                             </div>
-                                        )}
+                                            {!isEditing && !msg.is_deleted && (
+                                                <div className={`flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0 ${isOwn ? '' : 'order-first'}`}>
+                                                    <div className="relative group/react">
+                                                        <button className="p-1.5 rounded-full hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors">
+                                                            <FaceSmileIcon className="w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" />
+                                                        </button>
+                                                        <div className={`absolute bottom-full mb-2 flex gap-1 bg-secondary-light dark:bg-secondary p-2 rounded-xl shadow-xl border border-tertiary-light dark:border-tertiary opacity-0 invisible group-hover/react:opacity-100 group-hover/react:visible z-10 transition-all ${isOwn ? 'right-0' : 'left-0'}`}>
+                                                            {REACTION_EMOJIS.map(emoji => (
+                                                                <button
+                                                                    key={emoji}
+                                                                    onClick={() => handleReaction(emoji, msg.id)}
+                                                                    className="p-1 text-xl hover:scale-125 transition-transform rounded-lg hover:bg-tertiary-light dark:hover:bg-tertiary"
+                                                                >
+                                                                    {emoji}
+                                                                </button>
+                                                            ))}
+                                                            <button
+                                                                onClick={() => setEmojiPickerMessageId(msg.id)}
+                                                                className="p-1 text-xl hover:scale-125 transition-transform rounded-lg hover:bg-tertiary-light dark:hover:bg-tertiary border-l border-tertiary-light dark:border-tertiary pl-2"
+                                                            >
+                                                                <PlusIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        className="p-1.5 rounded-full hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors"
+                                                        onClick={() => setReplyingTo(msg)}
+                                                    >
+                                                        <ReplyIcon className="w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" />
+                                                    </button>
+                                                    {isOwn && msg.message_type === 'text' && (
+                                                        <button
+                                                            className="p-1.5 rounded-full hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors"
+                                                            onClick={() => handleStartEdit(msg)}
+                                                        >
+                                                            <PencilIcon className="w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" />
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        className="p-1.5 rounded-full hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors"
+                                                        onClick={(e) => {
+                                                            const rect = e.currentTarget.getBoundingClientRect();
+                                                            setPinningOptions({ messageId: msg.id, x: rect.left - 150, y: rect.top - 120 });
+                                                        }}
+                                                    >
+                                                        <PinIcon className="w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" />
+                                                    </button>
+                                                    {isOwn && (
+                                                        <button
+                                                            className="p-1.5 rounded-full text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                                            onClick={() => handleDeleteForEveryone(msg.id)}
+                                                        >
+                                                            <TrashIcon className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                     {!isOwn && (
                                         <p className="text-xs text-text-tertiary-light dark:text-text-tertiary mb-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0">
@@ -1109,16 +1118,17 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                                 <span className="text-xs text-text-tertiary-light dark:text-text-tertiary">Seen by</span>
                                 <div className="flex -space-x-2">
                                     {readersOfLastMessage.slice(0, 3).map(reader => (
-                                        <Image
-                                            key={reader.user_id}
-                                            src={reader.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(reader.full_name || 'User')}`}
-                                            alt={reader.full_name || ''}
-                                            title={reader.full_name || ''}
-                                            className="rounded-full object-cover ring-2 ring-secondary-light dark:ring-secondary"
-                                            width={20}
-                                            height={20}
-                                            unoptimized
-                                        />
+                                        <Link key={reader.user_id} href={`/profile/${reader.username}`} className="transition-transform hover:scale-110 active:scale-95">
+                                            <Image
+                                                src={reader.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(reader.full_name || 'User')}`}
+                                                alt={reader.full_name || ''}
+                                                title={reader.full_name || ''}
+                                                className="rounded-full object-cover ring-2 ring-secondary-light dark:ring-secondary"
+                                                width={20}
+                                                height={20}
+                                                unoptimized
+                                            />
+                                        </Link>
                                     ))}
                                 </div>
                                 {readersOfLastMessage.length > 3 && (

@@ -1,7 +1,6 @@
 // src/components/NotificationPanel.tsx
 
 import React, { useEffect } from 'react';
-// FIXED: Use useRouter
 import Image from 'next/image';
 import Link from 'next/link';
 import { useNotifications } from '../hooks/useNotifications';
