@@ -19,8 +19,8 @@ const CreateCommunityModal: React.FC<Props> = ({ campus, onClose, onCommunityCre
     const { user } = useAuth();
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
-    const [accessType, setAccessType] = useState<'public' | 'restricted'>('public');
-    
+    const [accessType, setAccessType] = useState<'public' | 'restricted' | 'private'>('public');
+
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [bannerFile, setBannerFile] = useState<File | null>(null);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -68,7 +68,7 @@ const CreateCommunityModal: React.FC<Props> = ({ campus, onClose, onCommunityCre
 
         setIsSubmitting(true);
         setError('');
-        
+
         try {
             // Step 1: Upload images first to get their URLs
             let avatar_url = null;
@@ -104,9 +104,9 @@ const CreateCommunityModal: React.FC<Props> = ({ campus, onClose, onCommunityCre
                 .rpc('get_communities_list', { p_campus: campus })
                 .eq('id', newCommunityId)
                 .single();
-            
+
             if (fetchError) throw fetchError;
-            
+
             onCommunityCreated(newCommunityData as CommunityDetails);
 
         } catch (err: unknown) {
@@ -148,20 +148,20 @@ const CreateCommunityModal: React.FC<Props> = ({ campus, onClose, onCommunityCre
                             <XCircleIcon className="w-7 h-7" />
                         </button>
                     </header>
-                    
+
                     <main className="flex-1 p-6 overflow-y-auto space-y-6">
                         {/* Banner & Avatar */}
                         <div className="relative h-40 bg-tertiary-light dark:bg-tertiary rounded-xl mb-20 group">
-                            {bannerPreview && <img src={bannerPreview} className="w-full h-full object-cover rounded-xl" alt="Banner Preview"/>}
+                            {bannerPreview && <img src={bannerPreview} className="w-full h-full object-cover rounded-xl" alt="Banner Preview" />}
                             <button type="button" onClick={() => bannerInputRef.current?.click()} className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-xl">
-                                <CameraIcon className="w-8 h-8 text-white"/>
+                                <CameraIcon className="w-8 h-8 text-white" />
                             </button>
                             <input type="file" ref={bannerInputRef} onChange={(e) => handleFileChange(e, 'banner')} accept="image/*" hidden />
-                            
+
                             <div className="absolute -bottom-16 left-6 w-32 h-32 rounded-full border-4 border-secondary-light dark:border-secondary bg-tertiary-light dark:bg-tertiary overflow-hidden shadow-lg group">
-                                {avatarPreview && <img src={avatarPreview} className="w-full h-full object-cover" alt="Avatar Preview"/>}
+                                {avatarPreview && <img src={avatarPreview} className="w-full h-full object-cover" alt="Avatar Preview" />}
                                 <button type="button" onClick={() => avatarInputRef.current?.click()} className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 rounded-full transition-opacity">
-                                    <CameraIcon className="w-6 h-6 text-white"/>
+                                    <CameraIcon className="w-6 h-6 text-white" />
                                 </button>
                                 <input type="file" ref={avatarInputRef} onChange={(e) => handleFileChange(e, 'avatar')} accept="image/*" hidden />
                             </div>
@@ -172,15 +172,15 @@ const CreateCommunityModal: React.FC<Props> = ({ campus, onClose, onCommunityCre
                             <div>
                                 <label htmlFor="name" className="block text-sm font-medium text-text-main-light dark:text-text-main">Community Name*</label>
                                 <input type="text" id="name" value={name} onChange={e => setName(e.target.value)} required
-                                    className="mt-1 w-full p-2 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-600 rounded-md focus:ring-brand-green focus:border-brand-green"/>
+                                    className="mt-1 w-full p-2 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-600 rounded-md focus:ring-brand-green focus:border-brand-green" />
                             </div>
                             <div>
                                 <label htmlFor="description" className="block text-sm font-medium text-text-main-light dark:text-text-main">Description (Optional)</label>
                                 <textarea id="description" value={description} onChange={e => setDescription(e.target.value)} rows={3}
-                                    className="mt-1 w-full p-2 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-600 rounded-md focus:ring-brand-green focus:border-brand-green"/>
+                                    className="mt-1 w-full p-2 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-600 rounded-md focus:ring-brand-green focus:border-brand-green" />
                             </div>
                         </div>
-                        
+
                         {/* Access Type */}
                         <div>
                             <label className="block text-sm font-medium text-text-main-light dark:text-text-main">Access Type</label>
@@ -195,9 +195,14 @@ const CreateCommunityModal: React.FC<Props> = ({ campus, onClose, onCommunityCre
                                     <p className="font-semibold">🔒 Restricted</p>
                                     <p className="text-xs text-text-secondary-light dark:text-text-secondary">Members must be approved.</p>
                                 </label>
+                                <label className={`flex-1 p-4 border rounded-md cursor-pointer transition-all ${accessType === 'private' ? 'border-brand-green bg-brand-green/10' : 'border-tertiary-light dark:border-gray-600'}`}>
+                                    <input type="radio" name="accessType" value="private" checked={accessType === 'private'} onChange={() => setAccessType('private')} className="sr-only" />
+                                    <p className="font-semibold">👻 Private</p>
+                                    <p className="text-xs text-text-secondary-light dark:text-text-secondary">Hidden from search & lists.</p>
+                                </label>
                             </div>
                         </div>
-                        
+
                         {error && <p className="text-red-400 text-sm mt-4">{error}</p>}
                     </main>
 

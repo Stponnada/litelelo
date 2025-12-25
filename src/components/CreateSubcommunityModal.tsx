@@ -16,7 +16,7 @@ interface Props {
 const CreateSubcommunityModal: React.FC<Props> = ({ parentCommunityId, onClose, onSubcommunityCreated }) => {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
-    const [accessType, setAccessType] = useState<'public' | 'restricted'>('public');
+    const [accessType, setAccessType] = useState<'public' | 'restricted' | 'private'>('public');
     const [parentMembers, setParentMembers] = useState<Profile[]>([]);
     const [selectedConsuls, setSelectedConsuls] = useState<string[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -216,6 +216,18 @@ const CreateSubcommunityModal: React.FC<Props> = ({ parentCommunityId, onClose, 
                                                 <div className="flex-1">
                                                     <p className="font-bold text-sm text-text-main-light dark:text-text-main mb-0.5">Restricted</p>
                                                     <p className="text-xs text-text-secondary-light dark:text-text-secondary leading-relaxed">Requires Consul approval.</p>
+                                                </div>
+                                            </div>
+                                        </label>
+                                        <label className={`relative p-4 border-2 rounded-xl cursor-pointer transition-all ${accessType === 'private' ? 'border-brand-green bg-brand-green/10 shadow-lg shadow-brand-green/20' : 'border-tertiary-light dark:border-white/10 hover:border-brand-green/30 hover:bg-brand-green/5'}`}>
+                                            <input type="radio" value="private" checked={accessType === 'private'} onChange={() => setAccessType('private')} className="sr-only" />
+                                            <div className="flex items-start gap-2.5">
+                                                <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${accessType === 'private' ? 'border-brand-green bg-brand-green' : 'border-tertiary-light dark:border-white/20'}`}>
+                                                    {accessType === 'private' && <div className="w-2 h-2 bg-black rounded-full" />}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="font-bold text-sm text-text-main-light dark:text-text-main mb-0.5">Private</p>
+                                                    <p className="text-xs text-text-secondary-light dark:text-text-secondary leading-relaxed">Hidden from all lists.</p>
                                                 </div>
                                             </div>
                                         </label>

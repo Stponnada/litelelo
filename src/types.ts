@@ -99,7 +99,7 @@ export interface CommunityDetails {
   member_count: number;
   is_member: boolean;
   is_admin: boolean;
-  access_type: 'public' | 'restricted';
+  access_type: 'public' | 'restricted' | 'private';
   has_pending_request: boolean;
   parent_community_id?: string;
   parent_community_name?: string;
@@ -422,7 +422,7 @@ export interface BitsCoinRequest {
   deadline: string | null; // Added
 }
 
-export type NotificationType = 'like' | 'comment' | 'follow' | 'mention' | 'bits_coin_claim' | 'new_message' | 'community_join_request' | 'friend_request';
+export type NotificationType = 'like' | 'comment' | 'follow' | 'mention' | 'bits_coin_claim' | 'new_message' | 'community_join_request' | 'friend_request' | 'community_added';
 
 export interface Notification {
   id: string;

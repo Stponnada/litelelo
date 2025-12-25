@@ -8,7 +8,8 @@ import { supabase } from '@/services/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { Profile } from '@/types';
 import Spinner from '@/components/Spinner';
-import { UserGroupIcon, StarIcon } from '@/components/icons';
+import { UserGroupIcon, StarIcon, PlusIcon } from '@/components/icons';
+import AddMemberModal from '@/components/AddMemberModal';
 
 interface CommunityMember extends Profile {
     role: 'member' | 'admin';
@@ -92,6 +93,7 @@ const CommunityMembersPage: React.FC = () => {
     const [isViewingUserConsul, setIsViewingUserConsul] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
     const fetchCommunityMembers = useCallback(async () => {
         if (!communityId) return;
@@ -187,7 +189,22 @@ const CommunityMembersPage: React.FC = () => {
                         <p className="text-text-tertiary-light dark:text-text-tertiary">{approvedMembers.length} {approvedMembers.length === 1 ? 'member' : 'members'}</p>
                     </div>
                 </div>
+                {isViewingUserConsul && (
+                    <button
+                        onClick={() => setIsAddModalOpen(true)}
+                        className="mt-6 flex items-center justify-center gap-2 w-full py-3 bg-brand-green text-black font-bold rounded-xl hover:bg-brand-green-darker transition-all shadow-lg shadow-brand-green/20"
+                    >
+                        <PlusIcon className="w-5 h-5" /> Add Member
+                    </button>
+                )}
             </div>
+
+            <AddMemberModal
+                communityId={communityId}
+                isOpen={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
+                onMemberAdded={() => fetchCommunityMembers()}
+            />
 
             {isViewingUserConsul && pendingMembers.length > 0 && (
                 <div className="mb-8">

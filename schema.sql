@@ -104,7 +104,8 @@ CREATE TYPE "public"."notification_type" AS ENUM (
     'mention',
     'bits_coin_claim',
     'new_message',
-    'community_join_request'
+    'community_join_request',
+    'community_added'
 );
 
 
@@ -1475,7 +1476,17 @@ BEGIN
     FROM
         communities c
     WHERE
-        c.campus = p_campus AND c.parent_community_id IS NULL
+        c.campus = p_campus 
+        AND c.parent_community_id IS NULL
+        AND (
+            c.access_type <> 'private'
+            OR EXISTS (
+                SELECT 1 FROM community_members cm2 
+                WHERE cm2.community_id = c.id 
+                AND cm2.user_id = auth.uid() 
+                AND cm2.status = 'approved'
+            )
+        )
     ORDER BY
         member_count DESC,
         c.name;
@@ -1504,7 +1515,16 @@ BEGIN
     p.name AS parent_community_name
   FROM public.communities c
   LEFT JOIN public.communities p ON c.parent_community_id = p.id
-  WHERE c.id = p_community_id;
+  WHERE c.id = p_community_id
+  AND (
+      c.access_type <> 'private'
+      OR EXISTS (
+          SELECT 1 FROM public.community_members cm2 
+          WHERE cm2.community_id = c.id 
+          AND cm2.user_id = auth.uid() 
+          AND cm2.status = 'approved'
+      )
+  );
 END;
 $$;
 
@@ -2869,6 +2889,15 @@ BEGIN
         EXISTS(SELECT 1 FROM community_members cm WHERE cm.community_id = sub.id AND cm.user_id = auth.uid() AND cm.status = 'pending') as has_pending_request
     FROM communities sub
     WHERE sub.parent_community_id = p_parent_id
+    AND (
+        sub.access_type <> 'private'
+        OR EXISTS (
+            SELECT 1 FROM community_members cm2 
+            WHERE cm2.community_id = sub.id 
+            AND cm2.user_id = auth.uid() 
+            AND cm2.status = 'approved'
+        )
+    )
     ORDER BY sub.name;
 END;
 $$;
@@ -3185,6 +3214,41 @@ $$;
 
 
 ALTER FUNCTION "public"."manage_join_request"("p_community_id" "uuid", "p_requester_id" "uuid", "p_action" "text") OWNER TO "postgres";
+ 
+ 
+CREATE OR REPLACE FUNCTION "public"."add_member_to_community"("p_community_id" "uuid", "p_user_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+    target_conversation_id uuid;
+BEGIN
+    -- 1. Verify the caller is an admin
+    IF NOT public.is_community_admin(p_community_id, auth.uid()) THEN
+        RAISE EXCEPTION 'Permission denied: Only consuls can add members directly.';
+    END IF;
+
+    -- 2. Add the member with 'approved' status
+    INSERT INTO public.community_members (community_id, user_id, status, role)
+    VALUES (p_community_id, p_user_id, 'approved', 'member')
+    ON CONFLICT (community_id, user_id) 
+    DO UPDATE SET status = 'approved' WHERE community_members.status <> 'approved';
+
+    -- 3. Also add the user to the associated conversation (if any)
+    SELECT id INTO target_conversation_id FROM public.conversations WHERE community_id = p_community_id;
+    IF target_conversation_id IS NOT NULL THEN
+        INSERT INTO public.conversation_participants (conversation_id, user_id)
+        VALUES (target_conversation_id, p_user_id)
+        ON CONFLICT DO NOTHING;
+    END IF;
+
+    -- 4. Send notification to the user
+    INSERT INTO public.notifications (user_id, actor_id, type, entity_id, entity_type)
+    VALUES (p_user_id, auth.uid(), 'community_added', p_community_id, 'community');
+END;
+$$;
+
+
+ALTER FUNCTION "public"."add_member_to_community"("p_community_id" "uuid", "p_user_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."mark_conversation_as_read"("p_conversation_id" "uuid") RETURNS "void"
@@ -3252,13 +3316,20 @@ CREATE OR REPLACE FUNCTION "public"."request_to_join_community"("p_community_id"
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM public.community_members 
-    WHERE community_id = p_community_id AND user_id = auth.uid()
-  ) THEN
-    INSERT INTO public.community_members (community_id, user_id, status)
-    VALUES (p_community_id, auth.uid(), 'pending');
-  END IF;
+    IF EXISTS (
+        SELECT 1 FROM public.communities 
+        WHERE id = p_community_id AND access_type = 'private'
+    ) THEN
+        RAISE EXCEPTION 'This community is private. You must be added by a consul.';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM public.community_members 
+        WHERE community_id = p_community_id AND user_id = auth.uid()
+    ) THEN
+        INSERT INTO public.community_members (community_id, user_id, status)
+        VALUES (p_community_id, auth.uid(), 'pending');
+    END IF;
 END;
 $$;
 
@@ -3316,7 +3387,16 @@ BEGIN
                     com.avatar_url,
                     (SELECT count(*) FROM community_members cm WHERE cm.community_id = com.id) as member_count
                 FROM communities com
-                WHERE com.name ILIKE cleaned_search_term OR com.description ILIKE cleaned_search_term
+                WHERE (com.name ILIKE cleaned_search_term OR com.description ILIKE cleaned_search_term)
+                AND (
+                    com.access_type <> 'private'
+                    OR EXISTS (
+                        SELECT 1 FROM community_members cm2 
+                        WHERE cm2.community_id = com.id 
+                        AND cm2.user_id = auth.uid() 
+                        AND cm2.status = 'approved'
+                    )
+                )
                 LIMIT 5
             ) c
         ),
@@ -6362,6 +6442,9 @@ GRANT ALL ON FUNCTION "public"."is_participant"("convo_id" "uuid") TO "service_r
 GRANT ALL ON FUNCTION "public"."manage_join_request"("p_community_id" "uuid", "p_requester_id" "uuid", "p_action" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."manage_join_request"("p_community_id" "uuid", "p_requester_id" "uuid", "p_action" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."manage_join_request"("p_community_id" "uuid", "p_requester_id" "uuid", "p_action" "text") TO "service_role";
+GRANT ALL ON FUNCTION "public"."add_member_to_community"("p_community_id" "uuid", "p_user_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."add_member_to_community"("p_community_id" "uuid", "p_user_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."add_member_to_community"("p_community_id" "uuid", "p_user_id" "uuid") TO "service_role";
 
 
 

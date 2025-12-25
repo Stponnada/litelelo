@@ -38,6 +38,10 @@ const NotificationItem: React.FC<{ notification: NotificationType, onClose: () =
             text = 'requested to join a community you manage.';
             link = `/communities/${notification.entity_id}/members`;
             break;
+        case 'community_added':
+            text = 'added you to a community.';
+            link = `/communities/${notification.entity_id}`;
+            break;
         case 'friend_request':
             text = 'sent you a friend request.';
             link = `/profile/${notification.actor.username}`;

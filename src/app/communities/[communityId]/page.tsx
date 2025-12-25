@@ -37,7 +37,7 @@ const CommunityPage: React.FC = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [editedName, setEditedName] = useState('');
     const [editedDescription, setEditedDescription] = useState('');
-    const [editedAccessType, setEditedAccessType] = useState<'public' | 'restricted'>('public');
+    const [editedAccessType, setEditedAccessType] = useState<'public' | 'restricted' | 'private'>('public');
 
     // 'private' for member posts, 'public' for public posts, 'blog' for blog posts, or a subcommunity ID
     const [activeView, setActiveView] = useState<'private' | 'public' | 'blog' | string>('private');
@@ -186,7 +186,7 @@ const CommunityPage: React.FC = () => {
         setIsEditing(false);
     };
 
-    const handleJoinToggle = async (targetCommunityId: string, accessType: 'public' | 'restricted', isMember: boolean, hasPendingRequest: boolean, parentId?: string) => {
+    const handleJoinToggle = async (targetCommunityId: string, accessType: 'public' | 'restricted' | 'private', isMember: boolean, hasPendingRequest: boolean, parentId?: string) => {
         if (!user) return;
 
         // If trying to join a subcommunity (has parentId), we actually need to join the parent instead.
@@ -396,7 +396,11 @@ const CommunityPage: React.FC = () => {
                             {isEditing ? (<>
                                 <button onClick={handleCancelEdit} className="text-sm font-semibold py-2 px-5 rounded-lg bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main hover:bg-tertiary-light/80 dark:hover:bg-tertiary/80 transition-colors">Cancel</button>
                                 <button onClick={handleSaveChanges} disabled={isSaving} className="text-sm font-bold py-2 px-5 rounded-lg bg-brand-green text-black hover:bg-brand-green-darker transition-colors">{isSaving ? <Spinner /> : 'Save'}</button>
-                                <select value={editedAccessType} onChange={(e) => setEditedAccessType(e.target.value as 'public' | 'restricted')} className="text-sm bg-tertiary-light dark:bg-tertiary rounded-lg py-2 px-4"><option value="public">Public</option><option value="restricted">Restricted</option></select>
+                                <select value={editedAccessType} onChange={(e) => setEditedAccessType(e.target.value as 'public' | 'restricted' | 'private')} className="text-sm bg-tertiary-light dark:bg-tertiary rounded-lg py-2 px-4">
+                                    <option value="public">Public</option>
+                                    <option value="restricted">Restricted</option>
+                                    <option value="private">Private</option>
+                                </select>
                             </>) : isOwner ? (<>
                                 <button onClick={() => setCreateBlogModalOpen(true)} className="text-sm font-semibold py-2 px-5 rounded-lg bg-brand-green text-black hover:bg-brand-green-darker transition-colors shadow-lg shadow-brand-green/20">
                                     Write Blog
@@ -607,7 +611,7 @@ const CommunityPage: React.FC = () => {
     );
 };
 
-const SubcommunityLink: React.FC<{ label?: string, subcommunity?: Subcommunity, isActive: boolean, onClick: () => void, onJoinToggle?: (targetCommunityId: string, accessType: 'public' | 'restricted', isMember: boolean, hasPendingRequest: boolean) => void }> = ({ label, subcommunity, isActive, onClick, onJoinToggle }) => {
+const SubcommunityLink: React.FC<{ label?: string, subcommunity?: Subcommunity, isActive: boolean, onClick: () => void, onJoinToggle?: (targetCommunityId: string, accessType: 'public' | 'restricted' | 'private', isMember: boolean, hasPendingRequest: boolean) => void }> = ({ label, subcommunity, isActive, onClick, onJoinToggle }) => {
     const isChannel = !!label;
     const name = label || subcommunity!.name;
 
