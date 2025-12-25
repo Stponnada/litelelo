@@ -181,6 +181,9 @@ interface ProfilePostRpcResult extends Omit<PostType, 'author'> {
         name: string;
         avatar_url: string | null;
     } | null;
+    parent_post_id: string | null;
+    root_post_id: string | null;
+    replying_to_username: string | null;
 }
 
 const ProfilePage: React.FC = () => {

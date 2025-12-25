@@ -284,6 +284,11 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick, onRep
                                             </span>
                                         )}
                                     </div>
+                                    {post.replying_to_username && (
+                                        <div className="text-[11px] text-text-tertiary-light dark:text-text-tertiary mt-0.5 flex items-center gap-1">
+                                            replying to <Link href={`/profile/${post.replying_to_username}`} className="text-brand-green hover:underline font-medium" onClick={e => e.stopPropagation()}>@{post.replying_to_username}</Link>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Ellipsis Menu */}
