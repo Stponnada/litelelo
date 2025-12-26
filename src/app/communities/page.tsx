@@ -16,9 +16,19 @@ interface CommunityListItem {
     avatar_url: string | null;
     member_count: number;
     is_member: boolean;
+    last_visited_at: string | null;
+    is_pinned: boolean;
 }
 
-const CommunityCard: React.FC<{ community: CommunityListItem, index: number }> = ({ community, index }) => {
+const CommunityCard: React.FC<{ community: CommunityListItem, index: number, onTogglePin?: (communityId: string) => void, showPinButton?: boolean }> = ({ community, index, onTogglePin, showPinButton = false }) => {
+    const handlePinClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (onTogglePin) {
+            onTogglePin(community.id);
+        }
+    };
+
     return (
         <Link
             href={`/communities/${community.id}`}
@@ -29,6 +39,22 @@ const CommunityCard: React.FC<{ community: CommunityListItem, index: number }> =
             <div className="absolute -inset-1 bg-gradient-to-r from-brand-green/20 via-brand-green/10 to-transparent rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
             <div className="relative bg-white/60 dark:bg-secondary/60 backdrop-blur-xl rounded-3xl overflow-hidden border border-white/20 dark:border-white/5 shadow-xl shadow-black/5 dark:shadow-black/20 transition-all duration-300 group-hover:-translate-y-1 h-full flex flex-col">
+                {/* Pin button - only show for members */}
+                {showPinButton && onTogglePin && (
+                    <button
+                        onClick={handlePinClick}
+                        className={`absolute top-3 right-3 z-10 p-2 rounded-lg transition-all ${community.is_pinned
+                            ? 'bg-brand-green text-black shadow-lg'
+                            : 'bg-white/80 dark:bg-secondary/80 text-text-secondary-light dark:text-text-secondary hover:bg-brand-green/20 dark:hover:bg-brand-green/20'
+                            }`}
+                        title={community.is_pinned ? 'Unpin community' : 'Pin community'}
+                    >
+                        <svg className="w-4 h-4" fill={community.is_pinned ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                        </svg>
+                    </button>
+                )}
+
                 {/* Top section with avatar and info */}
                 <div className="p-4 sm:p-8 flex-1">
                     <div className="flex items-start gap-3 sm:gap-6 mb-4 sm:mb-5">
@@ -79,7 +105,8 @@ const CommunitiesListPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [isCreateModalOpen, setCreateModalOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState<'discover' | 'my'>('discover');
+    const [activeTab, setActiveTab] = useState<'discover' | 'my'>('my');
+
 
     useEffect(() => {
         if (!profile?.campus) return;
@@ -103,26 +130,82 @@ const CommunitiesListPage: React.FC = () => {
         };
 
         fetchCommunities();
+
+        // Refetch when page becomes visible (e.g., when navigating back)
+        const handleVisibilityChange = () => {
+            if (!document.hidden && profile?.campus) {
+                fetchCommunities();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
     }, [profile?.campus]);
 
     // handleJoinToggle removed as it is no longer used in the list view
 
-    const handleCommunityCreated = (newCommunity: CommunityListItem) => {
-        setCommunities(prev => [newCommunity, ...prev]);
+    const handleTogglePin = async (communityId: string) => {
+        try {
+            const { data, error } = await supabase.rpc('toggle_community_pin', { p_community_id: communityId });
+            if (error) throw error;
+
+            // Update local state
+            setCommunities(prev => prev.map(c =>
+                c.id === communityId ? { ...c, is_pinned: data as boolean } : c
+            ));
+        } catch (err) {
+            console.error('Failed to toggle pin:', err);
+        }
+    };
+
+    const handleCommunityCreated = (newCommunity: any) => {
+        // Convert CommunityDetails to CommunityListItem and add last_visited_at
+        const communityListItem: CommunityListItem = {
+            id: newCommunity.id,
+            name: newCommunity.name,
+            description: newCommunity.description,
+            avatar_url: newCommunity.avatar_url,
+            member_count: newCommunity.member_count || 1,
+            is_member: true,
+            last_visited_at: new Date().toISOString(),
+            is_pinned: false
+        };
+        setCommunities(prev => [communityListItem, ...prev]);
         setCreateModalOpen(false);
         setActiveTab('my');
     }
 
-    const filteredCommunities = useMemo(() => {
+    const { pinnedCommunities, recentCommunities, otherCommunities } = useMemo(() => {
         const listToFilter = activeTab === 'my'
             ? communities.filter(c => c.is_member)
             : communities.filter(c => !c.is_member);
 
-        if (!searchTerm.trim()) {
-            return listToFilter;
+        let filtered = listToFilter;
+        if (searchTerm.trim()) {
+            filtered = listToFilter.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
         }
 
-        return listToFilter.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
+        // For "My Communities" tab, separate pinned, recent (last 5 visited), and others
+        if (activeTab === 'my') {
+            const pinned = filtered.filter(c => c.is_pinned);
+            const unpinned = filtered.filter(c => !c.is_pinned);
+
+            const sortedUnpinned = [...unpinned].sort((a, b) => {
+                const dateA = a.last_visited_at ? new Date(a.last_visited_at).getTime() : 0;
+                const dateB = b.last_visited_at ? new Date(b.last_visited_at).getTime() : 0;
+                return dateB - dateA;
+            });
+
+            const recent = sortedUnpinned.slice(0, 5);
+            const others = sortedUnpinned.slice(5);
+
+            return { pinnedCommunities: pinned, recentCommunities: recent, otherCommunities: others };
+        }
+
+        return { pinnedCommunities: [], recentCommunities: [], otherCommunities: filtered };
     }, [communities, searchTerm, activeTab]);
 
     if (loading) {
@@ -265,24 +348,92 @@ const CommunitiesListPage: React.FC = () => {
                 </button>
 
                 {/* Communities Grid */}
-                {filteredCommunities.length > 0 ? (
+                {(pinnedCommunities.length > 0 || recentCommunities.length > 0 || otherCommunities.length > 0) ? (
                     <>
                         {searchTerm && (
                             <div className="mb-6 sm:mb-8 px-2">
                                 <p className="text-text-secondary-light dark:text-text-secondary text-sm sm:text-base">
-                                    <span className="font-bold text-text-main-light dark:text-text-main text-base sm:text-lg">{filteredCommunities.length}</span> {filteredCommunities.length !== 1 ? 'communities' : 'community'} found
+                                    <span className="font-bold text-text-main-light dark:text-text-main text-base sm:text-lg">{pinnedCommunities.length + recentCommunities.length + otherCommunities.length}</span> {(pinnedCommunities.length + recentCommunities.length + otherCommunities.length) !== 1 ? 'communities' : 'community'} found
                                 </p>
                             </div>
                         )}
-                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-8">
-                            {filteredCommunities.map((community, index) => (
-                                <CommunityCard
-                                    key={community.id}
-                                    community={community}
-                                    index={index}
-                                />
-                            ))}
-                        </div>
+
+                        {/* Pinned Communities Section - Only show on My Communities tab when not searching */}
+                        {activeTab === 'my' && !searchTerm && pinnedCommunities.length > 0 && (
+                            <div className="mb-8 sm:mb-12">
+                                <div className="flex items-center gap-3 mb-4 sm:mb-6 px-2">
+                                    <div className="flex-shrink-0 w-1 h-8 bg-gradient-to-b from-yellow-500 to-yellow-600 rounded-full"></div>
+                                    <h2 className="text-2xl sm:text-3xl font-bold text-text-main-light dark:text-text-main flex items-center gap-2">
+                                        <svg className="w-6 h-6 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                                        </svg>
+                                        Pinned
+                                    </h2>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-8">
+                                    {pinnedCommunities.map((community, index) => (
+                                        <CommunityCard
+                                            key={community.id}
+                                            community={community}
+                                            index={index}
+                                            onTogglePin={handleTogglePin}
+                                            showPinButton={true}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Recent Communities Section - Only show on My Communities tab when not searching */}
+                        {activeTab === 'my' && !searchTerm && recentCommunities.length > 0 && (
+                            <div className="mb-8 sm:mb-12">
+                                <div className="flex items-center gap-3 mb-4 sm:mb-6 px-2">
+                                    <div className="flex-shrink-0 w-1 h-8 bg-gradient-to-b from-brand-green to-brand-green/50 rounded-full"></div>
+                                    <h2 className="text-2xl sm:text-3xl font-bold text-text-main-light dark:text-text-main">
+                                        Recent
+                                    </h2>
+                                    <div className="flex-1 h-px bg-gradient-to-r from-tertiary-light/30 dark:from-tertiary/30 to-transparent"></div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-8">
+                                    {recentCommunities.map((community, index) => (
+                                        <CommunityCard
+                                            key={community.id}
+                                            community={community}
+                                            index={index + pinnedCommunities.length}
+                                            onTogglePin={handleTogglePin}
+                                            showPinButton={true}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Other Communities Section */}
+                        {otherCommunities.length > 0 && (
+                            <div>
+                                {/* Show section header only when there are recent/pinned communities above */}
+                                {activeTab === 'my' && !searchTerm && (pinnedCommunities.length > 0 || recentCommunities.length > 0) && (
+                                    <div className="flex items-center gap-3 mb-4 sm:mb-6 px-2">
+                                        <div className="flex-shrink-0 w-1 h-8 bg-gradient-to-b from-brand-green/60 to-brand-green/30 rounded-full"></div>
+                                        <h2 className="text-2xl sm:text-3xl font-bold text-text-main-light dark:text-text-main">
+                                            All Communities
+                                        </h2>
+                                        <div className="flex-1 h-px bg-gradient-to-r from-tertiary-light/30 dark:from-tertiary/30 to-transparent"></div>
+                                    </div>
+                                )}
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-8">
+                                    {otherCommunities.map((community, index) => (
+                                        <CommunityCard
+                                            key={community.id}
+                                            community={community}
+                                            index={activeTab === 'my' && !searchTerm ? index + pinnedCommunities.length + recentCommunities.length : index}
+                                            onTogglePin={activeTab === 'my' ? handleTogglePin : undefined}
+                                            showPinButton={activeTab === 'my'}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </>
                 ) : (
                     <div className="text-center py-16 sm:py-32 px-4 sm:px-6">

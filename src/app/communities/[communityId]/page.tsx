@@ -87,6 +87,29 @@ const CommunityPage: React.FC = () => {
             if (subcommunitiesResult.error) throw subcommunitiesResult.error;
             setSubcommunities(subcommunitiesResult.data || []);
 
+            // Update last_visited_at timestamp for this community (fire and forget)
+            if (user && communityResult.data) {
+                const communityData = communityResult.data as CommunityDetailsType;
+
+                // Update the current community
+                supabase.rpc('update_community_last_visited', { p_community_id: communityId })
+                    .then(({ error }) => {
+                        if (error) {
+                            console.error('Failed to update last_visited_at for community:', error);
+                        }
+                    });
+
+                // If this is a subcommunity, also update the parent community's last_visited_at
+                if (communityData.parent_community_id) {
+                    supabase.rpc('update_community_last_visited', { p_community_id: communityData.parent_community_id })
+                        .then(({ error }) => {
+                            if (error) {
+                                console.error('Failed to update last_visited_at for parent community:', error);
+                            }
+                        });
+                }
+            }
+
         } catch (err: unknown) {
             if (err instanceof Error) {
                 setError(err.message);
@@ -96,7 +119,7 @@ const CommunityPage: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    }, [communityId]);
+    }, [communityId, user]);
 
     useEffect(() => {
         fetchCommunityData();
