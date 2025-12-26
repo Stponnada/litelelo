@@ -39,11 +39,11 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: 'No @rock mention found' }, { status: 200 });
         }
 
-        // Fetch the post context (the post being replied to)
+        // Fetch the post context along with the author's username
         const targetId = parentId || postId;
         const { data: targetPost, error: fetchError } = await supabaseAdmin
             .from('posts')
-            .select('content, user_id, community_id, is_public')
+            .select('content, user_id, community_id, is_public, profiles(username)')
             .eq('id', targetId)
             .single();
 
@@ -52,16 +52,19 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Target post not found' }, { status: 404 });
         }
 
+        const authorUsername = (targetPost.profiles as any)?.username || 'user';
+
         // Use gemini-2.5-flash-lite
         let text = '';
         try {
             const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
             const prompt = `You are a funny, witty AI assistant named "Rock" on a social platform called Litelelo.
-            You are replying to a post that says: "${targetPost.content}".
-            The user's comment that triggered you is: "${content}".
+            You are replying to @${authorUsername} whose post says: "${targetPost.content}".
+            The comment that triggered you is from the same user or someone else: "${content}".
             Write a funny, witty, and helpful response as Rock. 
+            Mention @${authorUsername} in your reply if it feels natural.
             Keep it concise, conversational, and stay in character. 
-            Do not use many hashtags or emojis unless they fit the "rock" persona.`;
+            Do not use placeholders like "[original poster]". Always use actual usernames or names.`;
 
             const result = await model.generateContent(prompt);
             text = result.response.text();
