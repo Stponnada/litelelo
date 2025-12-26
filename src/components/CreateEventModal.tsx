@@ -67,6 +67,23 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onEventCre
         e.target.value = '';
     };
 
+    const handlePaste = (e: React.ClipboardEvent) => {
+        const items = e.clipboardData.items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                const file = items[i].getAsFile();
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        setCropperState({ isOpen: true, src: reader.result as string });
+                    };
+                    reader.readAsDataURL(file);
+                    break;
+                }
+            }
+        }
+    };
+
     const handleCropSave = (croppedImageFile: File) => {
         setImageFile(croppedImageFile);
         setImagePreview(URL.createObjectURL(croppedImageFile));
@@ -168,7 +185,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onEventCre
     if (isEditMode) {
         return (
             <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
-                <div className="bg-secondary-light dark:bg-secondary rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                <div className="bg-secondary-light dark:bg-secondary rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()} onPaste={handlePaste}>
                     <form onSubmit={handleSubmit} className="p-6">
                         <header className="flex items-center justify-between pb-4 border-b border-tertiary-light dark:border-tertiary">
                             <h2 className="text-xl font-bold">Edit Event</h2>
@@ -229,7 +246,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ onClose, onEventCre
 
     return (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
-            <div className="bg-secondary-light dark:bg-secondary rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="bg-secondary-light dark:bg-secondary rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()} onPaste={handlePaste}>
                 <form onSubmit={handleSubmit} className="p-4 md:p-8">
                     {/* Header */}
                     <header className="flex items-center justify-between pb-4 md:pb-6">

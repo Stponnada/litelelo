@@ -92,16 +92,32 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, profile, communi
     }
   }, [content]);
 
+  const processFile = (file: File) => {
+    setImageFile(file);
+    setIsCreatingPoll(false);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setImageFile(file);
-      setIsCreatingPoll(false);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      processFile(e.target.files[0]);
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        if (file) {
+          processFile(file);
+          break;
+        }
+      }
     }
   };
 
@@ -286,6 +302,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, profile, communi
                   ref={textareaRef}
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
+                  onPaste={handlePaste}
                   placeholder={placeholderText || "What's on your mind?"}
                   className="w-full bg-transparent text-xl text-text-main-light dark:text-text-main placeholder-text-tertiary-light/70 dark:placeholder-text-tertiary/70 resize-none focus:outline-none min-h-[3rem] py-2"
                   rows={1}

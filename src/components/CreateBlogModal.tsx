@@ -34,6 +34,24 @@ export default function CreateBlogModal({ isOpen, onClose, communityId, onSucces
         }
     };
 
+    const handlePaste = (e: React.ClipboardEvent) => {
+        const items = e.clipboardData.items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                const file = items[i].getAsFile();
+                if (file) {
+                    setImageFile(file);
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        setImagePreview(reader.result as string);
+                    };
+                    reader.readAsDataURL(file);
+                    break;
+                }
+            }
+        }
+    };
+
     const handleRemoveImage = () => {
         setImageFile(null);
         setImagePreview(null);
@@ -188,6 +206,7 @@ export default function CreateBlogModal({ isOpen, onClose, communityId, onSucces
                             placeholder="Give your story a captivating title..."
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
+                            onPaste={handlePaste}
                             className="w-full bg-transparent text-4xl md:text-5xl font-black text-gray-900 dark:text-white placeholder-gray-300 dark:placeholder-gray-700 border-none focus:ring-0 p-0 leading-tight"
                             autoFocus
                         />
@@ -204,6 +223,7 @@ export default function CreateBlogModal({ isOpen, onClose, communityId, onSucces
 Write freely. Use line breaks to create paragraphs. Share your thoughts, experiences, and insights with the community."
                             value={content}
                             onChange={(e) => setContent(e.target.value)}
+                            onPaste={handlePaste}
                             className="w-full min-h-[500px] bg-transparent text-xl text-gray-800 dark:text-gray-200 placeholder-gray-300 dark:placeholder-gray-700 border-none focus:ring-0 p-0 resize-none leading-relaxed font-serif"
                             style={{ lineHeight: '1.8' }}
                         />

@@ -45,6 +45,18 @@ const CreateNoticeModal: React.FC<CreateNoticeModalProps> = ({ campus, onClose, 
         }
     };
 
+    const handlePaste = (e: React.ClipboardEvent) => {
+        const items = e.clipboardData.items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                const file = items[i].getAsFile();
+                if (file) {
+                    setFilesToUpload(prev => [...prev, file]);
+                }
+            }
+        }
+    };
+
     const removeNewFile = (index: number) => {
         setFilesToUpload(prev => prev.filter((_, i) => i !== index));
     };
@@ -145,11 +157,11 @@ const CreateNoticeModal: React.FC<CreateNoticeModalProps> = ({ campus, onClose, 
                     <div className="mt-4 space-y-4 max-h-[70vh] overflow-y-auto pr-2">
                         <div>
                             <label className="block text-sm font-medium">Title*</label>
-                            <input type="text" value={title} onChange={e => setTitle(e.target.value)} required className="mt-1 w-full p-2 bg-tertiary-light dark:bg-tertiary rounded border border-tertiary-light dark:border-gray-600" />
+                            <input type="text" value={title} onChange={e => setTitle(e.target.value)} onPaste={handlePaste} required className="mt-1 w-full p-2 bg-tertiary-light dark:bg-tertiary rounded border border-tertiary-light dark:border-gray-600" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium">Description</label>
-                            <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} className="mt-1 w-full p-2 bg-tertiary-light dark:bg-tertiary rounded border border-tertiary-light dark:border-gray-600" />
+                            <textarea value={description} onChange={e => setDescription(e.target.value)} onPaste={handlePaste} rows={3} className="mt-1 w-full p-2 bg-tertiary-light dark:bg-tertiary rounded border border-tertiary-light dark:border-gray-600" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium mb-1">Files (Images or PDFs)*</label>

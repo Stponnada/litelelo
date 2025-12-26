@@ -431,6 +431,27 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
         }
     };
 
+    const handlePaste = (e: React.ClipboardEvent) => {
+        const items = e.clipboardData.items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                const file = items[i].getAsFile();
+                if (file) {
+                    resetInput();
+                    // Validate file size (50MB limit)
+                    const maxSize = 50 * 1024 * 1024; // 50MB
+                    if (file.size > maxSize) {
+                        alert('File size must be less than 50MB');
+                        return;
+                    }
+                    setImageFile(file);
+                    setImagePreview(URL.createObjectURL(file));
+                    break;
+                }
+            }
+        }
+    };
+
     const handleGifSelect = (gifUrl: string) => {
         setGifPickerOpen(false);
         handleSendMessage(undefined, { type: 'gif', url: gifUrl });
@@ -1284,6 +1305,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                             setNewMessage(e.target.value);
                             handleTyping();
                         }}
+                        onPaste={handlePaste}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter' && !e.shiftKey) {
                                 e.preventDefault();

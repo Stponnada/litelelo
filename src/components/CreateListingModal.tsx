@@ -59,6 +59,24 @@ const CreateListingModal: React.FC<CreateListingModalProps> = ({ campus, onClose
         }
     };
 
+    const handlePaste = (e: React.ClipboardEvent) => {
+        const items = e.clipboardData.items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                const file = items[i].getAsFile();
+                if (file) {
+                    const totalImages = imagePreviews.length - imagesToRemove.length + 1;
+                    if (totalImages > 5) {
+                        alert("You can upload a maximum of 5 images.");
+                        return;
+                    }
+                    setImageFiles(prev => [...prev, file]);
+                    setImagePreviews(prev => [...prev, URL.createObjectURL(file)]);
+                }
+            }
+        }
+    };
+
     const removeImage = (index: number, previewUrl: string) => {
         const fileIndex = imagePreviews.slice(0, index).filter(p => p.startsWith('blob:')).length;
         const existingUrlIndex = index - imagePreviews.slice(0, index).filter(p => p.startsWith('blob:')).length;
@@ -165,10 +183,10 @@ const CreateListingModal: React.FC<CreateListingModalProps> = ({ campus, onClose
                     </header>
 
                     <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="md:col-span-2"><label className="block text-sm font-medium">Title*</label><input type="text" value={title} onChange={e => setTitle(e.target.value)} required className="mt-1 w-full p-2 bg-tertiary-light dark:bg-tertiary rounded border border-tertiary-light dark:border-gray-600" /></div>
+                        <div className="md:col-span-2"><label className="block text-sm font-medium">Title*</label><input type="text" value={title} onChange={e => setTitle(e.target.value)} onPaste={handlePaste} required className="mt-1 w-full p-2 bg-tertiary-light dark:bg-tertiary rounded border border-tertiary-light dark:border-gray-600" /></div>
                         <div><label className="block text-sm font-medium">Price (₹)*</label><input type="number" value={price} onChange={e => setPrice(e.target.value)} required min="0" step="0.01" className="mt-1 w-full p-2 bg-tertiary-light dark:bg-tertiary rounded border border-tertiary-light dark:border-gray-600" /></div>
                         <div><label className="block text-sm font-medium">Category*</label><select value={category} onChange={e => setCategory(e.target.value)} required className="mt-1 w-full p-2 bg-tertiary-light dark:bg-tertiary rounded border border-tertiary-light dark:border-gray-600"><option value="" disabled>Select a category</option>{CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}</select></div>
-                        <div className="md:col-span-2"><label className="block text-sm font-medium">Description</label><textarea value={description} onChange={e => setDescription(e.target.value)} rows={4} className="mt-1 w-full p-2 bg-tertiary-light dark:bg-tertiary rounded border border-tertiary-light dark:border-gray-600" /></div>
+                        <div className="md:col-span-2"><label className="block text-sm font-medium">Description</label><textarea value={description} onChange={e => setDescription(e.target.value)} onPaste={handlePaste} rows={4} className="mt-1 w-full p-2 bg-tertiary-light dark:bg-tertiary rounded border border-tertiary-light dark:border-gray-600" /></div>
                         <div className="md:col-span-2">
                             <label className="block text-sm font-medium mb-1">Images (up to 5)*</label>
                             <div className="flex flex-wrap gap-2">

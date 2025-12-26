@@ -63,6 +63,19 @@ const CampusImageUploadModal: React.FC<CampusImageUploadModalProps> = ({
     }
   };
 
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        if (file) {
+          setFilesToUpload((prev) => [...prev, file]);
+          setPreviews((prev) => [...prev, URL.createObjectURL(file)]);
+        }
+      }
+    }
+  };
+
   const removeImage = (index: number) => {
     const urlToRemove = previews[index];
 
@@ -136,6 +149,7 @@ const CampusImageUploadModal: React.FC<CampusImageUploadModalProps> = ({
       <div
         className="bg-secondary-light dark:bg-secondary rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
+        onPaste={handlePaste}
       >
         <header className="flex items-center justify-between p-4 border-b border-tertiary-light dark:border-tertiary">
           <h2 className="text-xl font-bold">Manage Images for {place.name}</h2>
