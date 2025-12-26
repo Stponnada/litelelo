@@ -66,7 +66,7 @@ interface PostComponentProps {
     className?: string;
 }
 
-const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick, onReply, onUpdate, className = "mb-2" }) => {
+const PostComponent: React.FC<PostComponentProps & { prioritizeUser?: boolean }> = ({ post, onImageClick, onReply, onUpdate, className = "mb-2", prioritizeUser = false }) => {
     const router = useRouter();
     const { user } = useAuth();
     const { updatePostInContext: globalUpdatePost, addPostToContext, fetchPosts } = usePosts();
@@ -210,6 +210,9 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick, onRep
         ? `/communities/${author.author_id}`
         : `/profile/${author.author_username}`;
 
+    const isCommunityPostWithOriginalPoster = author.author_type === 'community' && post.original_poster_username;
+    const showUserFirst = prioritizeUser && isCommunityPostWithOriginalPoster;
+
     return (
         <>
             {isQuoteModalOpen && (
@@ -245,10 +248,10 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick, onRep
                 <div className={`p-3.5 ${post.reposted_by ? 'pt-2.5' : ''}`}>
                     <div className="flex items-start gap-3">
                         {/* Avatar - Smaller Size */}
-                        <Link href={authorLink} onClick={e => e.stopPropagation()} className="flex-shrink-0 relative group/avatar">
+                        <Link href={showUserFirst ? `/profile/${post.original_poster_username}` : authorLink} onClick={e => e.stopPropagation()} className="flex-shrink-0 relative group/avatar">
                             <Image
-                                src={author.author_avatar_url ? getResizedAvatarUrl(author.author_avatar_url, 80, 80) : `https://ui-avatars.com/api/?name=${encodeURIComponent((author.author_name || author.author_username || 'User'))}&background=random&color=fff&bold=true`}
-                                alt={author.author_name || ''}
+                                src={(showUserFirst && post.original_poster_avatar_url) ? getResizedAvatarUrl(post.original_poster_avatar_url, 80, 80) : author.author_avatar_url ? getResizedAvatarUrl(author.author_avatar_url, 80, 80) : `https://ui-avatars.com/api/?name=${encodeURIComponent((showUserFirst ? post.original_poster_username : author.author_name || author.author_username || 'User'))}&background=random&color=fff&bold=true`}
+                                alt={showUserFirst ? post.original_poster_username || '' : author.author_name || ''}
                                 width={40}
                                 height={40}
                                 className="relative rounded-full object-cover ring-1 ring-white dark:ring-white/10 shadow-sm"
@@ -262,8 +265,8 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick, onRep
                                 <div className="flex flex-col min-w-0">
                                     <div className="flex items-center flex-wrap gap-x-1.5">
                                         {/* Name - Reduced Size */}
-                                        <Link href={authorLink} onClick={e => e.stopPropagation()} className="font-bold text-sm text-text-main-light dark:text-text-main hover:underline truncate">
-                                            {author.author_name}
+                                        <Link href={showUserFirst ? `/profile/${post.original_poster_username}` : authorLink} onClick={e => e.stopPropagation()} className="font-bold text-sm text-text-main-light dark:text-text-main hover:underline truncate">
+                                            {showUserFirst ? post.original_poster_username : author.author_name}
                                         </Link>
 
                                         {author.author_flair_details && <Flair flair={author.author_flair_details} />}
@@ -280,7 +283,21 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick, onRep
                                         )}
                                         {author.author_type === 'community' && post.original_poster_username && (
                                             <span className="text-xs text-text-tertiary-light dark:text-text-tertiary flex items-center gap-1">
-                                                via <Link href={`/profile/${post.original_poster_username}`} onClick={e => e.stopPropagation()} className="hover:text-brand-green transition-colors">@{post.original_poster_username}</Link>
+                                                {showUserFirst ? 'in' : 'via'} <Link
+                                                    href={showUserFirst ? authorLink : `/profile/${post.original_poster_username}`}
+                                                    onClick={e => e.stopPropagation()}
+                                                    className="hover:text-brand-green transition-colors"
+                                                >
+                                                    {showUserFirst ? author.author_name : `@${post.original_poster_username}`}
+                                                </Link>
+                                                {showUserFirst && (
+                                                    <span className="flex items-center gap-1">
+                                                        • <span className="hover:underline">{formatTimestamp(post.created_at)}</span>
+                                                        <span className="ml-1" title={post.visibility}>
+                                                            <VisibilityIcon visibility={post.visibility || 'public'} />
+                                                        </span>
+                                                    </span>
+                                                )}
                                             </span>
                                         )}
                                     </div>
@@ -290,6 +307,7 @@ const PostComponent: React.FC<PostComponentProps> = ({ post, onImageClick, onRep
                                         </div>
                                     )}
                                 </div>
+
 
                                 {/* Ellipsis Menu */}
                                 {isOwner && !post.is_deleted && (

@@ -83,7 +83,8 @@ const CommunityPage: React.FC = () => {
                     author_username: post.author_username,
                     author_avatar_url: post.author_avatar_url,
                     author_flair_details: post.author_flair_details
-                }
+                },
+                original_poster_avatar_url: post.original_poster_avatar_url
             }));
 
             setPosts(formattedPosts);
@@ -149,7 +150,8 @@ const CommunityPage: React.FC = () => {
                             author_username: post.author_username,
                             author_avatar_url: post.author_avatar_url,
                             author_flair_details: post.author_flair_details
-                        }
+                        },
+                        original_poster_avatar_url: post.original_poster_avatar_url
                     }));
                     setSubcommunityPosts(formattedPosts);
                 } catch (err) {
@@ -600,7 +602,8 @@ const CommunityPage: React.FC = () => {
                                                                 author_username: post.author_username,
                                                                 author_avatar_url: post.author_avatar_url,
                                                                 author_flair_details: post.author_flair_details
-                                                            }
+                                                            },
+                                                            original_poster_avatar_url: post.original_poster_avatar_url
                                                         }));
                                                         setSubcommunityPosts(formattedPosts);
                                                     }
@@ -623,7 +626,7 @@ const CommunityPage: React.FC = () => {
                                 </div>
                             )}
 
-                            {activeView === 'private' && privatePosts.map((post, i) => <div key={post.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}><PostComponent post={post} onImageClick={setLightboxUrl} /></div>)}
+                            {activeView === 'private' && privatePosts.map((post, i) => <div key={post.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}><PostComponent post={post} onImageClick={setLightboxUrl} prioritizeUser={true} /></div>)}
                             {activeView === 'public' && publicPosts.map((post, i) => <div key={post.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}><PostComponent post={post} onImageClick={setLightboxUrl} /></div>)}
                             {activeView === 'blog' && blogPosts.map((post, i) => <div key={post.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}><PostComponent post={post} onImageClick={setLightboxUrl} /></div>)}
 

@@ -151,6 +151,7 @@ export interface Post {
   parent_post_id: string | null;
   root_post_id: string | null;
   replying_to_username: string | null;
+  original_poster_avatar_url?: string | null;
 }
 
 export interface CampusNotice {
