@@ -4,81 +4,83 @@ import React, { useState, useCallback, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { Profile, ConversationSummary } from '@/types';
-import Spinner from '@/components/Spinner';
+import { ConversationSummary } from '@/types';
 import Conversation from '@/components/Conversation';
 import CreateGroupModal from '@/components/CreateGroupModal';
+import StartConversationModal from '@/components/StartConversationModal';
 import ChatPageSkeleton from '@/components/ChatPageSkeleton';
 import { useChat } from '@/hooks/useChat';
 import { formatTimestamp } from '@/utils/timeUtils';
-import { ChatIcon, UserGroupIcon } from '@/components/icons';
+import { ChatIcon, UserGroupIcon, SearchIcon, PinIcon, ArchiveIcon, PlusIcon } from '@/components/icons';
 import { supabase } from '@/services/supabase';
 
 const ChatPage: React.FC = () => {
     const { user, profile: currentUserProfile } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
-
-    // UPDATED: Check for 'recipientId' OR 'userId' to handle different navigation sources
     const recipientId = searchParams.get('recipientId') || searchParams.get('userId');
 
-    const { conversations, loading, markConversationAsRead, fetchConversations, updateConversationId, onlineUsers } = useChat();
+    const {
+        conversations,
+        loading,
+        markConversationAsRead,
+        fetchConversations,
+        updateConversationId,
+        onlineUsers,
+        togglePin,
+        toggleArchive
+    } = useChat();
+
     const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [isGroupModalOpen, setGroupModalOpen] = useState(false);
+    const [isStartConvoModalOpen, setStartConvoModalOpen] = useState(false);
+    const [showArchived, setShowArchived] = useState(false);
     const [placeholderConversation, setPlaceholderConversation] = useState<ConversationSummary | null>(null);
 
+    // Logic for handling deep links to specific users
     useEffect(() => {
         const handleRecipient = async () => {
-            if (recipientId && user && currentUserProfile) {
-                // Check if conversation exists
-                const existingChat = conversations.find(c =>
-                    c.type === 'dm' && c.participants.some(p => p.user_id === recipientId)
-                );
+            if (!recipientId || !user || !currentUserProfile || loading) return;
 
-                if (existingChat) {
-                    setSelectedConversationId(existingChat.conversation_id);
-                    if (!existingChat.conversation_id.startsWith('placeholder_')) {
-                        markConversationAsRead(existingChat.conversation_id);
-                    }
-                    // Clean URL
+            const existingChat = conversations.find(c =>
+                c.type === 'dm' && c.participants.some(p => p.user_id === recipientId)
+            );
+
+            if (existingChat) {
+                setSelectedConversationId(existingChat.conversation_id);
+                if (!existingChat.conversation_id.startsWith('placeholder_')) {
+                    markConversationAsRead(existingChat.conversation_id);
+                }
+                router.replace('/chat');
+            } else {
+                const { data: recipientProfile } = await supabase
+                    .from('profiles').select('*').eq('user_id', recipientId).single();
+
+                if (recipientProfile) {
+                    const placeholder: ConversationSummary = {
+                        conversation_id: `placeholder_${recipientId}`,
+                        type: 'dm',
+                        participants: [currentUserProfile, recipientProfile],
+                        last_message_content: null,
+                        last_message_at: null,
+                        last_message_sender_id: null,
+                        unread_count: 0,
+                        name: null,
+                        is_pinned: false,
+                        is_archived: false
+                    };
+                    setPlaceholderConversation(placeholder);
+                    setSelectedConversationId(placeholder.conversation_id);
                     router.replace('/chat');
-                } else {
-                    // Fetch recipient profile to create placeholder
-                    const { data: recipientProfile } = await supabase
-                        .from('profiles')
-                        .select('*')
-                        .eq('user_id', recipientId)
-                        .single();
-
-                    if (recipientProfile) {
-                        const newPlaceholder: ConversationSummary = {
-                            conversation_id: `placeholder_${recipientId}`,
-                            type: 'dm',
-                            participants: [currentUserProfile, recipientProfile],
-                            last_message_content: null,
-                            last_message_at: null,
-                            last_message_sender_id: null,
-                            unread_count: 0,
-                            name: null
-                        };
-                        setPlaceholderConversation(newPlaceholder);
-                        setSelectedConversationId(newPlaceholder.conversation_id);
-                        // Clean URL
-                        router.replace('/chat');
-                    }
                 }
             }
         };
-
-        if (!loading) {
-            handleRecipient();
-        }
-    }, [recipientId, conversations, loading, user, currentUserProfile, markConversationAsRead, router]);
+        handleRecipient();
+    }, [recipientId, conversations, loading, user, currentUserProfile, router, markConversationAsRead]);
 
     const handleSelectConversation = useCallback((conversation: ConversationSummary) => {
         setSelectedConversationId(conversation.conversation_id);
-        // Clear direct-tap placeholder ONLY if we selected a DIFFERENT placeholder or a real convo
         if (placeholderConversation && placeholderConversation.conversation_id !== conversation.conversation_id) {
             setPlaceholderConversation(null);
         }
@@ -87,52 +89,31 @@ const ChatPage: React.FC = () => {
         }
     }, [markConversationAsRead, placeholderConversation]);
 
-    const handleConversationCreated = (placeholderId: string, newConversationId: string) => {
-        updateConversationId(placeholderId, newConversationId);
-        setSelectedConversationId(newConversationId);
-        setPlaceholderConversation(null);
-    };
-
-    const handleGroupCreated = (conversationId: string) => {
-        setGroupModalOpen(false);
-        fetchConversations();
-        setSelectedConversationId(conversationId);
-    };
-
     const getOtherParticipant = (convo: ConversationSummary) => {
         return convo.participants.find(p => p.user_id !== user?.id) || convo.participants[0] || null;
     };
 
     const filteredConversations = conversations.filter(conv => {
-        const searchLower = searchTerm.toLowerCase();
-        const convoName = (conv.type === 'group' ? conv.name : (getOtherParticipant(conv)?.full_name || conv.name)) || '';
-        const convoUsername = conv.type === 'dm' ? getOtherParticipant(conv)?.username : '';
+        const matchesArchive = showArchived ? conv.is_archived : !conv.is_archived;
+        if (!matchesArchive) return false;
 
-        return convoName.toLowerCase().includes(searchLower) ||
-            (convoUsername && convoUsername.toLowerCase().includes(searchLower));
+        const searchLower = searchTerm.toLowerCase();
+        const otherP = getOtherParticipant(conv);
+        const name = (conv.type === 'group' ? conv.name : otherP?.full_name) || 'Unknown';
+        const username = otherP?.username || '';
+
+        return name.toLowerCase().includes(searchLower) || username.toLowerCase().includes(searchLower);
     });
 
-    // Include placeholder in selection logic
-    // Include placeholder in selection logic - Check context list first, then direct-tap state
-    const selectedConversation =
-        conversations.find(c => c.conversation_id === selectedConversationId) ||
+    const selectedConversation = conversations.find(c => c.conversation_id === selectedConversationId) ||
         (selectedConversationId?.startsWith('placeholder_') ? placeholderConversation : null);
-
-    let conversationKey: string | undefined;
-    if (selectedConversation) {
-        if (selectedConversation.type === 'dm') {
-            const otherParticipant = getOtherParticipant(selectedConversation);
-            conversationKey = otherParticipant?.user_id;
-        } else {
-            conversationKey = selectedConversation.conversation_id;
-        }
-    }
 
     if (loading) return <ChatPageSkeleton />;
 
     return (
         <div className="relative h-[calc(100vh-144px)] md:h-[calc(100vh-96px)] w-full overflow-hidden bg-primary-light dark:bg-primary shadow-2xl">
-            {isGroupModalOpen && <CreateGroupModal onClose={() => setGroupModalOpen(false)} onGroupCreated={handleGroupCreated} />}
+            {isGroupModalOpen && <CreateGroupModal onClose={() => setGroupModalOpen(false)} onGroupCreated={(id) => { setGroupModalOpen(false); fetchConversations(); setSelectedConversationId(id); }} />}
+            {isStartConvoModalOpen && <StartConversationModal onClose={() => setStartConvoModalOpen(false)} onUserSelected={(p) => { setStartConvoModalOpen(false); setPlaceholderConversation(p); setSelectedConversationId(p.conversation_id); }} />}
 
             <div className={`relative w-full h-full flex transition-transform duration-300 ease-in-out md:transform-none ${selectedConversationId ? '-translate-x-full' : 'translate-x-0'}`}>
                 {/* Sidebar */}
@@ -141,28 +122,44 @@ const ChatPage: React.FC = () => {
                     <div className="p-5 border-b border-tertiary-light/50 dark:border-tertiary/50 bg-gradient-to-b from-secondary-light/50 to-transparent dark:from-secondary/50">
                         <div className="flex justify-between items-center mb-4">
                             <div>
-                                <h2 className="text-3xl font-bold font-poppins">
-                                    Chat
-                                </h2>
+                                <h1 className="text-3xl font-bold font-poppins text-text-main-light dark:text-text-main">
+                                    {showArchived ? 'Archived' : 'Chat'}
+                                </h1>
                                 <p className="text-xs text-text-tertiary-light dark:text-text-tertiary mt-0.5">
-                                    {conversations.length} conversation{conversations.length !== 1 ? 's' : ''}
+                                    {filteredConversations.length} conversation{filteredConversations.length !== 1 ? 's' : ''}
                                 </p>
                             </div>
-                            <button
-                                onClick={() => setGroupModalOpen(true)}
-                                className="group relative p-2.5 rounded-xl bg-gradient-to-br from-brand-green to-brand-green/80 hover:from-brand-green/90 hover:to-brand-green/70 text-black shadow-lg shadow-brand-green/20 hover:shadow-xl hover:shadow-brand-green/30 transition-all duration-200 hover:scale-105 active:scale-95"
-                                title="Create a group"
-                            >
-                                <UserGroupIcon className="w-5 h-5" />
-                            </button>
+
+                            {/* NEW PILL BUTTONS kept from your revamp */}
+                            <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1.5 rounded-[18px]">
+                                <button
+                                    onClick={() => setStartConvoModalOpen(true)}
+                                    className="p-2.5 hover:bg-white dark:hover:bg-white/10 rounded-xl transition-all text-brand-green"
+                                    title="New Message"
+                                >
+                                    <PlusIcon className="w-5 h-5" />
+                                </button>
+                                <button
+                                    onClick={() => setGroupModalOpen(true)}
+                                    className="p-2.5 hover:bg-white dark:hover:bg-white/10 rounded-xl transition-all text-brand-green"
+                                    title="Create Group"
+                                >
+                                    <UserGroupIcon className="w-5 h-5" />
+                                </button>
+                                <button
+                                    onClick={() => setShowArchived(!showArchived)}
+                                    className={`p-2.5 rounded-xl transition-all ${showArchived ? 'bg-brand-green text-black' : 'text-text-tertiary hover:text-text-main'}`}
+                                    title={showArchived ? "Go back to chats" : "View Archived"}
+                                >
+                                    <ArchiveIcon className="w-5 h-5" />
+                                </button>
+                            </div>
                         </div>
 
                         {/* Search Input */}
                         <div className="relative group">
                             <div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none transition-colors">
-                                <svg className="w-4.5 h-4.5 text-text-tertiary-light dark:text-text-tertiary group-focus-within:text-brand-green transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
+                                <SearchIcon className="w-4.5 h-4.5 text-text-tertiary group-focus-within:text-brand-green transition-colors" />
                             </div>
                             <input
                                 type="text"
@@ -181,23 +178,23 @@ const ChatPage: React.FC = () => {
                                 <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-tertiary-light to-tertiary-light/50 dark:from-tertiary to-tertiary/50 flex items-center justify-center mb-4 shadow-inner">
                                     <ChatIcon className="w-10 h-10 text-text-tertiary-light dark:text-text-tertiary" />
                                 </div>
-                                <p className="text-base text-text-secondary-light dark:text-text-secondary font-semibold mb-1">No conversations yet</p>
+                                <p className="text-base text-text-secondary-light dark:text-text-secondary font-semibold mb-1">No conversations found</p>
                                 <p className="text-sm text-text-tertiary-light dark:text-text-tertiary">Start a new chat to get connected</p>
                             </div>
                         ) : (
                             filteredConversations.map((conv, idx) => {
-                                const otherParticipant = conv.type === 'dm' ? getOtherParticipant(conv) : null;
+                                const otherParticipant = getOtherParticipant(conv);
                                 const displayName = conv.type === 'group' ? conv.name : otherParticipant?.full_name || 'User';
                                 const avatar = conv.type === 'dm' ? otherParticipant?.avatar_url : null;
                                 const avatarSrc = avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName || ' ')}&background=random&color=fff&bold=true`;
-                                const isOnline = otherParticipant ? onlineUsers.has(otherParticipant.user_id) : false;
+                                const isOnline = (conv.type === 'dm' && otherParticipant) ? onlineUsers.has(otherParticipant.user_id) : false;
                                 const isSelected = selectedConversationId === conv.conversation_id;
 
                                 return (
                                     <li
                                         key={conv.conversation_id}
                                         onClick={() => handleSelectConversation(conv)}
-                                        className={`mx-2 my-1 px-3.5 py-3.5 flex items-center gap-3.5 cursor-pointer transition-all duration-200 rounded-xl ${isSelected
+                                        className={`group/row mx-2 my-1 px-3.5 py-3.5 flex items-center gap-3.5 cursor-pointer transition-all duration-200 rounded-xl ${isSelected
                                             ? 'bg-gradient-to-r from-brand-green/10 to-brand-green/5 dark:from-brand-green/20 dark:to-brand-green/10 shadow-md scale-[0.98]'
                                             : 'hover:bg-tertiary-light/60 dark:hover:bg-tertiary/60 hover:scale-[0.99] active:scale-[0.97]'
                                             }`}
@@ -205,8 +202,8 @@ const ChatPage: React.FC = () => {
                                     >
                                         <div className="relative flex-shrink-0">
                                             {conv.type === 'group' ? (
-                                                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/30 dark:to-purple-800/30 flex items-center justify-center shadow-lg ring-2 ring-white dark:ring-secondary">
-                                                    <UserGroupIcon className="w-7 h-7 text-purple-600 dark:text-purple-400" />
+                                                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-green-100 to-green-200 dark:from-green-900/30 dark:to-green-800/30 flex items-center justify-center shadow-lg ring-2 ring-white dark:ring-secondary">
+                                                    <UserGroupIcon className="w-7 h-7 text-green-600 dark:text-green-400" />
                                                 </div>
                                             ) : (
                                                 <Image
@@ -218,7 +215,7 @@ const ChatPage: React.FC = () => {
                                                     unoptimized
                                                 />
                                             )}
-                                            {isOnline && conv.type === 'dm' && (
+                                            {isOnline && (
                                                 <span className="absolute bottom-0.5 right-0.5 block h-3.5 w-3.5 rounded-full bg-green-500 ring-2 ring-secondary-light/80 dark:ring-secondary/80" title="Online" />
                                             )}
                                             {conv.unread_count > 0 && (
@@ -226,9 +223,14 @@ const ChatPage: React.FC = () => {
                                                     {conv.unread_count > 9 ? '9+' : conv.unread_count}
                                                 </span>
                                             )}
+                                            {conv.is_pinned && (
+                                                <span className="absolute -bottom-1 -left-1 bg-white dark:bg-secondary p-1 rounded-full shadow-md ring-2 ring-brand-green/30 scale-75">
+                                                    <PinIcon className="w-3.5 h-3.5 text-brand-green" />
+                                                </span>
+                                            )}
                                         </div>
 
-                                        <div className="flex-1 min-w-0">
+                                        <div className="flex-1 min-w-0 pr-16 relative">
                                             <div className="flex justify-between items-baseline mb-1">
                                                 <p className={`font-semibold truncate text-base ${isSelected
                                                     ? 'text-brand-green dark:text-brand-green'
@@ -251,6 +253,24 @@ const ChatPage: React.FC = () => {
                                                 )}
                                                 {conv.last_message_content || 'No messages yet'}
                                             </p>
+
+                                            {/* Hover Actions */}
+                                            <div className="absolute right-[-8px] top-0 opacity-0 group-hover/row:opacity-100 flex gap-0.5 transition-opacity">
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); togglePin(conv.conversation_id); }}
+                                                    className={`p-1.5 rounded-lg hover:bg-white/10 dark:hover:bg-black/20 transition-colors ${conv.is_pinned ? 'text-brand-green' : 'text-text-tertiary'}`}
+                                                    title={conv.is_pinned ? "Unpin" : "Pin"}
+                                                >
+                                                    <PinIcon className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); toggleArchive(conv.conversation_id); }}
+                                                    className="p-1.5 rounded-lg hover:bg-white/10 dark:hover:bg-black/20 transition-colors text-text-tertiary hover:text-text-main"
+                                                    title={conv.is_archived ? "Unarchive" : "Archive"}
+                                                >
+                                                    <ArchiveIcon className="w-4 h-4" />
+                                                </button>
+                                            </div>
                                         </div>
                                     </li>
                                 );
@@ -263,10 +283,14 @@ const ChatPage: React.FC = () => {
                 <div className="w-full h-full flex-shrink-0 md:flex-1 flex flex-col bg-secondary-light/60 dark:bg-secondary/60 backdrop-blur-sm">
                     {selectedConversation ? (
                         <Conversation
-                            key={conversationKey}
+                            key={selectedConversation.conversation_id}
                             conversation={selectedConversation}
                             onBack={() => setSelectedConversationId(null)}
-                            onConversationCreated={handleConversationCreated}
+                            onConversationCreated={(placeholder, real) => {
+                                updateConversationId(placeholder, real);
+                                setSelectedConversationId(real);
+                                setPlaceholderConversation(null);
+                            }}
                         />
                     ) : (
                         <div className="hidden md:flex flex-col items-center justify-center h-full text-center p-8">
@@ -277,18 +301,12 @@ const ChatPage: React.FC = () => {
                                 </div>
                             </div>
 
-                            <h3 className="text-2xl font-bold font-raleway">
-                                Your Messages
+                            <h3 className="text-3xl font-bold font-poppins text-text-main-light dark:text-text-main">
+                                Select a chat
                             </h3>
-                            <p className="text-base text-text-secondary-light dark:text-text-secondary max-w-sm leading-relaxed">
-                                Select a conversation from the sidebar to start chatting with your connections
+                            <p className="text-base text-text-secondary-light dark:text-text-secondary max-w-sm leading-relaxed mt-2">
+                                Pick a conversation from the left to start chatting.
                             </p>
-
-                            <div className="mt-8 flex gap-2">
-                                <div className="w-2 h-2 rounded-full bg-brand-green/40 animate-pulse" />
-                                <div className="w-2 h-2 rounded-full bg-brand-green/40 animate-pulse" style={{ animationDelay: '0.2s' }} />
-                                <div className="w-2 h-2 rounded-full bg-brand-green/40 animate-pulse" style={{ animationDelay: '0.4s' }} />
-                            </div>
                         </div>
                     )}
                 </div>

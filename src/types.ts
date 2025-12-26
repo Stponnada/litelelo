@@ -114,6 +114,8 @@ export interface ConversationSummary {
   last_message_at: string | null;
   last_message_sender_id: string | null;
   unread_count: number;
+  is_pinned?: boolean;
+  is_archived?: boolean;
 }
 
 export interface Post {

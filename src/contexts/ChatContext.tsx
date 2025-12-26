@@ -15,6 +15,8 @@ interface ChatContextType {
   onlineUsers: Set<string>;
   fetchConversations: () => void;
   latestMessage: Message | null;
+  togglePin: (conversationId: string) => Promise<void>;
+  toggleArchive: (conversationId: string) => Promise<void>;
 }
 
 export const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -106,8 +108,18 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const combinedList = [...finalSummaries, ...placeholderConversations];
       combinedList.sort((a, b) => {
-        if (!a.last_message_at) return 1; if (!b.last_message_at) return -1;
-        return new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime();
+        // 1. Pinned chats always first
+        if (a.is_pinned && !b.is_pinned) return -1;
+        if (!a.is_pinned && b.is_pinned) return 1;
+
+        // 2. Then by recency
+        const timeA = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
+        const timeB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
+
+        if (timeA !== timeB) return timeB - timeA;
+
+        // 3. If no messages, put placeholders at the end alphabetically
+        return (a.name || '').localeCompare(b.name || '');
       });
 
       setConversations(combinedList);
@@ -217,7 +229,60 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setConversations(prev => prev.map(c => c.conversation_id === placeholderId ? { ...c, conversation_id: newId } : c));
   };
 
-  const value = { conversations, totalUnreadCount, loading, markConversationAsRead, fetchConversations, updateConversationId, latestMessage, onlineUsers };
+  const togglePin = async (conversationId: string) => {
+    if (!user?.id || conversationId.startsWith('placeholder_')) return;
+    const convo = conversations.find(c => c.conversation_id === conversationId);
+    if (!convo) return;
+
+    const nextPinnedStatus = !convo.is_pinned;
+    setConversations(prev => prev.map(c =>
+      c.conversation_id === conversationId ? { ...c, is_pinned: nextPinnedStatus } : c
+    ).sort((a, b) => {
+      if (a.is_pinned && !b.is_pinned) return -1;
+      if (!a.is_pinned && b.is_pinned) return 1;
+      const timeA = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
+      const timeB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
+      return timeB - timeA;
+    }));
+
+    const { error } = await supabase
+      .from('conversation_participants')
+      .update({ is_pinned: nextPinnedStatus })
+      .match({ conversation_id: conversationId, user_id: user?.id });
+
+    if (error) console.error("Error toggling pin:", error);
+  };
+
+  const toggleArchive = async (conversationId: string) => {
+    if (!user?.id || conversationId.startsWith('placeholder_')) return;
+    const convo = conversations.find(c => c.conversation_id === conversationId);
+    if (!convo) return;
+
+    const nextArchivedStatus = !convo.is_archived;
+    setConversations(prev => prev.map(c =>
+      c.conversation_id === conversationId ? { ...c, is_archived: nextArchivedStatus } : c
+    ));
+
+    const { error } = await supabase
+      .from('conversation_participants')
+      .update({ is_archived: nextArchivedStatus })
+      .match({ conversation_id: conversationId, user_id: user?.id });
+
+    if (error) console.error("Error toggling archive:", error);
+  };
+
+  const value = {
+    conversations,
+    totalUnreadCount,
+    loading,
+    markConversationAsRead,
+    fetchConversations,
+    updateConversationId,
+    latestMessage,
+    onlineUsers,
+    togglePin,
+    toggleArchive
+  };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
 };
