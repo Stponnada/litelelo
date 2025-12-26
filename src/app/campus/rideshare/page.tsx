@@ -6,6 +6,7 @@ import { supabase } from '@/services/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { RideShare } from '@/types';
 import Spinner from '@/components/Spinner';
+import Skeleton from '@/components/Skeleton';
 import { CarIcon, XCircleIcon, ChatIcon } from '@/components/icons';
 import { format } from 'date-fns';
 import Link from 'next/link';
@@ -43,7 +44,15 @@ const RideSharePage: React.FC = () => {
 
     const filteredRides = useMemo(() => rides.filter(r => r.type === activeTab), [rides, activeTab]);
 
-    if (loading) return <div className="flex justify-center items-center min-h-[60vh]"><Spinner /></div>;
+    if (loading) {
+        return (
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-4">
+                {[...Array(5)].map((_, i) => (
+                    <Skeleton key={i} className="h-48 w-full rounded-2xl" />
+                ))}
+            </div>
+        );
+    }
     if (error) return <div className="text-center p-8 text-red-400">Error: {error}</div>;
 
     return (

@@ -13,6 +13,7 @@ import {
     ArrowRightIcon, MapPinIcon, TagIcon, FireIcon,
     HandoutIcon
 } from '@/components/icons';
+import BentoSkeleton from '@/components/BentoSkeleton';
 
 // --- Background Texture Patterns ---
 
@@ -337,22 +338,18 @@ const CampusPage: React.FC = () => {
     }, [profile?.campus]);
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-black text-zinc-900 dark:text-zinc-100 relative selection:bg-brand-green selection:text-white font-raleway overflow-x-hidden">
+        <div className="min-h-screen bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 relative selection:bg-brand-green selection:text-white font-raleway overflow-x-hidden">
             <GrainTexture />
 
             {/* Ambient Glows */}
             <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-brand-green/10 dark:bg-brand-green/20 blur-[120px] rounded-full opacity-60 dark:opacity-20 pointer-events-none" />
             <div className="fixed bottom-0 right-0 w-[800px] h-[600px] bg-blue-400/10 dark:bg-blue-600/10 blur-[120px] rounded-full opacity-40 dark:opacity-20 pointer-events-none" />
 
-            <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+            <div className="relative max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-12 py-8 md:py-12">
 
                 {/* Header */}
                 <header className="mb-10 md:mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
                     <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-brand-green font-bold text-xs md:text-sm uppercase tracking-widest">
-                            <span className="w-2 h-2 bg-brand-green rounded-full animate-pulse" />
-                            Online at BITS
-                        </div>
                         <h1 className="text-4xl md:text-7xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-zinc-900 to-zinc-500 dark:from-white dark:to-zinc-500">
                             {greeting},<br />
                             <span className="text-zinc-800 dark:text-zinc-200">{profile?.full_name}</span>
@@ -370,73 +367,86 @@ const CampusPage: React.FC = () => {
 
                 {/* Main Bento Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-4 mb-10 h-auto md:h-[600px]">
+                    {loading ? (
+                        <>
+                            <BentoSkeleton className="md:col-span-1 md:row-span-2" />
+                            <BentoSkeleton className="md:col-span-1 md:row-span-1" />
+                            <BentoSkeleton className="md:col-span-1 md:row-span-1" />
+                            <BentoSkeleton className="md:col-span-1 md:row-span-1" />
+                            <BentoSkeleton className="md:col-span-1 md:row-span-1" />
+                            <BentoSkeleton className="md:col-span-1 md:row-span-1" />
+                            <BentoSkeleton className="md:col-span-1 md:row-span-1" />
+                        </>
+                    ) : (
+                        <>
+                            {/* 1. Places (Blue Theme) */}
+                            <BentoCard
+                                href="/campus/reviews"
+                                className="md:col-span-1 md:row-span-2 bg-blue-50/50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900/30"
+                                texture={<GraphPaperPattern />}
+                            >
+                                <PlaceWidget places={topPlaces} />
+                            </BentoCard>
 
-                    {/* 1. Places (Blue Theme) */}
-                    <BentoCard
-                        href="/campus/reviews"
-                        className="md:col-span-1 md:row-span-2 bg-blue-50/50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900/30"
-                        texture={<GraphPaperPattern />}
-                    >
-                        {loading ? <Spinner /> : <PlaceWidget places={topPlaces} />}
-                    </BentoCard>
+                            {/* 2. Marketplace (Emerald Theme - No Image BG) */}
+                            <BentoCard
+                                href="/campus/marketplace"
+                                className="md:col-span-1 md:row-span-1 bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-900/30"
+                                texture={<DiagonalLinesPattern />}
+                            >
+                                <MarketWidget listing={newestListing} />
+                            </BentoCard>
 
-                    {/* 2. Marketplace (Emerald Theme - No Image BG) */}
-                    <BentoCard
-                        href="/campus/marketplace"
-                        className="md:col-span-1 md:row-span-1 bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-900/30"
-                        texture={<DiagonalLinesPattern />}
-                    >
-                        {loading ? <Spinner /> : <MarketWidget listing={newestListing} />}
-                    </BentoCard>
+                            {/* 3. Notices (Amber Theme) */}
+                            <BentoCard
+                                href="/campus/noticeboard"
+                                className="md:col-span-1 md:row-span-1 bg-amber-50/50 dark:bg-amber-900/10 border-amber-100 dark:border-amber-900/30"
+                                texture={<CircuitBoardPattern />}
+                            >
+                                <NoticeWidget notice={latestNotice} />
+                            </BentoCard>
 
-                    {/* 3. Notices (Amber Theme) */}
-                    <BentoCard
-                        href="/campus/noticeboard"
-                        className="md:col-span-1 md:row-span-1 bg-amber-50/50 dark:bg-amber-900/10 border-amber-100 dark:border-amber-900/30"
-                        texture={<CircuitBoardPattern />}
-                    >
-                        {loading ? <Spinner /> : <NoticeWidget notice={latestNotice} />}
-                    </BentoCard>
+                            {/* 4. Handouts for you (Indigo Theme) */}
+                            <ExternalToolCard
+                                href="https://h4u.app/"
+                                icon={HandoutIcon}
+                                title="h4u."
+                                desc="Study Material"
+                                accentColor="text-indigo-600"
+                                darkAccentColor="dark:text-indigo-400"
+                                bgColorClass="bg-indigo-50/50 dark:bg-indigo-900/10 border-indigo-100 dark:border-indigo-900/30"
+                            />
 
-                    {/* 4. Handouts for you (Indigo Theme) */}
-                    <ExternalToolCard
-                        href="https://h4u.app/"
-                        icon={HandoutIcon}
-                        title="h4u."
-                        desc="Study Material"
-                        accentColor="text-indigo-600"
-                        darkAccentColor="dark:text-indigo-400"
-                        bgColorClass="bg-indigo-50/50 dark:bg-indigo-900/10 border-indigo-100 dark:border-indigo-900/30"
-                    />
+                            {/* 5. Lost & Found (Rose Theme) */}
+                            <BentoCard
+                                href="/campus/lost-and-found"
+                                className="md:col-span-1 md:row-span-1 bg-rose-50/50 dark:bg-rose-900/10 border-rose-100 dark:border-rose-900/30"
+                                texture={<PolkaDotPattern />}
+                            >
+                                <LostFoundWidget />
+                            </BentoCard>
 
-                    {/* 5. Lost & Found (Rose Theme) */}
-                    <BentoCard
-                        href="/campus/lost-and-found"
-                        className="md:col-span-1 md:row-span-1 bg-rose-50/50 dark:bg-rose-900/10 border-rose-100 dark:border-rose-900/30"
-                        texture={<PolkaDotPattern />}
-                    >
-                        <LostFoundWidget />
-                    </BentoCard>
+                            {/* 6. Events (Violet Theme) */}
+                            <BentoCard
+                                href="/campus/events"
+                                className="md:col-span-1 md:row-span-1 bg-violet-50/50 dark:bg-violet-900/10 border-violet-100 dark:border-violet-900/30"
+                                texture={<WavePattern />}
+                            >
+                                <EventsWidget />
+                            </BentoCard>
 
-                    {/* 6. Events (Violet Theme) */}
-                    <BentoCard
-                        href="/campus/events"
-                        className="md:col-span-1 md:row-span-1 bg-violet-50/50 dark:bg-violet-900/10 border-violet-100 dark:border-violet-900/30"
-                        texture={<WavePattern />}
-                    >
-                        <EventsWidget />
-                    </BentoCard>
-
-                    {/* 7. QuietSpace (Lime/Fuchsia Theme) */}
-                    <ExternalToolCard
-                        href="https://quietspace-mu.vercel.app/"
-                        icon={SpaceInvaderIcon}
-                        title={<>QUIET<br />SPACE</>}
-                        desc="Empty Rooms"
-                        accentColor="text-fuchsia-600"
-                        darkAccentColor="dark:text-lime-400"
-                        bgColorClass="bg-fuchsia-50/50 dark:bg-fuchsia-900/10 border-fuchsia-100 dark:border-fuchsia-900/30"
-                    />
+                            {/* 7. QuietSpace (Lime/Fuchsia Theme) */}
+                            <ExternalToolCard
+                                href="https://quietspace-mu.vercel.app/"
+                                icon={SpaceInvaderIcon}
+                                title={<>QUIET<br />SPACE</>}
+                                desc="Empty Rooms"
+                                accentColor="text-fuchsia-600"
+                                darkAccentColor="dark:text-lime-400"
+                                bgColorClass="bg-fuchsia-50/50 dark:bg-fuchsia-900/10 border-fuchsia-100 dark:border-fuchsia-900/30"
+                            />
+                        </>
+                    )}
                 </div>
 
 

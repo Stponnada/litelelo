@@ -86,8 +86,17 @@ const PostPage: React.FC = () => {
                 setCurrentUserProfile(profile);
             }
 
+            // Fetch the current post first to find its root
+            const { data: currentPostData, error: currentPostError } = await supabase
+                .from('posts')
+                .select('root_post_id, parent_post_id')
+                .eq('id', postId)
+                .single();
+
+            const fetchId = currentPostData?.root_post_id || postId;
+
             // Fetch post thread
-            const { data, error } = await supabase.rpc('get_post_thread', { p_post_id: postId });
+            const { data, error } = await supabase.rpc('get_post_thread', { p_post_id: fetchId });
 
             if (error) {
                 console.error("Error fetching thread:", error);
@@ -113,42 +122,37 @@ const PostPage: React.FC = () => {
     }, [postId, user?.id]);
 
     // Build tree
-    const { rootPost, tree } = useMemo(() => {
-        if (!threadPosts.length) return { rootPost: null, tree: [] };
+    const { rootPost, tree, ancestors } = useMemo(() => {
+        if (!threadPosts.length) return { rootPost: null, tree: [], ancestors: [] };
 
         const nodes: Record<string, PostType & { children: any[] }> = {};
         threadPosts.forEach(p => { nodes[p.id] = { ...p, children: [] }; });
 
-        let root: (PostType & { children: any[] }) | null = null;
-        const roots: (PostType & { children: any[] })[] = [];
+        // Find current post
+        const currentPostNode = nodes[postId];
+        const ancestorList: PostType[] = [];
 
+        if (currentPostNode) {
+            let currId = currentPostNode.parent_post_id;
+            while (currId && nodes[currId]) {
+                const parent = nodes[currId];
+                ancestorList.unshift(parent);
+                currId = parent.parent_post_id;
+            }
+        }
+
+        // Tree building (only for children)
         threadPosts.forEach(p => {
-            if (p.id === postId) {
-                root = nodes[p.id];
-            } else if (p.parent_post_id && nodes[p.parent_post_id]) {
+            if (p.parent_post_id && nodes[p.parent_post_id]) {
                 nodes[p.parent_post_id].children.push(nodes[p.id]);
-            } else if (p.parent_post_id === postId) {
-                // Direct child of the main post we are viewing
-                if (root) root.children.push(nodes[p.id]);
-                else roots.push(nodes[p.id]); // Fallback if root not found yet (shouldn't happen if sorted)
             }
         });
 
-        // If we are viewing a sub-post (comment) as the main page, it acts as root.
-        // But get_post_thread returns the whole thread from the ULTIMATE root.
-        // Wait, get_post_thread(p_root_post_id) returns everything with that root.
-        // If I visit a comment directly, I might want to see its parents?
-        // The current implementation assumes postId IS the root.
-        // If postId is a child, get_post_thread might return nothing if I pass child ID as root ID.
-        // Let's assume for now postId IS a root or I need to fetch the post first to find its root.
-
-        // Actually, if I click a comment, I go to /post/[commentId].
-        // That comment has a root_post_id.
-        // If I want to show the whole conversation, I should fetch by root_post_id.
-        // But for now, let's stick to the requested scope: "every comment to a post is a post in itself".
-        // If I visit a comment, it is treated as a post.
-
-        return { rootPost: root, tree: root ? (root as PostType & { children: any[] }).children : roots };
+        return {
+            rootPost: currentPostNode,
+            tree: currentPostNode ? currentPostNode.children : [],
+            ancestors: ancestorList
+        };
     }, [threadPosts, postId]);
 
     const handleReply = (post: PostType) => {
@@ -168,7 +172,9 @@ const PostPage: React.FC = () => {
 
         // Optimistic update would be nice, but refetching ensures tree structure
         const fetchThread = async () => {
-            const { data: newThread, error: fetchError } = await supabase.rpc('get_post_thread', { p_post_id: postId });
+            // Find root of the current view context
+            const fetchId = displayRoot?.root_post_id || postId;
+            const { data: newThread, error: fetchError } = await supabase.rpc('get_post_thread', { p_post_id: fetchId });
             if (newThread) {
                 const formattedPosts: PostType[] = newThread.map((p: any) => ({
                     ...p,
@@ -224,9 +230,24 @@ const PostPage: React.FC = () => {
                     <span className="font-medium">Back</span>
                 </button>
             </div>
+            {ancestors.map((parent, index) => (
+                <div key={parent.id} className="relative">
+                    <PostComponent
+                        post={parent}
+                        className={`mb-0 border-b-0 rounded-b-none ${index > 0 ? 'rounded-t-none' : ''}`}
+                    />
+                    {/* Visual Connector Line */}
+                    <div className="absolute left-[34px] top-[48px] bottom-0 w-0.5 bg-tertiary-light dark:bg-white/5 z-0" />
+                </div>
+            ))}
             {displayRoot && (
                 <>
-                    <PostComponent post={displayRoot} onReply={handleReply} onUpdate={handleUpdate} />
+                    <PostComponent
+                        post={displayRoot}
+                        onReply={handleReply}
+                        onUpdate={handleUpdate}
+                        className={`mb-0 ${ancestors.length > 0 ? 'rounded-t-none' : ''}`}
+                    />
 
                     {currentUserProfile && (
                         <div className="border-b border-tertiary-light dark:border-tertiary bg-secondary-light dark:bg-secondary mb-2 rounded-b-xl overflow-hidden">

@@ -20,6 +20,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     // Logic to hide layout on Login/Landing/Profile Setup pages
     const isAuthPage = pathname === '/login' || pathname === '/profile-setup';
     const isChatPage = pathname?.startsWith('/chat');
+    const isFullWidthPage = isChatPage || pathname?.startsWith('/campus');
 
     useEffect(() => {
         const fetchUsername = async () => {
@@ -46,7 +47,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     }
 
     return (
-        <div className="min-h-screen bg-primary-light dark:bg-primary">
+        <div className={`min-h-screen ${isFullWidthPage ? 'bg-white dark:bg-black' : 'bg-primary-light dark:bg-primary'}`}>
             <div className="bg-texture"></div>
             {isAboutModalOpen && <AboutModal onClose={() => setIsAboutModalOpen(false)} />}
 
@@ -68,7 +69,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           ${isSidebarExpanded ? 'md:pl-64' : 'md:pl-20'}
         `}
             >
-                <div className={isChatPage ? 'h-full' : 'p-4 md:p-8 max-w-7xl mx-auto'}>
+                <div className={isFullWidthPage ? 'h-full' : 'p-4 md:p-8 max-w-7xl mx-auto'}>
                     {children}
                 </div>
             </main>

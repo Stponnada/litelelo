@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { DirectoryProfile } from '@/types';
 import Spinner from '@/components/Spinner';
 import UserCard from '@/components/UserCard';
+import UserCardSkeleton from '@/components/UserCardSkeleton';
 import { GlobeIcon, UserIcon, UserGroupIcon } from '@/components/icons';
 import { getResizedAvatarUrl } from '@/utils/imageUtils';
 
@@ -185,7 +186,7 @@ const DirectoryPage: React.FC = () => {
     const activeFilterCount = Object.values(filters).filter(Boolean).length;
 
 
-    if (loading) return <div className="flex justify-center items-center h-[70vh]"><Spinner /></div>;
+    // Unified loading handled within components
 
     return (
         <div className="w-full max-w-full overflow-x-hidden flex flex-col h-[calc(100vh-64px)]">
@@ -333,7 +334,13 @@ const DirectoryPage: React.FC = () => {
             <div className="flex-1 relative overflow-hidden bg-background-light dark:bg-background">
                 {viewMode === 'grid' ? (
                     <div className="h-full overflow-y-auto p-4 max-w-7xl mx-auto w-full">
-                        {filteredProfiles.length > 0 ? (
+                        {loading ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-20">
+                                {[...Array(9)].map((_, i) => (
+                                    <UserCardSkeleton key={i} />
+                                ))}
+                            </div>
+                        ) : filteredProfiles.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-20">
                                 {filteredProfiles.map((profile) => (
                                     <UserCard
@@ -355,14 +362,20 @@ const DirectoryPage: React.FC = () => {
                     </div>
                 ) : (
                     /* Network View uses strictly filtered profiles */
-                    <InteractiveNetworkCanvas
-                        profiles={userProfiles}
-                        searchQuery={searchQuery}
-                        matchedProfileIds={new Set(filteredProfiles.map(p => p.id))}
-                        currentUser={currentUser}
-                        currentProfile={currentProfile}
-                        onSelectNode={setSelectedProfile}
-                    />
+                    loading ? (
+                        <div className="flex justify-center items-center h-full bg-[#0a0a0a]">
+                            <Spinner />
+                        </div>
+                    ) : (
+                        <InteractiveNetworkCanvas
+                            profiles={userProfiles}
+                            searchQuery={searchQuery}
+                            matchedProfileIds={new Set(filteredProfiles.map(p => p.id))}
+                            currentUser={currentUser}
+                            currentProfile={currentProfile}
+                            onSelectNode={setSelectedProfile}
+                        />
+                    )
                 )}
 
                 {/* Sidebar Overlay */}

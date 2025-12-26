@@ -8,6 +8,7 @@ import { Profile, ConversationSummary } from '@/types';
 import Spinner from '@/components/Spinner';
 import Conversation from '@/components/Conversation';
 import CreateGroupModal from '@/components/CreateGroupModal';
+import ChatPageSkeleton from '@/components/ChatPageSkeleton';
 import { useChat } from '@/hooks/useChat';
 import { formatTimestamp } from '@/utils/timeUtils';
 import { ChatIcon, UserGroupIcon } from '@/components/icons';
@@ -119,13 +120,7 @@ const ChatPage: React.FC = () => {
         }
     }
 
-    if (loading) {
-        return (
-            <div className="flex justify-center items-center h-[calc(100vh-80px)]">
-                <Spinner />
-            </div>
-        );
-    }
+    if (loading) return <ChatPageSkeleton />;
 
     return (
         <div className="relative h-[calc(100vh-144px)] md:h-[calc(100vh-96px)] w-full overflow-hidden bg-primary-light dark:bg-primary shadow-2xl">

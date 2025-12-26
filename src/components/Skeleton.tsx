@@ -3,7 +3,7 @@
 import React from 'react';
 
 const Skeleton: React.FC<{ className?: string }> = ({ className }) => (
-  <div className={`bg-tertiary-light/50 dark:bg-tertiary/50 rounded-md animate-pulse ${className}`} />
+  <div className={`bg-black/5 dark:bg-white/5 animate-pulse rounded-md ${className}`} />
 );
 
 export default Skeleton;

@@ -9,6 +9,7 @@ import PostComponent from '@/components/Post';
 import CreatePost from '@/components/CreatePost';
 import { Post as PostType, Profile, Friend } from '@/types';
 import Spinner from '@/components/Spinner';
+import PostSkeleton from '@/components/PostSkeleton';
 import ProfilePageSkeleton from '@/components/ProfilePageSkeleton';
 import { CameraIcon, LogoutIcon, ChatIcon, UserGroupIcon, BookmarkIcon, ConsulIcon, UserPlusIcon, CheckIcon, XMarkIcon } from '@/components/icons';
 import { isMscBranch, BITS_BRANCHES } from '@/data/bitsBranches';
@@ -722,7 +723,13 @@ const ProfilePage: React.FC = () => {
                                     <TabButton label="Mentions" isActive={activeTab === 'mentions'} onClick={() => setActiveTab('mentions')} />
                                 </div>
                                 <div className="p-4">
-                                    {postsLoading ? <div className="text-center py-12"><Spinner /></div> : (
+                                    {postsLoading ? (
+                                        <div className="space-y-4">
+                                            {[...Array(3)].map((_, i) => (
+                                                <PostSkeleton key={i} />
+                                            ))}
+                                        </div>
+                                    ) : (
                                         <>
                                             {activeTab === 'posts' && (
                                                 <div className="space-y-4">

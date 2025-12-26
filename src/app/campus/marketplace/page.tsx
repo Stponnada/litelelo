@@ -5,6 +5,7 @@ import { supabase } from '@/services/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { MarketplaceListing } from '@/types';
 import Spinner from '@/components/Spinner';
+import Skeleton from '@/components/Skeleton';
 import ListingCard from '@/components/ListingCard';
 import CreateListingModal from '@/components/CreateListingModal';
 import ListingDetailModal from '@/components/ListingDetailModal';
@@ -281,8 +282,10 @@ const MarketplacePage: React.FC = () => {
                     </div>
 
                     {loading ? (
-                        <div className="flex justify-center items-center py-32 bg-gradient-to-br from-secondary-light to-tertiary-light/30 dark:from-secondary dark:to-tertiary/30 rounded-2xl border border-tertiary-light dark:border-tertiary">
-                            <Spinner />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+                            {[...Array(10)].map((_, i) => (
+                                <Skeleton key={i} className="aspect-[3/4] w-full rounded-2xl" />
+                            ))}
                         </div>
                     ) : listings.length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">

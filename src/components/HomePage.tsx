@@ -13,6 +13,7 @@ import { XCircleIcon, PencilIcon, UserGroupIcon, CubeIcon, UserIcon } from './ic
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import Skeleton from './Skeleton';
 import FollowSuggestions from './FollowSuggestions';
 import GlobalSearchBar from './GlobalSearchBar';
 import ListingCard from './ListingCard';
@@ -124,13 +125,13 @@ const HomePage: React.FC = () => {
         return (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
                 <main className="col-span-1 lg:col-span-9 space-y-2">
-                    <div className="bg-white dark:bg-secondary rounded-xl border border-gray-200 dark:border-tertiary p-4 h-40 animate-pulse"></div>
+                    <Skeleton className="h-40 w-full rounded-xl" />
                     {[...Array(4)].map((_, i) => <PostSkeleton key={i} />)}
                 </main>
                 <aside className="hidden lg:block lg:col-span-3">
                     <div className="sticky top-24 space-y-3">
-                        <div className="bg-white dark:bg-secondary rounded-xl border border-gray-200 dark:border-tertiary p-4 h-24 animate-pulse"></div>
-                        <div className="bg-white dark:bg-secondary rounded-xl border border-gray-200 dark:border-tertiary p-4 h-36 animate-pulse"></div>
+                        <Skeleton className="h-24 w-full rounded-xl" />
+                        <Skeleton className="h-36 w-full rounded-xl" />
                     </div>
                 </aside>
             </div>

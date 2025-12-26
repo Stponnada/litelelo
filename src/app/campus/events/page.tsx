@@ -6,6 +6,7 @@ import { supabase } from '@/services/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { CampusEvent } from '@/types';
 import Spinner from '@/components/Spinner';
+import Skeleton from '@/components/Skeleton';
 import EventCard from '@/components/EventCard';
 import CreateEventModal from '@/components/CreateEventModal';
 import { CalendarDaysIcon } from '@/components/icons';
@@ -143,8 +144,10 @@ const EventsPage: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center min-h-screen">
-                <Spinner />
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-4">
+                {[...Array(5)].map((_, i) => (
+                    <Skeleton key={i} className="h-40 w-full rounded-2xl" />
+                ))}
             </div>
         );
     }

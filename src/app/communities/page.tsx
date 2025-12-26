@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import CreateCommunityModal from '@/components/CreateCommunityModal';
+import Skeleton from '@/components/Skeleton';
 import { UserGroupIcon, PlusIcon, SearchIcon, PinIcon, XMarkIcon, ArrowRightIcon } from '@/components/icons';
 
 // --- Types ---
@@ -102,7 +103,7 @@ const CommunityCard = ({
 };
 
 const SkeletonCard = () => (
-    <div className="h-[220px] rounded-3xl bg-black/5 dark:bg-white/5 animate-pulse border border-transparent" />
+    <Skeleton className="h-[220px] rounded-3xl" />
 );
 
 // --- Main Page Component ---

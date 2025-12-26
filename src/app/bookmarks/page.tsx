@@ -5,6 +5,7 @@ import { supabase } from '@/services/supabase';
 import PostComponent from '@/components/Post';
 import { Post as PostType } from '@/types';
 import Spinner from '@/components/Spinner';
+import PostSkeleton from '@/components/PostSkeleton';
 import LightBox from '@/components/lightbox';
 import { BookmarkIcon } from '@/components/icons';
 
@@ -60,7 +61,13 @@ const BookmarksPage: React.FC = () => {
     }, []);
 
     if (loading) {
-        return <div className="text-center p-10"><Spinner /></div>;
+        return (
+            <div className="max-w-3xl mx-auto space-y-4">
+                {[...Array(5)].map((_, i) => (
+                    <PostSkeleton key={i} />
+                ))}
+            </div>
+        );
     }
 
     if (error) {

@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/services/supabase';
 import { SearchResults as SearchResultsType, UserSearchResult, PostSearchResult, CommunitySearchResult, ListingSearchResult, EventSearchResult } from '@/types';
 import Spinner from '@/components/Spinner';
+import Skeleton from '@/components/Skeleton';
 import { format } from 'date-fns';
 
 // --- Reusable Result Card Components ---
@@ -112,7 +113,13 @@ const SearchPage: React.FC = () => {
     const totalResults = Object.values(resultCounts).reduce((sum, count) => sum + count, 0);
 
     const renderResults = () => {
-        if (loading) return <div className="p-12 flex justify-center"><Spinner /></div>;
+        if (loading) return (
+            <div className="p-4 space-y-3">
+                {[...Array(6)].map((_, i) => (
+                    <Skeleton key={i} className="h-16 w-full rounded-lg" />
+                ))}
+            </div>
+        );
         if (!results || totalResults === 0) {
             return (
                 <div className="text-center py-16">
