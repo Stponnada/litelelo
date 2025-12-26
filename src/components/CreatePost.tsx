@@ -65,6 +65,7 @@ interface CreatePostRpcResult {
     username: string;
     full_name: string | null;
   } | null;
+  replying_to_username: string | null;
 }
 
 const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, profile, communityId, isPublicPost = false, placeholderText }) => {
@@ -245,6 +246,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, profile, communi
         reposted_by: rpcResult.reposted_by || null,
         parent_post_id: null,
         root_post_id: null,
+        replying_to_username: rpcResult.replying_to_username || null,
         // Any other properties that are part of PostType but not in CreatePostRpcResult will be undefined,
         // which might be fine if they are optional or handled elsewhere.
       };
