@@ -305,7 +305,7 @@ const ChatPage: React.FC = () => {
                                 Select a chat
                             </h3>
                             <p className="text-base text-text-secondary-light dark:text-text-secondary max-w-sm leading-relaxed mt-2">
-                                Pick a conversation from the left to start chatting.
+                                Pick a conversation to start chatting.
                             </p>
                         </div>
                     )}
