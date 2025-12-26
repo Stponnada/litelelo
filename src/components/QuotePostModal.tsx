@@ -8,14 +8,17 @@ import Spinner from './Spinner';
 import QuotePostDisplay from './QuotePostDisplay';
 import { XCircleIcon } from './icons';
 import Image from 'next/image';
+import { getResizedAvatarUrl } from '../utils/imageUtils';
 
 interface QuotePostModalProps {
   postToQuote: PostType;
   onClose: () => void;
   onPostCreated: (newPost: PostType) => void;
+  communityId?: string | null;
+  isPublic?: boolean;
 }
 
-const QuotePostModal: React.FC<QuotePostModalProps> = ({ postToQuote, onClose, onPostCreated }) => {
+const QuotePostModal: React.FC<QuotePostModalProps> = ({ postToQuote, onClose, onPostCreated, communityId, isPublic }) => {
   const { profile } = useAuth();
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,8 +46,8 @@ const QuotePostModal: React.FC<QuotePostModalProps> = ({ postToQuote, onClose, o
       const { data, error: rpcError } = await supabase.rpc('create_quote_post', {
         p_content: content.trim(),
         p_quoted_post_id: postToQuote.id,
-        p_community_id: undefined,
-        p_is_public: true
+        p_community_id: communityId !== undefined ? communityId : postToQuote.community_id,
+        p_is_public: isPublic !== undefined ? isPublic : postToQuote.is_public
       }).single();
 
       if (rpcError) throw rpcError;
@@ -83,7 +86,14 @@ const QuotePostModal: React.FC<QuotePostModalProps> = ({ postToQuote, onClose, o
 
         <form onSubmit={handleSubmit} className="p-4">
           <div className="flex items-start space-x-4">
-            <Image src={profile.avatar_url || ''} alt="Your avatar" width={48} height={48} className="rounded-full object-cover" />
+            <Image
+              src={getResizedAvatarUrl(profile.avatar_url, 48, 48, profile.full_name || profile.username)}
+              alt="Your avatar"
+              width={48}
+              height={48}
+              className="rounded-full object-cover"
+              unoptimized
+            />
             <div className="flex-1">
               <textarea
                 ref={textareaRef}

@@ -10,6 +10,7 @@ import { CampusPlace, Review as ReviewType, Profile } from '@/types';
 import Spinner from '@/components/Spinner';
 import { StarIcon } from '@/components/icons';
 import { formatTimestamp } from '@/utils/timeUtils';
+import { getResizedAvatarUrl } from '@/utils/imageUtils';
 
 // --- NEW: Add Back and Forward Icons for Carousel ---
 const BackIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" }) => (
@@ -51,7 +52,14 @@ const ReviewCard: React.FC<{ review: ReviewType; onDelete: (reviewId: string) =>
         <div className="bg-secondary-light dark:bg-secondary p-4 rounded-lg border border-tertiary-light dark:border-tertiary">
             <div className="flex items-start space-x-3">
                 <Link href={`/profile/${author?.username}`}>
-                    <Image src={author?.avatar_url || ''} alt={author?.username || 'User'} width={40} height={40} className="w-10 h-10 rounded-full object-cover" unoptimized />
+                    <Image
+                        src={getResizedAvatarUrl(author?.avatar_url, 80, 80, author?.full_name || author?.username)}
+                        alt={author?.username || 'User'}
+                        width={40}
+                        height={40}
+                        className="w-10 h-10 rounded-full object-cover"
+                        unoptimized
+                    />
                 </Link>
                 <div className="flex-1">
                     <div className="flex justify-between items-start">

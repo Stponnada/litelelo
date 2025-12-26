@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { QuotedPost } from '../types';
 import { formatTimestamp } from '../utils/timeUtils';
 import { renderContentWithEmbeds } from '../utils/renderEmbeds';
+import { getResizedAvatarUrl } from '../utils/imageUtils';
 
 const QuotePostDisplay: React.FC<{ post: QuotedPost }> = ({ post }) => {
     // FIXED: Initialize router
@@ -34,7 +35,14 @@ const QuotePostDisplay: React.FC<{ post: QuotedPost }> = ({ post }) => {
             className="mt-2 border border-tertiary-light dark:border-tertiary rounded-xl p-3 hover:bg-tertiary-light/20 dark:hover:bg-tertiary/20 transition-colors"
         >
             <div className="flex items-center space-x-2 mb-2">
-                <Image src={post.author_avatar_url || ''} alt={post.author_username || ''} width={20} height={20} className="rounded-full object-cover" />
+                <Image
+                    src={getResizedAvatarUrl(post.author_avatar_url, 40, 40, post.author_name || post.author_username)}
+                    alt={post.author_username || ''}
+                    width={20}
+                    height={20}
+                    className="rounded-full object-cover"
+                    unoptimized
+                />
                 <span className="font-semibold text-sm">{post.author_name}</span>
                 <span className="text-sm text-text-tertiary-light dark:text-text-tertiary">@{post.author_username} &middot; {formatTimestamp(post.created_at)}</span>
             </div>

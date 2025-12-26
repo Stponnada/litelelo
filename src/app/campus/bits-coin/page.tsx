@@ -13,6 +13,7 @@ import RateBitsCoinUserModal from '@/components/RateBitsCoinUserModal';
 import { motion, AnimatePresence, useMotionTemplate, useMotionValue, useSpring } from 'framer-motion';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { getResizedAvatarUrl } from '@/utils/imageUtils';
 
 // --- Utility for Tailwind ---
 function cn(...inputs: ClassValue[]) {
@@ -351,7 +352,7 @@ const RequestCard = ({ request, onClick, index }: { request: BitsCoinRequest, on
                 <div className="mt-auto pt-4 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <div className="relative w-8 h-8 rounded-full overflow-hidden ring-2 ring-neutral-100 dark:ring-neutral-800">
-                            <Image src={request.requester.avatar_url || ''} alt="" fill className="object-cover" unoptimized />
+                            <Image src={getResizedAvatarUrl(request.requester.avatar_url, 64, 64, request.requester.username)} alt="" fill className="object-cover" unoptimized />
                         </div>
                         <div className="flex flex-col">
                             <span className="text-xs font-medium text-neutral-900 dark:text-neutral-200">@{request.requester.username}</span>
@@ -567,7 +568,7 @@ const RequestDetailModal: React.FC<{ request: BitsCoinRequest, onClose: () => vo
                     <div className="flex justify-between items-end mb-6">
                         <div className="flex items-center gap-4">
                             <div className="relative w-20 h-20 rounded-2xl border-4 border-white dark:border-neutral-900 shadow-xl overflow-hidden bg-neutral-100">
-                                <Image src={request.requester.avatar_url || ''} alt="" fill className="object-cover" unoptimized />
+                                <Image src={getResizedAvatarUrl(request.requester.avatar_url, 160, 160, request.requester.username)} alt="" fill className="object-cover" unoptimized />
                             </div>
                             <div className="mb-2">
                                 <h2 className="text-2xl font-bold text-neutral-900 dark:text-white leading-tight">{request.title}</h2>
@@ -588,7 +589,7 @@ const RequestDetailModal: React.FC<{ request: BitsCoinRequest, onClose: () => vo
                         {request.claimer && (
                             <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-500/10 to-transparent rounded-2xl border border-blue-500/20">
                                 <div className="flex items-center gap-3">
-                                    <Image src={request.claimer.avatar_url || ''} alt="" width={40} height={40} className="rounded-full ring-2 ring-blue-500/50" unoptimized />
+                                    <Image src={getResizedAvatarUrl(request.claimer.avatar_url, 80, 80, request.claimer.username)} alt="" width={40} height={40} className="rounded-full ring-2 ring-blue-500/50" unoptimized />
                                     <div>
                                         <p className="text-xs text-blue-500 font-bold uppercase">Claimed By</p>
                                         <p className="font-bold text-neutral-900 dark:text-white">@{request.claimer.username}</p>

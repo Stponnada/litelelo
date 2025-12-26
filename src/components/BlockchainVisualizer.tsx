@@ -7,6 +7,7 @@ import { motion, useScroll, useTransform, useSpring, useMotionValue, useMotionTe
 import { Box, Hash, Link as LinkIcon, Clock, Cpu, ArrowRight, User } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { getResizedAvatarUrl } from '../utils/imageUtils';
 
 // --- UTILS ---
 function cn(...inputs: ClassValue[]) {
@@ -242,7 +243,7 @@ const HoloBlock = ({ block, isGenesis }: { block: Block, isGenesis: boolean }) =
                                     <span className="text-xs font-bold truncate max-w-[80px]">@{block.miner.username}</span>
                                     <div className="relative w-6 h-6">
                                         <Image
-                                            src={block.miner.avatar_url || ''}
+                                            src={getResizedAvatarUrl(block.miner.avatar_url, 48, 48, block.miner.username)}
                                             alt={block.miner.username}
                                             width={24} height={24}
                                             className="rounded-full object-cover"

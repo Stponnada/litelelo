@@ -8,11 +8,13 @@ const AVATAR_PLACEHOLDER = 'https://ui-avatars.com/api/?name=User&background=1e2
  * @param url The original avatar URL.
  * @param width The desired width of the avatar.
  * @param height The desired height of the avatar.
+ * @param name Optional name to use for initials if the URL is missing.
  * @returns A URL for the resized image or a placeholder.
  */
-export const getResizedAvatarUrl = (url: string | null | undefined, width: number, height: number): string => {
-  if (!url) {
-    return AVATAR_PLACEHOLDER;
+export const getResizedAvatarUrl = (url: string | null | undefined, width: number, height: number, name?: string | null): string => {
+  if (!url || url === '' || url === 'null') {
+    const fallback = name || 'User';
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(fallback)}&background=1e293b&color=3cfba2&bold=true`;
   }
 
   // If it's already a placeholder, don't transform it

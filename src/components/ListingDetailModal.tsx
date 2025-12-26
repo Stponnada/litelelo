@@ -10,6 +10,7 @@ import { MarketplaceListing } from '../types';
 import { XCircleIcon, ChatIcon, StarIcon } from './icons';
 import Spinner from './Spinner';
 import { supabase } from '../services/supabase';
+import { getResizedAvatarUrl } from '../utils/imageUtils';
 
 const BackIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
@@ -103,8 +104,15 @@ const ListingDetailModal: React.FC<ListingDetailModalProps> = ({ listing, onClos
                         <div className="bg-tertiary-light/50 dark:bg-tertiary/50 p-4 rounded-lg">
                             <p className="text-sm font-semibold text-text-secondary-light dark:text-text-secondary mb-2">SELLER INFORMATION</p>
                             {/* FIXED: Link href */}
-                            <Link href={`/reputation/${listing.seller_profile.username}`} className="flex items-center space-x-3 group">
-                                <Image src={listing.seller_profile.avatar_url || ''} alt={listing.seller_profile.username} width={48} height={48} className="w-12 h-12 rounded-full object-cover" unoptimized />
+                            <Link href={`/profile/${listing.seller_profile.username}`} className="flex items-center space-x-3 group">
+                                <Image
+                                    src={getResizedAvatarUrl(listing.seller_profile.avatar_url, 96, 96, listing.seller_profile.username)}
+                                    alt={listing.seller_profile.username}
+                                    width={48}
+                                    height={48}
+                                    className="w-12 h-12 rounded-full object-cover"
+                                    unoptimized
+                                />
                                 <div>
                                     <p className="font-bold text-text-main-light dark:text-text-main group-hover:underline">{listing.seller_profile.full_name}</p>
                                     <div className="flex items-center text-xs text-text-tertiary-light dark:text-text-tertiary">

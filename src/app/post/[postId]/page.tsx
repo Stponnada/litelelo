@@ -26,7 +26,7 @@ const CommentNode: React.FC<{
 
     return (
         <div className={`flex flex-col ${depth > 0 ? 'ml-4 md:ml-8 border-l-2 border-tertiary-light dark:border-white/5 pl-4' : ''}`}>
-            <PostComponent post={node} onReply={onReply} onUpdate={onUpdate} className="mb-0.5" />
+            <PostComponent post={node} onReply={onReply} onUpdate={onUpdate} className="mb-0.5" communityId={node.community_id} isPublic={node.is_public} />
 
             {/* Inline Reply Form */}
             {replyingToId === node.id && currentUserProfile && (
@@ -235,6 +235,8 @@ const PostPage: React.FC = () => {
                     <PostComponent
                         post={parent}
                         className={`mb-0 border-b-0 rounded-b-none ${index > 0 ? 'rounded-t-none' : ''}`}
+                        communityId={parent.community_id}
+                        isPublic={parent.is_public}
                     />
                     {/* Visual Connector Line */}
                     <div className="absolute left-[34px] top-[48px] bottom-0 w-0.5 bg-tertiary-light dark:bg-white/5 z-0" />
@@ -247,6 +249,8 @@ const PostPage: React.FC = () => {
                         onReply={handleReply}
                         onUpdate={handleUpdate}
                         className={`mb-0 ${ancestors.length > 0 ? 'rounded-t-none' : ''}`}
+                        communityId={displayRoot.community_id}
+                        isPublic={displayRoot.is_public}
                     />
 
                     {currentUserProfile && (

@@ -64,9 +64,20 @@ interface PostComponentProps {
     onReply?: (post: PostType) => void;
     onUpdate?: (post: Partial<PostType> & { id: string }) => void;
     className?: string;
+    communityId?: string | null;
+    isPublic?: boolean;
 }
 
-const PostComponent: React.FC<PostComponentProps & { prioritizeUser?: boolean }> = ({ post, onImageClick, onReply, onUpdate, className = "mb-2", prioritizeUser = false }) => {
+const PostComponent: React.FC<PostComponentProps & { prioritizeUser?: boolean }> = ({
+    post,
+    onImageClick,
+    onReply,
+    onUpdate,
+    className = "mb-2",
+    prioritizeUser = false,
+    communityId,
+    isPublic
+}) => {
     const router = useRouter();
     const { user } = useAuth();
     const { updatePostInContext: globalUpdatePost, addPostToContext, fetchPosts } = usePosts();
@@ -220,6 +231,8 @@ const PostComponent: React.FC<PostComponentProps & { prioritizeUser?: boolean }>
                     postToQuote={post}
                     onClose={() => setQuoteModalOpen(false)}
                     onPostCreated={handlePostCreated}
+                    communityId={communityId}
+                    isPublic={isPublic}
                 />
             )}
 
@@ -250,7 +263,10 @@ const PostComponent: React.FC<PostComponentProps & { prioritizeUser?: boolean }>
                         {/* Avatar - Smaller Size */}
                         <Link href={showUserFirst ? `/profile/${post.original_poster_username}` : authorLink} onClick={e => e.stopPropagation()} className="flex-shrink-0 relative group/avatar">
                             <Image
-                                src={(showUserFirst && post.original_poster_avatar_url) ? getResizedAvatarUrl(post.original_poster_avatar_url, 80, 80) : author.author_avatar_url ? getResizedAvatarUrl(author.author_avatar_url, 80, 80) : `https://ui-avatars.com/api/?name=${encodeURIComponent((showUserFirst ? post.original_poster_username : author.author_name || author.author_username || 'User'))}&background=random&color=fff&bold=true`}
+                                src={showUserFirst
+                                    ? getResizedAvatarUrl(post.original_poster_avatar_url, 80, 80, post.original_poster_username)
+                                    : getResizedAvatarUrl(author.author_avatar_url, 80, 80, author.author_name || author.author_username)
+                                }
                                 alt={showUserFirst ? post.original_poster_username || '' : author.author_name || ''}
                                 width={40}
                                 height={40}
