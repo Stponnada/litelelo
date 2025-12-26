@@ -78,11 +78,14 @@ const ChatPage: React.FC = () => {
 
     const handleSelectConversation = useCallback((conversation: ConversationSummary) => {
         setSelectedConversationId(conversation.conversation_id);
-        setPlaceholderConversation(null); // Clear placeholder if switching
+        // Clear direct-tap placeholder ONLY if we selected a DIFFERENT placeholder or a real convo
+        if (placeholderConversation && placeholderConversation.conversation_id !== conversation.conversation_id) {
+            setPlaceholderConversation(null);
+        }
         if (!conversation.conversation_id.startsWith('placeholder_')) {
             markConversationAsRead(conversation.conversation_id);
         }
-    }, [markConversationAsRead]);
+    }, [markConversationAsRead, placeholderConversation]);
 
     const handleConversationCreated = (placeholderId: string, newConversationId: string) => {
         updateConversationId(placeholderId, newConversationId);
@@ -105,10 +108,10 @@ const ChatPage: React.FC = () => {
     );
 
     // Include placeholder in selection logic
+    // Include placeholder in selection logic - Check context list first, then direct-tap state
     const selectedConversation =
-        selectedConversationId?.startsWith('placeholder_')
-            ? placeholderConversation
-            : conversations.find(c => c.conversation_id === selectedConversationId);
+        conversations.find(c => c.conversation_id === selectedConversationId) ||
+        (selectedConversationId?.startsWith('placeholder_') ? placeholderConversation : null);
 
     let conversationKey: string | undefined;
     if (selectedConversation) {
