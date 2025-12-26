@@ -53,7 +53,11 @@ const CommunityPage: React.FC = () => {
 
     const fetchCommunityData = useCallback(async () => {
         if (!communityId) return;
-        setLoading(true);
+
+        // Only show full loading if we don't have the community or we're switching communities
+        if (!community || community.id !== communityId) {
+            setLoading(true);
+        }
         setError(null);
         try {
             // Fetch community details, posts, and subcommunities in parallel for speed
@@ -119,7 +123,7 @@ const CommunityPage: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    }, [communityId, user]);
+    }, [communityId, user?.id, community?.id]);
 
     useEffect(() => {
         fetchCommunityData();
