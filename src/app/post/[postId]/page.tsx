@@ -11,6 +11,7 @@ import { Post as PostType, Profile } from '@/types';
 import Spinner from '@/components/Spinner';
 import { formatExactTimestamp } from '@/utils/timeUtils';
 import { ArrowLeftIcon } from '@/components/icons';
+import CreatePost from '@/components/CreatePost';
 
 // Recursive component for rendering the comment tree
 const CommentNode: React.FC<{
@@ -19,18 +20,9 @@ const CommentNode: React.FC<{
     onReply: (post: PostType) => void;
     onUpdate: (post: Partial<PostType> & { id: string }) => void;
     replyingToId: string | null;
-    submitReply: (content: string, parentId: string) => Promise<void>;
     currentUserProfile: Profile | null;
-    isSubmitting: boolean;
-}> = ({ node, depth, onReply, onUpdate, replyingToId, submitReply, currentUserProfile, isSubmitting }) => {
-    const [replyContent, setReplyContent] = useState('');
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!replyContent.trim()) return;
-        await submitReply(replyContent, node.id);
-        setReplyContent('');
-    };
+    onPostCreated: (newPost: PostType) => void;
+}> = ({ node, depth, onReply, onUpdate, replyingToId, currentUserProfile, onPostCreated }) => {
 
     return (
         <div className={`flex flex-col ${depth > 0 ? 'ml-4 md:ml-8 border-l-2 border-tertiary-light dark:border-white/5 pl-4' : ''}`}>
@@ -38,42 +30,15 @@ const CommentNode: React.FC<{
 
             {/* Inline Reply Form */}
             {replyingToId === node.id && currentUserProfile && (
-                <div className="mb-4 ml-2 animate-fadeIn">
-                    <form onSubmit={handleSubmit} className="flex items-start gap-3">
-                        <div className="w-8 h-8 relative rounded-full overflow-hidden flex-shrink-0 bg-tertiary">
-                            <img
-                                src={currentUserProfile.avatar_url || `https://ui-avatars.com/api/?name=${currentUserProfile.full_name || currentUserProfile.username}&background=random&color=fff&bold=true`}
-                                alt="Avatar"
-                                className="object-cover w-full h-full"
-                            />
-                        </div>
-                        <div className="flex-1">
-                            <textarea
-                                value={replyContent}
-                                onChange={(e) => setReplyContent(e.target.value)}
-                                placeholder={`Replying to @${node.author.author_username}...`}
-                                className="w-full bg-tertiary-light dark:bg-tertiary p-2 rounded-lg border border-tertiary-light dark:border-white/10 focus:border-brand-green outline-none text-sm"
-                                rows={2}
-                                autoFocus
-                            />
-                            <div className="flex justify-end gap-2 mt-2">
-                                <button
-                                    type="button"
-                                    onClick={() => onReply(node)} // Toggle off (handled by parent logic if needed, or just keep open)
-                                    className="px-3 py-1.5 text-xs font-medium rounded-lg hover:bg-tertiary-light dark:hover:bg-white/10"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={isSubmitting || !replyContent.trim()}
-                                    className="px-3 py-1.5 text-xs font-bold rounded-lg bg-brand-green text-black hover:bg-brand-green-darker disabled:opacity-50"
-                                >
-                                    {isSubmitting ? <Spinner /> : 'Reply'}
-                                </button>
-                            </div>
-                        </div>
-                    </form>
+                <div className="mb-4 ml-2 animate-fadeIn bg-secondary-light dark:bg-secondary rounded-xl overflow-hidden border border-tertiary-light dark:border-white/5 shadow-sm">
+                    <CreatePost
+                        profile={currentUserProfile}
+                        onPostCreated={onPostCreated}
+                        parentPostId={node.id}
+                        communityId={node.community_id}
+                        isPublicPost={node.is_public}
+                        placeholderText={`Replying to @${node.author.author_username}...`}
+                    />
                 </div>
             )}
 
@@ -87,9 +52,8 @@ const CommentNode: React.FC<{
                         onReply={onReply}
                         onUpdate={onUpdate}
                         replyingToId={replyingToId}
-                        submitReply={submitReply}
+                        onPostCreated={onPostCreated}
                         currentUserProfile={currentUserProfile}
-                        isSubmitting={isSubmitting}
                     />
                 ))}
             </div>
@@ -199,79 +163,48 @@ const PostPage: React.FC = () => {
         setThreadPosts(prev => prev.map(p => p.id === updatedPost.id ? { ...p, ...updatedPost } : p));
     };
 
-    const submitReply = async (content: string, parentId: string) => {
+    const handlePostCreated = async (newPost: PostType) => {
         if (!user || !currentUserProfile) return;
-        setIsSubmitting(true);
 
-        try {
-            // Use the new/updated RPC or just insert directly?
-            // The migration updated create_post_with_poll to handle parent_post_id.
-            // But I can't easily call it via supabase.rpc if the signature changed and I didn't update types.
-            // Actually I updated the function in SQL.
-            // Let's use supabase.rpc('create_post_with_poll', ... params including p_parent_post_id)
-
-            const { data, error } = await supabase.rpc('create_post_with_poll', {
-                p_content: content,
-                p_image_url: null,
-                p_community_id: null, // Inherit? Or null for user profile?
-                p_is_public: true,
-                p_poll_options: [],
-                p_allow_multiple_answers: false,
-                p_parent_post_id: parentId
-            });
-
-            if (error) throw error;
-
-            // Optimistic update or refetch
-            // Refetching is safer for the tree structure
-            const fetchThread = async () => {
-                const { data: newThread, error: fetchError } = await supabase.rpc('get_post_thread', { p_post_id: postId });
-                if (newThread) {
-                    const formattedPosts: PostType[] = newThread.map((p: any) => ({
-                        ...p,
-                        author: {
-                            author_id: p.author_id,
-                            author_type: p.author_type,
-                            author_name: p.author_name,
-                            author_username: p.author_username,
-                            author_avatar_url: p.author_avatar_url,
-                            author_flair_details: p.author_flair_details
-                        }
-                    }));
-                    setThreadPosts(formattedPosts);
-                }
-            };
-
-            await fetchThread();
-
-            // Check for @rock and call API
-            if (content.includes('@rock')) {
-                // Call API to generate AI reply
-                fetch('/api/ai-reply', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        postId: postId,
-                        content: content,
-                        parentId: parentId
-                    })
-                }).then(() => {
-                    // Refetch thread again to show the AI reply
-                    fetchThread();
-                }).catch(err => console.error("Error triggering AI reply:", err));
+        // Optimistic update would be nice, but refetching ensures tree structure
+        const fetchThread = async () => {
+            const { data: newThread, error: fetchError } = await supabase.rpc('get_post_thread', { p_post_id: postId });
+            if (newThread) {
+                const formattedPosts: PostType[] = newThread.map((p: any) => ({
+                    ...p,
+                    author: {
+                        author_id: p.author_id,
+                        author_type: p.author_type,
+                        author_name: p.author_name,
+                        author_username: p.author_username,
+                        author_avatar_url: p.author_avatar_url,
+                        author_flair_details: p.author_flair_details
+                    }
+                }));
+                setThreadPosts(formattedPosts);
             }
+        };
 
-            setReplyingToId(null);
+        await fetchThread();
 
-            // Update comment count of parent if needed in global context?
-            // We are in a specific page, so local state is most important.
-
-        } catch (err) {
-            console.error("Failed to reply:", err);
-            alert("Failed to reply. Please try again.");
-        } finally {
-            setIsSubmitting(false);
+        // Check for @rock and call API
+        if (newPost.content.includes('@rock')) {
+            // Call API to generate AI reply
+            fetch('/api/ai-reply', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    postId: postId,
+                    content: newPost.content,
+                    parentId: newPost.parent_post_id
+                })
+            }).then(() => {
+                // Refetch thread again to show the AI reply
+                fetchThread();
+            }).catch(err => console.error("Error triggering AI reply:", err));
         }
+
+        setReplyingToId(null);
     };
 
     if (loading) return <div className="flex justify-center py-10"><Spinner /></div>;
@@ -295,33 +228,16 @@ const PostPage: React.FC = () => {
                 <>
                     <PostComponent post={displayRoot} onReply={handleReply} onUpdate={handleUpdate} />
 
-                    {/* Main Reply Input (always visible for root) */}
                     {currentUserProfile && (
-                        <div className="p-4 border-b border-tertiary-light dark:border-tertiary bg-secondary-light dark:bg-secondary mb-2 rounded-b-xl">
-                            <form onSubmit={(e) => { e.preventDefault(); const form = e.target as HTMLFormElement; const input = form.elements.namedItem('content') as HTMLTextAreaElement; submitReply(input.value, displayRoot.id); input.value = ''; }} className="flex items-start gap-3">
-                                <img
-                                    src={currentUserProfile.avatar_url || `https://ui-avatars.com/api/?name=${currentUserProfile.full_name || currentUserProfile.username}&background=random&color=fff&bold=true`}
-                                    alt="Avatar"
-                                    className="w-10 h-10 rounded-full bg-tertiary object-cover"
-                                />
-                                <div className="flex-1">
-                                    <textarea
-                                        name="content"
-                                        placeholder="Post your reply"
-                                        className="w-full bg-tertiary-light dark:bg-tertiary p-3 rounded-xl border-none focus:ring-2 focus:ring-brand-green outline-none text-text-main-light dark:text-text-main placeholder-text-tertiary-light dark:placeholder-text-tertiary"
-                                        rows={2}
-                                    />
-                                    <div className="flex justify-end mt-2">
-                                        <button
-                                            type="submit"
-                                            disabled={isSubmitting}
-                                            className="bg-brand-green text-black font-bold py-2 px-6 rounded-full hover:bg-brand-green-darker disabled:opacity-50 transition-colors"
-                                        >
-                                            {isSubmitting ? <Spinner /> : 'Reply'}
-                                        </button>
-                                    </div>
-                                </div>
-                            </form>
+                        <div className="border-b border-tertiary-light dark:border-tertiary bg-secondary-light dark:bg-secondary mb-2 rounded-b-xl overflow-hidden">
+                            <CreatePost
+                                profile={currentUserProfile}
+                                onPostCreated={handlePostCreated}
+                                parentPostId={displayRoot.id}
+                                communityId={displayRoot.community_id}
+                                isPublicPost={displayRoot.is_public}
+                                placeholderText="Post your reply"
+                            />
                         </div>
                     )}
                 </>
@@ -336,9 +252,8 @@ const PostPage: React.FC = () => {
                         onReply={handleReply}
                         onUpdate={handleUpdate}
                         replyingToId={replyingToId}
-                        submitReply={submitReply}
+                        onPostCreated={handlePostCreated}
                         currentUserProfile={currentUserProfile}
-                        isSubmitting={isSubmitting}
                     />
                 ))}
             </div>

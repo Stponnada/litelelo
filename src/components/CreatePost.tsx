@@ -22,9 +22,10 @@ const PollIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" }) =
 interface CreatePostProps {
   onPostCreated: (post: PostType) => void;
   profile: Profile;
-  communityId?: string;
+  communityId?: string | null;
   isPublicPost?: boolean;
   placeholderText?: string;
+  parentPostId?: string;
 }
 
 interface CreatePostRpcResult {
@@ -68,7 +69,7 @@ interface CreatePostRpcResult {
   replying_to_username: string | null;
 }
 
-const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, profile, communityId, isPublicPost = false, placeholderText }) => {
+const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, profile, communityId, isPublicPost = false, placeholderText, parentPostId }) => {
   const [content, setContent] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -201,7 +202,8 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, profile, communi
           p_poll_options: isCreatingPoll ? validPollOptions : [],
           p_allow_multiple_answers: allowMultipleAnswers,
           p_visibility: visibility,
-          p_allowed_viewers: allowedViewers
+          p_allowed_viewers: allowedViewers,
+          p_parent_post_id: parentPostId || null
         })
         .single();
 
