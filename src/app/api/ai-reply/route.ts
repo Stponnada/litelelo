@@ -8,7 +8,13 @@ const supabaseAdmin = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+// Function to get a random API key from a comma-separated list
+const getRotatedApiKey = () => {
+    const keys = (process.env.GEMINI_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean);
+    if (keys.length === 0) return null;
+    const randomIndex = Math.floor(Math.random() * keys.length);
+    return keys[randomIndex];
+};
 
 export const dynamic = 'force-dynamic';
 
@@ -19,9 +25,17 @@ export async function GET() {
 export async function POST(req: NextRequest) {
     try {
         const { postId, content, parentId } = await req.json();
-        console.log('AI Reply Request:', { postId, parentId, content });
+        const apiKey = getRotatedApiKey();
 
-        if (!content.includes('@rock')) {
+        if (!apiKey) {
+            console.error('No GEMINI_API_KEY found in environment variables');
+            return NextResponse.json({ error: 'API key configuration missing' }, { status: 500 });
+        }
+
+        const genAI = new GoogleGenerativeAI(apiKey);
+        console.log('AI Reply Request (Rotated Key):', { postId, parentId });
+
+        if (!content?.toLowerCase().includes('@rock')) {
             return NextResponse.json({ message: 'No @rock mention found' }, { status: 200 });
         }
 
@@ -29,7 +43,7 @@ export async function POST(req: NextRequest) {
         const targetId = parentId || postId;
         const { data: targetPost, error: fetchError } = await supabaseAdmin
             .from('posts')
-            .select('content, author_id')
+            .select('content, user_id, community_id, is_public')
             .eq('id', targetId)
             .single();
 
@@ -38,15 +52,35 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Target post not found' }, { status: 404 });
         }
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-        const prompt = `You are a funny AI assistant named "Rock".
-    You are replying to a post that says: "${targetPost.content}".
-    The user's comment that triggered you is: "${content}".
-    Write a funny, witty, and helpful response as Rock. Keep it concise.`;
+        // Use gemini-2.5-flash-lite
+        let text = '';
+        try {
+            const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+            const prompt = `You are a funny, witty AI assistant named "Rock" on a social platform called Litelelo.
+            You are replying to a post that says: "${targetPost.content}".
+            The user's comment that triggered you is: "${content}".
+            Write a funny, witty, and helpful response as Rock. 
+            Keep it concise, conversational, and stay in character. 
+            Do not use many hashtags or emojis unless they fit the "rock" persona.`;
 
-        const result = await model.generateContent(prompt);
-        const response = result.response;
-        const text = response.text();
+            const result = await model.generateContent(prompt);
+            text = result.response.text();
+        } catch (geminiError) {
+            console.error('Gemini 2.5-flash-lite failed, trying gemini-1.5-flash:', geminiError);
+            try {
+                const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+                const prompt = `You are a funny AI assistant named "Rock". Replying to: "${targetPost.content}". User said: "${content}". Write a witty reply.`;
+                const result = await model.generateContent(prompt);
+                text = result.response.text();
+            } catch (fallbackError) {
+                console.error('Gemini 1.5-flash fallback failed too:', fallbackError);
+                throw fallbackError;
+            }
+        }
+
+        if (!text) {
+            throw new Error('Failed to generate content from Gemini');
+        }
 
         // Find or create "Rock" user
         let rockUserId: string | null = null;
@@ -54,62 +88,45 @@ export async function POST(req: NextRequest) {
         // Check if profile exists with username 'rock'
         const { data: rockProfile, error: profileError } = await supabaseAdmin
             .from('profiles')
-            .select('user_id')
+            .select('user_id, avatar_url')
             .eq('username', 'rock')
             .single();
 
         if (rockProfile) {
             rockUserId = rockProfile.user_id;
         } else {
+            console.log('Rock user not found, creating...');
             // Create user if not exists
-            // Note: This requires the service role key to have admin privileges
             const { data: newUser, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
                 email: 'rock@litelelo.com',
-                password: 'rockpassword123', // Secure enough for a bot?
+                password: 'rockpassword123' + Math.random().toString(36).slice(-8), // More random
                 email_confirm: true,
                 user_metadata: {
                     username: 'rock',
                     full_name: 'Rock (AI Assistant)',
-                    avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=rock' // Placeholder avatar
+                    avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=rock'
                 }
             });
 
             if (createUserError) {
                 console.error('Error creating Rock user:', createUserError);
-                // Fallback: don't post, just return text
-                return NextResponse.json({ reply: text });
+                return NextResponse.json({ reply: text, warning: 'Could not create Rock user' });
             }
 
             if (newUser.user) {
                 rockUserId = newUser.user.id;
-
-                // Create profile for the new user
-                // Depending on triggers, this might happen automatically, but let's ensure it.
-                // If there's a trigger on auth.users, we might get a duplicate key error if we try to insert.
-                // Let's check if profile exists again after a short delay or just try to update it.
-
-                // We'll assume the trigger handles it or we need to insert.
-                // Let's try to upsert the profile just in case.
-                const { error: upsertError } = await supabaseAdmin
+                // Update profile with correct details if it wasn't created by trigger
+                await supabaseAdmin
                     .from('profiles')
                     .upsert({
                         user_id: rockUserId,
                         username: 'rock',
                         full_name: 'Rock (AI Assistant)',
                         avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=rock',
-                        campus: 'Pilani', // Default
+                        campus: 'Pilani',
                         admission_year: 2024,
-                        branch: 'CS',
-                        following_count: 0,
-                        follower_count: 0,
-                        is_following: false,
-                        has_sent_request: false,
-                        has_received_request: false
+                        branch: 'CS'
                     });
-
-                if (upsertError) {
-                    console.error('Error upserting Rock profile:', upsertError);
-                }
             }
         }
 
@@ -118,16 +135,12 @@ export async function POST(req: NextRequest) {
             const { error: insertError } = await supabaseAdmin
                 .from('posts')
                 .insert({
-                    content: text,
+                    content: text.trim(),
                     user_id: rockUserId,
-                    parent_post_id: targetId, // Reply to the post/comment
-                    root_post_id: postId, // Assuming postId passed is the root or we need to fetch it. 
-                    // Actually, if parentId is set, we should probably check its root.
-                    // But for simplicity, let's assume the passed postId is the root context we are in.
-                    // If we are deep in a thread, we might need to be careful.
-                    // Let's fetch the root_post_id from the target post.
-                    community_id: null, // Or inherit?
-                    is_public: true,
+                    parent_post_id: targetId,
+                    root_post_id: postId,
+                    community_id: targetPost.community_id, // Inherit community
+                    is_public: targetPost.is_public, // Inherit visibility
                     post_type: 'text'
                 });
 
@@ -141,6 +154,6 @@ export async function POST(req: NextRequest) {
 
     } catch (error) {
         console.error('Error in AI reply:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({ error: 'Internal Server Error', details: error instanceof Error ? error.message : String(error) }, { status: 500 });
     }
 }

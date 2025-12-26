@@ -194,20 +194,13 @@ const PostPage: React.FC = () => {
         await fetchThread();
 
         // Check for @rock and call API
-        if (newPost.content.includes('@rock')) {
-            // Call API to generate AI reply
-            fetch('/api/ai-reply', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    postId: postId,
-                    content: newPost.content,
-                    parentId: newPost.parent_post_id
-                })
-            }).then(() => {
-                // Refetch thread again to show the AI reply
-                fetchThread();
-            }).catch(err => console.error("Error triggering AI reply:", err));
+        if (newPost.content?.toLowerCase().includes('@rock')) {
+            import('@/utils/aiUtils').then(({ checkForAiMention }) => {
+                checkForAiMention(newPost).then(() => {
+                    // Refetch thread after a short delay to allow the AI post to be indexed
+                    setTimeout(() => fetchThread(), 1500);
+                });
+            });
         }
 
         setReplyingToId(null);

@@ -143,7 +143,14 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // --- THIS IS THE FIX ---
   // Instead of optimistically adding the post, we now force a clean refetch of the current feed.
   // This is more robust and guarantees no duplicates.
-  const addPostToContext = (_newPost: FeedItem) => {
+  const addPostToContext = (newPost: FeedItem) => {
+    // Check for @rock mention
+    if ('content' in newPost && newPost.content) {
+      import('@/utils/aiUtils').then(({ checkForAiMention }) => {
+        checkForAiMention(newPost as PostType);
+      });
+    }
+
     // To give immediate feedback, we can clear the posts for the current feed
     // and reset its page count, which will trigger a fresh load.
     setFeedData(prev => ({
@@ -152,8 +159,6 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       following: { ...prev.following, posts: [], page: -1 },
       campus: { ...prev.campus, posts: [], page: -1 },
     }));
-    // The useEffect will now automatically trigger fetchPosts(false)
-    // because the page for the active feed is -1.
   };
 
   const updatePostInContext = useCallback((updatedPost: Partial<PostType> & { id: string }) => {

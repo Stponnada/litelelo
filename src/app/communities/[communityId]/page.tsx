@@ -586,7 +586,12 @@ const CommunityPage: React.FC = () => {
                             {currentUserProfile && community.is_member && (
                                 <div className="mb-6">
                                     <CreatePost
-                                        onPostCreated={() => {
+                                        onPostCreated={(newPost) => {
+                                            // Check for AI mention
+                                            import('@/utils/aiUtils').then(({ checkForAiMention }) => {
+                                                checkForAiMention(newPost);
+                                            });
+
                                             // If in subcommunity, re-fetch subcommunity posts. Else re-fetch community data.
                                             if (!['private', 'public', 'blog'].includes(activeView)) {
                                                 const fetchSub = async () => {
@@ -608,9 +613,18 @@ const CommunityPage: React.FC = () => {
                                                         setSubcommunityPosts(formattedPosts);
                                                     }
                                                 };
-                                                fetchSub();
+                                                // Fetch after a delay if AI mention detected, otherwise immediately
+                                                if (newPost.content?.toLowerCase().includes('@rock')) {
+                                                    setTimeout(fetchSub, 1500);
+                                                } else {
+                                                    fetchSub();
+                                                }
                                             } else {
-                                                fetchCommunityData();
+                                                if (newPost.content?.toLowerCase().includes('@rock')) {
+                                                    setTimeout(fetchCommunityData, 1500);
+                                                } else {
+                                                    fetchCommunityData();
+                                                }
                                             }
                                         }}
                                         profile={currentUserProfile}

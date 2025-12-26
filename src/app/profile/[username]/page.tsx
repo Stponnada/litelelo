@@ -300,7 +300,19 @@ const ProfilePage: React.FC = () => {
     }, [profile]);
 
     const handlePostCreated = (newPost: PostType) => {
-        setPosts(prevPosts => [newPost, ...prevPosts]);
+        // Check for @rock mention
+        import('@/utils/aiUtils').then(({ checkForAiMention }) => {
+            checkForAiMention(newPost);
+        });
+
+        if (newPost.content?.toLowerCase().includes('@rock')) {
+            setTimeout(() => {
+                setPosts(prevPosts => [newPost, ...prevPosts]);
+                fetchPostsAndMentions();
+            }, 1500);
+        } else {
+            setPosts(prevPosts => [newPost, ...prevPosts]);
+        }
     };
 
     const fetchFriendshipData = useCallback(async () => {
