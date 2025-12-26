@@ -59,9 +59,9 @@ BEGIN
         c.campus = p_campus
         AND c.parent_community_id IS NULL
         AND (
-            -- Show public communities to everyone
-            c.access_type = 'public'
-            -- Show restricted/private communities only if user is a member
+            -- Show public AND restricted communities to everyone
+            c.access_type IN ('public', 'restricted')
+            -- Show private communities only if user is a member
             OR EXISTS (
                 SELECT 1 FROM public.community_members cm2 
                 WHERE cm2.community_id = c.id 

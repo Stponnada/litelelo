@@ -1,39 +1,4 @@
--- Add is_pinned column to community_members table
-ALTER TABLE public.community_members 
-ADD COLUMN IF NOT EXISTS is_pinned boolean DEFAULT false;
-
--- Create function to toggle pin status
-CREATE OR REPLACE FUNCTION public.toggle_community_pin(p_community_id uuid)
-RETURNS boolean
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-    current_pin_status boolean;
-    new_pin_status boolean;
-BEGIN
-    -- Get current pin status
-    SELECT is_pinned INTO current_pin_status
-    FROM public.community_members
-    WHERE community_id = p_community_id 
-        AND user_id = auth.uid()
-        AND status = 'approved';
-    
-    -- Toggle the pin status
-    new_pin_status := NOT COALESCE(current_pin_status, false);
-    
-    -- Update the pin status
-    UPDATE public.community_members
-    SET is_pinned = new_pin_status
-    WHERE community_id = p_community_id 
-        AND user_id = auth.uid()
-        AND status = 'approved';
-    
-    RETURN new_pin_status;
-END;
-$$;
-
--- Drop and recreate get_communities_list to include is_pinned
+-- Drop and recreate get_communities_list to fix restricted communities visibility
 DROP FUNCTION IF EXISTS public.get_communities_list(p_campus text);
 
 CREATE OR REPLACE FUNCTION public.get_communities_list(p_campus text)

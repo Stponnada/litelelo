@@ -183,6 +183,39 @@ $$;
 ALTER FUNCTION "public"."accept_friend_request"("requester_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."add_member_to_community"("p_community_id" "uuid", "p_user_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+    target_conversation_id uuid;
+BEGIN
+    -- Verify the caller is an admin (Consul)
+    IF NOT public.is_community_admin(p_community_id, auth.uid()) THEN
+        RAISE EXCEPTION 'Permission denied: Only consuls can add members directly.';
+    END IF;
+    -- Add the member with 'approved' status
+    -- Using ON CONFLICT to handle cases where a user might have a pending request already
+    INSERT INTO public.community_members (community_id, user_id, status, role)
+    VALUES (p_community_id, p_user_id, 'approved', 'member')
+    ON CONFLICT (community_id, user_id) 
+    DO UPDATE SET status = 'approved' WHERE community_members.status <> 'approved';
+    -- Automatically add the user to the associated community conversation/group chat
+    SELECT id INTO target_conversation_id FROM public.conversations WHERE community_id = p_community_id;
+    IF target_conversation_id IS NOT NULL THEN
+        INSERT INTO public.conversation_participants (conversation_id, user_id)
+        VALUES (target_conversation_id, p_user_id)
+        ON CONFLICT DO NOTHING;
+    END IF;
+    -- Send notification to the newly added user
+    INSERT INTO public.notifications (user_id, actor_id, type, entity_id, entity_type)
+    VALUES (p_user_id, auth.uid(), 'community_added', p_community_id, 'community');
+END;
+$$;
+
+
+ALTER FUNCTION "public"."add_member_to_community"("p_community_id" "uuid", "p_user_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."add_mined_block"("new_block_index" bigint, "new_block_timestamp" timestamp with time zone, "transactions_in_block" "jsonb", "new_block_previous_hash" "text", "new_block_hash" "text", "new_block_nonce" integer) RETURNS "text"
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
@@ -1458,38 +1491,41 @@ $$;
 ALTER FUNCTION "public"."get_communities_for_user"("p_user_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."get_communities_list"("p_campus" "text") RETURNS TABLE("id" "uuid", "name" "text", "description" "text", "avatar_url" "text", "member_count" bigint, "is_member" boolean)
+CREATE OR REPLACE FUNCTION "public"."get_communities_list"("p_campus" "text") RETURNS TABLE("id" "uuid", "name" "text", "description" "text", "avatar_url" "text", "member_count" bigint, "is_member" boolean, "last_visited_at" timestamp with time zone, "is_pinned" boolean)
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
+DECLARE
+    current_user_id uuid;
 BEGIN
+    current_user_id := auth.uid();
+
     RETURN QUERY
     SELECT
         c.id,
         c.name,
         c.description,
         c.avatar_url,
-        (SELECT count(*) FROM community_members cm WHERE cm.community_id = c.id AND cm.status = 'approved') as member_count,
-        EXISTS(
-            SELECT 1 FROM community_members cm
-            WHERE cm.community_id = c.id AND cm.user_id = auth.uid() AND cm.status = 'approved'
-        ) as is_member
+        (SELECT count(*) FROM public.community_members cm WHERE cm.community_id = c.id AND cm.status = 'approved') AS member_count,
+        EXISTS(SELECT 1 FROM public.community_members cm WHERE cm.community_id = c.id AND cm.user_id = current_user_id AND cm.status = 'approved') AS is_member,
+        (SELECT cm.last_visited_at FROM public.community_members cm WHERE cm.community_id = c.id AND cm.user_id = current_user_id AND cm.status = 'approved') AS last_visited_at,
+        COALESCE((SELECT cm.is_pinned FROM public.community_members cm WHERE cm.community_id = c.id AND cm.user_id = current_user_id AND cm.status = 'approved'), false) AS is_pinned
     FROM
-        communities c
+        public.communities c
     WHERE
-        c.campus = p_campus 
+        c.campus = p_campus
         AND c.parent_community_id IS NULL
         AND (
-            c.access_type <> 'private'
+            -- Show public AND restricted communities to everyone
+            c.access_type IN ('public', 'restricted')
+            -- Show private communities only if user is a member
             OR EXISTS (
-                SELECT 1 FROM community_members cm2 
+                SELECT 1 FROM public.community_members cm2 
                 WHERE cm2.community_id = c.id 
-                AND cm2.user_id = auth.uid() 
+                AND cm2.user_id = current_user_id 
                 AND cm2.status = 'approved'
             )
         )
-    ORDER BY
-        member_count DESC,
-        c.name;
+    ORDER BY c.name;
 END;
 $$;
 
@@ -1500,31 +1536,19 @@ ALTER FUNCTION "public"."get_communities_list"("p_campus" "text") OWNER TO "post
 CREATE OR REPLACE FUNCTION "public"."get_community_details"("p_community_id" "uuid") RETURNS TABLE("id" "uuid", "name" "text", "description" "text", "campus" "text", "avatar_url" "text", "banner_url" "text", "created_by" "uuid", "member_count" bigint, "is_member" boolean, "is_admin" boolean, "has_pending_request" boolean, "access_type" "text", "parent_community_id" "uuid", "parent_community_name" "text")
     LANGUAGE "plpgsql"
     AS $$
-DECLARE
-  current_user_id UUID := auth.uid();
 BEGIN
   RETURN QUERY
   SELECT
     c.id, c.name, c.description, c.campus, c.avatar_url, c.banner_url, c.created_by,
     (SELECT count(*) FROM public.community_members cm WHERE cm.community_id = c.id AND cm.status = 'approved') AS member_count,
-    EXISTS(SELECT 1 FROM public.community_members cm WHERE cm.community_id = c.id AND cm.user_id = current_user_id AND cm.status = 'approved') AS is_member,
-    EXISTS(SELECT 1 FROM public.community_members cm WHERE cm.community_id = c.id AND cm.user_id = current_user_id AND cm.role = 'admin') AS is_admin,
-    EXISTS(SELECT 1 FROM public.community_members cm WHERE cm.community_id = c.id AND cm.user_id = current_user_id AND cm.status = 'pending') AS has_pending_request,
-    c.access_type,
-    c.parent_community_id,
-    p.name AS parent_community_name
+    EXISTS(SELECT 1 FROM public.community_members cm WHERE cm.community_id = c.id AND cm.user_id = auth.uid() AND cm.status = 'approved') AS is_member,
+    EXISTS(SELECT 1 FROM public.community_members cm WHERE cm.community_id = c.id AND cm.user_id = auth.uid() AND cm.role = 'admin') AS is_admin,
+    EXISTS(SELECT 1 FROM public.community_members cm WHERE cm.community_id = c.id AND cm.user_id = auth.uid() AND cm.status = 'pending') AS has_pending_request,
+    c.access_type, c.parent_community_id, p.name
   FROM public.communities c
   LEFT JOIN public.communities p ON c.parent_community_id = p.id
   WHERE c.id = p_community_id
-  AND (
-      c.access_type <> 'private'
-      OR EXISTS (
-          SELECT 1 FROM public.community_members cm2 
-          WHERE cm2.community_id = c.id 
-          AND cm2.user_id = auth.uid() 
-          AND cm2.status = 'approved'
-      )
-  );
+  AND (c.access_type <> 'private' OR EXISTS (SELECT 1 FROM community_members cm2 WHERE cm2.community_id = c.id AND cm2.user_id = auth.uid() AND cm2.status = 'approved'));
 END;
 $$;
 
@@ -1552,7 +1576,7 @@ $$;
 ALTER FUNCTION "public"."get_community_members"("p_community_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."get_conversations_for_user_v2"() RETURNS TABLE("conversation_id" "uuid", "name" "text", "type" "text", "participants" json, "last_message_content" "text", "last_message_at" timestamp with time zone, "last_message_sender_id" "uuid", "unread_count" bigint)
+CREATE OR REPLACE FUNCTION "public"."get_conversations_for_user_v2"() RETURNS TABLE("conversation_id" "uuid", "name" "text", "type" "text", "participants" json, "last_message_content" "text", "last_message_at" timestamp with time zone, "last_message_sender_id" "uuid", "unread_count" bigint, "is_pinned" boolean, "is_archived" boolean)
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
 BEGIN
@@ -1577,7 +1601,9 @@ BEGIN
         lm.content AS last_message_content,
         lm.created_at AS last_message_at,
         lm.sender_id AS last_message_sender_id,
-        COALESCE(uc.unread, 0) AS unread_count
+        COALESCE(uc.unread, 0) AS unread_count,
+        cp.is_pinned,
+        cp.is_archived
     FROM
         conversations c
     JOIN
@@ -1600,6 +1626,7 @@ BEGIN
     WHERE
         cp.user_id = auth.uid()
     ORDER BY
+        cp.is_pinned DESC,
         lm.created_at DESC NULLS LAST;
 END;
 $$;
@@ -1625,6 +1652,7 @@ BEGIN
         SELECT cm.community_id AS joined_comm_id 
         FROM public.community_members cm
         WHERE cm.user_id = (SELECT cur_uid FROM current_user_id)
+          AND cm.status = 'approved'
     ),
     feed_items AS (
         SELECT
@@ -1641,7 +1669,8 @@ BEGIN
                 OR (
                     p.user_id IN (SELECT following_id FROM followed_users) -- 3. Followed user access
                     AND (
-                        (p.community_id IS NOT NULL AND p.is_public = true) -- Public community posts
+                        -- Public community posts only if community is NOT private
+                        (p.community_id IS NOT NULL AND p.is_public = true AND EXISTS (SELECT 1 FROM public.communities comm WHERE comm.id = p.community_id AND comm.access_type <> 'private'))
                         OR (
                             p.community_id IS NULL -- Individual posts
                             AND (
@@ -1669,9 +1698,27 @@ BEGIN
             ) AS reposted_by
         FROM public.reposts r
         JOIN public.profiles reposter ON r.user_id = reposter.user_id
-        JOIN public.posts p ON r.post_id = p.id -- Join to check parent_post_id
+        JOIN public.posts p ON r.post_id = p.id -- Join to check visibility
         WHERE r.user_id IN (SELECT following_id FROM followed_users)
           AND p.parent_post_id IS NULL -- FILTER: Only show reposts of root posts
+          -- Ensure the reposted post itself is visible to the current user
+          AND (
+                p.user_id = auth.uid()
+                OR p.community_id IN (SELECT joined_comm_id FROM member_communities)
+                OR (
+                    (p.community_id IS NOT NULL AND p.is_public = true AND EXISTS (SELECT 1 FROM public.communities comm WHERE comm.id = p.community_id AND comm.access_type <> 'private'))
+                    OR (
+                        p.community_id IS NULL
+                        AND (
+                            p.visibility = 'public'
+                            OR (
+                                p.visibility = 'friends' 
+                                AND EXISTS (SELECT 1 FROM public.followers f3 WHERE f3.follower_id = p.user_id AND f3.following_id = auth.uid() AND f3.status = 'approved')
+                            )
+                        )
+                    )
+                )
+          )
     )
     , distinct_feed AS (
         SELECT DISTINCT ON (post_id) *
@@ -2010,7 +2057,13 @@ BEGIN
   WHERE p.is_deleted = false AND m.user_id = profile_user_id
     AND (
         p.user_id = auth.uid()
-        OR (p.community_id IS NOT NULL AND (p.is_public = true OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')))
+        OR (
+            p.community_id IS NOT NULL 
+            AND (
+                (p.is_public = true AND EXISTS (SELECT 1 FROM public.communities comm WHERE comm.id = p.community_id AND comm.access_type <> 'private'))
+                OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')
+            )
+        )
         OR (
             p.community_id IS NULL 
             AND (
@@ -2231,14 +2284,14 @@ $$;
 ALTER FUNCTION "public"."get_pinned_message_for_conversation"("p_conversation_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."get_post_details_by_id"("p_post_id" "uuid") RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "repost_count" integer, "user_vote" "text", "is_bookmarked" boolean, "user_has_reposted" boolean, "original_poster_username" "text", "author_id" "text", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "author_flair_details" "jsonb", "poll" "jsonb", "quoted_post" "jsonb", "reposted_by" "jsonb", "visibility" "text", "title" "text", "post_type" "text", "parent_post_id" "uuid", "root_post_id" "uuid")
+CREATE OR REPLACE FUNCTION "public"."get_post_details_by_id"("p_post_id" "uuid") RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "repost_count" integer, "user_vote" "text", "is_bookmarked" boolean, "user_has_reposted" boolean, "original_poster_username" "text", "author_id" "text", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "author_flair_details" "jsonb", "poll" "jsonb", "quoted_post" "jsonb", "reposted_by" "jsonb", "visibility" "text", "title" "text", "post_type" "text", "parent_post_id" "uuid", "root_post_id" "uuid", "replying_to_username" "text")
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
 BEGIN
     RETURN QUERY
     SELECT
-        p.id, p.user_id, p.content, p.image_url, p.created_at, p.is_edited, p.is_deleted, p.community_id, p.is_public,
-        p.like_count, p.dislike_count, p.comment_count, p.repost_count,
+        p.id, p.user_id, p.content, p.image_url, p.created_at, p.is_edited, p.is_deleted, 
+        p.community_id, p.is_public, p.like_count, p.dislike_count, p.comment_count, p.repost_count,
         l.like_type AS user_vote,
         b.post_id IS NOT NULL AS is_bookmarked,
         r.post_id IS NOT NULL AS user_has_reposted,
@@ -2263,7 +2316,8 @@ BEGIN
         p.title,
         p.post_type,
         p.parent_post_id,
-        p.root_post_id
+        p.root_post_id,
+        parent_author.username AS replying_to_username
     FROM public.posts p
     LEFT JOIN public.likes l ON p.id = l.post_id AND l.user_id = auth.uid()
     LEFT JOIN public.bookmarks b ON p.id = b.post_id AND b.user_id = auth.uid()
@@ -2271,6 +2325,8 @@ BEGIN
     LEFT JOIN public.profiles up ON p.user_id = up.user_id AND p.community_id IS NULL
     LEFT JOIN public.communities c ON p.community_id = c.id
     LEFT JOIN public.profiles op ON p.user_id = op.user_id AND p.community_id IS NOT NULL
+    LEFT JOIN public.posts parent_post ON p.parent_post_id = parent_post.id
+    LEFT JOIN public.profiles parent_author ON parent_post.user_id = parent_author.user_id
     LEFT JOIN LATERAL (
         SELECT jsonb_build_object('id', po.id, 'allow_multiple_answers', po.allow_multiple_answers, 'total_votes', COALESCE((SELECT SUM(opt.vote_count) FROM public.poll_options opt WHERE opt.poll_id = po.id), 0), 'user_votes', (SELECT jsonb_agg(pv.option_id) FROM public.poll_votes pv WHERE pv.poll_id = po.id AND pv.user_id = auth.uid()), 'options', (SELECT jsonb_agg(jsonb_build_object('id', opt.id, 'option_text', opt.option_text, 'vote_count', opt.vote_count) ORDER BY opt.id) FROM poll_options opt WHERE opt.poll_id = po.id)) AS poll
         FROM polls po WHERE po.post_id = p.id
@@ -2279,7 +2335,13 @@ BEGIN
         p.id = p_post_id
         AND (
             p.user_id = auth.uid()
-            OR (p.community_id IS NOT NULL AND (p.is_public = true OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')))
+            OR (
+                p.community_id IS NOT NULL 
+                AND (
+                    (p.is_public = true AND EXISTS (SELECT 1 FROM public.communities comm WHERE comm.id = p.community_id AND comm.access_type <> 'private'))
+                    OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')
+                )
+            )
             OR (
                 p.community_id IS NULL 
                 AND (
@@ -2300,7 +2362,7 @@ $$;
 ALTER FUNCTION "public"."get_post_details_by_id"("p_post_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."get_post_thread"("p_post_id" "uuid") RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "repost_count" integer, "user_vote" "text", "is_bookmarked" boolean, "user_has_reposted" boolean, "original_poster_username" "text", "author_id" "text", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "author_flair_details" "jsonb", "poll" "jsonb", "quoted_post" "jsonb", "reposted_by" "jsonb", "visibility" "text", "title" "text", "post_type" "text", "parent_post_id" "uuid", "root_post_id" "uuid")
+CREATE OR REPLACE FUNCTION "public"."get_post_thread"("p_post_id" "uuid") RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "repost_count" integer, "user_vote" "text", "is_bookmarked" boolean, "user_has_reposted" boolean, "original_poster_username" "text", "author_id" "text", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "author_flair_details" "jsonb", "poll" "jsonb", "quoted_post" "jsonb", "reposted_by" "jsonb", "visibility" "text", "title" "text", "post_type" "text", "parent_post_id" "uuid", "root_post_id" "uuid", "replying_to_username" "text")
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
 DECLARE
@@ -2309,13 +2371,15 @@ BEGIN
     SELECT COALESCE(p.root_post_id, p.id) INTO v_root_id
     FROM public.posts p
     WHERE p.id = p_post_id;
+    
     IF v_root_id IS NULL THEN
         RETURN;
     END IF;
+    
     RETURN QUERY
     SELECT
-        p.id, p.user_id, p.content, p.image_url, p.created_at, p.is_edited, p.is_deleted, p.community_id, p.is_public,
-        p.like_count, p.dislike_count, p.comment_count, p.repost_count,
+        p.id, p.user_id, p.content, p.image_url, p.created_at, p.is_edited, p.is_deleted, 
+        p.community_id, p.is_public, p.like_count, p.dislike_count, p.comment_count, p.repost_count,
         l.like_type AS user_vote,
         b.post_id IS NOT NULL AS is_bookmarked,
         r.post_id IS NOT NULL AS user_has_reposted,
@@ -2340,7 +2404,8 @@ BEGIN
         p.title,
         p.post_type,
         p.parent_post_id,
-        p.root_post_id
+        p.root_post_id,
+        parent_author.username AS replying_to_username
     FROM public.posts p
     LEFT JOIN public.likes l ON p.id = l.post_id AND l.user_id = auth.uid()
     LEFT JOIN public.bookmarks b ON p.id = b.post_id AND b.user_id = auth.uid()
@@ -2348,6 +2413,8 @@ BEGIN
     LEFT JOIN public.profiles up ON p.user_id = up.user_id AND p.community_id IS NULL
     LEFT JOIN public.communities c ON p.community_id = c.id
     LEFT JOIN public.profiles op ON p.user_id = op.user_id AND p.community_id IS NOT NULL
+    LEFT JOIN public.posts parent_post ON p.parent_post_id = parent_post.id
+    LEFT JOIN public.profiles parent_author ON parent_post.user_id = parent_author.user_id
     LEFT JOIN LATERAL (
         SELECT jsonb_build_object('id', po.id, 'allow_multiple_answers', po.allow_multiple_answers, 'total_votes', COALESCE((SELECT SUM(opt.vote_count) FROM public.poll_options opt WHERE opt.poll_id = po.id), 0), 'user_votes', (SELECT jsonb_agg(pv.option_id) FROM public.poll_votes pv WHERE pv.poll_id = po.id AND pv.user_id = auth.uid()), 'options', (SELECT jsonb_agg(jsonb_build_object('id', opt.id, 'option_text', opt.option_text, 'vote_count', opt.vote_count) ORDER BY opt.id) FROM poll_options opt WHERE opt.poll_id = po.id)) AS poll
         FROM polls po WHERE po.post_id = p.id
@@ -2356,7 +2423,13 @@ BEGIN
         (p.root_post_id = v_root_id OR p.id = v_root_id)
         AND (
             p.user_id = auth.uid()
-            OR (p.community_id IS NOT NULL AND (p.is_public = true OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')))
+            OR (
+                p.community_id IS NOT NULL 
+                AND (
+                    (p.is_public = true AND EXISTS (SELECT 1 FROM public.communities comm WHERE comm.id = p.community_id AND comm.access_type <> 'private'))
+                    OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')
+                )
+            )
             OR (
                 p.community_id IS NULL 
                 AND (
@@ -2475,7 +2548,7 @@ $$;
 ALTER FUNCTION "public"."get_posts"("p_limit" integer, "p_offset" integer) OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."get_posts_for_community"("p_community_id" "uuid") RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "repost_count" integer, "user_vote" "text", "is_bookmarked" boolean, "user_has_reposted" boolean, "original_poster_username" "text", "author_id" "text", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "author_flair_details" "jsonb", "poll" "jsonb", "quoted_post" "jsonb", "reposted_by" "jsonb", "visibility" "text", "title" "text", "post_type" "text", "parent_post_id" "uuid", "root_post_id" "uuid", "replying_to_username" "text")
+CREATE OR REPLACE FUNCTION "public"."get_posts_for_community"("p_community_id" "uuid") RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "repost_count" integer, "user_vote" "text", "is_bookmarked" boolean, "user_has_reposted" boolean, "original_poster_username" "text", "author_id" "text", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "author_flair_details" "jsonb", "poll" "jsonb", "quoted_post" "jsonb", "reposted_by" "jsonb", "visibility" "text", "title" "text", "post_type" "text", "parent_post_id" "uuid", "root_post_id" "uuid", "replying_to_username" "text", "original_poster_avatar_url" "text")
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
 BEGIN
@@ -2508,7 +2581,8 @@ BEGIN
         p.post_type,
         p.parent_post_id,
         p.root_post_id,
-        parent_author.username AS replying_to_username
+        parent_author.username AS replying_to_username,
+        op.avatar_url AS original_poster_avatar_url
     FROM public.posts p
     LEFT JOIN public.likes l ON p.id = l.post_id AND l.user_id = auth.uid()
     LEFT JOIN public.bookmarks b ON p.id = b.post_id AND b.user_id = auth.uid()
@@ -2539,87 +2613,84 @@ ALTER FUNCTION "public"."get_posts_for_community"("p_community_id" "uuid") OWNER
 
 
 CREATE OR REPLACE FUNCTION "public"."get_posts_for_profile"("p_user_id" "uuid") RETURNS TABLE("id" "uuid", "user_id" "uuid", "content" "text", "image_url" "text", "created_at" timestamp with time zone, "is_edited" boolean, "is_deleted" boolean, "community_id" "uuid", "is_public" boolean, "like_count" bigint, "dislike_count" bigint, "comment_count" bigint, "repost_count" integer, "user_vote" "text", "is_bookmarked" boolean, "user_has_reposted" boolean, "original_poster_username" "text", "author_id" "text", "author_type" "text", "author_name" "text", "author_username" "text", "author_avatar_url" "text", "author_flair_details" "jsonb", "poll" "jsonb", "quoted_post" "jsonb", "reposted_by" "jsonb", "visibility" "text", "title" "text", "post_type" "text", "parent_post_id" "uuid", "root_post_id" "uuid", "replying_to_username" "text")
-    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
+    LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
 BEGIN
-  RETURN QUERY
-  WITH profile_feed_items AS (
-      SELECT p.id AS post_id, p.created_at AS event_time, NULL::jsonb AS reposted_by
-      FROM public.posts p WHERE p.user_id = p_user_id AND p.is_deleted = false
-      UNION ALL
-      SELECT r.post_id, r.created_at AS event_time, jsonb_build_object('user_id', p_profile.user_id, 'username', p_profile.username, 'full_name', p_profile.full_name) AS reposted_by
-      FROM public.reposts r JOIN public.profiles p_profile ON r.user_id = p_profile.user_id WHERE r.user_id = p_user_id
-  ),
-  distinct_feed AS (
-      SELECT DISTINCT ON (post_id) * FROM profile_feed_items ORDER BY post_id, event_time DESC
-  )
-  SELECT
-      p.id, p.user_id, p.content, p.image_url, p.created_at, p.is_edited, p.is_deleted, p.community_id, p.is_public,
-      p.like_count, p.dislike_count, p.comment_count, p.repost_count, l.like_type AS user_vote, b.post_id IS NOT NULL AS is_bookmarked,
-      r.post_id IS NOT NULL AS user_has_reposted, op.username AS original_poster_username,
-      COALESCE(p.community_id::text, p.user_id::text) AS author_id,
-      CASE WHEN p.community_id IS NOT NULL THEN 'community' ELSE 'user' END AS author_type,
-      COALESCE(c.name, up.full_name) AS author_name,
-      COALESCE(c.id::text, up.username) AS author_username,
-      COALESCE(c.avatar_url, up.avatar_url) AS author_avatar_url,
-      (SELECT CASE WHEN p.community_id IS NULL THEN (SELECT jsonb_build_object('id', flair_comm.id, 'name', flair_comm.name, 'avatar_url', flair_comm.avatar_url) FROM public.communities flair_comm WHERE flair_comm.id =
-    up.displayed_community_flair) ELSE NULL END) AS author_flair_details,
-      poll_details.poll,
-      (SELECT jsonb_build_object('id', qp.id, 'content', qp.content, 'image_url', qp.image_url, 'created_at', qp.created_at, 'is_deleted', qp.is_deleted, 'author_name', qp_author.full_name, 'author_username', qp_author.username,
-    'author_avatar_url', qp_author.avatar_url) FROM posts qp JOIN profiles qp_author ON qp.user_id = qp_author.user_id WHERE qp.id = p.quoted_post_id) AS quoted_post,
-      df.reposted_by,
-      p.visibility,
-      p.title,
-      p.post_type,
-      p.parent_post_id,
-      p.root_post_id,
-      parent_author.username AS replying_to_username
-  FROM distinct_feed df
-  JOIN public.posts p ON df.post_id = p.id
-  LEFT JOIN public.likes l ON p.id = l.post_id AND l.user_id = auth.uid()
-  LEFT JOIN public.bookmarks b ON p.id = b.post_id AND b.user_id = auth.uid()
-  LEFT JOIN public.reposts r ON p.id = r.post_id AND r.user_id = auth.uid()
-  LEFT JOIN public.profiles up ON p.user_id = up.user_id AND p.community_id IS NULL
-  LEFT JOIN public.communities c ON p.community_id = c.id
-  LEFT JOIN public.profiles op ON p.user_id = op.user_id AND p.community_id IS NOT NULL
-  LEFT JOIN public.posts parent_post ON p.parent_post_id = parent_post.id
-  LEFT JOIN public.profiles parent_author ON parent_post.user_id = parent_author.user_id
-  LEFT JOIN LATERAL (
-      SELECT jsonb_build_object(
-          'id', po.id,
-          'allow_multiple_answers', po.allow_multiple_answers,
-          'total_votes', COALESCE((SELECT SUM(opt.vote_count) FROM public.poll_options opt WHERE opt.poll_id = po.id), 0),
-          'user_votes', (SELECT jsonb_agg(pv.option_id) FROM public.poll_votes pv WHERE pv.poll_id = po.id AND pv.user_id = auth.uid()),
-          'options', (
-              SELECT jsonb_agg(
-                  jsonb_build_object(
-                      'id', opt.id,
-                      'option_text', opt.option_text,
-                      'vote_count', opt.vote_count,
-                      'voters', (
-                          SELECT jsonb_agg(
-                              jsonb_build_object(
-                                  'user_id', voter_profile.user_id,
-                                  'username', voter_profile.username,
-                                  'full_name', voter_profile.full_name,
-                                  'avatar_url', voter_profile.avatar_url
-                              )
-                          )
-                          FROM public.poll_votes pv
-                          JOIN public.profiles voter_profile ON pv.user_id = voter_profile.user_id
-                          WHERE pv.option_id = opt.id
-                      )
-                  ) ORDER BY opt.id
-              )
-              FROM poll_options opt WHERE opt.poll_id = po.id
-          )
-      ) AS poll
-      FROM polls po WHERE po.post_id = p.id
-  ) poll_details ON TRUE
-  WHERE p.is_deleted = false
+    RETURN QUERY
+    WITH p_profile AS (
+        SELECT pr.user_id, pr.username, pr.full_name, pr.avatar_url 
+        FROM public.profiles pr 
+        WHERE pr.user_id = p_user_id
+    ),
+    profile_feed_items AS (
+        SELECT p.id AS post_id, p.created_at AS event_time, NULL::jsonb AS reposted_by
+        FROM public.posts p 
+        WHERE p.user_id = p_user_id AND p.is_deleted = false
+        UNION ALL
+        SELECT r.post_id, r.created_at AS event_time, 
+               jsonb_build_object('user_id', pp.user_id, 'username', pp.username, 'full_name', pp.full_name) AS reposted_by
+        FROM public.reposts r 
+        JOIN p_profile pp ON r.user_id = pp.user_id
+    ),
+    distinct_feed AS (
+        SELECT DISTINCT ON (post_id) df_inner.post_id, df_inner.event_time, df_inner.reposted_by 
+        FROM profile_feed_items df_inner 
+        ORDER BY df_inner.post_id, df_inner.event_time DESC
+    )
+    SELECT
+        p.id, p.user_id, p.content, p.image_url, p.created_at, p.is_edited, p.is_deleted, 
+        p.community_id, p.is_public, p.like_count, p.dislike_count, p.comment_count, p.repost_count,
+        l.like_type AS user_vote,
+        b.post_id IS NOT NULL AS is_bookmarked,
+        r.post_id IS NOT NULL AS user_has_reposted,
+        op.username AS original_poster_username,
+        COALESCE(p.community_id::text, p.user_id::text) AS author_id,
+        CASE WHEN p.community_id IS NOT NULL THEN 'community' ELSE 'user' END AS author_type,
+        COALESCE(c.name, up.full_name) AS author_name,
+        COALESCE(c.id::text, up.username) AS author_username,
+        COALESCE(c.avatar_url, up.avatar_url) AS author_avatar_url,
+        (SELECT CASE WHEN p.community_id IS NULL THEN (SELECT jsonb_build_object('id', flair_comm.id, 'name', flair_comm.name, 'avatar_url', flair_comm.avatar_url) FROM public.communities flair_comm WHERE flair_comm.id = up.displayed_community_flair) ELSE NULL END) AS author_flair_details,
+        poll_details.poll,
+        (
+            SELECT jsonb_build_object(
+                'id', qp.id, 'content', qp.content, 'image_url', qp.image_url, 'created_at', qp.created_at,
+                'is_deleted', qp.is_deleted, 'author_name', qp_author.full_name, 'author_username', qp_author.username,
+                'author_avatar_url', qp_author.avatar_url
+            )
+            FROM posts qp JOIN profiles qp_author ON qp.user_id = qp_author.user_id WHERE qp.id = p.quoted_post_id
+        ) AS quoted_post,
+        df.reposted_by,
+        p.visibility,
+        p.title,
+        p.post_type,
+        p.parent_post_id,
+        p.root_post_id,
+        parent_author.username AS replying_to_username
+    FROM distinct_feed df
+    JOIN public.posts p ON df.post_id = p.id
+    LEFT JOIN public.likes l ON p.id = l.post_id AND l.user_id = auth.uid()
+    LEFT JOIN public.bookmarks b ON p.id = b.post_id AND b.user_id = auth.uid()
+    LEFT JOIN public.reposts r ON p.id = r.post_id AND r.user_id = auth.uid()
+    LEFT JOIN public.profiles up ON p.user_id = up.user_id AND p.community_id IS NULL
+    LEFT JOIN public.communities c ON p.community_id = c.id
+    LEFT JOIN public.profiles op ON p.user_id = op.user_id AND p.community_id IS NOT NULL
+    LEFT JOIN public.posts parent_post ON p.parent_post_id = parent_post.id
+    LEFT JOIN public.profiles parent_author ON parent_post.user_id = parent_author.user_id
+    LEFT JOIN LATERAL (
+        SELECT jsonb_build_object('id', po.id, 'allow_multiple_answers', po.allow_multiple_answers, 'total_votes', COALESCE((SELECT SUM(opt.vote_count) FROM public.poll_options opt WHERE opt.poll_id = po.id), 0), 'user_votes', (SELECT jsonb_agg(pv.option_id) FROM public.poll_votes pv WHERE pv.poll_id = po.id AND pv.user_id = auth.uid()), 'options', (SELECT jsonb_agg(jsonb_build_object('id', opt.id, 'option_text', opt.option_text, 'vote_count', opt.vote_count) ORDER BY opt.id) FROM poll_options opt WHERE opt.poll_id = po.id)) AS poll
+        FROM polls po WHERE po.post_id = p.id
+    ) poll_details ON TRUE
+    WHERE p.is_deleted = false
     AND (
         p.user_id = auth.uid()
-        OR (p.community_id IS NOT NULL AND (p.is_public = true OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')))
+        OR (
+            p.community_id IS NOT NULL 
+            AND (
+                -- Only allow is_public to bypass membership if the community is NOT private
+                (p.is_public = true AND EXISTS (SELECT 1 FROM public.communities comm WHERE comm.id = p.community_id AND comm.access_type <> 'private'))
+                OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')
+            )
+        )
         OR (
             p.community_id IS NULL 
             AND (
@@ -2633,7 +2704,7 @@ BEGIN
             )
         )
     )
-  ORDER BY df.event_time DESC;
+    ORDER BY df.event_time DESC;
 END;
 $$;
 
@@ -2778,7 +2849,14 @@ BEGIN
             p.user_id = auth.uid()
             OR (
                 p.visibility = 'public'
-                AND (p.community_id IS NULL OR p.is_public = true OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved'))
+                AND (
+                    p.community_id IS NULL 
+                    OR (
+                        p.is_public = true 
+                        AND EXISTS (SELECT 1 FROM public.communities comm WHERE comm.id = p.community_id AND comm.access_type <> 'private')
+                    )
+                    OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')
+                )
             )
             OR (p.visibility = 'friends' AND 
              EXISTS (SELECT 1 FROM public.followers f1 WHERE f1.follower_id = auth.uid() AND f1.following_id = p.user_id AND f1.status = 'approved') AND
@@ -2930,15 +3008,6 @@ BEGIN
         EXISTS(SELECT 1 FROM community_members cm WHERE cm.community_id = sub.id AND cm.user_id = auth.uid() AND cm.status = 'pending') as has_pending_request
     FROM communities sub
     WHERE sub.parent_community_id = p_parent_id
-    AND (
-        sub.access_type <> 'private'
-        OR EXISTS (
-            SELECT 1 FROM community_members cm2 
-            WHERE cm2.community_id = sub.id 
-            AND cm2.user_id = auth.uid() 
-            AND cm2.status = 'approved'
-        )
-    )
     ORDER BY sub.name;
 END;
 $$;
@@ -3255,41 +3324,6 @@ $$;
 
 
 ALTER FUNCTION "public"."manage_join_request"("p_community_id" "uuid", "p_requester_id" "uuid", "p_action" "text") OWNER TO "postgres";
- 
- 
-CREATE OR REPLACE FUNCTION "public"."add_member_to_community"("p_community_id" "uuid", "p_user_id" "uuid") RETURNS "void"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    AS $$
-DECLARE
-    target_conversation_id uuid;
-BEGIN
-    -- 1. Verify the caller is an admin
-    IF NOT public.is_community_admin(p_community_id, auth.uid()) THEN
-        RAISE EXCEPTION 'Permission denied: Only consuls can add members directly.';
-    END IF;
-
-    -- 2. Add the member with 'approved' status
-    INSERT INTO public.community_members (community_id, user_id, status, role)
-    VALUES (p_community_id, p_user_id, 'approved', 'member')
-    ON CONFLICT (community_id, user_id) 
-    DO UPDATE SET status = 'approved' WHERE community_members.status <> 'approved';
-
-    -- 3. Also add the user to the associated conversation (if any)
-    SELECT id INTO target_conversation_id FROM public.conversations WHERE community_id = p_community_id;
-    IF target_conversation_id IS NOT NULL THEN
-        INSERT INTO public.conversation_participants (conversation_id, user_id)
-        VALUES (target_conversation_id, p_user_id)
-        ON CONFLICT DO NOTHING;
-    END IF;
-
-    -- 4. Send notification to the user
-    INSERT INTO public.notifications (user_id, actor_id, type, entity_id, entity_type)
-    VALUES (p_user_id, auth.uid(), 'community_added', p_community_id, 'community');
-END;
-$$;
-
-
-ALTER FUNCTION "public"."add_member_to_community"("p_community_id" "uuid", "p_user_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."mark_conversation_as_read"("p_conversation_id" "uuid") RETURNS "void"
@@ -3357,19 +3391,12 @@ CREATE OR REPLACE FUNCTION "public"."request_to_join_community"("p_community_id"
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
 BEGIN
-    IF EXISTS (
-        SELECT 1 FROM public.communities 
-        WHERE id = p_community_id AND access_type = 'private'
-    ) THEN
+    IF EXISTS (SELECT 1 FROM public.communities WHERE id = p_community_id AND access_type = 'private') THEN
         RAISE EXCEPTION 'This community is private. You must be added by a consul.';
     END IF;
 
-    IF NOT EXISTS (
-        SELECT 1 FROM public.community_members 
-        WHERE community_id = p_community_id AND user_id = auth.uid()
-    ) THEN
-        INSERT INTO public.community_members (community_id, user_id, status)
-        VALUES (p_community_id, auth.uid(), 'pending');
+    IF NOT EXISTS (SELECT 1 FROM public.community_members WHERE community_id = p_community_id AND user_id = auth.uid()) THEN
+        INSERT INTO public.community_members (community_id, user_id, status) VALUES (p_community_id, auth.uid(), 'pending');
     END IF;
 END;
 $$;
@@ -3403,7 +3430,13 @@ BEGIN
                   AND p.is_deleted = false
                   AND (
                     p.user_id = auth.uid()
-                    OR (p.community_id IS NOT NULL AND (p.is_public = true OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')))
+                    OR (
+                        p.community_id IS NOT NULL 
+                        AND (
+                            (p.is_public = true AND EXISTS (SELECT 1 FROM public.communities c WHERE c.id = p.community_id AND c.access_type <> 'private'))
+                            OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')
+                        )
+                    )
                     OR (
                         p.community_id IS NULL 
                         AND (
@@ -3533,6 +3566,38 @@ $$;
 ALTER FUNCTION "public"."set_community_member_role"("p_community_id" "uuid", "p_target_user_id" "uuid", "p_new_role" "text") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."toggle_community_pin"("p_community_id" "uuid") RETURNS boolean
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+    current_pin_status boolean;
+    new_pin_status boolean;
+BEGIN
+    -- Get current pin status
+    SELECT is_pinned INTO current_pin_status
+    FROM public.community_members
+    WHERE community_id = p_community_id 
+        AND user_id = auth.uid()
+        AND status = 'approved';
+    
+    -- Toggle the pin status
+    new_pin_status := NOT COALESCE(current_pin_status, false);
+    
+    -- Update the pin status
+    UPDATE public.community_members
+    SET is_pinned = new_pin_status
+    WHERE community_id = p_community_id 
+        AND user_id = auth.uid()
+        AND status = 'approved';
+    
+    RETURN new_pin_status;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."toggle_community_pin"("p_community_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."toggle_repost"("p_post_id" "uuid") RETURNS "void"
     LANGUAGE "plpgsql"
     AS $$
@@ -3641,6 +3706,22 @@ $$;
 
 
 ALTER FUNCTION "public"."update_community_details"("p_community_id" "uuid", "p_name" "text", "p_description" "text", "p_avatar_url" "text", "p_banner_url" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."update_community_last_visited"("p_community_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+BEGIN
+  UPDATE public.community_members
+  SET last_visited_at = now()
+  WHERE community_id = p_community_id 
+    AND user_id = auth.uid()
+    AND status = 'approved';
+END;
+$$;
+
+
+ALTER FUNCTION "public"."update_community_last_visited"("p_community_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."update_follow_counts"() RETURNS "trigger"
@@ -3983,7 +4064,9 @@ CREATE TABLE IF NOT EXISTS "public"."community_members" (
     "user_id" "uuid" NOT NULL,
     "joined_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "role" "text" DEFAULT 'member'::"text" NOT NULL,
-    "status" "text" DEFAULT 'approved'::"text" NOT NULL
+    "status" "text" DEFAULT 'approved'::"text" NOT NULL,
+    "last_visited_at" timestamp with time zone DEFAULT "now"(),
+    "is_pinned" boolean DEFAULT false
 );
 
 
@@ -3992,7 +4075,9 @@ ALTER TABLE "public"."community_members" OWNER TO "postgres";
 
 CREATE TABLE IF NOT EXISTS "public"."conversation_participants" (
     "conversation_id" "uuid" NOT NULL,
-    "user_id" "uuid" NOT NULL
+    "user_id" "uuid" NOT NULL,
+    "is_pinned" boolean DEFAULT false,
+    "is_archived" boolean DEFAULT false
 );
 
 
@@ -6028,6 +6113,12 @@ GRANT ALL ON FUNCTION "public"."accept_friend_request"("requester_id" "uuid") TO
 
 
 
+GRANT ALL ON FUNCTION "public"."add_member_to_community"("p_community_id" "uuid", "p_user_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."add_member_to_community"("p_community_id" "uuid", "p_user_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."add_member_to_community"("p_community_id" "uuid", "p_user_id" "uuid") TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."add_mined_block"("new_block_index" bigint, "new_block_timestamp" timestamp with time zone, "transactions_in_block" "jsonb", "new_block_previous_hash" "text", "new_block_hash" "text", "new_block_nonce" integer) TO "anon";
 GRANT ALL ON FUNCTION "public"."add_mined_block"("new_block_index" bigint, "new_block_timestamp" timestamp with time zone, "transactions_in_block" "jsonb", "new_block_previous_hash" "text", "new_block_hash" "text", "new_block_nonce" integer) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."add_mined_block"("new_block_index" bigint, "new_block_timestamp" timestamp with time zone, "transactions_in_block" "jsonb", "new_block_previous_hash" "text", "new_block_hash" "text", "new_block_nonce" integer) TO "service_role";
@@ -6483,9 +6574,6 @@ GRANT ALL ON FUNCTION "public"."is_participant"("convo_id" "uuid") TO "service_r
 GRANT ALL ON FUNCTION "public"."manage_join_request"("p_community_id" "uuid", "p_requester_id" "uuid", "p_action" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."manage_join_request"("p_community_id" "uuid", "p_requester_id" "uuid", "p_action" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."manage_join_request"("p_community_id" "uuid", "p_requester_id" "uuid", "p_action" "text") TO "service_role";
-GRANT ALL ON FUNCTION "public"."add_member_to_community"("p_community_id" "uuid", "p_user_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."add_member_to_community"("p_community_id" "uuid", "p_user_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."add_member_to_community"("p_community_id" "uuid", "p_user_id" "uuid") TO "service_role";
 
 
 
@@ -6537,6 +6625,12 @@ GRANT ALL ON FUNCTION "public"."set_community_member_role"("p_community_id" "uui
 
 
 
+GRANT ALL ON FUNCTION "public"."toggle_community_pin"("p_community_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."toggle_community_pin"("p_community_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."toggle_community_pin"("p_community_id" "uuid") TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."toggle_repost"("p_post_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."toggle_repost"("p_post_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."toggle_repost"("p_post_id" "uuid") TO "service_role";
@@ -6564,6 +6658,12 @@ GRANT ALL ON FUNCTION "public"."update_bits_coin_rating_on_profile"() TO "servic
 GRANT ALL ON FUNCTION "public"."update_community_details"("p_community_id" "uuid", "p_name" "text", "p_description" "text", "p_avatar_url" "text", "p_banner_url" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."update_community_details"("p_community_id" "uuid", "p_name" "text", "p_description" "text", "p_avatar_url" "text", "p_banner_url" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."update_community_details"("p_community_id" "uuid", "p_name" "text", "p_description" "text", "p_avatar_url" "text", "p_banner_url" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."update_community_last_visited"("p_community_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."update_community_last_visited"("p_community_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."update_community_last_visited"("p_community_id" "uuid") TO "service_role";
 
 
 
