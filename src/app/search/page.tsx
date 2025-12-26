@@ -8,12 +8,21 @@ import { SearchResults as SearchResultsType, UserSearchResult, PostSearchResult,
 import Spinner from '@/components/Spinner';
 import Skeleton from '@/components/Skeleton';
 import { format } from 'date-fns';
+import Image from 'next/image';
+import { getResizedAvatarUrl } from '@/utils/imageUtils';
 
 // --- Reusable Result Card Components ---
 
 const UserResultCard: React.FC<{ user: UserSearchResult }> = ({ user }) => (
     <Link href={`/profile/${user.username}`} className="flex items-center space-x-4 p-3 rounded-lg hover:bg-tertiary-light/60 dark:hover:bg-tertiary transition-colors">
-        <img src={user.avatar_url || `https://ui-avatars.com/api/?name=${user.full_name}`} alt={user.username} className="w-12 h-12 rounded-full object-cover" />
+        <Image
+            src={getResizedAvatarUrl(user.avatar_url, 48, 48, user.full_name)}
+            alt={user.username}
+            width={48}
+            height={48}
+            className="w-12 h-12 rounded-full object-cover"
+            unoptimized
+        />
         <div>
             <p className="font-semibold text-text-main-light dark:text-text-main">{user.full_name}</p>
             <p className="text-sm text-text-secondary-light dark:text-text-secondary">@{user.username}</p>
@@ -30,7 +39,14 @@ const PostResultCard: React.FC<{ post: PostSearchResult }> = ({ post }) => (
 
 const CommunityResultCard: React.FC<{ community: CommunitySearchResult }> = ({ community }) => (
     <Link href={`/communities/${community.id}`} className="flex items-center space-x-4 p-3 rounded-lg hover:bg-tertiary-light/60 dark:hover:bg-tertiary transition-colors">
-        <img src={community.avatar_url || `https://ui-avatars.com/api/?name=${community.name}`} alt={community.name} className="w-12 h-12 rounded-lg object-cover" />
+        <Image
+            src={getResizedAvatarUrl(community.avatar_url, 48, 48, community.name)}
+            alt={community.name}
+            width={48}
+            height={48}
+            className="w-12 h-12 rounded-lg object-cover"
+            unoptimized
+        />
         <div>
             <p className="font-semibold text-text-main-light dark:text-text-main">{community.name}</p>
             <p className="text-sm text-text-secondary-light dark:text-text-secondary">{community.member_count} members</p>

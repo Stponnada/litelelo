@@ -14,6 +14,7 @@ import {
 } from './icons';
 import NotificationPanel from './NotificationPanel';
 import GlobalSearchBar from './GlobalSearchBar';
+import { getResizedAvatarUrl } from '@/utils/imageUtils';
 
 interface HeaderProps {
     isSidebarExpanded: boolean;
@@ -110,13 +111,14 @@ const Header: React.FC<HeaderProps> = ({ isSidebarExpanded, onOpenAboutModal }) 
                                 </div>
                             </div>
                             <button onClick={() => setMenuOpen(prev => !prev)} className="w-9 h-9 rounded-full overflow-hidden border border-tertiary-light dark:border-tertiary bg-tertiary-light dark:bg-tertiary">
-                                {profile.avatar_url ? (
-                                    <Image src={profile.avatar_url} alt="My Profile" width={36} height={36} className="w-full h-full object-cover" unoptimized />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-text-tertiary-light dark:text-text-tertiary">
-                                        <UserIcon className="w-5 h-5" />
-                                    </div>
-                                )}
+                                <Image
+                                    src={getResizedAvatarUrl(profile.avatar_url, 36, 36, profile.full_name || profile.username)}
+                                    alt="My Profile"
+                                    width={36}
+                                    height={36}
+                                    className="w-full h-full object-cover"
+                                    unoptimized
+                                />
                             </button>
                         </div>
                     )}

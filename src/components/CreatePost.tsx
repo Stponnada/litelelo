@@ -10,6 +10,7 @@ import {
 } from './icons';
 import VisibilityDropdown from './VisibilityDropdown';
 import UserSelectorModal from './UserSelectorModal';
+import { getResizedAvatarUrl } from '@/utils/imageUtils';
 
 // --- Icons ---
 // Included inline in case they are missing from your icons file
@@ -285,18 +286,14 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, profile, communi
         <form onSubmit={handleSubmit}>
           <div className="flex items-start gap-4">
             <div className="w-11 h-11 rounded-full overflow-hidden ring-2 ring-white dark:ring-tertiary shadow-sm bg-tertiary-light dark:bg-tertiary flex items-center justify-center">
-              {profile.avatar_url ? (
-                <Image
-                  src={profile.avatar_url}
-                  alt="Avatar"
-                  width={44}
-                  height={44}
-                  className="w-full h-full object-cover"
-                  unoptimized
-                />
-              ) : (
-                <UserIcon className="w-6 h-6 text-text-tertiary-light dark:text-text-tertiary" />
-              )}
+              <Image
+                src={getResizedAvatarUrl(profile.avatar_url, 44, 44, profile.full_name || profile.username)}
+                alt="Avatar"
+                width={44}
+                height={44}
+                className="w-full h-full object-cover"
+                unoptimized
+              />
             </div>
 
             <div className="flex-1 min-w-0">

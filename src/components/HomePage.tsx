@@ -19,6 +19,7 @@ import GlobalSearchBar from './GlobalSearchBar';
 import ListingCard from './ListingCard';
 import EventCard from './EventCard';
 import ListingDetailModal from './ListingDetailModal';
+import { getResizedAvatarUrl } from '@/utils/imageUtils';
 
 const LostFoundFeedCard: React.FC<{ item: LostAndFoundItem }> = ({ item }) => {
     const isLost = item.item_type === 'lost';
@@ -60,11 +61,14 @@ const ProfileCard: React.FC<{ profile: Profile }> = ({ profile }) => (
     <div className="bg-secondary-light/70 dark:bg-secondary/70 backdrop-blur-xl rounded-xl border border-tertiary-light/50 dark:border-white/5 p-4 shadow-sm">
         <Link href={`/profile/${profile.username}`} className="flex items-center gap-3 group">
             <div className="w-10 h-10 rounded-full overflow-hidden object-cover border border-brand-green/20 group-hover:border-brand-green transition-colors bg-tertiary-light dark:bg-tertiary flex items-center justify-center">
-                {profile.avatar_url ? (
-                    <Image src={profile.avatar_url} alt="Your avatar" width={40} height={40} className="w-full h-full object-cover" unoptimized />
-                ) : (
-                    <UserIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary" />
-                )}
+                <Image
+                    src={getResizedAvatarUrl(profile.avatar_url, 40, 40, profile.full_name || profile.username)}
+                    alt="Your avatar"
+                    width={40}
+                    height={40}
+                    className="w-full h-full object-cover"
+                    unoptimized
+                />
             </div>
             <div className="flex-1 min-w-0">
                 <h3 className="font-bold text-sm text-text-main-light dark:text-text-main truncate group-hover:text-brand-green transition-colors">{profile.full_name}</h3>
@@ -84,7 +88,7 @@ const ProfileCard: React.FC<{ profile: Profile }> = ({ profile }) => (
     </div>
 );
 
-const CommunitiesWidget: React.FC = () => { const { user } = useAuth(); const [communities, setCommunities] = useState<{ id: string; name: string; avatar_url: string | null }[]>([]); useEffect(() => { if (!user) return; const fetchCommunities = async () => { const { data } = await supabase.rpc('get_communities_for_user', { p_user_id: user.id }).limit(5); if (data) setCommunities(data); }; fetchCommunities(); }, [user]); return (<div className="bg-secondary-light/70 dark:bg-secondary/70 backdrop-blur-xl rounded-xl border border-tertiary-light/50 dark:border-white/5 p-4 shadow-sm"> <div className="flex items-center justify-between mb-3"> <h3 className="font-bold text-sm text-text-main-light dark:text-text-main">Communities</h3> <UserGroupIcon className="w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" /> </div> {communities.length > 0 ? (<div className="space-y-2"> {communities.map(c => (<Link key={c.id} href={`/communities/${c.id}`} className="flex items-center gap-2.5 p-1.5 -mx-1.5 rounded-lg hover:bg-tertiary-light/50 dark:hover:bg-white/5 transition-colors group"> <Image src={c.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name)}&background=random&color=fff&bold=true`} alt={c.name} width={28} height={28} className="w-7 h-7 rounded-md object-cover ring-1 ring-transparent group-hover:ring-brand-green/30 transition-all" unoptimized /> <span className="text-xs font-medium text-text-secondary-light dark:text-text-secondary truncate flex-1 group-hover:text-text-main-light dark:group-hover:text-text-main transition-colors">{c.name}</span> </Link>))} </div>) : <p className="text-xs text-text-tertiary-light dark:text-text-tertiary">No communities yet</p>} </div>); };
+const CommunitiesWidget: React.FC = () => { const { user } = useAuth(); const [communities, setCommunities] = useState<{ id: string; name: string; avatar_url: string | null }[]>([]); useEffect(() => { if (!user) return; const fetchCommunities = async () => { const { data } = await supabase.rpc('get_communities_for_user', { p_user_id: user.id }).limit(5); if (data) setCommunities(data); }; fetchCommunities(); }, [user]); return (<div className="bg-secondary-light/70 dark:bg-secondary/70 backdrop-blur-xl rounded-xl border border-tertiary-light/50 dark:border-white/5 p-4 shadow-sm"> <div className="flex items-center justify-between mb-3"> <h3 className="font-bold text-sm text-text-main-light dark:text-text-main">Communities</h3> <UserGroupIcon className="w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" /> </div> {communities.length > 0 ? (<div className="space-y-2"> {communities.map(c => (<Link key={c.id} href={`/communities/${c.id}`} className="flex items-center gap-2.5 p-1.5 -mx-1.5 rounded-lg hover:bg-tertiary-light/50 dark:hover:bg-white/5 transition-colors group"> <Image src={getResizedAvatarUrl(c.avatar_url, 28, 28, c.name)} alt={c.name} width={28} height={28} className="w-7 h-7 rounded-md object-cover ring-1 ring-transparent group-hover:ring-brand-green/30 transition-all" unoptimized /> <span className="text-xs font-medium text-text-secondary-light dark:text-text-secondary truncate flex-1 group-hover:text-text-main-light dark:group-hover:text-text-main transition-colors">{c.name}</span> </Link>))} </div>) : <p className="text-xs text-text-tertiary-light dark:text-text-tertiary">No communities yet</p>} </div>); };
 
 const CryptoHubWidget: React.FC<{ profile: Profile }> = ({ profile }) => { const [isExpanded, setIsExpanded] = useState(false); return (<div className="bg-secondary-light/70 dark:bg-secondary/70 backdrop-blur-xl rounded-xl border border-tertiary-light/50 dark:border-white/5 p-4 shadow-sm"> <button onClick={() => setIsExpanded(!isExpanded)} className="w-full flex items-center justify-between group"> <div className="flex items-center gap-2.5"> <div className="p-1.5 rounded-md bg-brand-green/10 text-brand-green group-hover:bg-brand-green/20 transition-colors"><CubeIcon className="w-4 h-4" /></div> <h3 className="font-bold text-sm text-text-main-light dark:text-text-main">Bits-Coin</h3> </div> <svg className={`w-4 h-4 text-text-tertiary-light dark:text-text-tertiary transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /> </svg> </button> {isExpanded && (<div className="mt-3 pt-3 border-t border-tertiary-light/50 dark:border-white/10 animate-fadeIn"> <div className="text-center py-2"> <p className="text-[10px] font-medium text-text-tertiary-light dark:text-text-tertiary mb-0.5 uppercase tracking-wide">Balance</p> <p className="text-2xl font-black text-brand-green tracking-tight"> {profile.bits_coin_balance?.toFixed(2) || '0.00'} <span className="text-sm font-bold text-text-secondary-light dark:text-text-secondary">BC</span> </p> </div> <Link href="/easter-egg/blockchain" className="block w-full text-center text-xs font-bold bg-brand-green/10 text-brand-green hover:bg-brand-green/20 py-2 rounded-lg transition-colors"> View Chain </Link> </div>)} </div>); };
 

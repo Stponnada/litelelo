@@ -19,6 +19,8 @@ import FollowListModal from '@/components/FollowListModal';
 import LightBox from '@/components/lightbox';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
+import { getResizedAvatarUrl } from '@/utils/imageUtils';
 
 interface CommunityLink {
     id: string;
@@ -502,17 +504,14 @@ const ProfilePage: React.FC = () => {
                         {/* Avatar */}
                         <div className="relative z-10 flex-shrink-0 mx-auto sm:mx-0">
                             <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 border-secondary-light dark:border-secondary bg-tertiary overflow-hidden shadow-2xl">
-                                {profile.avatar_url ? (
-                                    <img
-                                        src={profile.avatar_url}
-                                        alt={profile.full_name || ''}
-                                        className="w-full h-full object-cover"
-                                    />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-green/20 to-blue-500/20">
-                                        <span className="text-4xl sm:text-5xl font-bold text-brand-green">{profile.full_name ? profile.full_name.split(' ').map(n => n[0]).join('') : profile.username[0]}</span>
-                                    </div>
-                                )}
+                                <Image
+                                    src={getResizedAvatarUrl(profile.avatar_url, 144, 144, profile.full_name || profile.username)}
+                                    alt={profile.full_name || profile.username}
+                                    width={144}
+                                    height={144}
+                                    className="w-full h-full object-cover"
+                                    unoptimized
+                                />
                             </div>
                         </div>
 

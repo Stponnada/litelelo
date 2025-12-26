@@ -756,18 +756,48 @@ DECLARE
     v_poll_id uuid;
     v_post_data jsonb;
     v_root_post_id uuid;
+    
+    -- Variables for inherited settings
+    v_inherit_community_id uuid;
+    v_inherit_is_public boolean;
+    v_inherit_visibility text;
+    v_inherit_allowed_viewers uuid[];
+    
+    -- Final settings to use
+    v_final_community_id uuid;
+    v_final_is_public boolean;
+    v_final_visibility text;
+    v_final_allowed_viewers uuid[];
 BEGIN
-    -- Determine root_post_id
+    -- Determine root_post_id and inherit privacy settings if replying
     IF p_parent_post_id IS NOT NULL THEN
-        SELECT COALESCE(root_post_id, id) INTO v_root_post_id
+        SELECT 
+            COALESCE(root_post_id, id),
+            community_id,
+            is_public,
+            visibility,
+            allowed_viewers
+        INTO 
+            v_root_post_id,
+            v_inherit_community_id,
+            v_inherit_is_public,
+            v_inherit_visibility,
+            v_inherit_allowed_viewers
         FROM public.posts
         WHERE id = p_parent_post_id;
         
-        -- If the parent doesn't exist (shouldn't happen due to FK but good to be safe), or something else, handle it.
-        -- If v_root_post_id is still null (meaning parent has no root, so parent is root), set it to parent.
-        -- The COALESCE above handles: if parent.root_post_id is null, use parent.id.
+        -- Override parameters with parent's settings to enforce privacy
+        -- This prevents replies to private community posts or "Friends Only" posts from being accidentally public.
+        v_final_community_id := v_inherit_community_id;
+        v_final_is_public := v_inherit_is_public;
+        v_final_visibility := v_inherit_visibility;
+        v_final_allowed_viewers := v_inherit_allowed_viewers;
     ELSE
         v_root_post_id := NULL; -- It is a new root post
+        v_final_community_id := p_community_id;
+        v_final_is_public := p_is_public;
+        v_final_visibility := p_visibility;
+        v_final_allowed_viewers := p_allowed_viewers;
     END IF;
 
     -- Insert the post
@@ -775,7 +805,7 @@ BEGIN
         user_id, content, image_url, community_id, is_public, visibility, allowed_viewers, parent_post_id, root_post_id
     )
     VALUES (
-        auth.uid(), p_content, p_image_url, p_community_id, p_is_public, p_visibility, p_allowed_viewers, p_parent_post_id, v_root_post_id
+        auth.uid(), p_content, p_image_url, v_final_community_id, v_final_is_public, v_final_visibility, v_final_allowed_viewers, p_parent_post_id, v_root_post_id
     )
     RETURNING id INTO v_post_id;
 
@@ -2056,24 +2086,30 @@ BEGIN
   LEFT JOIN public.profiles parent_author ON parent_post.user_id = parent_author.user_id
   WHERE p.is_deleted = false AND m.user_id = profile_user_id
     AND (
-        p.user_id = auth.uid()
-        OR (
-            p.community_id IS NOT NULL 
+        p.root_post_id IS NULL OR p.root_post_id = p.id
+        OR EXISTS (
+            SELECT 1 FROM public.posts rp
+            WHERE rp.id = p.root_post_id
             AND (
-                (p.is_public = true AND EXISTS (SELECT 1 FROM public.communities comm WHERE comm.id = p.community_id AND comm.access_type <> 'private'))
-                OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')
-            )
-        )
-        OR (
-            p.community_id IS NULL 
-            AND (
-                p.visibility = 'public'
+                rp.user_id = auth.uid()
                 OR (
-                    p.visibility = 'friends' 
-                    AND EXISTS (SELECT 1 FROM public.followers f1 WHERE f1.follower_id = auth.uid() AND f1.following_id = p.user_id AND f1.status = 'approved')
-                    AND EXISTS (SELECT 1 FROM public.followers f2 WHERE f2.follower_id = p.user_id AND f2.following_id = auth.uid() AND f2.status = 'approved')
+                    rp.community_id IS NOT NULL 
+                    AND (
+                        (rp.is_public = true AND EXISTS (SELECT 1 FROM public.communities c_rp WHERE c_rp.id = rp.community_id AND c_rp.access_type <> 'private'))
+                        OR EXISTS (SELECT 1 FROM public.community_members cm_rp WHERE cm_rp.community_id = rp.community_id AND cm_rp.user_id = auth.uid() AND cm_rp.status = 'approved')
+                    )
                 )
-                OR (p.visibility = 'specific' AND auth.uid() = ANY(p.allowed_viewers))
+                OR (
+                    rp.community_id IS NULL 
+                    AND (
+                        rp.visibility = 'public'
+                        OR (rp.visibility = 'friends' 
+                            AND EXISTS (SELECT 1 FROM public.followers f3 WHERE f3.follower_id = auth.uid() AND f3.following_id = rp.user_id AND f3.status = 'approved')
+                            AND EXISTS (SELECT 1 FROM public.followers f4 WHERE f4.follower_id = rp.user_id AND f4.following_id = auth.uid() AND f4.status = 'approved')
+                        )
+                        OR (rp.visibility = 'specific' AND auth.uid() = ANY(rp.allowed_viewers))
+                    )
+                )
             )
         )
     )
@@ -2334,24 +2370,30 @@ BEGIN
     WHERE
         p.id = p_post_id
         AND (
-            p.user_id = auth.uid()
-            OR (
-                p.community_id IS NOT NULL 
+            p.root_post_id IS NULL OR p.root_post_id = p.id
+            OR EXISTS (
+                SELECT 1 FROM public.posts rp
+                WHERE rp.id = p.root_post_id
                 AND (
-                    (p.is_public = true AND EXISTS (SELECT 1 FROM public.communities comm WHERE comm.id = p.community_id AND comm.access_type <> 'private'))
-                    OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')
-                )
-            )
-            OR (
-                p.community_id IS NULL 
-                AND (
-                    p.visibility = 'public'
+                    rp.user_id = auth.uid()
                     OR (
-                        p.visibility = 'friends' 
-                        AND EXISTS (SELECT 1 FROM public.followers f1 WHERE f1.follower_id = auth.uid() AND f1.following_id = p.user_id AND f1.status = 'approved')
-                        AND EXISTS (SELECT 1 FROM public.followers f2 WHERE f2.follower_id = p.user_id AND f2.following_id = auth.uid() AND f2.status = 'approved')
+                        rp.community_id IS NOT NULL 
+                        AND (
+                            (rp.is_public = true AND EXISTS (SELECT 1 FROM public.communities c_rp WHERE c_rp.id = rp.community_id AND c_rp.access_type <> 'private'))
+                            OR EXISTS (SELECT 1 FROM public.community_members cm_rp WHERE cm_rp.community_id = rp.community_id AND cm_rp.user_id = auth.uid() AND cm_rp.status = 'approved')
+                        )
                     )
-                    OR (p.visibility = 'specific' AND auth.uid() = ANY(p.allowed_viewers))
+                    OR (
+                        rp.community_id IS NULL 
+                        AND (
+                            rp.visibility = 'public'
+                            OR (rp.visibility = 'friends' 
+                                AND EXISTS (SELECT 1 FROM public.followers f3 WHERE f3.follower_id = auth.uid() AND f3.following_id = rp.user_id AND f3.status = 'approved')
+                                AND EXISTS (SELECT 1 FROM public.followers f4 WHERE f4.follower_id = rp.user_id AND f4.following_id = auth.uid() AND f4.status = 'approved')
+                            )
+                            OR (rp.visibility = 'specific' AND auth.uid() = ANY(rp.allowed_viewers))
+                        )
+                    )
                 )
             )
         );
@@ -2440,6 +2482,34 @@ BEGIN
                         AND EXISTS (SELECT 1 FROM public.followers f2 WHERE f2.follower_id = p.user_id AND f2.following_id = auth.uid() AND f2.status = 'approved')
                     )
                     OR (p.visibility = 'specific' AND auth.uid() = ANY(p.allowed_viewers))
+                )
+            )
+        )
+        AND (
+            p.root_post_id IS NULL OR p.root_post_id = p.id
+            OR EXISTS (
+                SELECT 1 FROM public.posts rp
+                WHERE rp.id = p.root_post_id
+                AND (
+                    rp.user_id = auth.uid()
+                    OR (
+                        rp.community_id IS NOT NULL 
+                        AND (
+                            (rp.is_public = true AND EXISTS (SELECT 1 FROM public.communities c_rp WHERE c_rp.id = rp.community_id AND c_rp.access_type <> 'private'))
+                            OR EXISTS (SELECT 1 FROM public.community_members cm_rp WHERE cm_rp.community_id = rp.community_id AND cm_rp.user_id = auth.uid() AND cm_rp.status = 'approved')
+                        )
+                    )
+                    OR (
+                        rp.community_id IS NULL 
+                        AND (
+                            rp.visibility = 'public'
+                            OR (rp.visibility = 'friends' 
+                                AND EXISTS (SELECT 1 FROM public.followers f3 WHERE f3.follower_id = auth.uid() AND f3.following_id = rp.user_id AND f3.status = 'approved')
+                                AND EXISTS (SELECT 1 FROM public.followers f4 WHERE f4.follower_id = rp.user_id AND f4.following_id = auth.uid() AND f4.status = 'approved')
+                            )
+                            OR (rp.visibility = 'specific' AND auth.uid() = ANY(rp.allowed_viewers))
+                        )
+                    )
                 )
             )
         )
@@ -2599,6 +2669,7 @@ BEGIN
     WHERE
         p.is_deleted = false
         AND p.community_id = p_community_id
+        AND p.parent_post_id IS NULL -- FILTER: Only show root posts
         AND (
             p.is_public = true
             OR p.user_id = auth.uid()
@@ -2625,12 +2696,14 @@ BEGIN
     profile_feed_items AS (
         SELECT p.id AS post_id, p.created_at AS event_time, NULL::jsonb AS reposted_by
         FROM public.posts p 
-        WHERE p.user_id = p_user_id AND p.is_deleted = false
+        WHERE p.user_id = p_user_id AND p.is_deleted = false AND p.parent_post_id IS NULL -- FILTER: Only show root posts
         UNION ALL
         SELECT r.post_id, r.created_at AS event_time, 
                jsonb_build_object('user_id', pp.user_id, 'username', pp.username, 'full_name', pp.full_name) AS reposted_by
         FROM public.reposts r 
         JOIN p_profile pp ON r.user_id = pp.user_id
+        JOIN public.posts p ON r.post_id = p.id
+        WHERE p.parent_post_id IS NULL -- FILTER: Only show reposts of root posts
     ),
     distinct_feed AS (
         SELECT DISTINCT ON (post_id) df_inner.post_id, df_inner.event_time, df_inner.reposted_by 
@@ -2682,25 +2755,30 @@ BEGIN
     ) poll_details ON TRUE
     WHERE p.is_deleted = false
     AND (
-        p.user_id = auth.uid()
-        OR (
-            p.community_id IS NOT NULL 
+        p.root_post_id IS NULL OR p.root_post_id = p.id
+        OR EXISTS (
+            SELECT 1 FROM public.posts rp
+            WHERE rp.id = p.root_post_id
             AND (
-                -- Only allow is_public to bypass membership if the community is NOT private
-                (p.is_public = true AND EXISTS (SELECT 1 FROM public.communities comm WHERE comm.id = p.community_id AND comm.access_type <> 'private'))
-                OR EXISTS (SELECT 1 FROM public.community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = auth.uid() AND cm.status = 'approved')
-            )
-        )
-        OR (
-            p.community_id IS NULL 
-            AND (
-                p.visibility = 'public'
+                rp.user_id = auth.uid()
                 OR (
-                    p.visibility = 'friends' 
-                    AND EXISTS (SELECT 1 FROM public.followers f1 WHERE f1.follower_id = auth.uid() AND f1.following_id = p.user_id AND f1.status = 'approved')
-                    AND EXISTS (SELECT 1 FROM public.followers f2 WHERE f2.follower_id = p.user_id AND f2.following_id = auth.uid() AND f2.status = 'approved')
+                    rp.community_id IS NOT NULL 
+                    AND (
+                        (rp.is_public = true AND EXISTS (SELECT 1 FROM public.communities c_rp WHERE c_rp.id = rp.community_id AND c_rp.access_type <> 'private'))
+                        OR EXISTS (SELECT 1 FROM public.community_members cm_rp WHERE cm_rp.community_id = rp.community_id AND cm_rp.user_id = auth.uid() AND cm_rp.status = 'approved')
+                    )
                 )
-                OR (p.visibility = 'specific' AND auth.uid() = ANY(p.allowed_viewers))
+                OR (
+                    rp.community_id IS NULL 
+                    AND (
+                        rp.visibility = 'public'
+                        OR (rp.visibility = 'friends' 
+                            AND EXISTS (SELECT 1 FROM public.followers f3 WHERE f3.follower_id = auth.uid() AND f3.following_id = rp.user_id AND f3.status = 'approved')
+                            AND EXISTS (SELECT 1 FROM public.followers f4 WHERE f4.follower_id = rp.user_id AND f4.following_id = auth.uid() AND f4.status = 'approved')
+                        )
+                        OR (rp.visibility = 'specific' AND auth.uid() = ANY(rp.allowed_viewers))
+                    )
+                )
             )
         )
     )
