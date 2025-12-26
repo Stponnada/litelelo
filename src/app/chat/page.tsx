@@ -103,9 +103,14 @@ const ChatPage: React.FC = () => {
         return convo.participants.find(p => p.user_id !== user?.id) || convo.participants[0] || null;
     };
 
-    const filteredConversations = conversations.filter(conv =>
-        conv.name?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredConversations = conversations.filter(conv => {
+        const searchLower = searchTerm.toLowerCase();
+        const convoName = (conv.type === 'group' ? conv.name : (getOtherParticipant(conv)?.full_name || conv.name)) || '';
+        const convoUsername = conv.type === 'dm' ? getOtherParticipant(conv)?.username : '';
+
+        return convoName.toLowerCase().includes(searchLower) ||
+            (convoUsername && convoUsername.toLowerCase().includes(searchLower));
+    });
 
     // Include placeholder in selection logic
     // Include placeholder in selection logic - Check context list first, then direct-tap state

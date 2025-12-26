@@ -78,13 +78,16 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (directoryError) throw directoryError;
 
       const allProfiles = (directoryData || []).filter((item: Record<string, unknown>) => item.type === 'user');
-      const contacts = allProfiles.filter((p: Record<string, unknown>) => p.is_following);
-      const existingParticipantIds = new Set(
-        (finalSummaries || []).flatMap(c => (c.participants || []).map(p => p.user_id))
+      // Include anyone who is either followed by you OR follows you (to ensure mutual friends show up)
+      const contacts = allProfiles.filter((p: Record<string, unknown>) => p.is_following || p.is_followed_by);
+      const existingDmParticipantIds = new Set(
+        (finalSummaries || [])
+          .filter(c => c.type === 'dm')
+          .flatMap(c => (c.participants || []).map(p => p.user_id))
       );
 
       const placeholderConversations = contacts
-        .filter((contact: Record<string, unknown>) => !existingParticipantIds.has(contact.id as string))
+        .filter((contact: Record<string, unknown>) => !existingDmParticipantIds.has(contact.id as string))
         .map((contact: Record<string, unknown>) => ({
           conversation_id: `placeholder_${contact.id}`,
           type: 'dm' as const,
