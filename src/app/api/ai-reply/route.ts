@@ -39,32 +39,85 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: 'No @rock mention found' }, { status: 200 });
         }
 
-        // Fetch the post context along with the author's username
-        const targetId = parentId || postId;
-        const { data: targetPost, error: fetchError } = await supabaseAdmin
+        // 1. Identify the root of the thread to get full context
+        // parentId is the post that mentioned @rock
+        const mentionPostId = parentId || postId;
+        console.log('Fetching mention post context for ID:', mentionPostId);
+
+        // Fetch the mention post first to get its thread context
+        let { data: mentionPost, error: mentionFetchError } = await supabaseAdmin
             .from('posts')
-            .select('content, user_id, community_id, is_public, profiles(username)')
-            .eq('id', targetId)
+            .select('id, content, user_id, parent_post_id, root_post_id, community_id, is_public')
+            .eq('id', mentionPostId)
             .single();
 
-        if (fetchError || !targetPost) {
-            console.error('Error fetching target post:', fetchError);
+        // Small retry logic if post isn't found (handles rare indexing lag)
+        if (!mentionPost) {
+            console.log('Mention post not found immediately, retrying in 500ms...');
+            await new Promise(resolve => setTimeout(resolve, 500));
+            const retryResult = await supabaseAdmin
+                .from('posts')
+                .select('id, content, user_id, parent_post_id, root_post_id, community_id, is_public')
+                .eq('id', mentionPostId)
+                .single();
+            mentionPost = retryResult.data;
+            mentionFetchError = retryResult.error;
+        }
+
+        if (mentionFetchError || !mentionPost) {
+            console.error('Error fetching mention post after retry:', mentionFetchError || 'No post found');
             return NextResponse.json({ error: 'Target post not found' }, { status: 404 });
         }
 
-        const authorUsername = (targetPost.profiles as any)?.username || 'user';
+        const rootId = mentionPost.root_post_id || mentionPost.id;
 
-        // Use gemini-2.5-flash-lite
+        // 2. Fetch the whole thread for context
+        // We'll fetch posts in chronological order
+        const { data: threadPosts, error: threadError } = await supabaseAdmin
+            .from('posts')
+            .select('id, content, user_id, parent_post_id, created_at, profiles(username, full_name)')
+            .or(`id.eq.${rootId},root_post_id.eq.${rootId}`)
+            .order('created_at', { ascending: true });
+
+        if (threadError) {
+            console.error('Error fetching thread context:', threadError);
+            // Non-blocking, we'll continue with just the current post context
+        }
+
+        // Format thread for Gemini
+        let threadContext = '';
+        if (threadPosts && threadPosts.length > 0) {
+            threadContext = threadPosts.map(p => {
+                const username = (p.profiles as any)?.username || 'unknown';
+                return `${username}: ${p.content}`;
+            }).join('\n');
+        } else {
+            // Fallback to just the current post if thread fetch failed or is empty
+            const { data: authorProfile } = await supabaseAdmin
+                .from('profiles')
+                .select('username')
+                .eq('user_id', mentionPost.user_id)
+                .single();
+            threadContext = `${authorProfile?.username || 'user'}: ${mentionPost.content}`;
+        }
+
+        // 3. Generate response with full context
         let text = '';
         try {
             const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
             const prompt = `You are a funny, witty AI assistant named "Rock" on a social platform called Litelelo.
-            You are replying to @${authorUsername} whose post says: "${targetPost.content}".
-            The comment that triggered you is from the same user or someone else: "${content}".
+            
+            CONVERSATION CONTEXT:
+            ${threadContext}
+            
+            YOUR TASK:
+            You are replying to the last message in the thread above. 
+            The user mentioned you (@rock) in that message.
             Write a funny, witty, and helpful response as Rock. 
-            Mention @${authorUsername} in your reply if it feels natural.
             Keep it concise, conversational, and stay in character. 
-            Do not use placeholders like "[original poster]". Always use actual usernames or names.`;
+            Do not use placeholders like "[original poster]". 
+            Address users by their @usernames if you mention them.
+            Make sure your reply feels like a natural part of the conversation history provided above.`;
 
             const result = await model.generateContent(prompt);
             text = result.response.text();
@@ -72,7 +125,11 @@ export async function POST(req: NextRequest) {
             console.error('Gemini 2.5-flash-lite failed, trying gemini-1.5-flash:', geminiError);
             try {
                 const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-                const prompt = `You are a funny AI assistant named "Rock". Replying to: "${targetPost.content}". User said: "${content}". Write a witty reply.`;
+                const prompt = `You are a funny AI assistant named "Rock".
+                Conversation:
+                ${threadContext}
+                
+                Write a witty reply to the last message.`;
                 const result = await model.generateContent(prompt);
                 text = result.response.text();
             } catch (fallbackError) {
@@ -85,24 +142,21 @@ export async function POST(req: NextRequest) {
             throw new Error('Failed to generate content from Gemini');
         }
 
-        // Find or create "Rock" user
+        // 4. Identify or create Rock user
         let rockUserId: string | null = null;
-
-        // Check if profile exists with username 'rock'
-        const { data: rockProfile, error: profileError } = await supabaseAdmin
+        const { data: rockProfile } = await supabaseAdmin
             .from('profiles')
-            .select('user_id, avatar_url')
+            .select('user_id')
             .eq('username', 'rock')
             .single();
 
         if (rockProfile) {
             rockUserId = rockProfile.user_id;
         } else {
-            console.log('Rock user not found, creating...');
-            // Create user if not exists
+            // Create user logic (same as before)
             const { data: newUser, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
                 email: 'rock@litelelo.com',
-                password: 'rockpassword123' + Math.random().toString(36).slice(-8), // More random
+                password: 'rockpassword123' + Math.random().toString(36).slice(-8),
                 email_confirm: true,
                 user_metadata: {
                     username: 'rock',
@@ -111,25 +165,17 @@ export async function POST(req: NextRequest) {
                 }
             });
 
-            if (createUserError) {
-                console.error('Error creating Rock user:', createUserError);
-                return NextResponse.json({ reply: text, warning: 'Could not create Rock user' });
-            }
-
-            if (newUser.user) {
+            if (!createUserError && newUser.user) {
                 rockUserId = newUser.user.id;
-                // Update profile with correct details if it wasn't created by trigger
-                await supabaseAdmin
-                    .from('profiles')
-                    .upsert({
-                        user_id: rockUserId,
-                        username: 'rock',
-                        full_name: 'Rock (AI Assistant)',
-                        avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=rock',
-                        campus: 'Pilani',
-                        admission_year: 2024,
-                        branch: 'CS'
-                    });
+                await supabaseAdmin.from('profiles').upsert({
+                    user_id: rockUserId,
+                    username: 'rock',
+                    full_name: 'Rock (AI Assistant)',
+                    avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=rock',
+                    campus: 'Pilani',
+                    admission_year: 2024,
+                    branch: 'CS'
+                });
             }
         }
 
@@ -140,10 +186,10 @@ export async function POST(req: NextRequest) {
                 .insert({
                     content: text.trim(),
                     user_id: rockUserId,
-                    parent_post_id: targetId,
-                    root_post_id: postId,
-                    community_id: targetPost.community_id, // Inherit community
-                    is_public: targetPost.is_public, // Inherit visibility
+                    parent_post_id: mentionPost.id, // Direct reply to the mention
+                    root_post_id: mentionPost.root_post_id || mentionPost.id,
+                    community_id: mentionPost.community_id,
+                    is_public: mentionPost.is_public,
                     post_type: 'text'
                 });
 
@@ -157,6 +203,9 @@ export async function POST(req: NextRequest) {
 
     } catch (error) {
         console.error('Error in AI reply:', error);
-        return NextResponse.json({ error: 'Internal Server Error', details: error instanceof Error ? error.message : String(error) }, { status: 500 });
+        return NextResponse.json({
+            error: 'Internal Server Error',
+            details: error instanceof Error ? error.message : String(error)
+        }, { status: 500 });
     }
 }
