@@ -209,22 +209,10 @@ const EncryptionPinModal: React.FC<EncryptionPinModalProps> = ({ onComplete, onS
                         animate={{ opacity: 1, y: 0 }}
                         className="space-y-6"
                     >
-                        <div className="text-center">
-                            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-brand-green to-green-600 flex items-center justify-center shadow-lg shadow-brand-green/30">
-                                <ShieldCheckIcon className="w-8 h-8 text-black" />
-                            </div>
-                            <h2 className="text-2xl font-bold text-text-main-light dark:text-text-main">
-                                Secure Your Chats
-                            </h2>
-                            <p className="text-sm text-text-secondary-light dark:text-text-secondary mt-2 max-w-sm mx-auto">
-                                Create a 6-digit PIN to enable end-to-end encryption. Your messages will be encrypted so only you can read them.
-                            </p>
-                        </div>
-
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-xs font-bold uppercase tracking-wider text-text-tertiary-light dark:text-text-tertiary mb-3 text-center">
-                                    Create PIN
+                                <label className="block text-[11px] font-black uppercase tracking-[0.1em] text-text-tertiary-light dark:text-text-tertiary mb-3 text-center">
+                                    Create Security PIN
                                 </label>
                                 <PinInput
                                     value={pin}
@@ -235,8 +223,8 @@ const EncryptionPinModal: React.FC<EncryptionPinModalProps> = ({ onComplete, onS
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold uppercase tracking-wider text-text-tertiary-light dark:text-text-tertiary mb-3 text-center">
-                                    Confirm PIN
+                                <label className="block text-[11px] font-black uppercase tracking-[0.1em] text-text-tertiary-light dark:text-text-tertiary mb-3 text-center">
+                                    Confirm Security PIN
                                 </label>
                                 <PinInput
                                     value={confirmPin}
@@ -245,24 +233,24 @@ const EncryptionPinModal: React.FC<EncryptionPinModalProps> = ({ onComplete, onS
                                     disabled={isSubmitting}
                                 />
                             </div>
+                        </div>
 
-                            <div>
-                                <label className="block text-xs font-bold uppercase tracking-wider text-text-tertiary-light dark:text-text-tertiary mb-2">
-                                    Hint (Optional)
-                                </label>
-                                <input
-                                    type="text"
-                                    value={hint}
-                                    onChange={(e) => setHint(e.target.value)}
-                                    placeholder="e.g., Same as my phone lock"
-                                    maxLength={100}
-                                    disabled={isSubmitting}
-                                    className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10 focus:border-brand-green outline-none transition-all text-text-main-light dark:text-text-main placeholder-gray-400"
-                                />
-                                <p className="text-xs text-text-tertiary-light dark:text-text-tertiary mt-1">
-                                    This hint will be shown if you forget your PIN
-                                </p>
-                            </div>
+                        <div>
+                            <label className="block text-[11px] font-black uppercase tracking-[0.1em] text-text-tertiary-light dark:text-text-tertiary mb-2">
+                                Recovery Hint (Optional)
+                            </label>
+                            <input
+                                type="text"
+                                value={hint}
+                                onChange={(e) => setHint(e.target.value)}
+                                placeholder="e.g., Same as my phone lock"
+                                maxLength={100}
+                                disabled={isSubmitting}
+                                className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10 focus:border-brand-green outline-none transition-all text-text-main-light dark:text-text-main placeholder-gray-400"
+                            />
+                            <p className="text-xs text-text-tertiary-light dark:text-text-tertiary mt-1">
+                                This hint will be shown if you forget your PIN
+                            </p>
                         </div>
 
                         <AnimatePresence>
@@ -321,25 +309,23 @@ const EncryptionPinModal: React.FC<EncryptionPinModalProps> = ({ onComplete, onS
                         animate={{ opacity: 1, y: 0 }}
                         className="space-y-6"
                     >
-                        <div className="text-center">
-                            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-brand-green to-green-600 flex items-center justify-center shadow-lg shadow-brand-green/30">
-                                <LockClosedIcon className="w-8 h-8 text-black" />
+                        <div className="space-y-6">
+                            <div className="text-center md:hidden">
+                                <ShieldCheckIcon className="w-12 h-12 text-brand-green mx-auto mb-2" />
+                                <h2 className="text-2xl font-black text-text-main-light dark:text-text-main">Unlock Access</h2>
                             </div>
-                            <h2 className="text-2xl font-bold text-text-main-light dark:text-text-main">
-                                Unlock Chat
-                            </h2>
-                            <p className="text-sm text-text-secondary-light dark:text-text-secondary mt-2">
-                                Enter your PIN to unlock encrypted messages
-                            </p>
-                        </div>
 
-                        <div className="space-y-4">
-                            <PinInput
-                                value={pin}
-                                onChange={setPin}
-                                error={!!error}
-                                disabled={isSubmitting || Boolean(status?.lockedUntil && status.lockedUntil > new Date())}
-                            />
+                            <div className="space-y-4">
+                                <label className="block text-[11px] font-black uppercase tracking-[0.1em] text-text-tertiary-light dark:text-text-tertiary mb-3 text-center">
+                                    Enter 6-digit PIN
+                                </label>
+                                <PinInput
+                                    value={pin}
+                                    onChange={setPin}
+                                    error={!!error}
+                                    disabled={isSubmitting || Boolean(status?.lockedUntil && status.lockedUntil > new Date())}
+                                />
+                            </div>
 
                             {status?.hint && (
                                 <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
@@ -542,13 +528,72 @@ const EncryptionPinModal: React.FC<EncryptionPinModalProps> = ({ onComplete, onS
     if (!user) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
             <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="bg-white dark:bg-secondary rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-gray-100 dark:border-white/5"
+                className="bg-white dark:bg-secondary rounded-[32px] shadow-2xl w-full max-w-4xl overflow-hidden border border-gray-100 dark:border-white/5 flex flex-col md:flex-row min-h-[500px]"
             >
-                <div className="p-6 sm:p-8">
+                {/* Visual/Trust Side */}
+                <div className="w-full md:w-5/12 bg-gradient-to-br from-brand-green/20 via-blue-500/5 to-secondary dark:from-brand-green/10 dark:via-secondary dark:to-secondary p-8 flex flex-col items-center justify-center text-center border-b md:border-b-0 md:border-r border-gray-100 dark:border-white/5">
+                    {view === 'setup' ? (
+                        <div className="space-y-6">
+                            <div className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-brand-green via-green-500 to-emerald-600 flex items-center justify-center shadow-2xl relative">
+                                <ShieldCheckIcon className="w-10 h-10 text-black" />
+                                <motion.div
+                                    animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }}
+                                    transition={{ duration: 3, repeat: Infinity }}
+                                    className="absolute inset-0 bg-brand-green rounded-3xl blur-2xl -z-10"
+                                />
+                            </div>
+                            <div>
+                                <h2 className="text-3xl font-black text-text-main-light dark:text-text-main tracking-tight font-poppins leading-tight">
+                                    End-to-end encryption is here.
+                                </h2>
+                                <p className="text-[15px] text-text-secondary-light dark:text-text-secondary mt-4 leading-relaxed">
+                                    Your messages are private. <br /> <span className="text-brand-green font-bold">Truly private.</span>
+                                </p>
+                            </div>
+
+                            <div className="space-y-3 text-left bg-white/50 dark:bg-black/20 p-5 rounded-2xl backdrop-blur-sm border border-white/20 dark:border-white/5">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-1.5 rounded-lg bg-brand-green/20 text-brand-green">
+                                        <ShieldCheckIcon className="w-4 h-4" />
+                                    </div>
+                                    <span className="text-xs font-bold text-text-secondary-light dark:text-text-secondary uppercase tracking-tight">RSA-4096 Security</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="p-1.5 rounded-lg bg-brand-green/20 text-brand-green">
+                                        <LockClosedIcon className="w-4 h-4" />
+                                    </div>
+                                    <span className="text-xs font-bold text-text-secondary-light dark:text-text-secondary uppercase tracking-tight">Zero-Knowledge</span>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-6">
+                            <div className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-brand-green to-emerald-600 flex items-center justify-center shadow-2xl relative">
+                                <LockClosedIcon className="w-10 h-10 text-black" />
+                                <motion.div
+                                    animate={{ opacity: [0.2, 0.4, 0.2] }}
+                                    transition={{ duration: 4, repeat: Infinity }}
+                                    className="absolute inset-0 bg-brand-green rounded-3xl blur-2xl -z-10"
+                                />
+                            </div>
+                            <div>
+                                <h2 className="text-3xl font-black font-poppins text-text-main-light dark:text-text-main tracking-tight leading-tight">
+                                    Unlock Access
+                                </h2>
+                                <p className="text-[15px] text-text-secondary-light dark:text-text-secondary mt-3">
+                                    Securely access your <br /> private conversations.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Interaction Side */}
+                <div className="flex-1 p-8 md:p-12 flex flex-col justify-center bg-white dark:bg-secondary">
                     {renderContent()}
                 </div>
             </motion.div>
