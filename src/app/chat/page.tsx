@@ -12,9 +12,10 @@ import ChatPageSkeleton from '@/components/ChatPageSkeleton';
 import EncryptionPinModal from '@/components/EncryptionPinModal';
 import { useChat } from '@/hooks/useChat';
 import { formatTimestamp } from '@/utils/timeUtils';
-import { ChatIcon, UserGroupIcon, SearchIcon, PinIcon, ArchiveIcon, PlusIcon, LockClosedIcon } from '@/components/icons';
+import { ChatIcon, UserGroupIcon, SearchIcon, PinIcon, ArchiveIcon, PlusIcon, LockClosedIcon, ShieldCheckIcon } from '@/components/icons';
 import { supabase } from '@/services/supabase';
 import { getEncryptionStatus, tryRestoreEncryptionKey, decryptMessage } from '@/services/encryption';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const MessagePreview: React.FC<{ conv: ConversationSummary }> = ({ conv }) => {
     const [decrypted, setDecrypted] = useState<string | null>(null);
@@ -47,6 +48,78 @@ const MessagePreview: React.FC<{ conv: ConversationSummary }> = ({ conv }) => {
     }
 
     return <>{conv.last_message_content || 'No messages yet'}</>;
+};
+
+const ChatEmptyState: React.FC = () => {
+    const [currentSlide, setCurrentSlide] = useState(0);
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setCurrentSlide(prev => (prev + 1) % 2);
+        }, 4000);
+        return () => clearInterval(timer);
+    }, []);
+
+    const slides = [
+        {
+            id: 'select',
+            icon: <ChatIcon className="w-12 h-12 text-brand-green" />,
+            title: "Select a chat",
+            description: "Pick a conversation to start chatting."
+        },
+        {
+            id: 'e2ee',
+            icon: <ShieldCheckIcon className="w-12 h-12 text-blue-500 dark:text-brand-green" />,
+            title: "Privacy Protected",
+            description: "Your messages are secured with asymmetric RSA encryption."
+        }
+    ];
+
+    return (
+        <div className="hidden md:flex flex-col items-center justify-center h-full text-center p-8">
+            <AnimatePresence mode="wait">
+                <motion.div
+                    key={slides[currentSlide].id}
+                    initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -15, scale: 0.95 }}
+                    transition={{ duration: 0.6, ease: "circOut" }}
+                    className="flex flex-col items-center justify-center"
+                >
+                    <div className="relative mb-8">
+                        <motion.div
+                            animate={{
+                                scale: [1, 1.2, 1],
+                                opacity: [0.2, 0.4, 0.2]
+                            }}
+                            transition={{ duration: 4, repeat: Infinity }}
+                            className={`absolute inset-0 bg-gradient-to-r ${currentSlide === 0 ? 'from-brand-green/30 to-blue-500/10' : 'from-blue-500/30 to-brand-green/10'} blur-3xl rounded-full`}
+                        />
+                        <div className="relative w-28 h-28 rounded-[32px] bg-gradient-to-br from-white to-gray-50 dark:from-secondary dark:to-tertiary/60 flex items-center justify-center shadow-2xl ring-1 ring-gray-200 dark:ring-white/5">
+                            {slides[currentSlide].icon}
+                        </div>
+                    </div>
+
+                    <h3 className="text-3xl font-bold font-poppins text-text-main-light dark:text-text-main tracking-tight">
+                        {slides[currentSlide].title}
+                    </h3>
+                    <p className="text-base text-text-secondary-light dark:text-text-secondary max-w-xs leading-relaxed mt-3">
+                        {slides[currentSlide].description}
+                    </p>
+
+                    {/* Slide indicators */}
+                    <div className="flex gap-2 mt-8">
+                        {slides.map((_, i) => (
+                            <div
+                                key={i}
+                                className={`h-1.5 rounded-full transition-all duration-500 ${currentSlide === i ? 'w-8 bg-brand-green' : 'w-2 bg-tertiary-light dark:bg-tertiary'}`}
+                            />
+                        ))}
+                    </div>
+                </motion.div>
+            </AnimatePresence>
+        </div>
+    );
 };
 
 const ChatPage: React.FC = () => {
@@ -366,21 +439,7 @@ const ChatPage: React.FC = () => {
                             }}
                         />
                     ) : (
-                        <div className="hidden md:flex flex-col items-center justify-center h-full text-center p-8">
-                            <div className="relative mb-8">
-                                <div className="absolute inset-0 bg-gradient-to-r from-brand-green/20 to-blue-500/20 blur-3xl rounded-full" />
-                                <div className="relative w-24 h-24 rounded-3xl bg-gradient-to-br from-white to-gray-100 dark:from-secondary dark:to-tertiary/50 flex items-center justify-center shadow-xl ring-1 ring-gray-200 dark:ring-tertiary/50">
-                                    <ChatIcon className="w-12 h-12 text-brand-green" />
-                                </div>
-                            </div>
-
-                            <h3 className="text-3xl font-bold font-poppins text-text-main-light dark:text-text-main">
-                                Select a chat
-                            </h3>
-                            <p className="text-base text-text-secondary-light dark:text-text-secondary max-w-sm leading-relaxed mt-2">
-                                Pick a conversation to start chatting.
-                            </p>
-                        </div>
+                        <ChatEmptyState />
                     )}
                 </div>
             </div>
