@@ -36,7 +36,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
 
     try {
-      const { data: convosWithDetails, error: rpcError } = await supabase.rpc('get_conversations_for_user_v2');
+      const { data: convosWithDetails, error: rpcError } = await supabase.rpc('get_conversations_for_user_v3');
       if (rpcError) throw rpcError;
 
       const conversationsFromRpc = convosWithDetails || [];
@@ -191,6 +191,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const conversationsCopy = [...prev];
             const updatedConvo = { ...conversationsCopy[convoIndex] };
             updatedConvo.last_message_content = newMessage.content;
+            updatedConvo.last_message_encrypted_content = newMessage.encrypted_content;
+            updatedConvo.last_message_encrypted_key_sender = newMessage.encrypted_key_sender;
+            updatedConvo.last_message_encrypted_key_recipient = newMessage.encrypted_key_recipient;
+            updatedConvo.last_message_encryption_version = newMessage.encryption_version;
             updatedConvo.last_message_at = newMessage.created_at;
             updatedConvo.last_message_sender_id = newMessage.sender_id;
             if (newMessage.sender_id !== user.id) {

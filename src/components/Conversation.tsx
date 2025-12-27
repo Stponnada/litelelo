@@ -1,7 +1,7 @@
 // src/components/Conversation.tsx
 //1000 lines of code!
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 // FIXED: Use Next.js Link
 import Link from 'next/link';
 import Image from 'next/image';
@@ -10,10 +10,11 @@ import { useAuth } from '../hooks/useAuth';
 import { useChat } from '../hooks/useChat';
 import { ConversationSummary, Message, MessageReaction, PinnedMessage } from '../types';
 import MessageSkeleton from './MessageSkeleton';
-import { SendIcon, UserGroupIcon, PlusIcon, ImageIcon, XCircleIcon, PencilIcon, TrashIcon, CheckIcon, ReplyIcon, FaceSmileIcon, PinIcon, BackIcon } from './icons';
+import { SendIcon, UserGroupIcon, PlusIcon, ImageIcon, XCircleIcon, PencilIcon, TrashIcon, CheckIcon, ReplyIcon, FaceSmileIcon, PinIcon, BackIcon, LockClosedIcon } from './icons';
 import { formatMessageTime } from '../utils/timeUtils';
 import GifPickerModal from './GifPickerModal';
 import LightBox from './lightbox';
+import { encryptMessageForRecipient, decryptMessage, isEncryptionAvailable, recipientHasEncryption } from '../services/encryption';
 
 // Re-add GifIcon for the input menu
 const GifIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" }) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M12.75 8.25v7.5m6-7.5h-3.75m3.75 0a3.75 3.75 0 00-3.75-3.75H6.75A3.75 3.75 0 003 8.25v7.5A3.75 3.75 0 006.75 19.5h9A3.75 3.75 0 0019.5 15.75v-7.5A3.75 3.75 0 0015.75 4.5z" /></svg>);
@@ -134,6 +135,62 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+    // E2EE: Cache for decrypted message content
+    const [decryptedContent, setDecryptedContent] = useState<Map<number, string>>(new Map());
+    const decryptionInProgress = useRef<Set<number>>(new Set());
+    const failedDecryptions = useRef<Set<number>>(new Set()); // Track messages that failed to decrypt
+
+    // E2EE: Decrypt encrypted messages
+    const decryptMessages = useCallback(async (msgs: Message[]) => {
+        if (!isEncryptionAvailable()) return;
+
+        const encryptedMsgs = msgs.filter(
+            m => m.encrypted_content &&
+                !decryptedContent.has(m.id) &&
+                !decryptionInProgress.current.has(m.id) &&
+                !failedDecryptions.current.has(m.id) // Don't retry failed decryptions
+        );
+
+        if (encryptedMsgs.length === 0) return;
+
+        // Mark as in progress
+        encryptedMsgs.forEach(m => decryptionInProgress.current.add(m.id));
+
+        const newDecrypted = new Map(decryptedContent);
+
+        for (const msg of encryptedMsgs) {
+            if (msg.encrypted_content) {
+                try {
+                    const plaintext = await decryptMessage(
+                        msg.encrypted_content,
+                        msg.encrypted_key_sender || null,
+                        msg.encrypted_key_recipient || null
+                    );
+                    if (plaintext) {
+                        newDecrypted.set(msg.id, plaintext);
+                    } else {
+                        // Decryption returned null - mark as failed
+                        failedDecryptions.current.add(msg.id);
+                    }
+                } catch (err) {
+                    // Decryption failed (wrong key, corrupted data, etc.)
+                    console.warn(`Failed to decrypt message ${msg.id}:`, err);
+                    failedDecryptions.current.add(msg.id);
+                }
+            }
+            decryptionInProgress.current.delete(msg.id);
+        }
+
+        if (newDecrypted.size > decryptedContent.size) {
+            setDecryptedContent(newDecrypted);
+        }
+    }, [decryptedContent]);
+
+    // Trigger decryption when messages change
+    useEffect(() => {
+        decryptMessages(messages);
+    }, [messages, decryptMessages]);
+
     // Auto-resize textarea
     useEffect(() => {
         if (textareaRef.current) {
@@ -141,6 +198,7 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
             textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 150)}px`;
         }
     }, [newMessage]);
+
 
 
 
@@ -514,7 +572,11 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                 sender_id: string;
                 reply_to_message_id: number | null;
                 message_type?: 'text' | 'image' | 'gif' | 'video' | 'audio' | 'document' | 'file';
-                content?: string;
+                content?: string | null;
+                encrypted_content?: string | null;
+                encrypted_key_sender?: string | null;
+                encrypted_key_recipient?: string | null;
+                encryption_version?: number | null;
                 attachment_url?: string;
                 file_name?: string;
                 file_size?: number;
@@ -546,7 +608,32 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                     file_size: fileToUpload.size
                 };
             } else {
-                messageData = { ...messageData, message_type: 'text', content: tempMessageContent.trim() };
+                // E2EE: Encrypt text messages if encryption is available and it's a DM
+                const plaintext = tempMessageContent.trim();
+                const otherP = conversation.type === 'dm'
+                    ? conversation.participants.find(p => p.user_id !== user?.id)
+                    : null;
+
+                if (isEncryptionAvailable() && otherP) {
+                    const encryptedData = await encryptMessageForRecipient(plaintext, otherP.user_id);
+                    if (encryptedData) {
+                        messageData = {
+                            ...messageData,
+                            message_type: 'text',
+                            content: null, // Don't store plaintext
+                            encrypted_content: encryptedData.encrypted_content,
+                            encrypted_key_sender: encryptedData.encrypted_key_sender,
+                            encrypted_key_recipient: encryptedData.encrypted_key_recipient,
+                            encryption_version: 1
+                        };
+                    } else {
+                        // Fallback to plaintext if encryption fails or recipient hasn't set up E2EE
+                        messageData = { ...messageData, message_type: 'text', content: plaintext };
+                    }
+                } else {
+                    // No encryption available or group chat - send plaintext
+                    messageData = { ...messageData, message_type: 'text', content: plaintext };
+                }
             }
 
             const { data: sentMessage, error } = await supabase.from('messages').insert(messageData).select('*, profiles:sender_id (*)').single();
@@ -982,7 +1069,24 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                                                             </p>
                                                         ) : msg.message_type === 'text' ? (
                                                             <div className="flex items-end px-4 py-2">
-                                                                <p className="text-[15px] leading-relaxed break-words whitespace-pre-wrap">{msg.content}</p>
+                                                                {/* E2EE: Display decrypted content or fallback */}
+                                                                {msg.encrypted_content ? (
+                                                                    decryptedContent.has(msg.id) ? (
+                                                                        <>
+                                                                            <p className="text-[15px] leading-relaxed break-words whitespace-pre-wrap">
+                                                                                {decryptedContent.get(msg.id)}
+                                                                            </p>
+                                                                            <LockClosedIcon className="w-3 h-3 ml-1.5 text-brand-green opacity-60 flex-shrink-0 self-end" />
+                                                                        </>
+                                                                    ) : (
+                                                                        <p className="text-[15px] leading-relaxed break-words whitespace-pre-wrap italic text-text-tertiary-light dark:text-text-tertiary flex items-center gap-1.5">
+                                                                            <LockClosedIcon className="w-3.5 h-3.5" />
+                                                                            <span>Encrypted message</span>
+                                                                        </p>
+                                                                    )
+                                                                ) : (
+                                                                    <p className="text-[15px] leading-relaxed break-words whitespace-pre-wrap">{msg.content}</p>
+                                                                )}
                                                                 {msg.is_edited && (
                                                                     <span className="text-[10px] text-gray-600 dark:text-gray-400 ml-2 select-none self-end flex-shrink-0 opacity-70">
                                                                         edited

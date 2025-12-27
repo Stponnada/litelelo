@@ -111,6 +111,10 @@ export interface ConversationSummary {
   name: string | null;
   participants: ConversationParticipant[];
   last_message_content: string | null;
+  last_message_encrypted_content?: string | null;
+  last_message_encrypted_key_sender?: string | null;
+  last_message_encrypted_key_recipient?: string | null;
+  last_message_encryption_version?: number | null;
   last_message_at: string | null;
   last_message_sender_id: string | null;
   unread_count: number;
@@ -295,6 +299,11 @@ export interface Message {
   conversation_id: string;
   sender_id: string;
   content: string | null;
+  // E2EE fields - asymmetric encryption
+  encrypted_content?: string | null;        // AES-encrypted message
+  encrypted_key_sender?: string | null;     // AES key encrypted with sender's public key
+  encrypted_key_recipient?: string | null;  // AES key encrypted with recipient's public key
+  encryption_version?: number | null;
   created_at: string;
   message_type: 'text' | 'image' | 'gif' | 'video' | 'audio' | 'document' | 'file';
   attachment_url: string | null;

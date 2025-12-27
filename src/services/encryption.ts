@@ -1,15 +1,17 @@
 // src/services/encryption.ts
-// End-to-End Encryption service using PIN-based key derivation
+// End-to-End Encryption service using asymmetric RSA + symmetric AES
+// Each user has a public/private key pair. Messages are encrypted with recipient's public key.
 
 import { argon2id } from 'hash-wasm';
 import { supabase } from './supabase';
 
 // Constants
-const ENCRYPTION_KEY_STORAGE_KEY = 'litelelo_chat_encryption_key';
+const PRIVATE_KEY_STORAGE_KEY = 'litelelo_chat_private_key';
 const DEVICE_UNLOCKED_KEY = 'litelelo_e2ee_unlocked';
 
-// Encryption key state (in-memory, cleared on page refresh)
-let encryptionKey: CryptoKey | null = null;
+// Key state (in-memory, cleared on page refresh)
+let privateKey: CryptoKey | null = null;
+let publicKey: CryptoKey | null = null;
 
 // Types
 export interface EncryptionStatus {
@@ -22,7 +24,8 @@ export interface EncryptionStatus {
 
 export interface EncryptionKeyRecord {
     user_id: string;
-    encrypted_key_blob: string;
+    encrypted_private_key: string;
+    public_key: string;
     salt: string;
     key_version: number;
     hint: string | null;
@@ -30,7 +33,14 @@ export interface EncryptionKeyRecord {
     locked_until: string | null;
 }
 
-// Helper: Convert ArrayBuffer or Uint8Array to Base64
+export interface EncryptedMessage {
+    encrypted_content: string;        // AES-encrypted message
+    encrypted_key_sender: string;     // AES key encrypted with sender's public key
+    encrypted_key_recipient: string;  // AES key encrypted with recipient's public key
+}
+
+// ============ HELPER FUNCTIONS ============
+
 function arrayBufferToBase64(buffer: ArrayBuffer | Uint8Array): string {
     const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
     let binary = '';
@@ -40,7 +50,6 @@ function arrayBufferToBase64(buffer: ArrayBuffer | Uint8Array): string {
     return btoa(binary);
 }
 
-// Helper: Convert Base64 to Uint8Array
 function base64ToUint8Array(base64: string): Uint8Array {
     const binary = atob(base64);
     const bytes = new Uint8Array(binary.length);
@@ -50,7 +59,6 @@ function base64ToUint8Array(base64: string): Uint8Array {
     return bytes;
 }
 
-// Helper: Concatenate Uint8Arrays
 function concatUint8Arrays(...arrays: Uint8Array[]): Uint8Array {
     const totalLength = arrays.reduce((sum, arr) => sum + arr.length, 0);
     const result = new Uint8Array(totalLength);
@@ -62,23 +70,22 @@ function concatUint8Arrays(...arrays: Uint8Array[]): Uint8Array {
     return result;
 }
 
-// Derive a wrapping key from PIN using Argon2id
+// ============ KEY DERIVATION (for encrypting private key with PIN) ============
+
 async function deriveKeyFromPin(pin: string, salt: Uint8Array): Promise<Uint8Array> {
     const hash = await argon2id({
         password: pin,
         salt: salt,
         parallelism: 1,
         iterations: 3,
-        memorySize: 65536, // 64 MB - makes brute force expensive
+        memorySize: 65536,
         hashLength: 32,
         outputType: 'binary',
     });
     return new Uint8Array(hash);
 }
 
-// Import a raw key as a CryptoKey for AES-GCM
 async function importAesKey(rawKey: Uint8Array): Promise<CryptoKey> {
-    // Copy to a fresh ArrayBuffer to ensure compatibility
     const keyBuffer = new ArrayBuffer(rawKey.length);
     new Uint8Array(keyBuffer).set(rawKey);
     return crypto.subtle.importKey(
@@ -90,10 +97,10 @@ async function importAesKey(rawKey: Uint8Array): Promise<CryptoKey> {
     );
 }
 
-// Encrypt data using AES-GCM
+// ============ SYMMETRIC AES ENCRYPTION (for message content) ============
+
 async function encryptAesGcm(data: Uint8Array, key: CryptoKey): Promise<Uint8Array> {
     const iv = crypto.getRandomValues(new Uint8Array(12));
-    // Copy data to a fresh ArrayBuffer for compatibility
     const dataBuffer = new ArrayBuffer(data.length);
     new Uint8Array(dataBuffer).set(data);
     const ciphertext = await crypto.subtle.encrypt(
@@ -101,15 +108,12 @@ async function encryptAesGcm(data: Uint8Array, key: CryptoKey): Promise<Uint8Arr
         key,
         dataBuffer
     );
-    // Prepend IV to ciphertext
     return concatUint8Arrays(iv, new Uint8Array(ciphertext));
 }
 
-// Decrypt data using AES-GCM (IV is prepended)
 async function decryptAesGcm(encryptedData: Uint8Array, key: CryptoKey): Promise<Uint8Array> {
     const iv = encryptedData.slice(0, 12);
     const ciphertext = encryptedData.slice(12);
-    // Copy to fresh ArrayBuffers for compatibility
     const ivBuffer = new ArrayBuffer(iv.length);
     new Uint8Array(ivBuffer).set(iv);
     const ciphertextBuffer = new ArrayBuffer(ciphertext.length);
@@ -122,8 +126,85 @@ async function decryptAesGcm(encryptedData: Uint8Array, key: CryptoKey): Promise
     return new Uint8Array(decrypted);
 }
 
+// ============ RSA KEY PAIR GENERATION ============
+
+async function generateRsaKeyPair(): Promise<CryptoKeyPair> {
+    return crypto.subtle.generateKey(
+        {
+            name: 'RSA-OAEP',
+            modulusLength: 2048,
+            publicExponent: new Uint8Array([1, 0, 1]),
+            hash: 'SHA-256',
+        },
+        true, // extractable
+        ['encrypt', 'decrypt']
+    );
+}
+
+async function exportPublicKey(key: CryptoKey): Promise<string> {
+    const exported = await crypto.subtle.exportKey('spki', key);
+    return arrayBufferToBase64(exported);
+}
+
+async function exportPrivateKey(key: CryptoKey): Promise<string> {
+    const exported = await crypto.subtle.exportKey('pkcs8', key);
+    return arrayBufferToBase64(exported);
+}
+
+async function importPublicKey(base64Key: string): Promise<CryptoKey> {
+    const keyData = base64ToUint8Array(base64Key);
+    const keyBuffer = new ArrayBuffer(keyData.length);
+    new Uint8Array(keyBuffer).set(keyData);
+    return crypto.subtle.importKey(
+        'spki',
+        keyBuffer,
+        { name: 'RSA-OAEP', hash: 'SHA-256' },
+        false,
+        ['encrypt']
+    );
+}
+
+async function importPrivateKey(base64Key: string): Promise<CryptoKey> {
+    const keyData = base64ToUint8Array(base64Key);
+    const keyBuffer = new ArrayBuffer(keyData.length);
+    new Uint8Array(keyBuffer).set(keyData);
+    return crypto.subtle.importKey(
+        'pkcs8',
+        keyBuffer,
+        { name: 'RSA-OAEP', hash: 'SHA-256' },
+        false,
+        ['decrypt']
+    );
+}
+
+// ============ RSA ENCRYPTION/DECRYPTION (for AES key) ============
+
+async function rsaEncrypt(data: Uint8Array, publicKey: CryptoKey): Promise<Uint8Array> {
+    const dataBuffer = new ArrayBuffer(data.length);
+    new Uint8Array(dataBuffer).set(data);
+    const encrypted = await crypto.subtle.encrypt(
+        { name: 'RSA-OAEP' },
+        publicKey,
+        dataBuffer
+    );
+    return new Uint8Array(encrypted);
+}
+
+async function rsaDecrypt(encryptedData: Uint8Array, privateKey: CryptoKey): Promise<Uint8Array> {
+    const dataBuffer = new ArrayBuffer(encryptedData.length);
+    new Uint8Array(dataBuffer).set(encryptedData);
+    const decrypted = await crypto.subtle.decrypt(
+        { name: 'RSA-OAEP' },
+        privateKey,
+        dataBuffer
+    );
+    return new Uint8Array(decrypted);
+}
+
+// ============ PUBLIC API ============
+
 /**
- * Check if the current user has set up E2EE and if the device is unlocked
+ * Check if the current user has set up E2EE
  */
 export async function getEncryptionStatus(userId: string): Promise<EncryptionStatus> {
     const { data, error } = await supabase
@@ -133,7 +214,6 @@ export async function getEncryptionStatus(userId: string): Promise<EncryptionSta
         .single();
 
     if (error || !data) {
-        // No encryption key exists - user hasn't set up PIN yet
         return {
             hasSetupPin: false,
             isUnlocked: false,
@@ -143,8 +223,7 @@ export async function getEncryptionStatus(userId: string): Promise<EncryptionSta
         };
     }
 
-    // Check if device is unlocked (key is in memory or session storage marker)
-    const isUnlocked = encryptionKey !== null || sessionStorage.getItem(DEVICE_UNLOCKED_KEY) === 'true';
+    const isUnlocked = privateKey !== null || sessionStorage.getItem(DEVICE_UNLOCKED_KEY) === 'true';
 
     return {
         hasSetupPin: true,
@@ -157,33 +236,35 @@ export async function getEncryptionStatus(userId: string): Promise<EncryptionSta
 
 /**
  * Set up E2EE with a new 6-digit PIN
+ * Generates RSA key pair, stores public key, encrypts private key with PIN
  */
 export async function setupEncryption(userId: string, pin: string, hint?: string): Promise<{ success: boolean; error?: string }> {
     try {
-        // Validate PIN
         if (!/^\d{6}$/.test(pin)) {
             return { success: false, error: 'PIN must be exactly 6 digits' };
         }
 
-        // Generate random 256-bit encryption key
-        const rawEncryptionKey = crypto.getRandomValues(new Uint8Array(32));
+        // Generate RSA key pair
+        const keyPair = await generateRsaKeyPair();
 
-        // Generate random salt for Argon2
+        // Export keys
+        const publicKeyBase64 = await exportPublicKey(keyPair.publicKey);
+        const privateKeyBase64 = await exportPrivateKey(keyPair.privateKey);
+
+        // Encrypt private key with PIN-derived key
         const salt = crypto.getRandomValues(new Uint8Array(16));
-
-        // Derive wrapping key from PIN
         const wrappingKeyRaw = await deriveKeyFromPin(pin, salt);
         const wrappingKey = await importAesKey(wrappingKeyRaw);
-
-        // Encrypt the encryption key with the wrapping key
-        const encryptedBlob = await encryptAesGcm(rawEncryptionKey, wrappingKey);
+        const privateKeyBytes = base64ToUint8Array(privateKeyBase64);
+        const encryptedPrivateKey = await encryptAesGcm(privateKeyBytes, wrappingKey);
 
         // Store in database
         const { error } = await supabase
             .from('user_encryption_keys')
             .upsert({
                 user_id: userId,
-                encrypted_key_blob: arrayBufferToBase64(encryptedBlob),
+                encrypted_private_key: arrayBufferToBase64(encryptedPrivateKey),
+                public_key: publicKeyBase64,
                 salt: arrayBufferToBase64(salt),
                 key_version: 1,
                 hint: hint || null,
@@ -192,18 +273,19 @@ export async function setupEncryption(userId: string, pin: string, hint?: string
             });
 
         if (error) {
-            console.error('Error storing encryption key:', error);
-            return { success: false, error: 'Failed to save encryption key' };
+            console.error('Error storing encryption keys:', error);
+            return { success: false, error: 'Failed to save encryption keys' };
         }
 
-        // Import as CryptoKey and store in memory
-        encryptionKey = await importAesKey(rawEncryptionKey);
+        // Store keys in memory
+        privateKey = keyPair.privateKey;
+        publicKey = keyPair.publicKey;
 
-        // Mark device as unlocked in session storage
+        // Mark device as unlocked
         sessionStorage.setItem(DEVICE_UNLOCKED_KEY, 'true');
 
-        // Also store encrypted key in localStorage for persistence within browser
-        localStorage.setItem(ENCRYPTION_KEY_STORAGE_KEY, arrayBufferToBase64(rawEncryptionKey));
+        // Store private key in localStorage for persistence
+        localStorage.setItem(PRIVATE_KEY_STORAGE_KEY, privateKeyBase64);
 
         return { success: true };
     } catch (err) {
@@ -213,11 +295,10 @@ export async function setupEncryption(userId: string, pin: string, hint?: string
 }
 
 /**
- * Unlock E2EE with PIN on a new device/session
+ * Unlock E2EE with PIN
  */
 export async function unlockEncryption(userId: string, pin: string): Promise<{ success: boolean; error?: string; remainingAttempts?: number }> {
     try {
-        // Fetch encryption key record
         const { data, error: fetchError } = await supabase
             .from('user_encryption_keys')
             .select('*')
@@ -244,33 +325,32 @@ export async function unlockEncryption(userId: string, pin: string): Promise<{ s
         const wrappingKeyRaw = await deriveKeyFromPin(pin, salt);
         const wrappingKey = await importAesKey(wrappingKeyRaw);
 
-        // Try to decrypt the encryption key
+        // Try to decrypt the private key
         try {
-            const encryptedBlob = base64ToUint8Array(record.encrypted_key_blob);
-            const decryptedKey = await decryptAesGcm(encryptedBlob, wrappingKey);
+            const encryptedPrivateKey = base64ToUint8Array(record.encrypted_private_key);
+            const decryptedPrivateKeyBytes = await decryptAesGcm(encryptedPrivateKey, wrappingKey);
+            const privateKeyBase64 = arrayBufferToBase64(decryptedPrivateKeyBytes);
 
-            // Success! Reset failed attempts
+            // Import keys
+            privateKey = await importPrivateKey(privateKeyBase64);
+            publicKey = await importPublicKey(record.public_key);
+
+            // Reset failed attempts
             await supabase
                 .from('user_encryption_keys')
                 .update({ failed_attempts: 0, locked_until: null })
                 .eq('user_id', userId);
 
-            // Store key in memory
-            encryptionKey = await importAesKey(decryptedKey);
-
-            // Mark device as unlocked
+            // Mark as unlocked
             sessionStorage.setItem(DEVICE_UNLOCKED_KEY, 'true');
-
-            // Store in localStorage for persistence
-            localStorage.setItem(ENCRYPTION_KEY_STORAGE_KEY, arrayBufferToBase64(decryptedKey));
+            localStorage.setItem(PRIVATE_KEY_STORAGE_KEY, privateKeyBase64);
 
             return { success: true };
         } catch {
-            // Wrong PIN - increment failed attempts
+            // Wrong PIN
             const newAttempts = record.failed_attempts + 1;
             const updates: { failed_attempts: number; locked_until?: string } = { failed_attempts: newAttempts };
 
-            // Lock after 5 failed attempts for 15 minutes
             if (newAttempts >= 5) {
                 const lockUntil = new Date(Date.now() + 15 * 60 * 1000);
                 updates.locked_until = lockUntil.toISOString();
@@ -297,31 +377,38 @@ export async function unlockEncryption(userId: string, pin: string): Promise<{ s
 }
 
 /**
- * Try to restore encryption key from localStorage (for page refreshes)
+ * Try to restore keys from localStorage
  */
-export async function tryRestoreEncryptionKey(): Promise<boolean> {
+export async function tryRestoreEncryptionKey(userId: string): Promise<boolean> {
     try {
-        const storedKey = localStorage.getItem(ENCRYPTION_KEY_STORAGE_KEY);
-        if (!storedKey) return false;
+        const storedPrivateKey = localStorage.getItem(PRIVATE_KEY_STORAGE_KEY);
+        if (!storedPrivateKey) return false;
 
-        const keyData = base64ToUint8Array(storedKey);
-        encryptionKey = await importAesKey(keyData);
+        // Get public key from database
+        const { data, error } = await supabase
+            .from('user_encryption_keys')
+            .select('public_key')
+            .eq('user_id', userId)
+            .single();
+
+        if (error || !data) return false;
+
+        privateKey = await importPrivateKey(storedPrivateKey);
+        publicKey = await importPublicKey(data.public_key);
         sessionStorage.setItem(DEVICE_UNLOCKED_KEY, 'true');
         return true;
     } catch {
-        // Clear invalid data
-        localStorage.removeItem(ENCRYPTION_KEY_STORAGE_KEY);
+        localStorage.removeItem(PRIVATE_KEY_STORAGE_KEY);
         sessionStorage.removeItem(DEVICE_UNLOCKED_KEY);
         return false;
     }
 }
 
 /**
- * Reset encryption (forgot PIN) - WARNING: This clears all encrypted messages
+ * Reset encryption (forgot PIN)
  */
 export async function resetEncryption(userId: string): Promise<{ success: boolean; error?: string }> {
     try {
-        // Delete the encryption key record
         const { error } = await supabase
             .from('user_encryption_keys')
             .delete()
@@ -331,9 +418,9 @@ export async function resetEncryption(userId: string): Promise<{ success: boolea
             return { success: false, error: 'Failed to reset encryption' };
         }
 
-        // Clear local state
-        encryptionKey = null;
-        localStorage.removeItem(ENCRYPTION_KEY_STORAGE_KEY);
+        privateKey = null;
+        publicKey = null;
+        localStorage.removeItem(PRIVATE_KEY_STORAGE_KEY);
         sessionStorage.removeItem(DEVICE_UNLOCKED_KEY);
 
         return { success: true };
@@ -344,34 +431,64 @@ export async function resetEncryption(userId: string): Promise<{ success: boolea
 }
 
 /**
- * Change PIN
+ * Get a user's public key from the database
  */
-export async function changePin(userId: string, oldPin: string, newPin: string, newHint?: string): Promise<{ success: boolean; error?: string }> {
-    // First, unlock with old PIN
-    const unlockResult = await unlockEncryption(userId, oldPin);
-    if (!unlockResult.success) {
-        return { success: false, error: unlockResult.error };
-    }
+export async function getUserPublicKey(userId: string): Promise<CryptoKey | null> {
+    try {
+        const { data, error } = await supabase
+            .from('user_encryption_keys')
+            .select('public_key')
+            .eq('user_id', userId)
+            .single();
 
-    // Now reset and setup with new PIN
-    await resetEncryption(userId);
-    return await setupEncryption(userId, newPin, newHint);
+        if (error || !data) return null;
+        return await importPublicKey(data.public_key);
+    } catch {
+        return null;
+    }
 }
 
 /**
- * Encrypt a message for sending
+ * Encrypt a message for a recipient
+ * Returns encrypted content + encrypted AES keys for both sender and recipient
  */
-export async function encryptMessage(content: string): Promise<string | null> {
-    if (!encryptionKey) {
-        console.warn('Encryption key not available');
+export async function encryptMessageForRecipient(
+    content: string,
+    recipientId: string
+): Promise<EncryptedMessage | null> {
+    if (!privateKey || !publicKey) {
+        console.warn('Encryption keys not available');
         return null;
     }
 
     try {
+        // Get recipient's public key
+        const recipientPublicKey = await getUserPublicKey(recipientId);
+        if (!recipientPublicKey) {
+            console.warn('Recipient has not set up encryption');
+            return null;
+        }
+
+        // Generate random AES key for this message
+        const aesKeyRaw = crypto.getRandomValues(new Uint8Array(32));
+        const aesKey = await importAesKey(aesKeyRaw);
+
+        // Encrypt message content with AES
         const encoder = new TextEncoder();
-        const data = encoder.encode(content);
-        const encrypted = await encryptAesGcm(data, encryptionKey);
-        return arrayBufferToBase64(encrypted);
+        const messageBytes = encoder.encode(content);
+        const encryptedContent = await encryptAesGcm(messageBytes, aesKey);
+
+        // Encrypt AES key with sender's public key (so sender can read their sent messages)
+        const encryptedKeyForSender = await rsaEncrypt(aesKeyRaw, publicKey);
+
+        // Encrypt AES key with recipient's public key
+        const encryptedKeyForRecipient = await rsaEncrypt(aesKeyRaw, recipientPublicKey);
+
+        return {
+            encrypted_content: arrayBufferToBase64(encryptedContent),
+            encrypted_key_sender: arrayBufferToBase64(encryptedKeyForSender),
+            encrypted_key_recipient: arrayBufferToBase64(encryptedKeyForRecipient),
+        };
     } catch (err) {
         console.error('Error encrypting message:', err);
         return null;
@@ -379,19 +496,52 @@ export async function encryptMessage(content: string): Promise<string | null> {
 }
 
 /**
- * Decrypt a message
+ * Decrypt a message (tries both sender and recipient keys)
  */
-export async function decryptMessage(encryptedContent: string): Promise<string | null> {
-    if (!encryptionKey) {
-        console.warn('Encryption key not available');
+export async function decryptMessage(
+    encryptedContent: string,
+    encryptedKeySender: string | null,
+    encryptedKeyRecipient: string | null
+): Promise<string | null> {
+    if (!privateKey) {
+        console.warn('Private key not available');
         return null;
     }
 
     try {
+        let aesKeyRaw: Uint8Array | null = null;
+
+        // Try to decrypt the AES key with our private key
+        // First try recipient key, then sender key
+        if (encryptedKeyRecipient) {
+            try {
+                const encryptedKey = base64ToUint8Array(encryptedKeyRecipient);
+                aesKeyRaw = await rsaDecrypt(encryptedKey, privateKey);
+            } catch {
+                // Not the recipient, try sender key
+            }
+        }
+
+        if (!aesKeyRaw && encryptedKeySender) {
+            try {
+                const encryptedKey = base64ToUint8Array(encryptedKeySender);
+                aesKeyRaw = await rsaDecrypt(encryptedKey, privateKey);
+            } catch {
+                // Not the sender either
+            }
+        }
+
+        if (!aesKeyRaw) {
+            console.warn('Could not decrypt AES key - message not for this user');
+            return null;
+        }
+
+        // Decrypt message content
+        const aesKey = await importAesKey(aesKeyRaw);
         const encryptedData = base64ToUint8Array(encryptedContent);
-        const decrypted = await decryptAesGcm(encryptedData, encryptionKey);
+        const decryptedBytes = await decryptAesGcm(encryptedData, aesKey);
         const decoder = new TextDecoder();
-        return decoder.decode(decrypted);
+        return decoder.decode(decryptedBytes);
     } catch (err) {
         console.error('Error decrypting message:', err);
         return null;
@@ -399,17 +549,31 @@ export async function decryptMessage(encryptedContent: string): Promise<string |
 }
 
 /**
- * Check if encryption is currently available (key loaded)
+ * Check if encryption is available
  */
 export function isEncryptionAvailable(): boolean {
-    return encryptionKey !== null;
+    return privateKey !== null && publicKey !== null;
+}
+
+/**
+ * Check if a recipient has encryption set up
+ */
+export async function recipientHasEncryption(recipientId: string): Promise<boolean> {
+    const { data, error } = await supabase
+        .from('user_encryption_keys')
+        .select('user_id')
+        .eq('user_id', recipientId)
+        .single();
+
+    return !error && !!data;
 }
 
 /**
  * Lock encryption (clear keys from memory)
  */
 export function lockEncryption(): void {
-    encryptionKey = null;
+    privateKey = null;
+    publicKey = null;
     sessionStorage.removeItem(DEVICE_UNLOCKED_KEY);
-    localStorage.removeItem(ENCRYPTION_KEY_STORAGE_KEY);
+    localStorage.removeItem(PRIVATE_KEY_STORAGE_KEY);
 }

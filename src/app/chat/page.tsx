@@ -12,9 +12,42 @@ import ChatPageSkeleton from '@/components/ChatPageSkeleton';
 import EncryptionPinModal from '@/components/EncryptionPinModal';
 import { useChat } from '@/hooks/useChat';
 import { formatTimestamp } from '@/utils/timeUtils';
-import { ChatIcon, UserGroupIcon, SearchIcon, PinIcon, ArchiveIcon, PlusIcon } from '@/components/icons';
+import { ChatIcon, UserGroupIcon, SearchIcon, PinIcon, ArchiveIcon, PlusIcon, LockClosedIcon } from '@/components/icons';
 import { supabase } from '@/services/supabase';
-import { getEncryptionStatus, tryRestoreEncryptionKey } from '@/services/encryption';
+import { getEncryptionStatus, tryRestoreEncryptionKey, decryptMessage } from '@/services/encryption';
+
+const MessagePreview: React.FC<{ conv: ConversationSummary }> = ({ conv }) => {
+    const [decrypted, setDecrypted] = useState<string | null>(null);
+
+    useEffect(() => {
+        const decrypt = async () => {
+            if (conv.last_message_encrypted_content) {
+                try {
+                    const plaintext = await decryptMessage(
+                        conv.last_message_encrypted_content,
+                        conv.last_message_encrypted_key_sender || null,
+                        conv.last_message_encrypted_key_recipient || null
+                    );
+                    setDecrypted(plaintext);
+                } catch (err) {
+                    console.error("Failed to decrypt preview:", err);
+                }
+            }
+        };
+        decrypt();
+    }, [conv.last_message_encrypted_content, conv.last_message_encrypted_key_sender, conv.last_message_encrypted_key_recipient]);
+
+    if (conv.last_message_encrypted_content) {
+        return (
+            <span className="flex items-center gap-1">
+                <LockClosedIcon className="w-3 h-3 opacity-60 flex-shrink-0" />
+                <span className="truncate">{decrypted || 'Encrypted message'}</span>
+            </span>
+        );
+    }
+
+    return <>{conv.last_message_content || 'No messages yet'}</>;
+};
 
 const ChatPage: React.FC = () => {
     const { user, profile: currentUserProfile } = useAuth();
@@ -50,7 +83,7 @@ const ChatPage: React.FC = () => {
             if (!user) return;
 
             // Try to restore key from localStorage first
-            const restored = await tryRestoreEncryptionKey();
+            const restored = await tryRestoreEncryptionKey(user.id);
             if (restored) {
                 setEncryptionChecked(true);
                 return;
@@ -291,7 +324,7 @@ const ChatPage: React.FC = () => {
                                                 {conv.last_message_sender_id === user?.id && (
                                                     <span className="text-text-tertiary-light dark:text-text-tertiary">You: </span>
                                                 )}
-                                                {conv.last_message_content || 'No messages yet'}
+                                                <MessagePreview conv={conv} />
                                             </p>
 
                                             {/* Hover Actions */}
