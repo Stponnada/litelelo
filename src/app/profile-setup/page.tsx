@@ -73,7 +73,7 @@ const ProfileSetup: React.FC = () => {
     useEffect(() => {
         if (formData.campus && BITS_BRANCHES[formData.campus]) {
             const campusData = BITS_BRANCHES[formData.campus];
-            setAvailableBranches([...campusData['B.E.'], ...campusData['M.Sc.']]);
+            setAvailableBranches(Object.values(campusData).flat());
         } else { setAvailableBranches([]); }
         setFormData(prev => ({ ...prev, branch: '', dual_degree_branch: '' }));
     }, [formData.campus]);

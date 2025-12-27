@@ -955,7 +955,7 @@ const EditProfileModal: React.FC<{
         const campus = profileData.campus;
         if (campus && BITS_BRANCHES[campus]) {
             const campusBranches = BITS_BRANCHES[campus];
-            setAvailableBranches([...campusBranches['B.E.'], ...campusBranches['M.Sc.']]);
+            setAvailableBranches(Object.values(campusBranches).flat());
             setIsDualDegreeStudent(isMscBranch(profileData.branch || '', campus));
         }
     }, [profileData.campus, profileData.branch]);
