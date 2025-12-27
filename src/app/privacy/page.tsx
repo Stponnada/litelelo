@@ -151,7 +151,91 @@ const PrivacyPage: React.FC = () => {
                     </p>
                 </PrivacySection>
 
-                <PrivacySection title="6. Contact Us">
+                <PrivacySection title="6. End-to-End Encryption (E2EE)">
+                    <p>
+                        <b>litelelo.</b> offers optional end-to-end encryption for your private messages. When enabled,
+                        your messages are encrypted on your device before being sent and can only be decrypted by
+                        you—not even we can read them.
+                    </p>
+
+                    <h3 className="text-lg font-semibold text-text-main-light dark:text-text-main pt-2 font-raleway">
+                        How It Works
+                    </h3>
+                    <ul className="list-disc pl-6 space-y-2">
+                        <li>
+                            <strong>6-Digit PIN:</strong> You create a 6-digit PIN that is used to derive your
+                            encryption key. This PIN never leaves your device and is never sent to our servers.
+                        </li>
+                        <li>
+                            <strong>Secure Key Derivation:</strong> We use <strong>Argon2id</strong>, a
+                            memory-hard key derivation function, to convert your PIN into a strong encryption
+                            key. This makes brute-force attacks extremely difficult.
+                        </li>
+                        <li>
+                            <strong>AES-256-GCM Encryption:</strong> Your messages are encrypted using
+                            AES-256-GCM, an industry-standard encryption algorithm used by banks and
+                            governments worldwide.
+                        </li>
+                        <li>
+                            <strong>Server-Side Key Storage:</strong> Your encryption key is encrypted with
+                            your PIN before being stored on our servers. Without your PIN, the stored key is
+                            cryptographically useless.
+                        </li>
+                    </ul>
+
+                    <h3 className="text-lg font-semibold text-text-main-light dark:text-text-main pt-2 font-raleway">
+                        What&apos;s Protected
+                    </h3>
+                    <ul className="list-disc pl-6 space-y-2">
+                        <li>Private message content in one-on-one chats</li>
+                        <li>Message attachments sent through encrypted chats</li>
+                    </ul>
+
+                    <h3 className="text-lg font-semibold text-text-main-light dark:text-text-main pt-2 font-raleway">
+                        Important Information
+                    </h3>
+                    <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg">
+                        <ul className="list-disc pl-6 space-y-2 text-yellow-800 dark:text-yellow-200">
+                            <li>
+                                <strong>PIN Recovery:</strong> If you forget your PIN, there is <strong>no way</strong> to
+                                recover your encrypted messages. We cannot reset your encryption key or decrypt
+                                your messages on your behalf. This is by design—it ensures true privacy.
+                            </li>
+                            <li>
+                                <strong>Hint Feature:</strong> When setting up encryption, you can optionally add a
+                                hint to help you remember your PIN if you forget it.
+                            </li>
+                            <li>
+                                <strong>Device Synchronization:</strong> When you log in on a new device, you&apos;ll
+                                need to enter your PIN to unlock your encrypted messages on that device.
+                            </li>
+                            <li>
+                                <strong>Reset Option:</strong> If you forget your PIN, you can reset your
+                                encryption and start fresh, but all previously encrypted messages will become
+                                permanently unreadable.
+                            </li>
+                        </ul>
+                    </div>
+
+                    <h3 className="text-lg font-semibold text-text-main-light dark:text-text-main pt-2 font-raleway">
+                        Metadata
+                    </h3>
+                    <p>
+                        While your message content is encrypted, certain metadata is not encrypted and is
+                        visible to us for operational purposes. This includes:
+                    </p>
+                    <ul className="list-disc pl-6 space-y-2">
+                        <li>Who you are messaging (sender and recipient IDs)</li>
+                        <li>When messages are sent (timestamps)</li>
+                        <li>Message types (text, image, etc.)</li>
+                    </ul>
+                    <p className="pt-2">
+                        This metadata is necessary to deliver your messages and provide features like
+                        notifications. It does not reveal the content of your conversations.
+                    </p>
+                </PrivacySection>
+
+                <PrivacySection title="7. Contact Us">
                     <p>
                         If you have any questions about this Privacy Policy, please contact us at
                         <a

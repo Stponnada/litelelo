@@ -9,10 +9,12 @@ import Conversation from '@/components/Conversation';
 import CreateGroupModal from '@/components/CreateGroupModal';
 import StartConversationModal from '@/components/StartConversationModal';
 import ChatPageSkeleton from '@/components/ChatPageSkeleton';
+import EncryptionPinModal from '@/components/EncryptionPinModal';
 import { useChat } from '@/hooks/useChat';
 import { formatTimestamp } from '@/utils/timeUtils';
 import { ChatIcon, UserGroupIcon, SearchIcon, PinIcon, ArchiveIcon, PlusIcon } from '@/components/icons';
 import { supabase } from '@/services/supabase';
+import { getEncryptionStatus, tryRestoreEncryptionKey } from '@/services/encryption';
 
 const ChatPage: React.FC = () => {
     const { user, profile: currentUserProfile } = useAuth();
@@ -37,6 +39,35 @@ const ChatPage: React.FC = () => {
     const [isStartConvoModalOpen, setStartConvoModalOpen] = useState(false);
     const [showArchived, setShowArchived] = useState(false);
     const [placeholderConversation, setPlaceholderConversation] = useState<ConversationSummary | null>(null);
+
+    // E2EE State
+    const [showEncryptionModal, setShowEncryptionModal] = useState(false);
+    const [encryptionChecked, setEncryptionChecked] = useState(false);
+
+    // Check encryption status on mount
+    useEffect(() => {
+        const checkEncryption = async () => {
+            if (!user) return;
+
+            // Try to restore key from localStorage first
+            const restored = await tryRestoreEncryptionKey();
+            if (restored) {
+                setEncryptionChecked(true);
+                return;
+            }
+
+            // Check if user has set up encryption
+            const status = await getEncryptionStatus(user.id);
+            if (!status.isUnlocked) {
+                // User needs to set up or unlock encryption
+                setShowEncryptionModal(true);
+            }
+            setEncryptionChecked(true);
+        };
+
+        checkEncryption();
+    }, [user]);
+
 
     // Logic for handling deep links to specific users
     useEffect(() => {
@@ -108,12 +139,21 @@ const ChatPage: React.FC = () => {
     const selectedConversation = conversations.find(c => c.conversation_id === selectedConversationId) ||
         (selectedConversationId?.startsWith('placeholder_') ? placeholderConversation : null);
 
-    if (loading) return <ChatPageSkeleton />;
+    if (loading || !encryptionChecked) return <ChatPageSkeleton />;
 
     return (
         <div className="relative h-[calc(100vh-144px)] md:h-[calc(100vh-96px)] w-full overflow-hidden bg-primary-light dark:bg-primary shadow-2xl">
+            {/* E2EE PIN Modal */}
+            {showEncryptionModal && (
+                <EncryptionPinModal
+                    onComplete={() => setShowEncryptionModal(false)}
+                    onSkip={() => setShowEncryptionModal(false)}
+                />
+            )}
+
             {isGroupModalOpen && <CreateGroupModal onClose={() => setGroupModalOpen(false)} onGroupCreated={(id) => { setGroupModalOpen(false); fetchConversations(); setSelectedConversationId(id); }} />}
             {isStartConvoModalOpen && <StartConversationModal onClose={() => setStartConvoModalOpen(false)} onUserSelected={(p) => { setStartConvoModalOpen(false); setPlaceholderConversation(p); setSelectedConversationId(p.conversation_id); }} />}
+
 
             <div className={`relative w-full h-full flex transition-transform duration-300 ease-in-out md:transform-none ${selectedConversationId ? '-translate-x-full' : 'translate-x-0'}`}>
                 {/* Sidebar */}
