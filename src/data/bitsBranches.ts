@@ -16,6 +16,7 @@ export const BITS_BRANCHES: Record<string, Record<string, string[]>> = {
       'Economics',
       'Mathematics',
       'Physics',
+      'Semiconductors and Nanoscience',
     ],
   },
   'Goa': {
@@ -34,6 +35,7 @@ export const BITS_BRANCHES: Record<string, Record<string, string[]>> = {
       'Economics',
       'Mathematics',
       'Physics',
+      'Semiconductors and Nanoscience',
     ],
   },
   'Hyderabad': {
@@ -54,17 +56,18 @@ export const BITS_BRANCHES: Record<string, Record<string, string[]>> = {
       'Economics',
       'Mathematics',
       'Physics',
+      'Semiconductors and Nanoscience',
     ],
   },
   'Dubai': {
     'B.E.': [
-        'Biotechnology',
-        'Chemical Engineering',
-        'Civil Engineering',
-        'Computer Science',
-        'Electrical & Electronics Engineering',
-        'Electronics & Communication Engineering',
-        'Mechanical Engineering',
+      'Biotechnology',
+      'Chemical Engineering',
+      'Civil Engineering',
+      'Computer Science',
+      'Electrical & Electronics Engineering',
+      'Electronics & Communication Engineering',
+      'Mechanical Engineering',
     ],
     'M.Sc.': [], // Dubai campus doesn't typically offer the M.Sc. dual degree path
   },
@@ -72,6 +75,6 @@ export const BITS_BRANCHES: Record<string, Record<string, string[]>> = {
 
 // Helper function to check if a branch is an M.Sc. degree for a given campus
 export const isMscBranch = (branch: string, campus: string): boolean => {
-    if (!campus || !branch || !BITS_BRANCHES[campus]) return false;
-    return BITS_BRANCHES[campus]['M.Sc.'].includes(branch);
+  if (!campus || !branch || !BITS_BRANCHES[campus]) return false;
+  return BITS_BRANCHES[campus]['M.Sc.'].includes(branch);
 };
