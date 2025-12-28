@@ -64,6 +64,7 @@ const DirectoryPage: React.FC = () => {
         dorm_building: '',
         relationship_status: '',
         dining_hall: '',
+        campus: '',
     });
 
     // --- Interaction State ---
@@ -130,7 +131,7 @@ const DirectoryPage: React.FC = () => {
         setFilters(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
 
-    const resetFilters = () => setFilters({ admission_year: '', branch: '', gender: '', dorm_building: '', relationship_status: '', dining_hall: '' });
+    const resetFilters = () => setFilters({ admission_year: '', branch: '', gender: '', dorm_building: '', relationship_status: '', dining_hall: '', campus: '' });
 
     // --- Filtering Logic ---
     const userProfiles = useMemo(() => allProfiles.filter(p => p.type === 'user'), [allProfiles]);
@@ -139,6 +140,7 @@ const DirectoryPage: React.FC = () => {
     const admissionYears = useMemo(() => [...new Set(userProfiles.map(p => p.admission_year).filter((y): y is number => !!y))].sort((a, b) => b - a), [userProfiles]);
     const branches = useMemo(() => [...new Set(userProfiles.map(p => p.branch).filter((b): b is string => !!b))].sort(), [userProfiles]);
     const dorms = useMemo(() => [...new Set(userProfiles.map(p => p.dorm_building).filter((d): d is string => !!d))].sort(), [userProfiles]);
+    const campuses = useMemo(() => [...new Set(userProfiles.map(p => p.campus || '').filter(Boolean))].sort(), [userProfiles]);
 
     const filteredProfiles = useMemo(() => {
         let filtered = [...allProfiles];
@@ -169,7 +171,8 @@ const DirectoryPage: React.FC = () => {
                 (!filters.admission_year || p.admission_year === parseInt(filters.admission_year)) &&
                 (!filters.branch || p.branch === filters.branch) &&
                 (!filters.gender || p.gender === filters.gender) &&
-                (!filters.dorm_building || p.dorm_building === filters.dorm_building)
+                (!filters.dorm_building || p.dorm_building === filters.dorm_building) &&
+                (!filters.campus || p.campus === filters.campus)
             );
         }
 
@@ -304,6 +307,7 @@ const DirectoryPage: React.FC = () => {
                     {showFilters && activeTab === 'users' && viewMode === 'grid' && (
                         <div className="mt-2 md:mt-4 p-3 md:p-4 bg-secondary-light dark:bg-secondary rounded-xl border border-tertiary-light/50 dark:border-tertiary/50 animate-fadeIn">
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
+                                <select name="campus" value={filters.campus} onChange={handleFilterChange} className="p-2 bg-tertiary-light dark:bg-tertiary rounded-lg text-sm"><option value="">All Campuses</option>{campuses.map(c => <option key={c} value={c}>{c}</option>)}</select>
                                 <select name="admission_year" value={filters.admission_year} onChange={handleFilterChange} className="p-2 bg-tertiary-light dark:bg-tertiary rounded-lg text-sm"><option value="">Batch</option>{admissionYears.map(y => <option key={y} value={y}>{y}</option>)}</select>
                                 <select name="branch" value={filters.branch} onChange={handleFilterChange} className="p-2 bg-tertiary-light dark:bg-tertiary rounded-lg text-sm"><option value="">Branch</option>{branches.map(b => <option key={b} value={b}>{b}</option>)}</select>
                                 <select name="dorm_building" value={filters.dorm_building} onChange={handleFilterChange} className="p-2 bg-tertiary-light dark:bg-tertiary rounded-lg text-sm"><option value="">Dorm</option>{dorms.map(d => <option key={d} value={d}>{d}</option>)}</select>

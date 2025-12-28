@@ -620,6 +620,8 @@ const ProfilePage: React.FC = () => {
                                     <h3 className="text-sm font-bold text-text-main-light dark:text-white">Details</h3>
                                     <div className="space-y-2.5 text-sm text-text-secondary-light dark:text-text-secondary">
                                         <ProfileDetail label="Birthday" value={formattedBirthday} />
+                                        <ProfileDetail label="Campus" value={profile.campus} />
+                                        <ProfileDetail label="Class of" value={profile.admission_year ? `${profile.admission_year + 4}` : null} />
                                         <ProfileDetail label="Primary Degree" value={profile.branch} />
                                         <ProfileDetail label="B.E. Degree" value={profile.dual_degree_branch} />
                                         <ProfileDetail label="Relationship" value={profile.relationship_status} />
@@ -1258,6 +1260,21 @@ const EditProfileModal: React.FC<{
                                     isPrivate={privacySettings['birthday'] === 'private'}
                                     onTogglePrivacy={() => togglePrivacy('birthday')}
                                 />
+                            </div>
+                            {/* Read-only Campus & Batch Info */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div className="space-y-1.5 flex-1 opacity-70">
+                                    <label className="text-xs font-bold text-text-secondary-light dark:text-text-tertiary ml-1">Campus</label>
+                                    <div className="w-full bg-tertiary-light/50 dark:bg-white/5 border border-tertiary-light dark:border-white/5 rounded-2xl p-3.5 text-text-main-light dark:text-white cursor-not-allowed">
+                                        {profileData.campus || 'N/A'}
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5 flex-1 opacity-70">
+                                    <label className="text-xs font-bold text-text-secondary-light dark:text-text-tertiary ml-1">Class of</label>
+                                    <div className="w-full bg-tertiary-light/50 dark:bg-white/5 border border-tertiary-light dark:border-white/5 rounded-2xl p-3.5 text-text-main-light dark:text-white cursor-not-allowed">
+                                        {profileData.admission_year ? profileData.admission_year + 4 : 'N/A'}
+                                    </div>
+                                </div>
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-text-tertiary ml-1">Bio</label>

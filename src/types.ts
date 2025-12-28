@@ -37,6 +37,7 @@ export interface DirectoryProfile {
   dorm_building: string | null;
   relationship_status: string | null;
   dining_hall: string | null;
+  campus: string | null;
 }
 
 export interface Friend {

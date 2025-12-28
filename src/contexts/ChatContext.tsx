@@ -37,10 +37,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       const { data: convosWithDetails, error: rpcError } = await supabase.rpc('get_conversations_for_user_v3');
-      if (rpcError) throw rpcError;
+      if (rpcError) throw new Error(`RPC Error: ${rpcError.message} (${rpcError.code})`);
 
       const conversationsFromRpc = convosWithDetails || [];
-      const conversationIds = conversationsFromRpc.map((c: Record<string, unknown>) => c.conversation_id as string);
+      const conversationIds = conversationsFromRpc.map((c: any) => c.conversation_id as string);
 
       let finalSummaries: ConversationSummary[] = [];
 
@@ -50,10 +50,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .select(`conversation_id, profiles!inner(user_id, username, full_name, avatar_url)`)
           .in('conversation_id', conversationIds);
 
-        if (participantsError) throw participantsError;
+        if (participantsError) throw new Error(`Participants Error: ${participantsError.message}`);
 
         const participantsMap = new Map<string, ConversationParticipant[]>();
-        (participantsData || []).forEach((p: { conversation_id: string; profiles: Partial<Profile> | Partial<Profile>[] }) => {
+        (participantsData || []).forEach((p: any) => {
           if (!participantsMap.has(p.conversation_id)) {
             participantsMap.set(p.conversation_id, []);
           }
@@ -63,7 +63,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         });
 
-        finalSummaries = conversationsFromRpc.map((convo: Record<string, unknown>) => {
+        finalSummaries = conversationsFromRpc.map((convo: any) => {
           const participants = participantsMap.get(convo.conversation_id as string) || [];
           const otherParticipants = participants.filter(p => p.user_id !== user.id);
 
@@ -77,11 +77,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const { data: directoryData, error: directoryError } = await supabase.rpc('get_unified_directory');
-      if (directoryError) throw directoryError;
+      if (directoryError) throw new Error(`Directory Error: ${directoryError.message}`);
 
-      const allProfiles = (directoryData || []).filter((item: Record<string, unknown>) => item.type === 'user');
+      const allProfiles = (directoryData || []).filter((item: any) => item.type === 'user');
       // Include anyone who is either followed by you OR follows you (to ensure mutual friends show up)
-      const contacts = allProfiles.filter((p: Record<string, unknown>) => p.is_following || p.is_followed_by);
+      const contacts = allProfiles.filter((p: any) => p.is_following || p.is_followed_by);
       const existingDmParticipantIds = new Set(
         (finalSummaries || [])
           .filter(c => c.type === 'dm')
@@ -89,8 +89,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       );
 
       const placeholderConversations = contacts
-        .filter((contact: Record<string, unknown>) => !existingDmParticipantIds.has(contact.id as string))
-        .map((contact: Record<string, unknown>) => ({
+        .filter((contact: any) => !existingDmParticipantIds.has(contact.id as string))
+        .map((contact: any) => ({
           conversation_id: `placeholder_${contact.id}`,
           type: 'dm' as const,
           name: contact.name,
@@ -124,8 +124,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       setConversations(combinedList);
 
-    } catch (error) {
-      console.error('Error fetching chat list:', error);
+    } catch (error: any) {
+      console.error('Error fetching chat list:', error.message || error);
+      // Don't wipe conversations on error if we had some before, unless it's critical?
+      // For now, let's keep the error behavior but log better.
       setConversations([]);
     } finally {
       setLoading(false);
