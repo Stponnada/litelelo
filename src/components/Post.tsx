@@ -37,6 +37,7 @@ import { HeartIcon as HeartSolid, BookmarkIcon as BookmarkSolid } from '@heroico
 import PollComponent from './Poll';
 import QuotePostDisplay from './QuotePostDisplay';
 import QuotePostModal from './QuotePostModal';
+import RepostersModal from './RepostersModal';
 import { getResizedAvatarUrl } from '../utils/imageUtils';
 
 const Flair: React.FC<{ flair: { id: string; name: string; avatar_url: string | null } }> = ({ flair }) => (
@@ -93,6 +94,7 @@ const PostComponent: React.FC<PostComponentProps & { prioritizeUser?: boolean }>
     const menuRef = useRef<HTMLDivElement>(null);
     const [isTallImage, setIsTallImage] = useState(false);
     const [isQuoteModalOpen, setQuoteModalOpen] = useState(false);
+    const [isRepostersModalOpen, setRepostersModalOpen] = useState(false);
     const isOwner = user?.id === post.user_id;
 
 
@@ -233,6 +235,14 @@ const PostComponent: React.FC<PostComponentProps & { prioritizeUser?: boolean }>
                     onPostCreated={handlePostCreated}
                     communityId={communityId}
                     isPublic={isPublic}
+                />
+            )}
+
+            {isRepostersModalOpen && (
+                <RepostersModal
+                    postId={post.id}
+                    repostCount={post.repost_count}
+                    onClose={() => setRepostersModalOpen(false)}
                 />
             )}
 
@@ -455,15 +465,26 @@ const PostComponent: React.FC<PostComponentProps & { prioritizeUser?: boolean }>
                                         <span className="text-xs font-medium">{post.comment_count || 0}</span>
                                     </button>
 
-                                    <button
-                                        className={`group/btn flex items-center gap-1.5 transition-colors ${post.user_has_reposted ? 'text-green-500' : 'text-text-tertiary-light dark:text-text-tertiary hover:text-green-500'}`}
-                                        onClick={(e) => { e.stopPropagation(); handleRepostToggle(); }}
-                                    >
-                                        <div className="p-1.5 rounded-full group-hover/btn:bg-green-500/10 transition-colors">
+                                    <div className={`flex items-center gap-1.5 ${post.user_has_reposted ? 'text-green-500' : 'text-text-tertiary-light dark:text-text-tertiary'}`}>
+                                        <button
+                                            className="group/btn p-1.5 rounded-full hover:bg-green-500/10 hover:text-green-500 transition-colors"
+                                            onClick={(e) => { e.stopPropagation(); handleRepostToggle(); }}
+                                            title={post.user_has_reposted ? "Undo repost" : "Repost"}
+                                        >
                                             <RepostIcon className="w-5 h-5" />
-                                        </div>
-                                        <span className="text-xs font-medium">{post.repost_count || 0}</span>
-                                    </button>
+                                        </button>
+                                        <button
+                                            className="text-xs font-medium hover:underline cursor-pointer hover:text-green-500 transition-colors"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                e.preventDefault();
+                                                setRepostersModalOpen(true);
+                                            }}
+                                            title="See who reposted"
+                                        >
+                                            {post.repost_count || 0}
+                                        </button>
+                                    </div>
 
                                     <button
                                         className={`group/btn flex items-center gap-1.5 transition-colors ${post.user_vote === 'like' ? 'text-red-500' : 'text-text-tertiary-light dark:text-text-tertiary hover:text-red-500'}`}
