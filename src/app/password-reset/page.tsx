@@ -73,7 +73,10 @@ const PasswordResetPage: React.FC = () => {
             <div className="min-h-screen bg-primary-light dark:bg-primary flex flex-col items-center justify-center p-4">
                 <div className="max-w-md text-center">
                     <h1 className="text-2xl font-bold text-red-500 mb-4">Invalid or Expired Link</h1>
-                    <p className="text-text-secondary-light dark:text-text-secondary mb-6">This password reset link is not valid. Please request a new one.</p>
+                    <p className="text-text-secondary-light dark:text-text-secondary mb-4">This password reset link is not valid. Please request a new one.</p>
+                    <p className="text-sm text-text-tertiary-light dark:text-text-tertiary mb-6 bg-tertiary-light/50 dark:bg-tertiary/50 p-3 rounded-lg border border-tertiary-light dark:border-tertiary">
+                        💡 Note: The password reset email might take a few minutes to arrive. We're working on making this faster!
+                    </p>
                     <Link href="/login" className="px-6 py-2 bg-brand-green text-black font-bold rounded-lg hover:bg-brand-green-darker transition-colors">
                         Back to Login
                     </Link>

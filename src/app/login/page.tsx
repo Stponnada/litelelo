@@ -251,7 +251,7 @@ const Login: React.FC = () => {
                 redirectTo: `${window.location.origin}/password-reset`,
             });
             if (error) throw error;
-            setMessage("Password reset link sent! Please check your email.");
+            setMessage("Password reset link sent! Please check your email. Note: The email might take a few minutes to arrive. We're working on making this faster!");
         } catch (err: unknown) {
             if (err instanceof Error) {
                 setError(err.message);
