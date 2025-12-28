@@ -766,6 +766,8 @@ DECLARE
     v_final_is_public boolean;
     v_final_visibility text;
     v_final_allowed_viewers uuid[];
+
+    mentioned_users text[];
 BEGIN
     IF p_parent_post_id IS NOT NULL THEN
         SELECT COALESCE(root_post_id, id), community_id, is_public, visibility, allowed_viewers
@@ -795,6 +797,17 @@ BEGIN
         INSERT INTO poll_options (poll_id, option_text) SELECT v_poll_id, unnest(p_poll_options);
     END IF;
 
+    -- Handle mentions
+    SELECT array_agg(distinct m[1]) into mentioned_users
+    FROM regexp_matches(p_content, '@([a-zA-Z0-9_.]+)', 'g') as m;
+
+    IF mentioned_users IS NOT NULL THEN
+        INSERT INTO public.mentions (post_id, user_id, mentioner_id)
+        SELECT v_post_id, prof.user_id, auth.uid()
+        FROM public.profiles prof
+        WHERE prof.username = ANY(mentioned_users);
+    END IF;
+
     SELECT jsonb_build_object(
         'id', p.id, 'content', p.content, 'image_url', p.image_url, 'created_at', p.created_at,
         'community_id', p.community_id, 'is_public', p.is_public, 'visibility', p.visibility,
@@ -814,10 +827,22 @@ CREATE OR REPLACE FUNCTION "public"."create_quote_post"("p_content" "text", "p_q
     AS $$
 DECLARE
     new_post_id uuid;
+    mentioned_users text[];
 BEGIN
     INSERT INTO public.posts (user_id, content, quoted_post_id, community_id, is_public)
     VALUES (auth.uid(), p_content, p_quoted_post_id, p_community_id, p_is_public)
     RETURNING posts.id INTO new_post_id;
+
+    -- Handle mentions
+    SELECT array_agg(distinct m[1]) into mentioned_users
+    FROM regexp_matches(p_content, '@([a-zA-Z0-9_.]+)', 'g') as m;
+
+    IF mentioned_users IS NOT NULL THEN
+        INSERT INTO public.mentions (post_id, user_id, mentioner_id)
+        SELECT new_post_id, prof.user_id, auth.uid()
+        FROM public.profiles prof
+        WHERE prof.username = ANY(mentioned_users);
+    END IF;
 
     RETURN QUERY
     SELECT f.* FROM public.get_feed_posts() f WHERE f.id = new_post_id;

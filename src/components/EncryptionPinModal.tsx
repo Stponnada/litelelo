@@ -157,6 +157,7 @@ const EncryptionPinModal: React.FC<EncryptionPinModalProps> = ({ onComplete, onS
         const result = await unlockEncryption(user!.id, pin);
 
         if (result.success) {
+            // Migration (if any) happened silently in the background
             onComplete();
         } else {
             setError(result.error || 'Wrong PIN');

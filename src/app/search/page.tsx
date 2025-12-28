@@ -119,11 +119,11 @@ const SearchPage: React.FC = () => {
     }, [searchTerm]);
 
     const resultCounts = useMemo(() => ({
-        users: results?.users.length || 0,
-        posts: results?.posts.length || 0,
-        communities: results?.communities.length || 0,
-        listings: results?.listings.length || 0,
-        events: results?.events.length || 0,
+        users: results?.users?.length || 0,
+        posts: results?.posts?.length || 0,
+        communities: results?.communities?.length || 0,
+        listings: results?.listings?.length || 0,
+        events: results?.events?.length || 0,
     }), [results]);
 
     const totalResults = Object.values(resultCounts).reduce((sum, count) => sum + count, 0);
@@ -147,11 +147,11 @@ const SearchPage: React.FC = () => {
         }
 
         const sections = [
-            { key: 'users', title: 'Users', data: results.users, component: UserResultCard, propName: 'user' },
-            { key: 'communities', title: 'Communities', data: results.communities, component: CommunityResultCard, propName: 'community' },
-            { key: 'listings', title: 'Marketplace', data: results.listings, component: ListingResultCard, propName: 'listing' },
-            { key: 'events', title: 'Events', data: results.events, component: EventResultCard, propName: 'event' },
-            { key: 'posts', title: 'Posts & Comments', data: results.posts, component: PostResultCard, propName: 'post' },
+            { key: 'users', title: 'Users', data: results.users || [], component: UserResultCard, propName: 'user' },
+            { key: 'communities', title: 'Communities', data: results.communities || [], component: CommunityResultCard, propName: 'community' },
+            { key: 'listings', title: 'Marketplace', data: results.listings || [], component: ListingResultCard, propName: 'listing' },
+            { key: 'events', title: 'Events', data: results.events || [], component: EventResultCard, propName: 'event' },
+            { key: 'posts', title: 'Posts & Comments', data: results.posts || [], component: PostResultCard, propName: 'post' },
         ];
 
         return (
