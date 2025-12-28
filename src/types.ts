@@ -86,6 +86,7 @@ export interface Profile {
     name: string;
     avatar_url: string | null;
   } | null;
+  privacy_settings?: { [key: string]: 'public' | 'private' };
 }
 
 export interface CommunityDetails {

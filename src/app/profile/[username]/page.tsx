@@ -11,7 +11,7 @@ import { Post as PostType, Profile, Friend } from '@/types';
 import Spinner from '@/components/Spinner';
 import PostSkeleton from '@/components/PostSkeleton';
 import ProfilePageSkeleton from '@/components/ProfilePageSkeleton';
-import { CameraIcon, LogoutIcon, ChatIcon, UserGroupIcon, BookmarkIcon, ConsulIcon, UserPlusIcon, CheckIcon, XMarkIcon, XIcon, UserIcon, BookOpenIcon, HomeIcon, PhoneIcon, TrashIcon } from '@/components/icons';
+import { CameraIcon, LogoutIcon, ChatIcon, UserGroupIcon, BookmarkIcon, ConsulIcon, UserPlusIcon, CheckIcon, XMarkIcon, XIcon, UserIcon, BookOpenIcon, HomeIcon, PhoneIcon, TrashIcon, EyeIcon, EyeSlashIcon, CalendarDaysIcon } from '@/components/icons';
 import { isMscBranch, BITS_BRANCHES } from '@/data/bitsBranches';
 import { BITS_DORMS } from '@/data/bitsDorms';
 import ImageCropper from '@/components/ImageCropper';
@@ -233,17 +233,7 @@ const ProfilePage: React.FC = () => {
                 .single<ProfileRpcResult>();
 
             if (error || !data) throw error || new Error("Profile not found");
-            const profileData = data; // data is already typed as ProfileRpcResult
-            let phone: string | null = null;
-            if (profileData?.user_id) {
-                const { data: profileRow } = await supabase
-                    .from('profiles')
-                    .select('phone')
-                    .eq('user_id', profileData.user_id)
-                    .single();
-                phone = profileRow?.phone ?? null;
-            }
-            setProfile({ ...profileData, phone });
+            setProfile(data);
         } catch (err: unknown) {
             console.error("Error fetching profile data:", err);
             setProfile(null);
@@ -922,6 +912,7 @@ const EditProfileModal: React.FC<{
 
     // States
     const [profileData, setProfileData] = useState(userProfile);
+    const [privacySettings, setPrivacySettings] = useState<{ [key: string]: 'public' | 'private' }>(userProfile.privacy_settings || {});
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [bannerFile, setBannerFile] = useState<File | null>(null);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(userProfile.avatar_url);
@@ -1020,6 +1011,13 @@ const EditProfileModal: React.FC<{
         });
     };
 
+    const togglePrivacy = (field: string) => {
+        setPrivacySettings(prev => ({
+            ...prev,
+            [field]: prev[field] === 'private' ? 'public' : 'private'
+        }));
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
@@ -1056,6 +1054,8 @@ const EditProfileModal: React.FC<{
                 displayed_community_flair: profileData.displayed_community_flair || null,
                 avatar_url,
                 banner_url,
+                birthday: profileData.birthday,
+                privacy_settings: privacySettings,
                 updated_at: new Date().toISOString()
             }).eq('user_id', user.id).select().single();
 
@@ -1248,6 +1248,17 @@ const EditProfileModal: React.FC<{
                                     </div>
                                 </div>
                             </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <InputField
+                                    label="Birthday"
+                                    name="birthday"
+                                    type="date"
+                                    value={profileData.birthday}
+                                    onChange={handleChange}
+                                    isPrivate={privacySettings['birthday'] === 'private'}
+                                    onTogglePrivacy={() => togglePrivacy('birthday')}
+                                />
+                            </div>
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-text-tertiary ml-1">Bio</label>
                                 <textarea
@@ -1280,6 +1291,8 @@ const EditProfileModal: React.FC<{
                                 onChange={handleChange}
                                 type="tel"
                                 placeholder="+91 98765 43210"
+                                isPrivate={privacySettings['phone'] === 'private'}
+                                onTogglePrivacy={() => togglePrivacy('phone')}
                             />
                         </div>
 
@@ -1289,7 +1302,15 @@ const EditProfileModal: React.FC<{
                                 <BookOpenIcon className="w-4 h-4" /> Academic Info
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                <SelectField label="Primary Degree" name="branch" value={profileData.branch} options={availableBranches} onChange={handleChange} />
+                                <SelectField
+                                    label="Primary Degree"
+                                    name="branch"
+                                    value={profileData.branch}
+                                    options={availableBranches}
+                                    onChange={handleChange}
+                                    isPrivate={privacySettings['branch'] === 'private'}
+                                    onTogglePrivacy={() => togglePrivacy('branch')}
+                                />
                                 <AnimatePresence mode="wait">
                                     {isDualDegreeStudent && (
                                         <motion.div
@@ -1305,6 +1326,8 @@ const EditProfileModal: React.FC<{
                                                 value={profileData.dual_degree_branch}
                                                 options={profileData.campus ? BITS_BRANCHES[profileData.campus]['B.E.'] : []}
                                                 onChange={handleChange}
+                                                isPrivate={privacySettings['branch'] === 'private'} // Assuming both branches share privacy setting
+                                                onTogglePrivacy={() => togglePrivacy('branch')}
                                             />
                                         </motion.div>
                                     )}
@@ -1331,11 +1354,38 @@ const EditProfileModal: React.FC<{
                                     value={profileData.dorm_building}
                                     options={availableDorms}
                                     onChange={handleChange}
+                                    isPrivate={privacySettings['dorm'] === 'private'}
+                                    onTogglePrivacy={() => togglePrivacy('dorm')}
                                 />
-                                <InputField label="Room No." name="dorm_room" value={profileData.dorm_room} onChange={handleChange} type="number" placeholder="469" />
-                                <SelectField label="Dining Hall" name="dining_hall" value={profileData.dining_hall} options={['Mess 1', 'Mess 2']} onChange={handleChange} />
+                                <InputField
+                                    label="Room No."
+                                    name="dorm_room"
+                                    value={profileData.dorm_room}
+                                    onChange={handleChange}
+                                    type="number"
+                                    placeholder="469"
+                                    isPrivate={privacySettings['dorm'] === 'private'}
+                                    onTogglePrivacy={() => togglePrivacy('dorm')}
+                                />
+                                <SelectField
+                                    label="Dining Hall"
+                                    name="dining_hall"
+                                    value={profileData.dining_hall}
+                                    options={['Mess 1', 'Mess 2']}
+                                    onChange={handleChange}
+                                    isPrivate={privacySettings['dining_hall'] === 'private'}
+                                    onTogglePrivacy={() => togglePrivacy('dining_hall')}
+                                />
                             </div>
-                            <SelectField label="Relationship" name="relationship_status" value={profileData.relationship_status} options={['Single', 'In a relationship', "It's complicated", 'Married']} onChange={handleChange} />
+                            <SelectField
+                                label="Relationship"
+                                name="relationship_status"
+                                value={profileData.relationship_status}
+                                options={['Single', 'In a relationship', "It's complicated", 'Married']}
+                                onChange={handleChange}
+                                isPrivate={privacySettings['relationship_status'] === 'private'}
+                                onTogglePrivacy={() => togglePrivacy('relationship_status')}
+                            />
                         </div>
 
                         {/* Section: Danger Zone */}
@@ -1389,11 +1439,25 @@ interface InputFieldProps {
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     type?: string;
     placeholder?: string;
+    isPrivate?: boolean;
+    onTogglePrivacy?: () => void;
 }
 
-const InputField: React.FC<InputFieldProps> = ({ label, name, value, onChange, type = "text", placeholder = "" }) => (
+const InputField: React.FC<InputFieldProps> = ({ label, name, value, onChange, type = "text", placeholder = "", isPrivate, onTogglePrivacy }) => (
     <div className="space-y-1.5 flex-1">
-        <label className="text-xs font-bold text-text-secondary-light dark:text-text-tertiary ml-1">{label}</label>
+        <div className="flex items-center justify-between ml-1">
+            <label className="text-xs font-bold text-text-secondary-light dark:text-text-tertiary">{label}</label>
+            {onTogglePrivacy && (
+                <button
+                    type="button"
+                    onClick={onTogglePrivacy}
+                    className={`p-1 rounded-full transition-colors ${isPrivate ? 'text-brand-green bg-brand-green/10' : 'text-text-tertiary hover:text-text-secondary'}`}
+                    title={isPrivate ? "Private" : "Public"}
+                >
+                    {isPrivate ? <EyeSlashIcon className="w-3.5 h-3.5" /> : <EyeIcon className="w-3.5 h-3.5" />}
+                </button>
+            )}
+        </div>
         <input
             type={type}
             name={name}
@@ -1411,11 +1475,25 @@ interface SelectFieldProps {
     value: string | null | undefined;
     options: Array<string | { label: string; value: string }>;
     onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+    isPrivate?: boolean;
+    onTogglePrivacy?: () => void;
 }
 
-const SelectField: React.FC<SelectFieldProps> = ({ label, name, value, options, onChange }) => (
+const SelectField: React.FC<SelectFieldProps> = ({ label, name, value, options, onChange, isPrivate, onTogglePrivacy }) => (
     <div className="space-y-1.5 flex-1">
-        <label className="text-xs font-bold text-text-secondary-light dark:text-text-tertiary ml-1">{label}</label>
+        <div className="flex items-center justify-between ml-1">
+            <label className="text-xs font-bold text-text-secondary-light dark:text-text-tertiary">{label}</label>
+            {onTogglePrivacy && (
+                <button
+                    type="button"
+                    onClick={onTogglePrivacy}
+                    className={`p-1 rounded-full transition-colors ${isPrivate ? 'text-brand-green bg-brand-green/10' : 'text-text-tertiary hover:text-text-secondary'}`}
+                    title={isPrivate ? "Private" : "Public"}
+                >
+                    {isPrivate ? <EyeSlashIcon className="w-3.5 h-3.5" /> : <EyeIcon className="w-3.5 h-3.5" />}
+                </button>
+            )}
+        </div>
         <select
             name={name}
             value={value || ''}
