@@ -35,6 +35,7 @@ export const BITS_BRANCHES: Record<string, Record<string, string[]>> = {
       'Electronics & Instrumentation Engineering',
       'Mechanical Engineering',
       'Mathematics and Computing', // Unique to Goa/Hyd
+      'Electronics and Computer Engineering',
     ],
     'M.Sc.': [
       'Biological Sciences',
