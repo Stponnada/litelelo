@@ -11,7 +11,7 @@ import { Post as PostType, Profile, Friend } from '@/types';
 import Spinner from '@/components/Spinner';
 import PostSkeleton from '@/components/PostSkeleton';
 import ProfilePageSkeleton from '@/components/ProfilePageSkeleton';
-import { CameraIcon, LogoutIcon, ChatIcon, UserGroupIcon, BookmarkIcon, ConsulIcon, UserPlusIcon, CheckIcon, XMarkIcon, XIcon, UserIcon, BookOpenIcon, HomeIcon, PhoneIcon } from '@/components/icons';
+import { CameraIcon, LogoutIcon, ChatIcon, UserGroupIcon, BookmarkIcon, ConsulIcon, UserPlusIcon, CheckIcon, XMarkIcon, XIcon, UserIcon, BookOpenIcon, HomeIcon, PhoneIcon, TrashIcon } from '@/components/icons';
 import { isMscBranch, BITS_BRANCHES } from '@/data/bitsBranches';
 import { BITS_DORMS } from '@/data/bitsDorms';
 import ImageCropper from '@/components/ImageCropper';
@@ -932,6 +932,8 @@ const EditProfileModal: React.FC<{
     const [availableBranches, setAvailableBranches] = useState<string[]>([]);
     const [availableDorms, setAvailableDorms] = useState<string[]>([]);
     const [isDualDegreeStudent, setIsDualDegreeStudent] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const [cropperState, setCropperState] = useState<{
         isOpen: boolean;
@@ -1077,6 +1079,58 @@ const EditProfileModal: React.FC<{
             setIsSaving(false);
         }
     };
+    const handleDeleteAccount = async () => {
+        setIsDeleting(true);
+        setError('');
+        try {
+            const { error: deleteError } = await supabase.rpc('delete_own_account');
+            if (deleteError) throw deleteError;
+
+            // Success! Sign out and redirect
+            await supabase.auth.signOut({ scope: 'local' });
+            router.push('/login');
+        } catch (err: any) {
+            setError(err.message || 'An error occurred while deleting your account.');
+            setIsDeleting(false);
+            setShowDeleteConfirm(false);
+        }
+    };
+
+    if (showDeleteConfirm) {
+        return (
+            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="bg-secondary dark:bg-primary border border-red-500/20 w-full max-w-md rounded-[32px] p-8 text-center shadow-2xl"
+                >
+                    <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <TrashIcon className="w-10 h-10 text-red-500" />
+                    </div>
+                    <h2 className="text-2xl font-black text-white mb-3">Delete Account?</h2>
+                    <p className="text-text-tertiary mb-8">
+                        This action is permanent. All your posts, profile data, and messages will be gone forever.
+                    </p>
+                    <div className="flex flex-col gap-3">
+                        <button
+                            onClick={handleDeleteAccount}
+                            disabled={isDeleting}
+                            className="w-full py-4 bg-red-500 hover:bg-red-600 text-white font-bold rounded-2xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                        >
+                            {isDeleting ? <Spinner /> : 'Yes, Delete Everything'}
+                        </button>
+                        <button
+                            onClick={() => setShowDeleteConfirm(false)}
+                            disabled={isDeleting}
+                            className="w-full py-4 bg-tertiary dark:bg-white/5 text-white font-bold rounded-2xl hover:bg-white/10 transition-all"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </motion.div>
+            </div>
+        );
+    }
 
     if (cropperState.isOpen && cropperState.src) {
         return (
@@ -1282,6 +1336,24 @@ const EditProfileModal: React.FC<{
                                 <SelectField label="Dining Hall" name="dining_hall" value={profileData.dining_hall} options={['Mess 1', 'Mess 2']} onChange={handleChange} />
                             </div>
                             <SelectField label="Relationship" name="relationship_status" value={profileData.relationship_status} options={['Single', 'In a relationship', "It's complicated", 'Married']} onChange={handleChange} />
+                        </div>
+
+                        {/* Section: Danger Zone */}
+                        <div className="pt-6 border-t border-tertiary-light/50 dark:border-white/10">
+                            <div className="flex items-center justify-between p-6 bg-red-500/5 rounded-3xl border border-red-500/10">
+                                <div>
+                                    <h3 className="text-sm font-bold text-red-500 uppercase tracking-wider">Danger Zone</h3>
+                                    <p className="text-xs text-text-secondary-light dark:text-text-tertiary mt-1">Once you delete your account, there is no going back.</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowDeleteConfirm(true)}
+                                    className="px-4 py-2 text-red-500 hover:bg-red-500/10 rounded-xl font-bold transition-all flex items-center gap-2 text-sm"
+                                >
+                                    <TrashIcon className="w-4 h-4" />
+                                    Delete Account
+                                </button>
+                            </div>
                         </div>
 
                         {/* Footer Actions */}

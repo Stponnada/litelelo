@@ -2864,6 +2864,7 @@ BEGIN
                     WHERE f2.follower_id = auth.uid()
                 )
                 AND p.user_id != auth.uid()
+                AND p.profile_complete = true
                 LIMIT 5
             ) s
         ),
@@ -2943,7 +2944,7 @@ CREATE OR REPLACE FUNCTION "public"."get_unified_directory"() RETURNS TABLE("id"
     AS $$
 BEGIN
     RETURN QUERY
-    -- Select all user profiles
+    -- Select all user profiles that are complete
     SELECT
         p.user_id::text AS id,
         'user'::text AS type,
@@ -2965,6 +2966,7 @@ BEGIN
         profiles p
     WHERE
         p.user_id <> auth.uid()
+        AND p.profile_complete = true
 
     UNION ALL
 
@@ -3339,6 +3341,7 @@ BEGIN
                 SELECT p.username, p.full_name, p.avatar_url
                 FROM profiles p
                 WHERE (p.username ILIKE cleaned_search_term OR p.full_name ILIKE cleaned_search_term)
+                  AND p.profile_complete = true
                 LIMIT 5
             ) u
         ),
