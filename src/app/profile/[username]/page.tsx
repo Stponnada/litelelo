@@ -14,6 +14,7 @@ import ProfilePageSkeleton from '@/components/ProfilePageSkeleton';
 import { CameraIcon, LogoutIcon, ChatIcon, UserGroupIcon, BookmarkIcon, ConsulIcon, UserPlusIcon, CheckIcon, XMarkIcon, XIcon, UserIcon, BookOpenIcon, HomeIcon, PhoneIcon, TrashIcon, EyeIcon, EyeSlashIcon, CalendarDaysIcon } from '@/components/icons';
 import { isMscBranch, BITS_BRANCHES } from '@/data/bitsBranches';
 import { BITS_DORMS } from '@/data/bitsDorms';
+import { BITS_MESSES } from '@/data/bitsMesses';
 import ImageCropper from '@/components/ImageCropper';
 import FollowListModal from '@/components/FollowListModal';
 import LightBox from '@/components/lightbox';
@@ -924,6 +925,7 @@ const EditProfileModal: React.FC<{
     const [joinedCommunities, setJoinedCommunities] = useState<CommunityLink[]>([]);
     const [availableBranches, setAvailableBranches] = useState<string[]>([]);
     const [availableDorms, setAvailableDorms] = useState<string[]>([]);
+    const [availableMesses, setAvailableMesses] = useState<string[]>([]);
     const [isDualDegreeStudent, setIsDualDegreeStudent] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -978,6 +980,20 @@ const EditProfileModal: React.FC<{
             setAvailableDorms([]);
         }
     }, [profileData.campus, profileData.gender]);
+
+    // Logic: Handle Mess Data
+    useEffect(() => {
+        const { campus } = profileData;
+        if (campus && BITS_MESSES[campus]) {
+            const messes = BITS_MESSES[campus];
+            setAvailableMesses(messes);
+            if (!messes.includes(profileData.dining_hall || '')) {
+                setProfileData(prev => ({ ...prev, dining_hall: null }));
+            }
+        } else {
+            setAvailableMesses([]);
+        }
+    }, [profileData.campus]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'banner') => {
         if (e.target.files?.[0]) {
@@ -1388,7 +1404,7 @@ const EditProfileModal: React.FC<{
                                     label="Dining Hall"
                                     name="dining_hall"
                                     value={profileData.dining_hall}
-                                    options={['Mess 1', 'Mess 2']}
+                                    options={availableMesses}
                                     onChange={handleChange}
                                     isPrivate={privacySettings['dining_hall'] === 'private'}
                                     onTogglePrivacy={() => togglePrivacy('dining_hall')}

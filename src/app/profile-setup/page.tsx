@@ -11,9 +11,9 @@ import { BITS_BRANCHES, isMscBranch } from '@/data/bitsBranches';
 
 import ImageCropper from '@/components/ImageCropper';
 import { BITS_DORMS } from '@/data/bitsDorms';
+import { BITS_MESSES } from '@/data/bitsMesses';
 
 const RELATIONSHIP_STATUSES = ['Single', 'In a Relationship', 'Married', "It's Complicated"];
-const DINING_HALLS = ['Mess 1', 'Mess 2'];
 const MONTHS = [
     { value: '01', label: 'January' }, { value: '02', label: 'February' },
     { value: '03', label: 'March' }, { value: '04', label: 'April' },
@@ -47,6 +47,7 @@ const ProfileSetup: React.FC = () => {
     }>({ isOpen: false, type: null, src: null });
     const [availableBranches, setAvailableBranches] = useState<string[]>([]);
     const [availableDorms, setAvailableDorms] = useState<string[]>([]);
+    const [availableMesses, setAvailableMesses] = useState<string[]>([]);
     const [isDualDegreeStudent, setIsDualDegreeStudent] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -97,6 +98,19 @@ const ProfileSetup: React.FC = () => {
             setFormData(prev => ({ ...prev, dorm_building: '' }));
         }
     }, [formData.campus, formData.gender]);
+
+    useEffect(() => {
+        if (formData.campus && BITS_MESSES[formData.campus]) {
+            const messes = BITS_MESSES[formData.campus];
+            setAvailableMesses(messes);
+            if (!messes.includes(formData.dining_hall)) {
+                setFormData(prev => ({ ...prev, dining_hall: '' }));
+            }
+        } else {
+            setAvailableMesses([]);
+            setFormData(prev => ({ ...prev, dining_hall: '' }));
+        }
+    }, [formData.campus]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -575,10 +589,11 @@ const ProfileSetup: React.FC = () => {
                                         id="dining_hall"
                                         value={formData.dining_hall}
                                         onChange={handleChange}
-                                        className="w-full p-4 bg-tertiary-light dark:bg-tertiary border-2 border-transparent focus:border-brand-green rounded-xl text-text-main-light dark:text-text-main transition-all duration-300 outline-none"
+                                        disabled={availableMesses.length === 0}
+                                        className="w-full p-4 bg-tertiary-light dark:bg-tertiary border-2 border-transparent focus:border-brand-green rounded-xl text-text-main-light dark:text-text-main transition-all duration-300 outline-none disabled:opacity-50"
                                     >
                                         <option value="">Select Mess</option>
-                                        {DINING_HALLS.map(hall => <option key={hall} value={hall}>{hall}</option>)}
+                                        {availableMesses.map(hall => <option key={hall} value={hall}>{hall}</option>)}
                                     </select>
                                 </div>
 
