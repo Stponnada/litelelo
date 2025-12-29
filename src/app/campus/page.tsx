@@ -11,7 +11,7 @@ import {
     ArchiveBoxIcon, ShoppingCartIcon, StarIcon, ClipboardDocumentListIcon,
     CurrencyDollarIcon, CarIcon, SpaceInvaderIcon, CalendarIcon, MapIcon,
     ArrowRightIcon, MapPinIcon, TagIcon, FireIcon,
-    HandoutIcon
+    HandoutIcon, BuildingLibraryIcon
 } from '@/components/icons';
 import BentoSkeleton from '@/components/BentoSkeleton';
 
@@ -366,10 +366,11 @@ const CampusPage: React.FC = () => {
 
 
                 {/* Main Bento Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-4 mb-10 h-auto md:h-[600px]">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10 h-auto md:min-h-[900px]">
                     {loading ? (
                         <>
                             <BentoSkeleton className="md:col-span-1 md:row-span-2" />
+                            <BentoSkeleton className="md:col-span-1 md:row-span-1" />
                             <BentoSkeleton className="md:col-span-1 md:row-span-1" />
                             <BentoSkeleton className="md:col-span-1 md:row-span-1" />
                             <BentoSkeleton className="md:col-span-1 md:row-span-1" />
@@ -406,7 +407,25 @@ const CampusPage: React.FC = () => {
                                 <NoticeWidget notice={latestNotice} />
                             </BentoCard>
 
-                            {/* 4. Handouts for you (Indigo Theme) */}
+                            {/* 4. Lost & Found (Rose Theme) */}
+                            <BentoCard
+                                href="/campus/lost-and-found"
+                                className="md:col-span-1 md:row-span-1 bg-rose-50/50 dark:bg-rose-900/10 border-rose-100 dark:border-rose-900/30"
+                                texture={<PolkaDotPattern />}
+                            >
+                                <LostFoundWidget />
+                            </BentoCard>
+
+                            {/* 5. Events (Violet Theme) */}
+                            <BentoCard
+                                href="/campus/events"
+                                className="md:col-span-1 md:row-span-1 bg-violet-50/50 dark:bg-violet-900/10 border-violet-100 dark:border-violet-900/30"
+                                texture={<WavePattern />}
+                            >
+                                <EventsWidget />
+                            </BentoCard>
+
+                            {/* 6. Handouts for you (Indigo Theme) */}
                             <ExternalToolCard
                                 href="https://h4u.app/"
                                 icon={HandoutIcon}
@@ -417,24 +436,6 @@ const CampusPage: React.FC = () => {
                                 bgColorClass="bg-indigo-50/50 dark:bg-indigo-900/10 border-indigo-100 dark:border-indigo-900/30"
                             />
 
-                            {/* 5. Lost & Found (Rose Theme) */}
-                            <BentoCard
-                                href="/campus/lost-and-found"
-                                className="md:col-span-1 md:row-span-1 bg-rose-50/50 dark:bg-rose-900/10 border-rose-100 dark:border-rose-900/30"
-                                texture={<PolkaDotPattern />}
-                            >
-                                <LostFoundWidget />
-                            </BentoCard>
-
-                            {/* 6. Events (Violet Theme) */}
-                            <BentoCard
-                                href="/campus/events"
-                                className="md:col-span-1 md:row-span-1 bg-violet-50/50 dark:bg-violet-900/10 border-violet-100 dark:border-violet-900/30"
-                                texture={<WavePattern />}
-                            >
-                                <EventsWidget />
-                            </BentoCard>
-
                             {/* 7. QuietSpace (Lime/Fuchsia Theme) */}
                             <ExternalToolCard
                                 href="https://quietspace-mu.vercel.app/"
@@ -442,8 +443,19 @@ const CampusPage: React.FC = () => {
                                 title={<>QUIET<br />SPACE</>}
                                 desc="Empty Rooms"
                                 accentColor="text-fuchsia-600"
-                                darkAccentColor="dark:text-lime-400"
+                                darkAccentColor="dark:text-fuchsia-400"
                                 bgColorClass="bg-fuchsia-50/50 dark:bg-fuchsia-900/10 border-fuchsia-100 dark:border-fuchsia-900/30"
+                            />
+
+                            {/* 8. Campus 101 (Teal Theme) */}
+                            <ExternalToolCard
+                                href="https://campus101-sable.vercel.app/"
+                                icon={BuildingLibraryIcon}
+                                title={<>CAMPUS<br />101</>}
+                                desc="Campus Guide"
+                                accentColor="text-teal-600"
+                                darkAccentColor="dark:text-teal-400"
+                                bgColorClass="bg-teal-50/50 dark:bg-teal-900/10 border-teal-100 dark:border-teal-900/30"
                             />
                         </>
                     )}
