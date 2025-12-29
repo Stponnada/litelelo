@@ -1313,7 +1313,13 @@ const Conversation: React.FC<ConversationProps> = ({ conversation, onBack, onCon
                 {imagePreview && (
                     <div className="mb-3">
                         <div className="relative inline-block w-32 h-32 rounded-xl overflow-hidden shadow-lg border-2 border-brand-green/30">
-                            <Image src={imagePreview} alt="Preview" className="object-cover" fill unoptimized />
+                            <Image
+                                src={imagePreview}
+                                alt="Preview"
+                                className="object-cover"
+                                fill
+                                sizes="128px"
+                            />
                             <button
                                 onClick={() => resetInput()}
                                 className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-lg transform hover:scale-110 transition-transform"

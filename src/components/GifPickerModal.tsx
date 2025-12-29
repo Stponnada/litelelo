@@ -84,7 +84,14 @@ const GifPickerModal: React.FC<GifPickerModalProps> = ({ onClose, onGifSelect })
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
               {gifs.map(gif => (
                 <button key={gif.id} onClick={() => onGifSelect(gif.images.fixed_width.url)} className="aspect-square relative transition-transform hover:scale-105 active:scale-95">
-                  <Image src={gif.images.fixed_width.url} alt="GIF" fill className="object-cover rounded-md" unoptimized />
+                  <Image
+                    src={gif.images.fixed_width.url}
+                    alt="GIF"
+                    fill
+                    sizes="(max-width: 768px) 50vw, 200px"
+                    className="object-cover rounded-md"
+                    unoptimized
+                  />
                 </button>
               ))}
             </div>

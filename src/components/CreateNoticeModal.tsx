@@ -169,7 +169,13 @@ const CreateNoticeModal: React.FC<CreateNoticeModalProps> = ({ campus, onClose, 
                                 {existingFiles.map(file => (
                                     <div key={file.file_url} className="relative group aspect-square">
                                         {file.file_type === 'image' ? (
-                                            <Image src={file.file_url} alt="Preview" fill className="object-cover rounded" unoptimized />
+                                            <Image
+                                                src={file.file_url}
+                                                alt="Preview"
+                                                fill
+                                                sizes="(max-width: 768px) 50vw, 200px"
+                                                className="object-cover rounded"
+                                            />
                                         ) : (
                                             <div className="w-full h-full bg-gray-700 text-white flex items-center justify-center rounded p-2 text-xs">PDF</div>
                                         )}
@@ -179,7 +185,13 @@ const CreateNoticeModal: React.FC<CreateNoticeModalProps> = ({ campus, onClose, 
                                 {filesToUpload.map((file, index) => (
                                     <div key={index} className="relative group aspect-square">
                                         {file.type.startsWith('image/') ? (
-                                            <Image src={URL.createObjectURL(file)} alt="Preview" fill className="object-cover rounded" unoptimized />
+                                            <Image
+                                                src={URL.createObjectURL(file)}
+                                                alt="Preview"
+                                                fill
+                                                sizes="(max-width: 768px) 50vw, 200px"
+                                                className="object-cover rounded"
+                                            />
                                         ) : (
                                             <div className="w-full h-full bg-gray-700 text-white flex items-center justify-center rounded p-2 text-xs truncate">{file.name}</div>
                                         )}

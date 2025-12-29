@@ -73,7 +73,13 @@ const ListingDetailModal: React.FC<ListingDetailModalProps> = ({ listing, onClos
                 <div className="w-full md:w-1/2 relative bg-tertiary-light dark:bg-primary rounded-t-xl md:rounded-l-xl md:rounded-tr-none flex items-center justify-center">
                     {images.length > 0 ? (
                         <>
-                            <Image src={images[currentImageIndex]} alt={`${listing.title} image ${currentImageIndex + 1}`} fill className="object-contain" unoptimized />
+                            <Image
+                                src={images[currentImageIndex]}
+                                alt={`${listing.title} image ${currentImageIndex + 1}`}
+                                fill
+                                sizes="(max-width: 768px) 100vw, 450px"
+                                className="object-contain"
+                            />
                             {images.length > 1 && (
                                 <>
                                     <button onClick={prevImage} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 text-white p-2 rounded-full hover:bg-black/60"><BackIcon /></button>
