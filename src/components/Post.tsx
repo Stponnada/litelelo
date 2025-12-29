@@ -390,6 +390,7 @@ const PostComponent: React.FC<PostComponentProps & { prioritizeUser?: boolean }>
                                                             alt={post.title || 'Blog cover'}
                                                             fill
                                                             className="object-cover transition-transform duration-500 group-hover/blog:scale-105"
+                                                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 70vw, 800px"
                                                         />
                                                     </div>
                                                 )}
@@ -431,9 +432,10 @@ const PostComponent: React.FC<PostComponentProps & { prioritizeUser?: boolean }>
                                                         <Image
                                                             src={post.image_url}
                                                             alt="Post content"
-                                                            width={500}
-                                                            height={300}
-                                                            className="w-full h-auto object-contain max-h-[400px]"
+                                                            width={800}
+                                                            height={600}
+                                                            className="w-full h-auto object-contain max-h-[500px]"
+                                                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 70vw, 800px"
                                                         />
                                                     </button>
                                                 </div>

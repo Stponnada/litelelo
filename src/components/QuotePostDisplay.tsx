@@ -52,7 +52,13 @@ const QuotePostDisplay: React.FC<{ post: QuotedPost }> = ({ post }) => {
             {post.image_url && (
                 <div className="mt-2 rounded-lg overflow-hidden border border-tertiary-light dark:border-tertiary">
                     <div className="relative w-full h-48">
-                        <Image src={post.image_url} alt="Quoted post content" fill className="object-cover" />
+                        <Image
+                            src={post.image_url}
+                            alt="Quoted post content"
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 400px"
+                        />
                     </div>
                 </div>
             )}

@@ -45,16 +45,25 @@ const FollowSuggestions: React.FC = () => {
 
   useEffect(() => {
     const fetchSuggestions = async () => {
+      if (!user?.id) return;
       setLoading(true);
       try {
-        // Proactively ensure the session is fresh before calling an authenticated RPC
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) throw sessionError;
-        if (!session) return; // Not authenticated, so no suggestions to fetch
+        const response = await fetch(`/api/suggestions/follow?userId=${user.id}`);
+        const result = await response.json();
 
-        const { data, error } = await supabase.rpc('get_follow_suggestions');
-        if (error) throw error;
-        setSuggestions(data || []);
+        if (response.ok) {
+          if (result.fromCache) {
+            console.log(`%c[Redis] Suggestions Cache HIT (v3) - count: ${result.suggestions?.length || 0}`, 'color: #00ff00; font-weight: bold;');
+          } else {
+            console.log(`%c[Supabase] Suggestions Cache MISS (v3) - count: ${result.suggestions?.length || 0}`, 'color: #ff9900; font-weight: bold;');
+          }
+          setSuggestions(result.suggestions || []);
+        } else {
+          // Fallback
+          const { data, error } = await supabase.rpc('get_follow_suggestions');
+          if (error) throw error;
+          setSuggestions(data || []);
+        }
       } catch (error) {
         console.error("Error fetching follow suggestions:", error);
       } finally {
@@ -63,7 +72,7 @@ const FollowSuggestions: React.FC = () => {
     };
 
     fetchSuggestions();
-  }, []);
+  }, [user?.id]);
 
   const handleFollow = async (userIdToFollow: string) => {
     if (!user) return;

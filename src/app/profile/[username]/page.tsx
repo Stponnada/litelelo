@@ -36,10 +36,13 @@ const Flair: React.FC<{ flair: { id: string; name: string; avatar_url: string | 
         className="group"
         title={flair.name}
     >
-        <img
-            src={flair.avatar_url || `https://ui-avatars.com/api/?name=${flair.name}`}
+        <Image
+            src={flair.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(flair.name)}`}
             alt={flair.name}
+            width={24}
+            height={24}
             className="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover transition-transform group-hover:scale-110 shadow-md border-2 border-secondary-light dark:border-secondary"
+            unoptimized
         />
     </Link>
 );
@@ -504,10 +507,13 @@ const ProfilePage: React.FC = () => {
                     {/* Banner Image */}
                     <div className="h-48 sm:h-96 bg-gradient-to-br from-tertiary-light to-tertiary-light/50 dark:from-tertiary dark:to-tertiary/50 relative rounded-b-3xl overflow-hidden shadow-lg">
                         {profile.banner_url ? (
-                            <img
+                            <Image
                                 src={profile.banner_url}
                                 alt="Banner"
-                                className="w-full h-full object-cover"
+                                fill
+                                className="object-cover"
+                                sizes="(max-width: 1280px) 100vw, 1280px"
+                                priority
                             />
                         ) : (
                             <div className="w-full h-full bg-gradient-to-br from-brand-green/20 to-blue-500/20"></div>
@@ -654,12 +660,15 @@ const ProfilePage: React.FC = () => {
                                                 <div className="flex items-center">
                                                     <div className="flex flex-wrap -space-x-2">
                                                         {mutualFriends.slice(0, 7).map(friend => (
-                                                            <img
+                                                            <Image
                                                                 key={friend.user_id}
                                                                 src={friend.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.full_name || friend.username)}&background=random&color=fff&bold=true`}
                                                                 alt={friend.username}
+                                                                width={32}
+                                                                height={32}
                                                                 className="w-8 h-8 rounded-full object-cover ring-2 ring-secondary-light dark:ring-secondary"
                                                                 title={friend.full_name || friend.username}
+                                                                unoptimized
                                                             />
                                                         ))}
                                                     </div>
@@ -688,11 +697,14 @@ const ProfilePage: React.FC = () => {
                                             <div className="grid grid-cols-4 gap-2">
                                                 {friends.slice(0, 8).map(friend => (
                                                     <Link href={`/profile/${friend.username}`} key={friend.user_id} className="group">
-                                                        <img
+                                                        <Image
                                                             src={friend.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.full_name || friend.username)}&background=random&color=fff&bold=true`}
                                                             alt={friend.username}
+                                                            width={40}
+                                                            height={40}
                                                             className="w-10 h-10 rounded-full object-cover ring-2 ring-transparent group-hover:ring-brand-green transition-all mx-auto"
                                                             title={friend.full_name || friend.username}
+                                                            unoptimized
                                                         />
                                                     </Link>
                                                 ))}
@@ -709,11 +721,14 @@ const ProfilePage: React.FC = () => {
                                             <div className="flex flex-wrap gap-2">
                                                 {communities.slice(0, 5).map(community => (
                                                     <Link href={`/communities/${community.id}`} key={community.id} className="group relative">
-                                                        <img
-                                                            src={community.avatar_url || `https://ui-avatars.com/api/?name=${community.name}&background=random&color=fff&bold=true`}
+                                                        <Image
+                                                            src={community.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(community.name)}&background=random&color=fff&bold=true`}
                                                             alt={community.name}
+                                                            width={40}
+                                                            height={40}
                                                             className="w-10 h-10 rounded-xl object-cover ring-2 ring-transparent group-hover:ring-brand-green transition-all"
                                                             title={community.name}
+                                                            unoptimized
                                                         />
                                                         {community.role === 'admin' && (
                                                             <div className="absolute -top-1 -right-1 bg-secondary-light dark:bg-secondary rounded-full p-0.5">
