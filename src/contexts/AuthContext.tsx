@@ -57,14 +57,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const fetchProfile = async (userId: string) => {
       try {
         setIsProfileLoading(true);
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', userId)
-          .single();
 
-        if (error && mounted) console.warn("Error loading profile:", error.message);
-        if (data && mounted) setProfile(data as Profile);
+        // Use our new Redis-cached API route
+        const response = await fetch(`/api/profile/by-id/${userId}`);
+        const data = await response.json();
+
+        if (response.ok) {
+          if (data.fromCache) {
+            console.log('%c[Redis] Own Profile Cache HIT', 'color: #00ff00; font-weight: bold;');
+          } else {
+            console.log('%c[Supabase] Own Profile Cache MISS', 'color: #ff9900; font-weight: bold;');
+          }
+          if (mounted) setProfile(data as Profile);
+        } else {
+          // Fallback to direct Supabase if API fails or profile not found
+          console.log('%c[Supabase] API Failed, Falling back to direct database query', 'color: #ff0000;');
+          const { data: directData, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+
+          if (error && mounted) console.warn("Error loading profile directly:", error.message);
+          if (directData && mounted) setProfile(directData as Profile);
+        }
       } catch (error) {
         console.error("Profile fetch error", error);
       } finally {

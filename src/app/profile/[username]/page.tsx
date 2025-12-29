@@ -227,17 +227,30 @@ const ProfilePage: React.FC = () => {
         if (!username) return;
         setProfileLoading(true);
         try {
-            const { data, error } = await supabase
+            // Use our new Redis-cached API route
+            const response = await fetch(`/api/profile/${username}`);
+            const data = await response.json();
+
+            if (!response.ok) throw new Error(data.error || "Profile not found");
+
+            if (data.fromCache) {
+                console.log(`%c[Redis] Cache HIT for @${username}`, 'color: #00ff00; font-weight: bold;');
+            } else {
+                console.log(`%c[Supabase] Cache MISS for @${username}`, 'color: #ff9900; font-weight: bold;');
+            }
+
+            setProfile(data);
+        } catch (err: unknown) {
+            console.error("Error fetching profile data via API, falling back to Supabase:", err);
+            // Fallback to direct Supabase call if API fails
+            const { data: directData, error: directError } = await supabase
                 .rpc('get_profile_details', {
                     profile_username: username,
                 })
                 .single<ProfileRpcResult>();
 
-            if (error || !data) throw error || new Error("Profile not found");
-            setProfile(data);
-        } catch (err: unknown) {
-            console.error("Error fetching profile data:", err);
-            setProfile(null);
+            if (directError || !directData) throw directError || new Error("Profile not found");
+            setProfile(directData);
         } finally {
             setProfileLoading(false);
         }
@@ -1082,6 +1095,18 @@ const EditProfileModal: React.FC<{
                     throw new Error('That username is already taken. Please choose another.');
                 }
                 throw updateError;
+            }
+
+            // Invalidate Redis cache for both old and new username (if changed) and by ID
+            try {
+                await fetch(`/api/profile/${userProfile.username}`, { method: 'POST' });
+                await fetch(`/api/profile/by-id/${user.id}`, { method: 'POST' });
+
+                if (profileData.username !== userProfile.username) {
+                    await fetch(`/api/profile/${profileData.username}`, { method: 'POST' });
+                }
+            } catch (cacheErr) {
+                console.warn("Failed to invalidate cache, it will expire naturally:", cacheErr);
             }
 
             updateProfileContext(updatedProfile);
