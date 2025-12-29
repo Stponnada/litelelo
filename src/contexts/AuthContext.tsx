@@ -1,7 +1,7 @@
 'use client';
 // src/contexts/AuthContext.tsx
 
-import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
+import React, { createContext, useState, useEffect, useContext, useCallback, useRef } from 'react';
 import { supabase } from '../services/supabase';
 import type { Session, User } from '@supabase/supabase-js';
 import { Profile } from '../types';
@@ -24,6 +24,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const loadingRef = useRef(true);
 
   const updateProfileContext = (newProfile: Profile | null) => {
     setProfile(newProfile);
@@ -70,21 +71,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }
           if (mounted) setProfile(data as Profile);
         } else {
-          // Fallback to direct Supabase if API fails or profile not found
-          console.log('%c[Supabase] API Failed, Falling back to direct database query', 'color: #ff0000;');
+          // Fallback to direct Supabase immediately if API fails
           const { data: directData, error } = await supabase
             .from('profiles')
             .select('*')
             .eq('user_id', userId)
             .single();
 
-          if (error && mounted) console.warn("Error loading profile directly:", error.message);
           if (directData && mounted) setProfile(directData as Profile);
         }
       } catch (error) {
         console.error("Profile fetch error", error);
       } finally {
-        if (mounted) setIsProfileLoading(false);
+        if (mounted) {
+          setIsProfileLoading(false);
+          setIsLoading(false); // Ensure main loader stops too
+          loadingRef.current = false;
+        }
       }
     };
 
@@ -99,8 +102,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         // 2. Stop the spinner IMMEDIATELY after we know if we have a user or not.
-        // We do NOT await the profile here. We let it load in the background.
-        if (mounted) setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+          loadingRef.current = false;
+        }
 
         // 3. Fetch Profile in background if user exists
         if (initialSession?.user) {
@@ -111,19 +116,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       } catch (error) {
         console.error("Auth initialization failed:", error);
-        if (mounted) setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+          loadingRef.current = false;
+        }
       }
     };
 
     initializeAuth();
 
     // 4. Safety Valve: Force loading to stop after 2 seconds max
-    // This prevents the "infinite spinner" if Supabase hangs or network is weird.
     const safetyTimeout = setTimeout(() => {
-      if (mounted && isLoading) {
+      if (mounted && loadingRef.current) {
         console.warn("Forcing loading completion via safety timeout");
         setIsLoading(false);
         setIsProfileLoading(false);
+        loadingRef.current = false;
       }
     }, 2000);
 

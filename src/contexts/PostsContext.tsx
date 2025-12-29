@@ -1,7 +1,7 @@
 'use client';
 // src/contexts/PostsContext.tsx
 
-import React, { createContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../services/supabase';
 import { Post as PostType, CampusEvent, MarketplaceListing, LostAndFoundItem } from '../types';
 import { useAuth } from './AuthContext';
@@ -43,19 +43,26 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [error, setError] = useState<string | null>(null);
   const [feedType, setFeedType] = useState<FeedType>('foryou');
   const [isFetching, setIsFetching] = useState(false);
+  const fetchingRef = useRef(false);
   const POSTS_PER_PAGE = 10;
 
   const fetchPosts = useCallback(async (loadMore = false) => {
-    if (!user?.id || isFetching) return;
+    if (!user?.id || fetchingRef.current) return;
 
+    const currentFeedState = feedData[feedType];
+
+    // If we're already at the end, don't fetch more
+    if (loadMore && !currentFeedState.hasMore) return;
+
+    const currentPage = loadMore ? currentFeedState.page + 1 : 0;
+
+    // Prevent double-fetching the same page
+    fetchingRef.current = true;
     setIsFetching(true);
-    if (!loadMore && feedData[feedType].page === -1) {
+    if (!loadMore && currentFeedState.page === -1) {
       setLoading(true);
     }
     setError(null);
-
-    const currentFeedState = feedData[feedType];
-    const currentPage = loadMore ? currentFeedState.page + 1 : 0;
 
     try {
       // Proactively ensure the session is fresh for authenticated feeds
@@ -70,32 +77,41 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
       }
 
-      let rpcToCall: string;
-      let query;
+      let finalPosts: any[] = [];
+      let isCached = false;
 
       switch (feedType) {
         case 'following':
-          rpcToCall = 'get_feed_posts';
-          query = supabase.rpc(rpcToCall);
+          const { data: followData, error: followError } = await supabase.rpc('get_feed_posts')
+            .range(currentPage * POSTS_PER_PAGE, (currentPage + 1) * POSTS_PER_PAGE - 1);
+          if (followError) throw followError;
+          finalPosts = followData || [];
           break;
         case 'campus':
-          rpcToCall = 'get_campus_feed';
           if (!profile?.campus) throw new Error("Campus not defined for user.");
-          query = supabase.rpc(rpcToCall, { p_campus: profile.campus });
+          const { data: campusData, error: campusError } = await supabase.rpc('get_campus_feed', { p_campus: profile.campus })
+            .range(currentPage * POSTS_PER_PAGE, (currentPage + 1) * POSTS_PER_PAGE - 1);
+          if (campusError) throw campusError;
+          finalPosts = campusData || [];
           break;
         case 'foryou':
         default:
-          rpcToCall = 'get_public_feed_posts';
-          query = supabase.rpc(rpcToCall);
+          // Use our new Redis-cached API for the public feed
+          const response = await fetch(`/api/feed/public?page=${currentPage}`);
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error || "Failed to fetch feed");
+          finalPosts = result.posts || [];
+          isCached = result.fromCache;
+
+          if (isCached) {
+            console.log(`%c[Redis] Feed Cache HIT (Page ${currentPage})`, 'color: #00ff00; font-weight: bold;');
+          } else {
+            console.log(`%c[Supabase] Feed Cache MISS (Page ${currentPage})`, 'color: #ff9900; font-weight: bold;');
+          }
           break;
       }
 
-      const { data, error: fetchError } = await query
-        .range(currentPage * POSTS_PER_PAGE, (currentPage + 1) * POSTS_PER_PAGE - 1);
-
-      if (fetchError) throw fetchError;
-
-      const formattedPosts = (data || []).map((item: Record<string, unknown>) => {
+      const formattedPosts = finalPosts.map((item: Record<string, unknown>) => {
         if ('item_type' in item && 'item_data' in item && item.item_data && typeof item.item_data === 'object' && 'id' in item.item_data) {
           return { ...item, id: (item.item_data as { id: string }).id };
         } else {
@@ -131,14 +147,16 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } finally {
       setLoading(false);
       setIsFetching(false);
+      fetchingRef.current = false;
     }
-  }, [user?.id, isFetching, profile?.campus, feedType, feedData]);
+  }, [user?.id, profile?.campus, feedType, feedData]);
 
   useEffect(() => {
-    if (user?.id && feedData[feedType].page === -1) {
+    // Only trigger if we have a user and haven't fetched this feed yet
+    if (user?.id && feedData[feedType].page === -1 && !isFetching) {
       fetchPosts(false);
     }
-  }, [feedType, user?.id, feedData, fetchPosts]);
+  }, [feedType, user?.id]); // Removed feedData and fetchPosts from deps to prevent loops
 
   // --- THIS IS THE FIX ---
   // Instead of optimistically adding the post, we now force a clean refetch of the current feed.

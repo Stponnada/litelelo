@@ -10,7 +10,11 @@ export const redis = (redisUrl && redisToken)
         url: redisUrl,
         token: redisToken,
     })
-    : null
+    : null;
+
+if (!redis) {
+    console.warn("⚠️ [Redis] Client is disabled. UPSTASH_REDIS_REST_URL or TOKEN is missing in env.");
+}
 
 /**
  * Utility to check if redis is enabled and working
