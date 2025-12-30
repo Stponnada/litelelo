@@ -89,33 +89,35 @@ const PollComponent: React.FC<PollProps> = ({ poll, postId }) => {
                     <div key={option.id}>
                         <div
                             onClick={(e) => { e.stopPropagation(); handleVote(option.id); }}
-                            className={`w-full p-3 rounded-lg border-2 transition-all duration-200 relative overflow-hidden ${isVotedByUser
+                            className={`w-full p-3 rounded-lg border-2 transition-all duration-200 relative overflow-hidden group/poll ${isVotedByUser
                                 ? 'border-brand-green bg-brand-green/10'
                                 : 'border-tertiary-light dark:border-tertiary bg-tertiary-light/50 dark:bg-tertiary/50 hover:border-brand-green/50'
                                 }`}
                         >
                             <div
-                                className="absolute top-0 left-0 h-full bg-brand-green/20"
+                                className="absolute inset-y-0 left-0 bg-brand-green/20"
                                 style={{ width: `${percentage}%`, transition: 'width 0.5s ease-in-out' }}
                             />
                             <div className="relative z-10 flex justify-between items-center text-sm font-semibold">
-                                <span className={`flex items-center gap-2 ${isVotedByUser ? 'text-text-main-light dark:text-text-main' : 'text-text-secondary-light dark:text-text-secondary'}`}>
-                                    {option.option_text}
+                                <div className={`flex items-center gap-2 min-w-0 ${isVotedByUser ? 'text-text-main-light dark:text-text-main' : 'text-text-secondary-light dark:text-text-secondary'}`}>
+                                    <span className="truncate">{option.option_text}</span>
                                     {isVotedByUser && (
-                                        <svg className="w-4 h-4 text-brand-green" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                        </svg>
+                                        <div className="flex-shrink-0">
+                                            <svg className="w-4 h-4 text-brand-green animate-in zoom-in duration-300" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                            </svg>
+                                        </div>
                                     )}
-                                </span>
-                                <div className="flex items-center gap-3">
-                                    <span className={isVotedByUser ? 'text-text-main-light dark:text-text-main' : 'text-text-secondary-light dark:text-text-secondary'}>
+                                </div>
+                                <div className="flex items-center gap-3 ml-4 flex-shrink-0">
+                                    <span className={isVotedByUser ? 'text-brand-green font-bold text-base' : 'text-text-secondary-light dark:text-text-secondary'}>
                                         {percentage.toFixed(0)}%
                                     </span>
                                     <button
                                         onClick={(e) => { e.stopPropagation(); handleToggleVoters(option.id); }}
                                         className="text-xs text-text-tertiary-light dark:text-text-tertiary hover:underline"
                                     >
-                                        ({option.vote_count} vote{option.vote_count !== 1 ? 's' : ''})
+                                        ({option.vote_count})
                                     </button>
                                 </div>
                             </div>

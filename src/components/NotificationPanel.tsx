@@ -54,8 +54,20 @@ const NotificationItem: React.FC<{ notification: NotificationType, onClose: () =
             text = 'claimed your Bits-coin request.';
             link = `/campus/bits-coin`;
             break;
+        case 'new_post':
+            text = 'shared a new post.';
+            link = `/post/${notification.entity_id}`;
+            break;
+        case 'repost':
+            text = 'reposted your post.';
+            link = `/post/${notification.entity_id}`;
+            break;
         default:
-            text = 'sent you a notification.';
+            text = `sent you a ${notification.type} notification.`;
+            if (notification.entity_type === 'post') link = `/post/${notification.entity_id}`;
+            else if (notification.entity_type === 'user') link = `/profile/${notification.actor.username}`;
+            else if (notification.entity_type === 'community') link = `/communities/${notification.entity_id}`;
+            else link = '/';
     }
 
     const handleClick = (e: React.MouseEvent) => {

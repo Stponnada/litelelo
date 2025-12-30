@@ -4,7 +4,8 @@
 import React, { createContext, useState, useEffect, useCallback, useContext } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
-import { Notification as NotificationType } from '../types';
+import { Notification as NotificationType, NotificationType as NotificationTypeEnum } from '../types';
+import { useRouter } from 'next/navigation';
 
 interface NotificationContextType {
     notifications: NotificationType[];
@@ -15,13 +16,72 @@ interface NotificationContextType {
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
+const getNotificationDetails = (notification: NotificationType) => {
+    let text = '';
+    let link = '/';
+
+    switch (notification.type) {
+        case 'like':
+            text = 'liked your post.';
+            link = `/post/${notification.entity_id}`;
+            break;
+        case 'comment':
+            text = 'commented on your post.';
+            link = `/post/${notification.entity_id}`;
+            break;
+        case 'follow':
+            text = 'started following you.';
+            link = `/profile/${notification.actor.username}`;
+            break;
+        case 'mention':
+            text = 'mentioned you in a post.';
+            link = `/post/${notification.entity_id}`;
+            break;
+        case 'community_join_request':
+            text = 'requested to join a community you manage.';
+            link = `/communities/${notification.entity_id}/members`;
+            break;
+        case 'community_added':
+            text = 'added you to a community.';
+            link = `/communities/${notification.entity_id}`;
+            break;
+        case 'friend_request':
+            text = 'sent you a friend request.';
+            link = `/profile/${notification.actor.username}`;
+            break;
+        case 'new_message':
+            text = 'sent you a message.';
+            link = `/chat`;
+            break;
+        case 'bits_coin_claim':
+            text = 'claimed your Bits-coin request.';
+            link = `/campus/bits-coin`;
+            break;
+        case 'new_post':
+            text = 'shared a new post.';
+            link = `/post/${notification.entity_id}`;
+            break;
+        case 'repost':
+            text = 'reposted your post.';
+            link = `/post/${notification.entity_id}`;
+            break;
+        default:
+            text = `sent you a ${notification.type} notification.`;
+            if (notification.entity_type === 'post') link = `/post/${notification.entity_id}`;
+            else if (notification.entity_type === 'user') link = `/profile/${notification.actor.username}`;
+            else if (notification.entity_type === 'community') link = `/communities/${notification.entity_id}`;
+            else link = '/';
+    }
+    return { text, link };
+};
+
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { user } = useAuth();
+    const router = useRouter();
     const [notifications, setNotifications] = useState<NotificationType[]>([]);
     const [loading, setLoading] = useState(true);
 
     const fetchNotifications = useCallback(async () => {
-        // --- THIS IS THE FIX: The hook now depends on the stable user ID ---
         if (!user?.id) return;
         setLoading(true);
         try {
@@ -33,21 +93,29 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         } finally {
             setLoading(false);
         }
-    }, [user?.id]); // --- THE FIX IS HERE ---
+    }, [user?.id]);
 
     useEffect(() => {
         fetchNotifications();
     }, [fetchNotifications]);
 
-            useEffect(() => {
-                if (!user) return;
+    // Request notification permission
+    useEffect(() => {
+        if (typeof window !== 'undefined' && 'Notification' in window) {
+            if (Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+        }
+    }, []);
 
-                // --- THE FIX: Use a unique, abstract channel name ---
-                const channel = supabase
-                .channel('notifications-channel')
-                .on(
-                    'postgres_changes',
-                    {
+    useEffect(() => {
+        if (!user) return;
+
+        const channel = supabase
+            .channel('notifications-channel')
+            .on(
+                'postgres_changes',
+                {
                     event: 'INSERT',
                     schema: 'public',
                     table: 'notifications',
@@ -68,8 +136,25 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
                             avatar_url: actorProfile.avatar_url,
                         }
                     } as NotificationType;
-                    
+
                     setNotifications(prev => [newNotification, ...prev]);
+
+                    // SHOW BROWSER NOTIFICATION
+                    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+                        const { text, link } = getNotificationDetails(newNotification);
+                        const n = new Notification('litelelo.', {
+                            body: `${newNotification.actor.full_name || newNotification.actor.username} ${text}`,
+                            icon: newNotification.actor.avatar_url || '/icon.png',
+                            tag: newNotification.id, // Prevent duplicate notifications
+                        });
+
+                        n.onclick = (e) => {
+                            e.preventDefault();
+                            window.focus();
+                            router.push(link);
+                            n.close();
+                        };
+                    }
                 }
             )
             .subscribe();
@@ -77,12 +162,12 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [user]);
+    }, [user, router]);
 
     const markAsRead = useCallback(async (notificationIds: string[]) => {
         if (notificationIds.length === 0) return;
-        
-        setNotifications(prev => 
+
+        setNotifications(prev =>
             prev.map(n => notificationIds.includes(n.id) ? { ...n, is_read: true } : n)
         );
 
