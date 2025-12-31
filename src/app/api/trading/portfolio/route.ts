@@ -18,24 +18,25 @@ export async function GET(request: NextRequest) {
         }
 
         const db = await getMongoDb();
+        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+        // Get current Supabase balance (Source of Truth for Cash)
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('bits_coin_balance')
+            .eq('user_id', userId)
+            .single();
+
+        const currentRefBalance = profile?.bits_coin_balance ?? 1000;
 
         // Get or create portfolio
         let portfolioData: WithId<Document> | null = await db.collection(COLLECTIONS.PORTFOLIOS).findOne({ user_id: userId });
 
         if (!portfolioData) {
             // Create initial portfolio - sync with Supabase bits_coin_balance
-            const supabase = createClient(supabaseUrl, supabaseServiceKey);
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('bits_coin_balance')
-                .eq('user_id', userId)
-                .single();
-
-            const initialBalance = profile?.bits_coin_balance || 1000;
-
             const newPortfolio = {
                 user_id: userId,
-                cash_balance: initialBalance,
+                cash_balance: currentRefBalance,
                 total_invested: 0,
                 total_current_value: 0,
                 total_gain_loss: 0,
@@ -47,6 +48,21 @@ export async function GET(request: NextRequest) {
 
             const result = await db.collection(COLLECTIONS.PORTFOLIOS).insertOne(newPortfolio);
             portfolioData = { ...newPortfolio, _id: result.insertedId };
+        } else {
+            // Sync cash balance if it differs from Supabase (allowing for small float differences)
+            if (Math.abs((portfolioData.cash_balance || 0) - currentRefBalance) > 0.01) {
+                await db.collection(COLLECTIONS.PORTFOLIOS).updateOne(
+                    { _id: portfolioData._id },
+                    {
+                        $set: {
+                            cash_balance: currentRefBalance,
+                            updated_at: new Date()
+                        }
+                    }
+                );
+                // Update local object to return correct data immediately
+                portfolioData.cash_balance = currentRefBalance;
+            }
         }
 
         // Get holdings
