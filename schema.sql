@@ -4441,7 +4441,7 @@ CREATE TABLE IF NOT EXISTS "public"."profiles" (
     "total_seller_ratings" integer DEFAULT 0,
     "avg_bits_coin_rating" numeric(2,1) DEFAULT 0.0,
     "total_bits_coin_ratings" integer DEFAULT 0,
-    "bits_coin_balance" numeric DEFAULT 100.00,
+    "bits_coin_balance" numeric DEFAULT 1000.00,
     "displayed_community_flair" "uuid",
     "avatar_file_id" "text",
     "banner_file_id" "text",

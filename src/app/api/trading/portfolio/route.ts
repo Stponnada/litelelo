@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
                 .eq('user_id', userId)
                 .single();
 
-            const initialBalance = profile?.bits_coin_balance || 200;
+            const initialBalance = profile?.bits_coin_balance || 1000;
 
             const newPortfolio = {
                 user_id: userId,
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
             .eq('user_id', userId)
             .single();
 
-        const currentBalance = profile?.bits_coin_balance || 200;
+        const currentBalance = profile?.bits_coin_balance || 1000;
 
         // Check if portfolio exists
         const existingPortfolio = await db.collection(COLLECTIONS.PORTFOLIOS).findOne({ user_id: userId });
