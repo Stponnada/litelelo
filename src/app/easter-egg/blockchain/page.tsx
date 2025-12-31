@@ -243,6 +243,22 @@ const BlockchainPage: React.FC = () => {
                             </div>
                         </TiltCard>
 
+                        {/* Paper Trading Link */}
+                        <a href="/easter-egg/trading" className="block bg-gradient-to-r from-blue-500/10 to-purple-500/10 backdrop-blur-xl rounded-2xl border border-blue-500/20 p-5 hover:border-blue-500/40 transition-all group">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 bg-blue-500/20 rounded-xl">
+                                        <Activity className="w-5 h-5 text-blue-400" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-white group-hover:text-blue-400 transition-colors">Paper Trading</h3>
+                                        <p className="text-xs text-neutral-400">Invest in S&P 500 stocks</p>
+                                    </div>
+                                </div>
+                                <ArrowRight className="w-5 h-5 text-neutral-600 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" />
+                            </div>
+                        </a>
+
                         {/* Send Coins Form */}
                         <div className="bg-neutral-900/50 backdrop-blur-xl rounded-3xl border border-neutral-800 p-1 overflow-hidden">
                             <SendCoins senderId={profile?.user_id} onSend={fetchChainData} currentBalance={balance} />

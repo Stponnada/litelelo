@@ -47,6 +47,7 @@ export default async function sitemap() {
         "campus/communities",
         "directory",
         "easter-egg/blockchain",
+        "easter-egg/trading",
         "help",
         "login",
         "no-internet",
