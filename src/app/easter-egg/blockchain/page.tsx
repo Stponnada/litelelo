@@ -10,7 +10,7 @@ import Transaction, { TransactionProps } from '@/components/Transaction';
 import BlockchainVisualizer from '@/components/BlockchainVisualizer';
 import MiningPuzzle from '@/components/MiningPuzzle';
 import { motion, useMotionValue, useTransform, useSpring, AnimatePresence } from 'framer-motion';
-import { Wallet, Send, Cpu, List, Database, ArrowRight, Activity, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Wallet, Send, Cpu, List, Database, ArrowRight, Activity, ShieldCheck, AlertCircle, TrendingUp } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
