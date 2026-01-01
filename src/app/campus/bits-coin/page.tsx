@@ -227,58 +227,58 @@ const BitsCoinPage: React.FC = () => {
                 </AnimatePresence>
 
                 {/* Header Section */}
-                <header className="mb-16 flex flex-col md:flex-row md:items-end justify-between gap-8">
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="h-px w-8 bg-brand-green" />
-                            <span className="text-brand-green font-mono text-xs tracking-widest uppercase">Can you collect my package from CP?</span>
+                <header className="mb-12 flex flex-col lg:flex-row lg:items-end justify-between gap-10">
+                    <div className="space-y-6 text-center lg:text-left">
+                        <div className="flex items-center gap-3 justify-center lg:justify-start">
+                            <div className="h-px w-8 bg-brand-green hidden sm:block" />
+                            <span className="text-brand-green font-mono text-[10px] sm:text-xs tracking-[0.2em] uppercase">Can you collect my package from CP?</span>
                         </div>
-                        <h1 className="text-5xl md:text-7xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-neutral-900 via-neutral-600 to-neutral-900 dark:from-white dark:via-neutral-400 dark:to-neutral-600">
+                        <h1 className="text-6xl sm:text-7xl lg:text-8xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-neutral-900 via-neutral-600 to-neutral-900 dark:from-white dark:via-neutral-400 dark:to-neutral-600 leading-[0.8]">
                             <DecryptedText text="HelpOut" onClick={handleTitleClick} />
                         </h1>
-                        <p className="text-neutral-500 dark:text-neutral-400 max-w-md text-lg leading-relaxed">
-                            Earn rewards by solving problems on campus. <br />
+                        <p className="text-neutral-500 dark:text-neutral-400 max-w-lg text-base sm:text-lg leading-relaxed mx-auto lg:mx-0">
+                            Earn rewards by solving problems on campus. <br className="hidden sm:block" />
                             <span className="text-brand-green font-semibold">Peer-to-peer assistance.</span>
                         </p>
                     </div>
 
-                    <div className="flex flex-col items-end gap-6">
-                        <div className="flex gap-4">
+                    <div className="flex flex-col sm:flex-row lg:flex-col items-center lg:items-end gap-6 sm:gap-4 lg:gap-6 mt-4 lg:mt-0">
+                        <div className="flex gap-4 w-full sm:w-auto justify-center lg:justify-end">
                             <StatBadge label="Open" count={requests.filter(r => r.status === 'open').length} color="blue" />
                             <StatBadge label="Active" count={requests.filter(r => r.status === 'claimed').length} color="yellow" />
                         </div>
 
                         <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
+                            whileHover={{ scale: 1.02, y: -2 }}
+                            whileTap={{ scale: 0.98 }}
                             onClick={() => setCreateModalOpen(true)}
-                            className="relative group overflow-hidden bg-neutral-900 dark:bg-white text-white dark:text-black px-8 py-4 rounded-full font-bold text-lg shadow-2xl shadow-brand-green/20"
+                            className="w-full sm:w-auto relative group overflow-hidden bg-neutral-900 dark:bg-white text-white dark:text-black px-10 py-5 rounded-3xl font-bold text-lg shadow-2xl shadow-brand-green/20"
                         >
-                            <span className="relative z-10 flex items-center gap-2">
-                                <span className="text-xl">+</span> Create Request
+                            <span className="relative z-10 flex items-center justify-center gap-3">
+                                <span className="text-2xl font-light">+</span> Create Request
                             </span>
-                            <div className="absolute inset-0 bg-brand-green/80 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+                            <div className="absolute inset-0 bg-brand-green/90 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
                         </motion.button>
                     </div>
                 </header>
 
                 {/* Filter Bar */}
-                <div className="sticky top-4 z-30 mb-10 p-2 rounded-2xl bg-white/70 dark:bg-neutral-900/70 backdrop-blur-xl border border-neutral-200 dark:border-neutral-800 shadow-sm w-fit mx-auto md:mx-0 overflow-x-auto max-w-full">
-                    <div className="flex gap-1 min-w-max">
+                <div className="sticky top-4 z-30 mb-12 p-1.5 rounded-2xl bg-white/70 dark:bg-neutral-900/70 backdrop-blur-2xl border border-neutral-200 dark:border-neutral-800 shadow-xl w-fit mx-auto overflow-hidden">
+                    <div className="flex gap-1 overflow-x-auto no-scrollbar max-w-[calc(100vw-3rem)]">
                         {allCategories.map((cat) => (
                             <button
                                 key={cat}
                                 onClick={() => setSelectedCategory(cat)}
                                 className={cn(
-                                    "relative px-4 py-2 rounded-xl text-sm font-medium transition-colors z-10",
-                                    selectedCategory === cat ? "text-white" : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
+                                    "relative px-6 py-2.5 rounded-xl text-sm font-bold transition-all z-10 whitespace-nowrap",
+                                    selectedCategory === cat ? "text-white" : "text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-white"
                                 )}
                             >
                                 {selectedCategory === cat && (
                                     <motion.div
                                         layoutId="activeCategory"
-                                        className="absolute inset-0 bg-neutral-900 dark:bg-brand-green rounded-xl -z-10"
-                                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                        className="absolute inset-0 bg-neutral-900 dark:bg-brand-green rounded-xl -z-10 shadow-lg shadow-brand-green/20"
+                                        transition={{ type: "spring", stiffness: 400, damping: 35 }}
                                     />
                                 )}
                                 {cat}
@@ -308,13 +308,13 @@ const BitsCoinPage: React.FC = () => {
 
 const StatBadge = ({ label, count, color }: { label: string, count: number, color: 'blue' | 'yellow' }) => {
     const colorStyles = {
-        blue: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-        yellow: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+        blue: "bg-blue-500/10 text-blue-500 border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.05)]",
+        yellow: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20 shadow-[0_0_20px_rgba(234,179,8,0.05)]"
     };
     return (
-        <div className={cn("flex flex-col items-center px-4 py-2 rounded-2xl border backdrop-blur-sm", colorStyles[color])}>
-            <span className="text-2xl font-bold leading-none">{count}</span>
-            <span className="text-[10px] uppercase font-bold tracking-wider opacity-80">{label}</span>
+        <div className={cn("flex flex-col items-center justify-center px-6 py-4 rounded-[2rem] border backdrop-blur-md min-w-[100px] transition-all hover:scale-105", colorStyles[color])}>
+            <span className="text-3xl font-black leading-none mb-1">{count}</span>
+            <span className="text-[10px] uppercase font-black tracking-[0.2em] opacity-80">{label}</span>
         </div>
     );
 };
@@ -331,13 +331,13 @@ const RequestCard = ({ request, onClick, index }: { request: BitsCoinRequest, on
             className="h-full"
         >
             <SpotlightCard onClick={onClick} className="h-full flex flex-col p-6 cursor-pointer shadow-lg hover:shadow-2xl dark:shadow-neutral-950/50 transition-shadow">
-                <div className="flex justify-between items-start mb-4">
-                    <span className="px-3 py-1 text-xs font-bold rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700">
+                <div className="flex justify-between items-start gap-4 mb-4">
+                    <span className="px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-500 border border-neutral-200 dark:border-neutral-700">
                         {request.category}
                     </span>
-                    <div className="flex items-center gap-1 text-brand-green font-bold text-lg">
+                    <div className="flex items-center gap-1.5 text-brand-green font-black text-xl">
                         <CurrencyRupeeIcon className="w-5 h-5" />
-                        <span>{request.reward}</span>
+                        <span className="font-mono">{request.reward}</span>
                     </div>
                 </div>
 
