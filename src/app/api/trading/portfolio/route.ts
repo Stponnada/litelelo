@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Get or create portfolio
-        let portfolioData: WithId<Document> | null = await db.collection(COLLECTIONS.PORTFOLIOS).findOne({ user_id: userId });
+        let portfolioData: any = await db.collection(COLLECTIONS.PORTFOLIOS).findOne({ user_id: userId });
 
         if (!portfolioData) {
             console.log('Portfolio API: Creating new portfolio');

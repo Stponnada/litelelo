@@ -88,6 +88,7 @@ interface Portfolio {
     total_invested: number;
     total_taxes_paid: number;
     total_gain_loss: number;
+    total_net_worth?: number;
 }
 
 // Decrypted Text Effect
@@ -380,7 +381,7 @@ const PaperTradingPage: React.FC = () => {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedStock, setSelectedStock] = useState<StockInfo | null>(null);
-    const [activeTab, setActiveTab] = useState<'market' | 'portfolio' | 'history'>('market');
+    const [activeTab, setActiveTab] = useState<'market' | 'portfolio' | 'history' | 'leaderboard'>('market');
     const [sectorFilter, setSectorFilter] = useState('All');
     const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(false);
     const [portfolioError, setPortfolioError] = useState('');
@@ -643,7 +644,7 @@ const PaperTradingPage: React.FC = () => {
                         ].map(tab => (
                             <button
                                 key={tab.id}
-                                onClick={() => setActiveTab(tab.id as 'market' | 'portfolio' | 'history')}
+                                onClick={() => setActiveTab(tab.id as 'market' | 'portfolio' | 'history' | 'leaderboard')}
                                 className={cn(
                                     "flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all",
                                     activeTab === tab.id
