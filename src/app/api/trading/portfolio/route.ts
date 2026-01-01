@@ -9,30 +9,55 @@ import { Document, WithId } from 'mongodb';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
+export const dynamic = 'force-dynamic';
+
 // GET - Fetch user's portfolio
 export async function GET(request: NextRequest) {
     try {
         const userId = request.headers.get('x-user-id');
         if (!userId) {
+            console.error('Portfolio API: No User ID provided');
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        console.log(`Portfolio API: Fetching for ${userId}`);
+
         const db = await getMongoDb();
+        if (!db) {
+            console.error('Portfolio API: MongoDB connection failed - Check MONGODB_URI and connection string');
+            throw new Error('Database connection failed');
+        }
+
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
         // Get current Supabase balance (Source of Truth for Cash)
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('bits_coin_balance')
-            .eq('user_id', userId)
-            .single();
+        let currentRefBalance = 1000;
+        try {
+            const { data: profile, error } = await supabase
+                .from('profiles')
+                .select('bits_coin_balance')
+                .eq('user_id', userId)
+                .single();
 
-        const currentRefBalance = profile?.bits_coin_balance ?? 1000;
+            if (error) {
+                console.warn('Supabase Profile Fetch Error:', error.message);
+                console.error(`Portfolio API: Failed to fetch profile for ${userId} from Supabase:`, error);
+            } else if (profile) {
+                currentRefBalance = profile.bits_coin_balance ?? 1000;
+            } else {
+                console.warn(`Portfolio API: No profile found for ${userId} in Supabase`);
+            }
+        } catch (sbError) {
+            console.error('Supabase Client Error:', sbError);
+        }
+
+        console.log(`Portfolio API: Ref Balance for ${userId}: ${currentRefBalance}`);
 
         // Get or create portfolio
         let portfolioData: WithId<Document> | null = await db.collection(COLLECTIONS.PORTFOLIOS).findOne({ user_id: userId });
 
         if (!portfolioData) {
+            console.log('Portfolio API: Creating new portfolio');
             // Create initial portfolio - sync with Supabase bits_coin_balance
             const newPortfolio = {
                 user_id: userId,
@@ -49,10 +74,15 @@ export async function GET(request: NextRequest) {
             const result = await db.collection(COLLECTIONS.PORTFOLIOS).insertOne(newPortfolio);
             portfolioData = { ...newPortfolio, _id: result.insertedId };
         } else {
+            console.log('Portfolio API: Syncing existing portfolio');
             // Sync cash balance if it differs from Supabase (allowing for small float differences)
-            if (Math.abs((portfolioData.cash_balance || 0) - currentRefBalance) > 0.01) {
+            // Ensure we handle the case where cash_balance might be undefined or string
+            const currentPortfolioCash = typeof portfolioData.cash_balance === 'number' ? portfolioData.cash_balance : parseFloat(portfolioData.cash_balance || '0');
+
+            if (Math.abs(currentPortfolioCash - currentRefBalance) > 0.01) {
+                console.log(`Portfolio API: Updating balance from ${currentPortfolioCash} to ${currentRefBalance}`);
                 await db.collection(COLLECTIONS.PORTFOLIOS).updateOne(
-                    { _id: portfolioData._id },
+                    { user_id: userId }, // Use user_id as filter, it's safer and unique
                     {
                         $set: {
                             cash_balance: currentRefBalance,
@@ -83,9 +113,9 @@ export async function GET(request: NextRequest) {
             transactions,
         });
 
-    } catch (error) {
-        console.error('Portfolio fetch error:', error);
-        return NextResponse.json({ error: 'Failed to fetch portfolio' }, { status: 500 });
+    } catch (error: any) {
+        console.error('Portfolio fetch CRITICAL error:', error);
+        return NextResponse.json({ error: 'Failed to fetch portfolio', details: error.message }, { status: 500 });
     }
 }
 

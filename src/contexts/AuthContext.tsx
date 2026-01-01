@@ -161,7 +161,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []); // Dependencies reduced to avoid loops
 
-  const value = {
+  const value = React.useMemo(() => ({
     session,
     user,
     profile,
@@ -169,7 +169,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     updateProfileContext,
     refreshSession,
     isProfileLoading
-  };
+  }), [session, user, profile, isLoading, isProfileLoading, refreshSession]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

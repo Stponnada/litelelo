@@ -16,13 +16,17 @@ export async function connectToMongoDB(): Promise<Db> {
     }
 
     try {
-        client = new MongoClient(MONGODB_URI);
+        console.log('Portfolio API: Attempting to connect to MongoDB...');
+        client = new MongoClient(MONGODB_URI, {
+            connectTimeoutMS: 5000,
+            serverSelectionTimeoutMS: 5000,
+        });
         await client.connect();
         db = client.db(DB_NAME);
-        console.log('Connected to MongoDB');
+        console.log('Portfolio API: Connected to MongoDB successfully');
         return db;
     } catch (error) {
-        console.error('MongoDB connection error:', error);
+        console.error('Portfolio API: MongoDB connection error:', error);
         throw error;
     }
 }

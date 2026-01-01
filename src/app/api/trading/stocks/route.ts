@@ -13,37 +13,51 @@ export async function GET(request: NextRequest) {
         const symbol = searchParams.get('symbol');
         const all = searchParams.get('all');
 
-        const db = await getMongoDb();
+        let db = null;
+        try {
+            db = await getMongoDb();
+        } catch (mongoErr) {
+            console.error('Stock API: MongoDB connection failed, falling back to direct API fetch:', mongoErr);
+        }
 
         if (symbol) {
             // Fetch single stock quote
-            const cached = await db.collection(COLLECTIONS.STOCK_CACHE).findOne({
-                symbol,
-                expires_at: { $gt: new Date() }
-            });
+            if (db) {
+                const cached = await db.collection(COLLECTIONS.STOCK_CACHE).findOne({
+                    symbol,
+                    expires_at: { $gt: new Date() }
+                });
 
-            if (cached) {
-                return NextResponse.json(cached.data);
+                if (cached) {
+                    return NextResponse.json(cached.data);
+                }
             }
 
             const quote = await getStockQuote(symbol);
             if (!quote) {
-                return NextResponse.json({ error: 'Stock not found' }, { status: 404 });
+                console.error(`Stock API: Failed to fetch quote for ${symbol} - check API key and Finnhub status`);
+                return NextResponse.json({ error: 'Stock not found or provider error' }, { status: 404 });
             }
 
-            // Cache the result
-            await db.collection(COLLECTIONS.STOCK_CACHE).updateOne(
-                { symbol },
-                {
-                    $set: {
-                        symbol,
-                        data: quote,
-                        cached_at: new Date(),
-                        expires_at: new Date(Date.now() + CACHE_DURATION_MS),
-                    }
-                },
-                { upsert: true }
-            );
+            // Cache the result if DB is available
+            if (db) {
+                try {
+                    await db.collection(COLLECTIONS.STOCK_CACHE).updateOne(
+                        { symbol },
+                        {
+                            $set: {
+                                symbol,
+                                data: quote,
+                                cached_at: new Date(),
+                                expires_at: new Date(Date.now() + CACHE_DURATION_MS),
+                            }
+                        },
+                        { upsert: true }
+                    );
+                } catch (cacheErr) {
+                    console.warn('Stock API: Failed to update cache:', cacheErr);
+                }
+            }
 
             return NextResponse.json(quote);
 

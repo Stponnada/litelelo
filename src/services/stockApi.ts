@@ -56,32 +56,79 @@ export interface CompanyProfile {
     weburl: string;
 }
 
+// Helper for retry logic
+async function fetchWithRetry(url: string, retries = 3, backoff = 300): Promise<Response> {
+    for (let i = 0; i < retries; i++) {
+        try {
+            const response = await fetch(url);
+            // 429 is Rate Limit Exceeded - definitely retry
+            if (response.status === 429) {
+                const retryAfter = response.headers.get('Retry-After');
+                const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : backoff * Math.pow(2, i);
+                console.warn(`Rate limited. Retrying after ${waitTime}ms...`);
+                await new Promise(r => setTimeout(r, waitTime));
+                continue;
+            }
+            if (response.ok) return response;
+            // retry on 5xx errors
+            if (response.status >= 500) {
+                await new Promise(r => setTimeout(r, backoff * Math.pow(2, i)));
+                continue;
+            }
+            // For other errors (4xx), return immediately as they are likely permanent
+            return response;
+        } catch (err) {
+            // Network errors - retry
+            if (i === retries - 1) throw err;
+            await new Promise(r => setTimeout(r, backoff * Math.pow(2, i)));
+        }
+    }
+    throw new Error(`Failed after ${retries} retries`);
+}
+
 // Fetch real-time quote for a stock
 export async function getStockQuote(symbol: string): Promise<StockQuote | null> {
     try {
-        const response = await fetch(`${BASE_URL}/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`);
-        if (!response.ok) throw new Error('Failed to fetch quote');
+        const response = await fetchWithRetry(`${BASE_URL}/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`);
+        if (!response.ok) throw new Error(`API responded with ${response.status}`);
 
         const data = await response.json();
-        const stockInfo = SP500_STOCKS.find(s => s.symbol === symbol);
 
-        return {
-            symbol,
-            name: stockInfo?.name || symbol,
-            sector: stockInfo?.sector || 'Unknown',
-            currentPrice: data.c,
-            change: data.d,
-            percentChange: data.dp,
-            highPrice: data.h,
-            lowPrice: data.l,
-            openPrice: data.o,
-            previousClose: data.pc,
-            timestamp: data.t * 1000,
-        };
+        // Finnhub sometimes returns all 0s for invalid calls or missing data
+        if (data.c === 0 && data.h === 0 && data.l === 0) {
+            console.warn(`Received empty data for ${symbol}, retrying once...`);
+            // Circuit breaker: Wait 2s and try one last time with simple fetch
+            await new Promise(r => setTimeout(r, 2000));
+            const retryRes = await fetch(`${BASE_URL}/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`);
+            if (retryRes.ok) {
+                const retryData = await retryRes.json();
+                if (retryData.c !== 0) return formatQuote(retryData, symbol);
+            }
+            throw new Error('Received persistent empty data from provider');
+        }
+
+        return formatQuote(data, symbol);
     } catch (error) {
         console.error(`Failed to fetch quote for ${symbol}:`, error);
         return null;
     }
+}
+
+function formatQuote(data: any, symbol: string): StockQuote {
+    const stockInfo = SP500_STOCKS.find(s => s.symbol === symbol);
+    return {
+        symbol,
+        name: stockInfo?.name || symbol,
+        sector: stockInfo?.sector || 'Unknown',
+        currentPrice: data.c,
+        change: data.d,
+        percentChange: data.dp,
+        highPrice: data.h,
+        lowPrice: data.l,
+        openPrice: data.o,
+        previousClose: data.pc,
+        timestamp: data.t * 1000,
+    };
 }
 
 // Fetch quotes for multiple stocks (batched to respect rate limits)
