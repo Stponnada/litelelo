@@ -307,8 +307,11 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ error: 'Invalid trade type' }, { status: 400 });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('Trade execution error:', error);
-        return NextResponse.json({ error: 'Failed to execute trade' }, { status: 500 });
+        return NextResponse.json({
+            error: 'Failed to execute trade',
+            details: error.message
+        }, { status: 500 });
     }
 }

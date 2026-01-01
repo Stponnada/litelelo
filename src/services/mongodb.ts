@@ -5,11 +5,13 @@ import { MongoClient, Db } from 'mongodb';
 const MONGODB_URI = process.env.NEXT_PUBLIC_MONGODB_URI || '';
 const DB_NAME = 'litelelo_trading';
 
-let client: MongoClient | null = null;
-let db: Db | null = null;
+// Use a global variable to persist the connection across hot reloads in development
+// and across serverless function invocations in production.
+let cachedClient: MongoClient | null = (global as any).mongoClient || null;
+let cachedDb: Db | null = (global as any).mongoDb || null;
 
 export async function connectToMongoDB(): Promise<Db> {
-    if (db) return db;
+    if (cachedDb) return cachedDb;
 
     if (!MONGODB_URI) {
         throw new Error('MongoDB URI not configured. Please add NEXT_PUBLIC_MONGODB_URI to your .env.local');
@@ -17,36 +19,35 @@ export async function connectToMongoDB(): Promise<Db> {
 
     try {
         console.log('Portfolio API: Attempting to connect to MongoDB...');
-        client = new MongoClient(MONGODB_URI, {
-            connectTimeoutMS: 5000,
-            serverSelectionTimeoutMS: 5000,
-            socketTimeoutMS: 5000,
-        });
 
-        // Use a Promise race to ensure we don't hang indefinitely
-        const connectionPromise = client.connect();
-        const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('MongoDB connection timed out after 5s')), 5000)
-        );
+        if (!cachedClient) {
+            cachedClient = new MongoClient(MONGODB_URI, {
+                connectTimeoutMS: 15000, // Increased to 15s
+                serverSelectionTimeoutMS: 15000,
+                socketTimeoutMS: 15000,
+            });
+            (global as any).mongoClient = cachedClient;
+        }
 
-        await Promise.race([connectionPromise, timeoutPromise]);
+        await cachedClient.connect();
+        cachedDb = cachedClient.db(DB_NAME);
+        (global as any).mongoDb = cachedDb;
 
-        db = client.db(DB_NAME);
         console.log('Portfolio API: Connected to MongoDB successfully');
-        return db;
+        return cachedDb;
     } catch (error) {
         console.error('Portfolio API: MongoDB connection error:', error);
-        client = null; // Reset client on error to allow retry
-        db = null;
+        // Don't reset everything immediately, but allow one retry
+        cachedClient = null;
+        cachedDb = null;
+        (global as any).mongoClient = null;
+        (global as any).mongoDb = null;
         throw error;
     }
 }
 
 export async function getMongoDb(): Promise<Db> {
-    if (!db) {
-        return connectToMongoDB();
-    }
-    return db;
+    return connectToMongoDB();
 }
 
 // Collection names

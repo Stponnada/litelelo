@@ -22,61 +22,42 @@ export async function GET(request: NextRequest) {
         const isPublicView = !!queryUserId && queryUserId !== authUserId;
 
         if (!userId) {
-            console.error('Portfolio API: No User ID provided');
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+            console.error('Portfolio API: [ERROR] No User ID provided in headers or query');
+            return NextResponse.json({ error: 'Unauthorized. No User ID provided.' }, { status: 401 });
         }
 
         console.log(`Portfolio API: Fetching for ${userId} (Public: ${isPublicView})`);
-
-        let db = null;
-        try {
-            db = await getMongoDb();
-        } catch (mongoError) {
-            console.error('Portfolio API: MongoDB connection failed, proceeding with Supabase fallback:', mongoError);
-        }
 
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
         // Get current Supabase balance (Source of Truth for Cash)
         let currentRefBalance = 1000;
         try {
-            const { data: profile, error } = await supabase
+            const { data: profile } = await supabase
                 .from('profiles')
                 .select('bits_coin_balance')
                 .eq('user_id', userId)
                 .single();
 
-            if (error) {
-                console.warn('Supabase Profile Fetch Error:', error.message);
-                console.error(`Portfolio API: Failed to fetch profile for ${userId} from Supabase:`, error);
-            } else if (profile) {
+            if (profile) {
                 currentRefBalance = profile.bits_coin_balance ?? 1000;
-            } else {
-                console.warn(`Portfolio API: No profile found for ${userId} in Supabase`);
             }
         } catch (sbError) {
-            console.error('Supabase Client Error:', sbError);
+            console.error('Portfolio API: Supabase Profile Fetch Error:', sbError);
         }
 
-        console.log(`Portfolio API: Ref Balance for ${userId}: ${currentRefBalance}`);
-
-        // If DB is unavailable, return skeleton portfolio
-        if (!db) {
+        // Connect to MongoDB
+        let db;
+        try {
+            db = await getMongoDb();
+        } catch (dbError: any) {
+            console.error('Portfolio API: [CRITICAL] MongoDB connection failed:', dbError.message);
             return NextResponse.json({
-                portfolio: {
-                    user_id: userId,
-                    cash_balance: currentRefBalance,
-                    total_invested: 0,
-                    total_current_value: 0,
-                    total_gain_loss: 0,
-                    total_gain_loss_percent: 0,
-                    total_taxes_paid: 0,
-                    is_fallback: true
-                },
-                holdings: [],
-                transactions: [],
-                warning: 'Database unavailable. Using local balance.'
-            });
+                error: 'Database unavailable',
+                details: dbError.message,
+                is_fallback: true,
+                cash_balance: currentRefBalance
+            }, { status: 503 });
         }
 
         // Get or create portfolio

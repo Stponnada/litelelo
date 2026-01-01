@@ -418,17 +418,21 @@ const PaperTradingPage: React.FC = () => {
             if (portfolioData.holdings) setHoldings(portfolioData.holdings);
             if (portfolioData.transactions) setTransactions(portfolioData.transactions);
 
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to fetch portfolio:', error);
-            setPortfolioError('Could not connect to trading server. Using local data.');
-            // Use profile's bits_coin_balance as fallback
+            setPortfolioError('Unable to connect to trading database. Your holdings may not be visible, but your balance is synced from Supabase.');
+
+            // Still set cash balance from profile if available, but don't reset invested stats to 0
+            // if we already have some data, or if we want to show a loading/error state.
             if (profile?.bits_coin_balance) {
-                setPortfolio({
+                setPortfolio(prev => ({
+                    ...(prev || {
+                        total_invested: 0,
+                        total_taxes_paid: 0,
+                        total_gain_loss: 0,
+                    }),
                     cash_balance: profile.bits_coin_balance,
-                    total_invested: 0,
-                    total_taxes_paid: 0,
-                    total_gain_loss: 0,
-                });
+                } as Portfolio));
             }
         } finally {
             setIsLoadingPortfolio(false);
@@ -595,7 +599,7 @@ const PaperTradingPage: React.FC = () => {
                             <div className="bg-neutral-900/50 backdrop-blur-xl border border-neutral-800 rounded-2xl p-4 min-w-[140px] flex-1">
                                 <p className="text-xs text-neutral-500 uppercase font-bold mb-1">Invested Value</p>
                                 <p className="text-2xl font-bold text-white font-mono">
-                                    ${holdings.reduce((sum, h) => sum + h.current_value, 0).toFixed(2)}
+                                    {portfolioError && holdings.length === 0 ? '---' : `$${holdings.reduce((sum, h) => sum + h.current_value, 0).toFixed(2)}`}
                                 </p>
                             </div>
                             <div className="bg-neutral-900/50 backdrop-blur-xl border border-neutral-800 rounded-2xl p-4 min-w-[140px] flex-1">
@@ -756,11 +760,15 @@ const PaperTradingPage: React.FC = () => {
                                     <SpotlightCard className="py-16">
                                         <div className="flex flex-col items-center justify-center text-center">
                                             <div className="w-20 h-20 rounded-full bg-neutral-800 flex items-center justify-center mb-6">
-                                                <PieChart className="w-10 h-10 text-neutral-600" />
+                                                {portfolioError ? <RefreshCw className="w-10 h-10 text-yellow-500 animate-spin" /> : <PieChart className="w-10 h-10 text-neutral-600" />}
                                             </div>
-                                            <h3 className="text-2xl font-bold text-white mb-2">No Holdings Yet</h3>
+                                            <h3 className="text-2xl font-bold text-white mb-2">
+                                                {portfolioError ? 'Connection Error' : 'No Holdings Yet'}
+                                            </h3>
                                             <p className="text-neutral-400 max-w-md mb-6">
-                                                Start building your portfolio by buying stocks from the market.
+                                                {portfolioError
+                                                    ? 'We could not reach the trading database to fetch your holdings. Please try refreshing.'
+                                                    : 'Start building your portfolio by buying stocks from the market.'}
                                             </p>
                                             <button
                                                 onClick={() => setActiveTab('market')}
