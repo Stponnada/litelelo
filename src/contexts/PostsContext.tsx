@@ -111,9 +111,9 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           break;
       }
 
-      const formattedPosts = finalPosts.map((item: Record<string, unknown>) => {
+      const formattedPosts: FeedItem[] = finalPosts.map((item: any) => {
         if ('item_type' in item && 'item_data' in item && item.item_data && typeof item.item_data === 'object' && 'id' in item.item_data) {
-          return { ...item, id: (item.item_data as { id: string }).id };
+          return { ...item, id: (item.item_data as { id: string }).id } as FeedItem;
         } else {
           // Check if author is already an object or if we need to construct it from flat properties
           const hasNestedAuthor = item.author && typeof item.author === 'object';
@@ -128,18 +128,36 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               author_avatar_url: item.author_avatar_url,
               author_flair_details: item.author_flair_details,
             }
-          };
+          } as FeedItem;
         }
       });
 
-      setFeedData(prev => ({
-        ...prev,
-        [feedType]: {
-          posts: loadMore ? [...prev[feedType].posts, ...formattedPosts] : formattedPosts,
-          page: currentPage,
-          hasMore: formattedPosts.length === POSTS_PER_PAGE,
-        }
-      }));
+      setFeedData(prev => {
+        const existingPosts = loadMore ? prev[feedType].posts : [];
+        const allPosts: FeedItem[] = [...existingPosts, ...formattedPosts];
+
+        // Ensure uniqueness by a composite key of type and id
+        const uniquePostsMap = new Map<string, FeedItem>();
+        allPosts.forEach((item: any) => {
+          const type = ('item_type' in item) ? item.item_type : 'post';
+          const itemId = item.id || (item.item_data && item.item_data.id);
+          const compositeKey = `${type}-${itemId}`;
+          if (itemId) {
+            uniquePostsMap.set(compositeKey, item as FeedItem);
+          }
+        });
+
+        const uniquePosts = Array.from(uniquePostsMap.values());
+
+        return {
+          ...prev,
+          [feedType]: {
+            posts: uniquePosts,
+            page: currentPage,
+            hasMore: formattedPosts.length === POSTS_PER_PAGE,
+          }
+        };
+      });
 
     } catch (err: unknown) {
       console.error(`Error fetching '${feedType}' feed:`, err);

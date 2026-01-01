@@ -225,11 +225,11 @@ const TradeModal = ({
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="p-6 border-b border-neutral-800 bg-gradient-to-r from-brand-green/10 to-blue-500/10">
-                    <div className="flex items-center justify-between">
+                <div className="p-4 sm:p-6 border-b border-neutral-800 bg-gradient-to-r from-brand-green/10 to-blue-500/10">
+                    <div className="flex items-center justify-between gap-4">
                         <div>
-                            <h2 className="text-2xl font-bold text-white">{stock.symbol}</h2>
-                            <p className="text-sm text-neutral-400">{stock.name}</p>
+                            <h2 className="text-xl sm:text-2xl font-bold text-white">{stock.symbol}</h2>
+                            <p className="text-xs sm:text-sm text-neutral-400 truncate max-w-[120px] sm:max-w-none">{stock.name}</p>
                         </div>
                         <div className="text-right">
                             {isLoadingPrice ? (
@@ -239,8 +239,8 @@ const TradeModal = ({
                                 </div>
                             ) : (
                                 <>
-                                    <p className="text-2xl font-mono font-bold text-white">${currentPrice.toFixed(2)}</p>
-                                    <p className={cn("text-sm font-medium flex items-center gap-1 justify-end", isPositive ? "text-green-500" : "text-red-500")}>
+                                    <p className="text-xl sm:text-2xl font-mono font-bold text-white">${currentPrice.toFixed(2)}</p>
+                                    <p className={cn("text-xs sm:text-sm font-medium flex items-center gap-1 justify-end", isPositive ? "text-green-500" : "text-red-500")}>
                                         {isPositive ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
                                         {isPositive ? '+' : ''}{priceChange.toFixed(2)}%
                                     </p>
@@ -251,7 +251,7 @@ const TradeModal = ({
                 </div>
 
                 {/* Body */}
-                <div className="p-6 space-y-6">
+                <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
                     {isLoadingPrice ? (
                         <div className="py-8 text-center">
                             <Spinner className="w-8 h-8 mx-auto mb-4" />
@@ -579,7 +579,7 @@ const PaperTradingPage: React.FC = () => {
                                 <Sparkles className="w-3 h-3" />
                                 PAPER TRADING • EASTER EGG FEATURE
                             </div>
-                            <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white via-neutral-200 to-neutral-500">
+                            <h1 className="text-4xl sm:text-5xl md:text-7xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white via-neutral-200 to-neutral-500 leading-none">
                                 <DecryptedText text="BITS TRADE" />
                             </h1>
                             <p className="text-neutral-400 max-w-lg">
@@ -589,35 +589,35 @@ const PaperTradingPage: React.FC = () => {
                         </div>
 
                         {/* Quick Stats */}
-                        <div className="flex gap-4 flex-wrap">
-                            <div className="bg-neutral-900/50 backdrop-blur-xl border border-neutral-800 rounded-2xl p-4 min-w-[140px] flex-1">
-                                <p className="text-xs text-neutral-500 uppercase font-bold mb-1">Cash Balance</p>
-                                <p className="text-2xl font-bold text-brand-green font-mono">
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full lg:w-auto">
+                            <div className="bg-neutral-900/50 backdrop-blur-xl border border-neutral-800 rounded-2xl p-3 sm:p-4">
+                                <p className="text-[10px] sm:text-xs text-neutral-500 uppercase font-bold mb-1">Cash Balance</p>
+                                <p className="text-lg sm:text-2xl font-bold text-brand-green font-mono">
                                     ${effectiveCashBalance.toFixed(2)}
                                 </p>
                             </div>
-                            <div className="bg-neutral-900/50 backdrop-blur-xl border border-neutral-800 rounded-2xl p-4 min-w-[140px] flex-1">
-                                <p className="text-xs text-neutral-500 uppercase font-bold mb-1">Invested Value</p>
-                                <p className="text-2xl font-bold text-white font-mono">
+                            <div className="bg-neutral-900/50 backdrop-blur-xl border border-neutral-800 rounded-2xl p-3 sm:p-4">
+                                <p className="text-[10px] sm:text-xs text-neutral-500 uppercase font-bold mb-1">Invested Value</p>
+                                <p className="text-lg sm:text-2xl font-bold text-white font-mono">
                                     {portfolioError && holdings.length === 0 ? '---' : `$${holdings.reduce((sum, h) => sum + h.current_value, 0).toFixed(2)}`}
                                 </p>
                             </div>
-                            <div className="bg-neutral-900/50 backdrop-blur-xl border border-neutral-800 rounded-2xl p-4 min-w-[140px] flex-1">
-                                <p className="text-xs text-neutral-500 uppercase font-bold mb-1">Net Worth</p>
-                                <p className="text-2xl font-bold text-blue-400 font-mono">
+                            <div className="bg-neutral-900/50 backdrop-blur-xl border border-neutral-800 rounded-2xl p-3 sm:p-4">
+                                <p className="text-[10px] sm:text-xs text-neutral-500 uppercase font-bold mb-1">Net Worth</p>
+                                <p className="text-lg sm:text-2xl font-bold text-blue-400 font-mono">
                                     ${totalPortfolioValue.toFixed(2)}
                                 </p>
                             </div>
-                            <div className="bg-neutral-900/50 backdrop-blur-xl border border-neutral-800 rounded-2xl p-4 min-w-[140px] flex-1 overflow-hidden">
-                                <p className="text-xs text-neutral-500 uppercase font-bold mb-1 truncate">Total Gain/Loss</p>
+                            <div className="bg-neutral-900/50 backdrop-blur-xl border border-neutral-800 rounded-2xl p-3 sm:p-4 overflow-hidden">
+                                <p className="text-[10px] sm:text-xs text-neutral-500 uppercase font-bold mb-1 truncate">Total Gain/Loss</p>
                                 <div className="flex flex-col">
                                     <p className={cn(
-                                        "text-xl font-bold font-mono truncate",
+                                        "text-base sm:text-xl font-bold font-mono truncate",
                                         (totalPortfolioValue - 1000) >= 0 ? "text-green-500" : "text-red-500"
                                     )}>
                                         {(totalPortfolioValue - 1000) >= 0 ? '+' : ''}${(totalPortfolioValue - 1000).toFixed(2)}
                                     </p>
-                                    <p className="text-xs text-neutral-500 font-mono truncate">
+                                    <p className="text-[10px] sm:text-xs text-neutral-500 font-mono truncate">
                                         {((totalPortfolioValue - 1000) / 1000 * 100).toFixed(2)}%
                                     </p>
                                 </div>
@@ -639,7 +639,7 @@ const PaperTradingPage: React.FC = () => {
                     }
 
                     {/* Navigation Tabs */}
-                    <div className="mt-8 flex gap-2 p-1 bg-neutral-900/50 backdrop-blur-xl border border-neutral-800 rounded-2xl w-fit">
+                    <div className="mt-8 flex gap-1 sm:gap-2 p-1 bg-neutral-900/50 backdrop-blur-xl border border-neutral-800 rounded-2xl overflow-x-auto max-w-full no-scrollbar">
                         {[
                             { id: 'market', label: 'Market', icon: Activity },
                             { id: 'portfolio', label: 'Portfolio', icon: Briefcase },
@@ -650,14 +650,14 @@ const PaperTradingPage: React.FC = () => {
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id as 'market' | 'portfolio' | 'history' | 'leaderboard')}
                                 className={cn(
-                                    "flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all",
+                                    "flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold transition-all whitespace-nowrap",
                                     activeTab === tab.id
                                         ? "bg-brand-green text-white"
                                         : "text-neutral-400 hover:text-white"
                                 )}
                             >
                                 <tab.icon className="w-4 h-4" />
-                                {tab.label}
+                                <span className="text-sm sm:text-base">{tab.label}</span>
                             </button>
                         ))}
                     </div>
@@ -792,19 +792,19 @@ const PaperTradingPage: React.FC = () => {
                                                         initial={{ opacity: 0, x: -20 }}
                                                         animate={{ opacity: 1, x: 0 }}
                                                         transition={{ delay: i * 0.05 }}
-                                                        className="p-6 flex items-center justify-between"
+                                                        className="p-4 sm:p-6 flex items-center justify-between gap-4"
                                                     >
-                                                        <div className="flex items-center gap-4">
-                                                            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-green/20 to-blue-500/20 flex items-center justify-center font-bold text-lg text-white border border-neutral-700">
+                                                        <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
+                                                            <div className="w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-2xl bg-gradient-to-br from-brand-green/20 to-blue-500/20 flex items-center justify-center font-bold text-base sm:text-lg text-white border border-neutral-700">
                                                                 {holding.symbol.slice(0, 2)}
                                                             </div>
-                                                            <div>
-                                                                <p className="font-bold text-white text-lg">{holding.symbol}</p>
-                                                                <p className="text-sm text-neutral-400">{holding.quantity} shares @ ${holding.average_buy_price.toFixed(2)}</p>
+                                                            <div className="overflow-hidden">
+                                                                <p className="font-bold text-white text-base sm:text-lg truncate">{holding.symbol}</p>
+                                                                <p className="text-xs sm:text-sm text-neutral-400 truncate">{holding.quantity} shares @ ${holding.average_buy_price.toFixed(2)}</p>
                                                             </div>
                                                         </div>
-                                                        <div className="text-right">
-                                                            <p className="text-2xl font-mono font-bold text-white">${holding.current_value.toFixed(2)}</p>
+                                                        <div className="text-right shrink-0">
+                                                            <p className="text-xl sm:text-2xl font-mono font-bold text-white">${holding.current_value.toFixed(2)}</p>
                                                             <p className={cn(
                                                                 "text-sm font-bold flex items-center gap-1 justify-end",
                                                                 holding.unrealized_gain_loss >= 0 ? "text-green-500" : "text-red-500"
@@ -881,30 +881,30 @@ const PaperTradingPage: React.FC = () => {
                                                 initial={{ opacity: 0, x: -20 }}
                                                 animate={{ opacity: 1, x: 0 }}
                                                 transition={{ delay: i * 0.03 }}
-                                                className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-5 flex items-center justify-between backdrop-blur-xl"
+                                                className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-4 sm:p-5 flex items-center justify-between gap-4 backdrop-blur-xl"
                                             >
-                                                <div className="flex items-center gap-4">
+                                                <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
                                                     <div className={cn(
-                                                        "w-12 h-12 rounded-xl flex items-center justify-center",
+                                                        "w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-xl flex items-center justify-center",
                                                         tx.type === 'buy' ? "bg-green-500/10" : "bg-red-500/10"
                                                     )}>
                                                         {tx.type === 'buy' ?
-                                                            <ArrowDownRight className="w-6 h-6 text-green-500" /> :
-                                                            <ArrowUpRight className="w-6 h-6 text-red-500" />
+                                                            <ArrowDownRight className="w-5 h-5 sm:w-6 sm:h-6 text-green-500" /> :
+                                                            <ArrowUpRight className="w-5 h-5 sm:w-6 sm:h-6 text-red-500" />
                                                         }
                                                     </div>
-                                                    <div>
-                                                        <p className="font-bold text-white">
+                                                    <div className="overflow-hidden">
+                                                        <p className="font-bold text-white text-sm sm:text-base truncate">
                                                             {tx.type === 'buy' ? 'Bought' : 'Sold'} {tx.quantity} {tx.symbol}
                                                         </p>
-                                                        <p className="text-sm text-neutral-500">
+                                                        <p className="text-[10px] sm:text-sm text-neutral-500 truncate">
                                                             @ ${tx.price_per_share.toFixed(2)} • {new Date(tx.created_at).toLocaleDateString()}
                                                         </p>
                                                     </div>
                                                 </div>
-                                                <div className="text-right">
+                                                <div className="text-right shrink-0">
                                                     <p className={cn(
-                                                        "font-mono font-bold text-lg",
+                                                        "font-mono font-bold text-base sm:text-lg",
                                                         tx.type === 'buy' ? "text-red-400" : "text-green-400"
                                                     )}>
                                                         {tx.type === 'buy' ? '-' : '+'}${tx.total_amount.toFixed(2)}
@@ -1050,7 +1050,7 @@ const PaperTradingPage: React.FC = () => {
                                     </motion.div>
                                 ) : (
                                     <div className="space-y-4">
-                                        <div className="flex items-center justify-between px-6 pb-2 text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800">
+                                        <div className="flex items-center justify-between px-4 sm:px-6 pb-2 text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800">
                                             <span>Rank & Trader</span>
                                             <span className="text-right">Net Worth</span>
                                         </div>
@@ -1062,13 +1062,13 @@ const PaperTradingPage: React.FC = () => {
                                                 transition={{ delay: i * 0.05 }}
                                                 onClick={() => fetchTraderPortfolio(entry)}
                                                 className={cn(
-                                                    "p-6 flex items-center justify-between bg-neutral-900/50 border border-neutral-800 rounded-2xl backdrop-blur-xl transition-all hover:bg-neutral-800/50 cursor-pointer group",
+                                                    "p-4 sm:p-6 flex items-center justify-between bg-neutral-900/50 border border-neutral-800 rounded-2xl backdrop-blur-xl transition-all hover:bg-neutral-800/50 cursor-pointer group",
                                                     entry.user_id === user?.id && "border-brand-green/50 bg-brand-green/5 shadow-[0_0_20px_rgba(16,185,129,0.1)]"
                                                 )}
                                             >
-                                                <div className="flex items-center gap-4">
+                                                <div className="flex items-center gap-2 sm:gap-4 overflow-hidden">
                                                     <div className={cn(
-                                                        "w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg",
+                                                        "w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-full flex items-center justify-center font-bold text-sm sm:text-lg",
                                                         i === 0 ? "bg-yellow-500/20 text-yellow-500" :
                                                             i === 1 ? "bg-neutral-300/20 text-neutral-300" :
                                                                 i === 2 ? "bg-orange-500/20 text-orange-500" :
@@ -1081,25 +1081,24 @@ const PaperTradingPage: React.FC = () => {
                                                             <img
                                                                 src={entry.avatar_url}
                                                                 alt={entry.username}
-                                                                className="w-12 h-12 rounded-xl object-cover border border-neutral-700 group-hover:border-brand-green/50 transition-colors"
+                                                                className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl object-cover border border-neutral-700 group-hover:border-brand-green/50 transition-colors"
                                                             />
                                                         ) : (
-                                                            <div className="w-12 h-12 rounded-xl bg-neutral-800 flex items-center justify-center border border-neutral-700 group-hover:border-brand-green/50 transition-colors">
-                                                                <UserIcon className="w-6 h-6 text-neutral-600" />
+                                                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-neutral-800 flex items-center justify-center border border-neutral-700 group-hover:border-brand-green/50 transition-colors">
+                                                                <UserIcon className="w-5 h-5 sm:w-6 sm:h-6 text-neutral-600" />
                                                             </div>
                                                         )}
-                                                        <div>
-                                                            <p className="font-bold text-white flex items-center gap-2 group-hover:text-brand-green transition-colors">
+                                                        <div className="overflow-hidden">
+                                                            <p className="font-bold text-white text-sm sm:text-base flex items-center gap-1 sm:gap-2 group-hover:text-brand-green transition-colors truncate">
                                                                 {entry.full_name || entry.username}
-                                                                {i === 0 && <span className="text-[10px] px-2 py-0.5 bg-yellow-500/20 text-yellow-500 rounded-full border border-yellow-500/30 font-black tracking-tighter uppercase text-[8px]">TOP TRADER</span>}
-                                                                {entry.user_id === user?.id && <span className="text-[10px] px-2 py-0.5 bg-brand-green/20 text-brand-green rounded-full border border-brand-green/30 font-black tracking-tighter uppercase text-[8px]">YOU</span>}
+                                                                {i === 0 && <span className="shrink-0 text-[10px] px-1.5 py-0.5 bg-yellow-500/20 text-yellow-500 rounded-full border border-yellow-500/30 font-black tracking-tighter uppercase text-[7px] sm:text-[8px]">TOP</span>}
                                                             </p>
-                                                            <p className="text-xs text-neutral-500">@{entry.username}</p>
+                                                            <p className="text-[10px] sm:text-xs text-neutral-500 truncate">@{entry.username}</p>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="text-right">
-                                                    <p className="text-2xl font-mono font-bold text-white">
+                                                <div className="text-right shrink-0">
+                                                    <p className="text-lg sm:text-2xl font-mono font-bold text-white">
                                                         ${entry.total_net_worth.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </p>
                                                     <div className="flex items-center gap-2 justify-end text-[10px] uppercase font-bold tracking-wider">
