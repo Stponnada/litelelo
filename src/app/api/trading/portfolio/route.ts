@@ -22,10 +22,11 @@ export async function GET(request: NextRequest) {
 
         console.log(`Portfolio API: Fetching for ${userId}`);
 
-        const db = await getMongoDb();
-        if (!db) {
-            console.error('Portfolio API: MongoDB connection failed - Check MONGODB_URI and connection string');
-            throw new Error('Database connection failed');
+        let db = null;
+        try {
+            db = await getMongoDb();
+        } catch (mongoError) {
+            console.error('Portfolio API: MongoDB connection failed, proceeding with Supabase fallback:', mongoError);
         }
 
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -52,6 +53,25 @@ export async function GET(request: NextRequest) {
         }
 
         console.log(`Portfolio API: Ref Balance for ${userId}: ${currentRefBalance}`);
+
+        // If DB is unavailable, return skeleton portfolio
+        if (!db) {
+            return NextResponse.json({
+                portfolio: {
+                    user_id: userId,
+                    cash_balance: currentRefBalance,
+                    total_invested: 0,
+                    total_current_value: 0,
+                    total_gain_loss: 0,
+                    total_gain_loss_percent: 0,
+                    total_taxes_paid: 0,
+                    is_fallback: true
+                },
+                holdings: [],
+                transactions: [],
+                warning: 'Database unavailable. Using local balance.'
+            });
+        }
 
         // Get or create portfolio
         let portfolioData: WithId<Document> | null = await db.collection(COLLECTIONS.PORTFOLIOS).findOne({ user_id: userId });
@@ -115,7 +135,7 @@ export async function GET(request: NextRequest) {
 
     } catch (error: any) {
         console.error('Portfolio fetch CRITICAL error:', error);
-        return NextResponse.json({ error: 'Failed to fetch portfolio', details: error.message }, { status: 500 });
+        return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
     }
 }
 

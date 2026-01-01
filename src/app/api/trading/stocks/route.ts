@@ -68,10 +68,13 @@ export async function GET(request: NextRequest) {
 
             for (const stock of SP500_STOCKS) {
                 // Check cache first
-                const cached = await db.collection(COLLECTIONS.STOCK_CACHE).findOne({
-                    symbol: stock.symbol,
-                    expires_at: { $gt: now }
-                });
+                let cached = null;
+                if (db) {
+                    cached = await db.collection(COLLECTIONS.STOCK_CACHE).findOne({
+                        symbol: stock.symbol,
+                        expires_at: { $gt: now }
+                    });
+                }
 
                 if (cached) {
                     quotes.push(cached.data);
@@ -83,19 +86,25 @@ export async function GET(request: NextRequest) {
                 if (quote) {
                     quotes.push(quote);
 
-                    // Cache it
-                    await db.collection(COLLECTIONS.STOCK_CACHE).updateOne(
-                        { symbol: stock.symbol },
-                        {
-                            $set: {
-                                symbol: stock.symbol,
-                                data: quote,
-                                cached_at: now,
-                                expires_at: new Date(now.getTime() + CACHE_DURATION_MS),
-                            }
-                        },
-                        { upsert: true }
-                    );
+                    // Cache it if DB is available
+                    if (db) {
+                        try {
+                            await db.collection(COLLECTIONS.STOCK_CACHE).updateOne(
+                                { symbol: stock.symbol },
+                                {
+                                    $set: {
+                                        symbol: stock.symbol,
+                                        data: quote,
+                                        cached_at: now,
+                                        expires_at: new Date(now.getTime() + CACHE_DURATION_MS),
+                                    }
+                                },
+                                { upsert: true }
+                            );
+                        } catch (cacheErr) {
+                            console.warn(`Stock API: Failed to update cache for ${stock.symbol}:`, cacheErr);
+                        }
+                    }
                 }
 
                 // Small delay to respect rate limits
