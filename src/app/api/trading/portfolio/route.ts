@@ -14,13 +14,19 @@ export const dynamic = 'force-dynamic';
 // GET - Fetch user's portfolio
 export async function GET(request: NextRequest) {
     try {
-        const userId = request.headers.get('x-user-id');
+        const { searchParams } = new URL(request.url);
+        const queryUserId = searchParams.get('userId');
+        const authUserId = request.headers.get('x-user-id');
+
+        const userId = queryUserId || authUserId;
+        const isPublicView = !!queryUserId && queryUserId !== authUserId;
+
         if (!userId) {
             console.error('Portfolio API: No User ID provided');
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        console.log(`Portfolio API: Fetching for ${userId}`);
+        console.log(`Portfolio API: Fetching for ${userId} (Public: ${isPublicView})`);
 
         let db = null;
         try {
@@ -91,9 +97,14 @@ export async function GET(request: NextRequest) {
                 updated_at: new Date(),
             };
 
-            const result = await db.collection(COLLECTIONS.PORTFOLIOS).insertOne(newPortfolio);
-            portfolioData = { ...newPortfolio, _id: result.insertedId };
-        } else {
+            // Only create if it's not a public view (don't create portfolios for others by just viewing)
+            if (!isPublicView) {
+                const result = await db.collection(COLLECTIONS.PORTFOLIOS).insertOne(newPortfolio);
+                portfolioData = { ...newPortfolio, _id: result.insertedId };
+            } else {
+                portfolioData = newPortfolio;
+            }
+        } else if (!isPublicView) {
             console.log('Portfolio API: Syncing existing portfolio');
             // Sync cash balance if it differs from Supabase (allowing for small float differences)
             // Ensure we handle the case where cash_balance might be undefined or string
@@ -102,7 +113,7 @@ export async function GET(request: NextRequest) {
             if (Math.abs(currentPortfolioCash - currentRefBalance) > 0.01) {
                 console.log(`Portfolio API: Updating balance from ${currentPortfolioCash} to ${currentRefBalance}`);
                 await db.collection(COLLECTIONS.PORTFOLIOS).updateOne(
-                    { user_id: userId }, // Use user_id as filter, it's safer and unique
+                    { user_id: userId },
                     {
                         $set: {
                             cash_balance: currentRefBalance,

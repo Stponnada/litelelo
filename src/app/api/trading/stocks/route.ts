@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
 
             const quote = await getStockQuote(symbol);
             if (!quote) {
-                console.error(`Stock API: Failed to fetch quote for ${symbol} - check API key and Finnhub status`);
+                console.error(`Stock API: Failed to fetch quote for ${symbol} - return null from getStockQuote`);
                 return NextResponse.json({ error: 'Stock not found or provider error' }, { status: 404 });
             }
 

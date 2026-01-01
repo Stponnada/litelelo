@@ -34,8 +34,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${poppins.variable} ${raleway.variable} ${rubikGlitch.variable}`}>
-      <body className="font-sans bg-primary-light dark:bg-primary text-text-main-light dark:text-text-main">
+    <html lang="en" className={`${poppins.variable} ${raleway.variable} ${rubikGlitch.variable}`} suppressHydrationWarning>
+      <body className="font-sans bg-primary-light dark:bg-primary text-text-main-light dark:text-text-main" suppressHydrationWarning>
         <Providers>
           <AppShell>
             {children}

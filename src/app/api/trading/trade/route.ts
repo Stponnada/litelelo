@@ -18,10 +18,11 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { symbol, quantity, type } = body;
+        const { symbol, quantity: quantityRaw, type } = body;
 
         // Validate input
-        if (!symbol || !quantity || !type || quantity <= 0) {
+        const quantity = parseInt(quantityRaw);
+        if (!symbol || isNaN(quantity) || !type || quantity <= 0) {
             return NextResponse.json({ error: 'Invalid trade parameters' }, { status: 400 });
         }
 
@@ -32,30 +33,41 @@ export async function POST(request: NextRequest) {
         const db = await getMongoDb();
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+        // Get current Supabase balance (Source of Truth for Cash)
+        let currentRefBalance = 1000;
+        const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('bits_coin_balance')
+            .eq('user_id', userId)
+            .single();
+
+        if (profileError) {
+            console.error(`Trade API: Failed to fetch profile for ${userId} from Supabase:`, profileError);
+            return NextResponse.json({ error: 'Could not fetch user balance from Supabase' }, { status: 500 });
+        }
+
+        if (profile) {
+            currentRefBalance = profile.bits_coin_balance ?? 1000;
+        }
+
         // Get current stock price
         const quote = await getStockQuote(symbol);
         if (!quote || quote.currentPrice <= 0) {
             return NextResponse.json({ error: 'Could not fetch current stock price' }, { status: 400 });
         }
 
-        const currentPrice = quote.currentPrice;
+        const currentPrice = Number(quote.currentPrice);
         const stockInfo = SP500_STOCKS.find(s => s.symbol === symbol);
         const stockName = stockInfo?.name || symbol;
 
-        // Get user's portfolio
+        // Get or Sync user's portfolio in MongoDB
         let portfolio = await db.collection(COLLECTIONS.PORTFOLIOS).findOne({ user_id: userId });
 
         if (!portfolio) {
             // Initialize portfolio
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('bits_coin_balance')
-                .eq('user_id', userId)
-                .single();
-
             const newPortfolio = {
                 user_id: userId,
-                cash_balance: profile?.bits_coin_balance || 200,
+                cash_balance: currentRefBalance,
                 total_invested: 0,
                 total_current_value: 0,
                 total_gain_loss: 0,
@@ -66,6 +78,17 @@ export async function POST(request: NextRequest) {
             };
             const result = await db.collection(COLLECTIONS.PORTFOLIOS).insertOne(newPortfolio);
             portfolio = { ...newPortfolio, _id: result.insertedId };
+        } else {
+            // Sync cash balance with Supabase if it differs (important for consistency)
+            const mongoCash = typeof portfolio.cash_balance === 'number' ? portfolio.cash_balance : parseFloat(portfolio.cash_balance || '0');
+            if (Math.abs(mongoCash - currentRefBalance) > 0.01) {
+                console.log(`Trade API: Syncing Mongo cash balance from ${mongoCash} to ${currentRefBalance}`);
+                await db.collection(COLLECTIONS.PORTFOLIOS).updateOne(
+                    { user_id: userId },
+                    { $set: { cash_balance: currentRefBalance, updated_at: new Date() } }
+                );
+                portfolio.cash_balance = currentRefBalance;
+            }
         }
 
         if (type === 'buy') {
@@ -86,9 +109,11 @@ export async function POST(request: NextRequest) {
 
             if (existingHolding) {
                 // Calculate new average price
-                const totalShares = existingHolding.quantity + quantity;
+                const existingQuantity = Number(existingHolding.quantity);
+                const existingAvgPrice = Number(existingHolding.average_buy_price);
+                const totalShares = existingQuantity + quantity;
                 const newAvgPrice = (
-                    (existingHolding.average_buy_price * existingHolding.quantity) +
+                    (existingAvgPrice * existingQuantity) +
                     (currentPrice * quantity)
                 ) / totalShares;
 
@@ -126,23 +151,33 @@ export async function POST(request: NextRequest) {
                 });
             }
 
-            // Deduct from cash balance
+            // Deduct from cash balance in MongoDB
+            const newCashBalance = Number(portfolio.cash_balance) - totalCost;
+
             await db.collection(COLLECTIONS.PORTFOLIOS).updateOne(
                 { user_id: userId },
                 {
-                    $inc: {
-                        cash_balance: -totalCost,
-                        total_invested: totalCost,
+                    $set: {
+                        cash_balance: newCashBalance,
+                        updated_at: new Date()
                     },
-                    $set: { updated_at: new Date() }
+                    $inc: {
+                        total_invested: totalCost,
+                    }
                 }
             );
 
             // Deduct from Supabase bits_coin_balance
-            await supabase
+            const { error: updateError } = await supabase
                 .from('profiles')
-                .update({ bits_coin_balance: portfolio.cash_balance - totalCost })
+                .update({ bits_coin_balance: newCashBalance })
                 .eq('user_id', userId);
+
+            if (updateError) {
+                console.error('Trade API: Failed to update Supabase balance:', updateError);
+                // We don't roll back the trade here to avoid complex state management, 
+                // but logging it is critical. The next sync will fix it.
+            }
 
             // Record transaction
             const transaction = {
@@ -162,7 +197,7 @@ export async function POST(request: NextRequest) {
                 success: true,
                 message: `Bought ${quantity} shares of ${symbol} at $${currentPrice.toFixed(2)}`,
                 transaction,
-                new_balance: portfolio.cash_balance - totalCost,
+                new_balance: newCashBalance,
             });
 
         } else if (type === 'sell') {
@@ -172,21 +207,24 @@ export async function POST(request: NextRequest) {
                 symbol
             });
 
-            if (!holding || holding.quantity < quantity) {
+            if (!holding || Number(holding.quantity) < quantity) {
                 return NextResponse.json({
                     error: `Insufficient shares. You have ${holding?.quantity || 0} shares of ${symbol}`
                 }, { status: 400 });
             }
 
+            const holdingQuantity = Number(holding.quantity);
+            const holdingAvgPrice = Number(holding.average_buy_price);
+
             // Calculate profit and tax
             const { grossProfit, taxAmount, netProfit } = calculateNetProceeds(
                 currentPrice,
-                holding.average_buy_price,
+                holdingAvgPrice,
                 quantity
             );
 
             const totalProceeds = (currentPrice * quantity) - taxAmount;
-            const remainingQuantity = holding.quantity - quantity;
+            const remainingQuantity = holdingQuantity - quantity;
 
             if (remainingQuantity === 0) {
                 // Delete holding
@@ -203,8 +241,8 @@ export async function POST(request: NextRequest) {
                             quantity: remainingQuantity,
                             current_price: currentPrice,
                             current_value: currentPrice * remainingQuantity,
-                            unrealized_gain_loss: (currentPrice - holding.average_buy_price) * remainingQuantity,
-                            unrealized_gain_loss_percent: ((currentPrice - holding.average_buy_price) / holding.average_buy_price) * 100,
+                            unrealized_gain_loss: (currentPrice - holdingAvgPrice) * remainingQuantity,
+                            unrealized_gain_loss_percent: ((currentPrice - holdingAvgPrice) / holdingAvgPrice) * 100,
                             updated_at: new Date(),
                         }
                     }
@@ -212,25 +250,31 @@ export async function POST(request: NextRequest) {
             }
 
             // Add to cash balance (after tax)
-            const newCashBalance = portfolio.cash_balance + totalProceeds;
+            const newCashBalance = Number(portfolio.cash_balance) + totalProceeds;
 
             await db.collection(COLLECTIONS.PORTFOLIOS).updateOne(
                 { user_id: userId },
                 {
+                    $set: {
+                        cash_balance: newCashBalance,
+                        updated_at: new Date()
+                    },
                     $inc: {
-                        cash_balance: totalProceeds,
                         total_taxes_paid: taxAmount,
                         total_gain_loss: netProfit,
-                    },
-                    $set: { updated_at: new Date() }
+                    }
                 }
             );
 
             // Update Supabase bits_coin_balance
-            await supabase
+            const { error: updateError } = await supabase
                 .from('profiles')
                 .update({ bits_coin_balance: newCashBalance })
                 .eq('user_id', userId);
+
+            if (updateError) {
+                console.error('Trade API: Failed to update Supabase balance:', updateError);
+            }
 
             // Record transaction
             const transaction = {

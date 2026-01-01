@@ -89,7 +89,8 @@ async function fetchWithRetry(url: string, retries = 3, backoff = 300): Promise<
 // Fetch real-time quote for a stock
 export async function getStockQuote(symbol: string): Promise<StockQuote | null> {
     try {
-        const response = await fetchWithRetry(`${BASE_URL}/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`);
+        const url = `${BASE_URL}/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`;
+        const response = await fetchWithRetry(url);
         if (!response.ok) throw new Error(`API responded with ${response.status}`);
 
         const data = await response.json();

@@ -20,13 +20,24 @@ export async function connectToMongoDB(): Promise<Db> {
         client = new MongoClient(MONGODB_URI, {
             connectTimeoutMS: 5000,
             serverSelectionTimeoutMS: 5000,
+            socketTimeoutMS: 5000,
         });
-        await client.connect();
+
+        // Use a Promise race to ensure we don't hang indefinitely
+        const connectionPromise = client.connect();
+        const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('MongoDB connection timed out after 5s')), 5000)
+        );
+
+        await Promise.race([connectionPromise, timeoutPromise]);
+
         db = client.db(DB_NAME);
         console.log('Portfolio API: Connected to MongoDB successfully');
         return db;
     } catch (error) {
         console.error('Portfolio API: MongoDB connection error:', error);
+        client = null; // Reset client on error to allow retry
+        db = null;
         throw error;
     }
 }

@@ -7,7 +7,8 @@ import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from
 import {
     TrendingUp, TrendingDown, Briefcase, Receipt,
     Search, ArrowUpRight, ArrowDownRight, Wallet, PieChart,
-    ChevronRight, Sparkles, ShieldCheck, Activity, RefreshCw
+    ChevronRight, Sparkles, ShieldCheck, Activity, RefreshCw,
+    Trophy, Medal, User as UserIcon, ArrowLeft
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -383,6 +384,14 @@ const PaperTradingPage: React.FC = () => {
     const [sectorFilter, setSectorFilter] = useState('All');
     const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(false);
     const [portfolioError, setPortfolioError] = useState('');
+    const [leaderboard, setLeaderboard] = useState<any[]>([]);
+    const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
+
+    // Public viewing state
+    const [viewingTrader, setViewingTrader] = useState<any | null>(null);
+    const [traderPortfolio, setTraderPortfolio] = useState<Portfolio | null>(null);
+    const [traderHoldings, setTraderHoldings] = useState<Holding[]>([]);
+    const [isLoadingTraderPortfolio, setIsLoadingTraderPortfolio] = useState(false);
 
     // Use Bits-Coin balance as initial cash balance if portfolio not loaded
     const effectiveCashBalance = portfolio?.cash_balance ?? profile?.bits_coin_balance ?? 200;
@@ -460,10 +469,45 @@ const PaperTradingPage: React.FC = () => {
         }
     }, [user?.id]);
 
+    const fetchLeaderboard = async () => {
+        setIsLoadingLeaderboard(true);
+        try {
+            const res = await fetch('/api/trading/leaderboard');
+            const data = await res.json();
+            setLeaderboard(data.leaderboard || []);
+        } catch (err) {
+            console.error('Failed to fetch leaderboard:', err);
+        } finally {
+            setIsLoadingLeaderboard(false);
+        }
+    };
+
+    const fetchTraderPortfolio = async (trader: any) => {
+        setViewingTrader(trader);
+        setIsLoadingTraderPortfolio(true);
+        try {
+            const res = await fetch(`/api/trading/portfolio?userId=${trader.user_id}`);
+            const data = await res.json();
+            if (data.portfolio) {
+                setTraderPortfolio(data.portfolio);
+                setTraderHoldings(data.holdings || []);
+            }
+        } catch (err) {
+            console.error('Failed to fetch trader portfolio:', err);
+        } finally {
+            setIsLoadingTraderPortfolio(false);
+        }
+    };
 
     useEffect(() => {
         fetchPortfolio();
     }, [fetchPortfolio]);
+
+    useEffect(() => {
+        if (activeTab === 'leaderboard') {
+            fetchLeaderboard();
+        }
+    }, [activeTab]);
 
     // Handle trade
     const handleTrade = async (symbol: string, quantity: number, type: 'buy' | 'sell') => {
@@ -594,7 +638,8 @@ const PaperTradingPage: React.FC = () => {
                         {[
                             { id: 'market', label: 'Market', icon: Activity },
                             { id: 'portfolio', label: 'Portfolio', icon: Briefcase },
-                            { id: 'history', label: 'History', icon: Receipt }
+                            { id: 'history', label: 'History', icon: Receipt },
+                            { id: 'leaderboard', label: 'Leaderboard', icon: Trophy }
                         ].map(tab => (
                             <button
                                 key={tab.id}
@@ -860,6 +905,199 @@ const PaperTradingPage: React.FC = () => {
                                                             Tax: ${tx.tax_amount.toFixed(2)}
                                                         </p>
                                                     )}
+                                                </div>
+                                            </motion.div>
+                                        ))}
+                                    </div>
+                                )}
+                            </motion.div>
+                        )
+                    }
+
+                    {
+                        activeTab === 'leaderboard' && (
+                            <motion.div
+                                key="leaderboard"
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                className="space-y-6"
+                            >
+                                {isLoadingLeaderboard ? (
+                                    <div className="py-16 text-center">
+                                        <Spinner className="w-8 h-8 mx-auto mb-4" />
+                                        <p className="text-neutral-400">Loading leaderboard rankings...</p>
+                                    </div>
+                                ) : viewingTrader ? (
+                                    <motion.div
+                                        key="trader-profile"
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: -20 }}
+                                        className="space-y-6"
+                                    >
+                                        <div className="flex items-center gap-4 mb-8">
+                                            <button
+                                                onClick={() => setViewingTrader(null)}
+                                                className="p-3 bg-neutral-800 hover:bg-neutral-700 text-white rounded-xl transition-colors"
+                                            >
+                                                <ArrowLeft className="w-6 h-6" />
+                                            </button>
+                                            <div className="flex items-center gap-4">
+                                                {viewingTrader.avatar_url ? (
+                                                    <img
+                                                        src={viewingTrader.avatar_url}
+                                                        alt={viewingTrader.username}
+                                                        className="w-16 h-16 rounded-2xl object-cover border-2 border-brand-green/30"
+                                                    />
+                                                ) : (
+                                                    <div className="w-16 h-16 rounded-2xl bg-neutral-800 flex items-center justify-center border-2 border-neutral-700">
+                                                        <UserIcon className="w-8 h-8 text-neutral-600" />
+                                                    </div>
+                                                )}
+                                                <div>
+                                                    <h2 className="text-2xl font-bold text-white leading-tight">
+                                                        {viewingTrader.full_name || viewingTrader.username}
+                                                    </h2>
+                                                    <p className="text-neutral-500">@{viewingTrader.username}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {isLoadingTraderPortfolio ? (
+                                            <div className="py-20 text-center">
+                                                <Spinner className="w-10 h-10 mx-auto mb-4" />
+                                                <p className="text-neutral-400">Loading {viewingTrader.username}'s portfolio...</p>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                {/* Trader Stats */}
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                    <SpotlightCard className="p-6">
+                                                        <p className="text-xs text-neutral-500 uppercase font-bold mb-1">Total Net Worth</p>
+                                                        <p className="text-3xl font-mono font-bold text-white">
+                                                            ${traderPortfolio?.total_net_worth?.toLocaleString() || '0.00'}
+                                                        </p>
+                                                    </SpotlightCard>
+                                                    <SpotlightCard className="p-6">
+                                                        <p className="text-xs text-neutral-500 uppercase font-bold mb-1">Available Cash</p>
+                                                        <p className="text-3xl font-mono font-bold text-brand-green">
+                                                            ${traderPortfolio?.cash_balance?.toLocaleString() || '0.00'}
+                                                        </p>
+                                                    </SpotlightCard>
+                                                    <SpotlightCard className="p-6">
+                                                        <p className="text-xs text-neutral-500 uppercase font-bold mb-1">Stock Value</p>
+                                                        <p className="text-3xl font-mono font-bold text-blue-400">
+                                                            ${(traderHoldings.reduce((sum, h) => sum + (h.current_value || 0), 0)).toLocaleString()}
+                                                        </p>
+                                                    </SpotlightCard>
+                                                </div>
+
+                                                <div className="space-y-4 pt-4">
+                                                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                                        <Briefcase className="w-5 h-5 text-brand-green" />
+                                                        Current Investments
+                                                    </h3>
+                                                    {traderHoldings.length === 0 ? (
+                                                        <div className="py-12 bg-neutral-900/30 border border-neutral-800 rounded-2xl text-center">
+                                                            <PieChart className="w-12 h-12 text-neutral-700 mx-auto mb-4" />
+                                                            <p className="text-neutral-500">This trader has no active holdings.</p>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="space-y-3">
+                                                            {traderHoldings.map((holding, i) => (
+                                                                <motion.div
+                                                                    key={holding.symbol}
+                                                                    initial={{ opacity: 0, y: 10 }}
+                                                                    animate={{ opacity: 1, y: 0 }}
+                                                                    transition={{ delay: i * 0.05 }}
+                                                                    className="p-5 flex items-center justify-between bg-neutral-900/50 border border-neutral-800 rounded-2xl backdrop-blur-xl"
+                                                                >
+                                                                    <div className="flex items-center gap-4">
+                                                                        <div className="w-12 h-12 rounded-xl bg-neutral-800 flex items-center justify-center font-bold text-white border border-neutral-700">
+                                                                            {holding.symbol.slice(0, 2)}
+                                                                        </div>
+                                                                        <div>
+                                                                            <p className="font-bold text-white">{holding.symbol}</p>
+                                                                            <p className="text-xs text-neutral-500">{holding.quantity} shares</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="text-right">
+                                                                        <p className="font-mono font-bold text-white">${holding.current_value.toLocaleString()}</p>
+                                                                        <p className={cn(
+                                                                            "text-xs font-bold",
+                                                                            holding.unrealized_gain_loss >= 0 ? "text-green-500" : "text-red-500"
+                                                                        )}>
+                                                                            {holding.unrealized_gain_loss >= 0 ? '+' : ''}{holding.unrealized_gain_loss_percent.toFixed(2)}%
+                                                                        </p>
+                                                                    </div>
+                                                                </motion.div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </>
+                                        )}
+                                    </motion.div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between px-6 pb-2 text-xs font-bold text-neutral-500 uppercase tracking-widest border-b border-neutral-800">
+                                            <span>Rank & Trader</span>
+                                            <span className="text-right">Net Worth</span>
+                                        </div>
+                                        {leaderboard.map((entry, i) => (
+                                            <motion.div
+                                                key={entry.user_id}
+                                                initial={{ opacity: 0, x: -20 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                transition={{ delay: i * 0.05 }}
+                                                onClick={() => fetchTraderPortfolio(entry)}
+                                                className={cn(
+                                                    "p-6 flex items-center justify-between bg-neutral-900/50 border border-neutral-800 rounded-2xl backdrop-blur-xl transition-all hover:bg-neutral-800/50 cursor-pointer group",
+                                                    entry.user_id === user?.id && "border-brand-green/50 bg-brand-green/5 shadow-[0_0_20px_rgba(16,185,129,0.1)]"
+                                                )}
+                                            >
+                                                <div className="flex items-center gap-4">
+                                                    <div className={cn(
+                                                        "w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg",
+                                                        i === 0 ? "bg-yellow-500/20 text-yellow-500" :
+                                                            i === 1 ? "bg-neutral-300/20 text-neutral-300" :
+                                                                i === 2 ? "bg-orange-500/20 text-orange-500" :
+                                                                    "bg-neutral-800 text-neutral-500"
+                                                    )}>
+                                                        {i === 0 ? <Trophy className="w-5 h-5" /> : i + 1}
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        {entry.avatar_url ? (
+                                                            <img
+                                                                src={entry.avatar_url}
+                                                                alt={entry.username}
+                                                                className="w-12 h-12 rounded-xl object-cover border border-neutral-700 group-hover:border-brand-green/50 transition-colors"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-12 h-12 rounded-xl bg-neutral-800 flex items-center justify-center border border-neutral-700 group-hover:border-brand-green/50 transition-colors">
+                                                                <UserIcon className="w-6 h-6 text-neutral-600" />
+                                                            </div>
+                                                        )}
+                                                        <div>
+                                                            <p className="font-bold text-white flex items-center gap-2 group-hover:text-brand-green transition-colors">
+                                                                {entry.full_name || entry.username}
+                                                                {i === 0 && <span className="text-[10px] px-2 py-0.5 bg-yellow-500/20 text-yellow-500 rounded-full border border-yellow-500/30 font-black tracking-tighter uppercase text-[8px]">TOP TRADER</span>}
+                                                                {entry.user_id === user?.id && <span className="text-[10px] px-2 py-0.5 bg-brand-green/20 text-brand-green rounded-full border border-brand-green/30 font-black tracking-tighter uppercase text-[8px]">YOU</span>}
+                                                            </p>
+                                                            <p className="text-xs text-neutral-500">@{entry.username}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-2xl font-mono font-bold text-white">
+                                                        ${entry.total_net_worth.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    </p>
+                                                    <div className="flex items-center gap-2 justify-end text-[10px] uppercase font-bold tracking-wider">
+                                                        <span className="text-neutral-500">Cash: <span className="text-brand-green">${entry.cash_balance.toFixed(0)}</span></span>
+                                                        <span className="w-1 h-1 bg-neutral-700 rounded-full" />
+                                                        <span className="text-neutral-500">Stocks: <span className="text-blue-400">${entry.stock_value.toFixed(0)}</span></span>
+                                                    </div>
                                                 </div>
                                             </motion.div>
                                         ))}
