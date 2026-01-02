@@ -6,11 +6,26 @@ import { supabase } from '@/services/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { RideShare } from '@/types';
 import Spinner from '@/components/Spinner';
-import Skeleton from '@/components/Skeleton';
-import { CarIcon, XCircleIcon, ChatIcon } from '@/components/icons';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+    Car,
+    MapPin,
+    Calendar,
+    Clock,
+    Users,
+    MessageCircle,
+    Edit2,
+    Trash2,
+    Plus,
+    X,
+    ChevronRight,
+    Search,
+    Info,
+    ArrowRight
+} from 'lucide-react';
 
 const RideSharePage: React.FC = () => {
     const { profile } = useAuth();
@@ -47,119 +62,162 @@ const RideSharePage: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-4">
-                {[...Array(5)].map((_, i) => (
-                    <Skeleton key={i} className="h-48 w-full rounded-2xl" />
-                ))}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+                <div className="h-48 w-full rounded-[2.5rem] bg-secondary-light/50 dark:bg-secondary/50 animate-pulse" />
+                <div className="grid grid-cols-1 gap-6">
+                    {[...Array(4)].map((_, i) => (
+                        <div key={i} className="h-40 w-full rounded-2xl bg-secondary-light/30 dark:bg-secondary/30 animate-pulse" />
+                    ))}
+                </div>
             </div>
         );
     }
-    if (error) return <div className="text-center p-8 text-red-400">Error: {error}</div>;
+
+    if (error) return (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center">
+            <div className="p-4 bg-red-500/10 rounded-full mb-4">
+                <Info className="w-12 h-12 text-red-500" />
+            </div>
+            <h2 className="text-2xl font-bold text-text-main-light dark:text-text-main mb-2">Oops! Something went wrong</h2>
+            <p className="text-text-secondary-light dark:text-text-secondary max-w-md mb-6">{error}</p>
+            <button
+                onClick={() => fetchRides()}
+                className="px-6 py-2 bg-accent-sky text-white rounded-xl font-bold hover:scale-105 transition-transform"
+            >
+                Try Again
+            </button>
+        </div>
+    );
 
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            {(isCreateModalOpen || editingRide) && profile && (
-                <RideModal
-                    campus={profile.campus!}
-                    editRide={editingRide}
-                    onClose={() => {
-                        setCreateModalOpen(false);
-                        setEditingRide(null);
-                    }}
-                    onRideCreated={fetchRides}
-                />
-            )}
+            <AnimatePresence>
+                {(isCreateModalOpen || editingRide) && profile && (
+                    <RideModal
+                        campus={profile.campus!}
+                        editRide={editingRide}
+                        onClose={() => {
+                            setCreateModalOpen(false);
+                            setEditingRide(null);
+                        }}
+                        onRideCreated={fetchRides}
+                    />
+                )}
+            </AnimatePresence>
 
-            {/* Enhanced Header with Gradient Background */}
-            <header className="mb-6 md:mb-10 relative overflow-hidden rounded-2xl bg-gradient-to-br from-accent-sky/20 via-indigo-500/10 to-transparent dark:from-accent-sky/10 dark:via-indigo-500/5 p-4 md:p-8 border border-accent-sky/20">
-                <div className="absolute top-0 right-0 w-32 h-32 md:w-64 md:h-64 bg-accent-sky/10 rounded-full blur-3xl -mr-16 -mt-16 md:-mr-32 md:-mt-32"></div>
-                <div className="absolute bottom-0 left-0 w-24 h-24 md:w-48 md:h-48 bg-accent-sky/10 rounded-full blur-3xl -ml-12 -mb-12 md:-ml-24 md:-mb-24"></div>
-                <div className="relative z-10">
-                    <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 md:gap-6">
-                        <div className="space-y-2 md:space-y-3">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 md:p-3 bg-gradient-to-br from-accent-sky to-accent-sky rounded-2xl shadow-lg">
-                                    <CarIcon className="w-6 h-6 md:w-8 md:h-8 text-white" />
-                                </div>
-                                <h1 className="text-3xl md:text-5xl font-extrabold text-text-main-light dark:text-text-main bg-gradient-to-r from-accent-sky to-accent-sky bg-clip-text text-transparent">
-                                    Ride Share
-                                </h1>
+            {/* Premium Header */}
+            <motion.header
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-10 relative overflow-hidden rounded-[2.5rem] bg-[#1d1d1b] p-8 md:p-12 border border-white/5"
+            >
+                {/* Decorative Elements */}
+                <div className="absolute top-0 right-0 w-96 h-96 bg-accent-sky/20 rounded-full blur-[100px] -mr-32 -mt-32" />
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-brand-green/10 rounded-full blur-[80px] -ml-24 -mb-24" />
+
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+                    <div className="space-y-4">
+                        <h1 className="text-4xl md:text-6xl font-black text-white tracking-tight">
+                            Ride<span className="text-accent-sky">Share</span>
+                        </h1>
+
+                        <div className="flex flex-wrap gap-4 pt-4">
+                            <div className="flex flex-col">
+                                <span className="text-2xl font-bold text-white">{rides.filter(r => r.type === 'offer').length}</span>
+                                <span className="text-xs text-gray-500 font-medium uppercase tracking-widest">Available Rides</span>
                             </div>
-                            <p className="text-sm md:text-lg text-text-secondary-light dark:text-text-secondary max-w-xl">
-                                Coordinate travel to the airport, home, or anywhere with fellow BITSians
-                            </p>
-                            <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs md:text-sm">
-                                <div className="flex items-center gap-2 bg-accent-sky/10 text-accent-sky px-3 py-1.5 rounded-full border border-accent-sky/30">
-                                    <div className="w-2 h-2 bg-accent-sky rounded-full"></div>
-                                    <span className="font-semibold">{rides.filter(r => r.type === 'offer').length} Rides Offered</span>
-                                </div>
-                                <div className="flex items-center gap-2 bg-accent-sky/10 text-accent-sky px-3 py-1.5 rounded-full border border-accent-sky/30">
-                                    <div className="w-2 h-2 bg-accent-sky rounded-full"></div>
-                                    <span className="font-semibold">{rides.filter(r => r.type === 'request').length} Rides Requested</span>
-                                </div>
+                            <div className="w-px h-10 bg-white/10" />
+                            <div className="flex flex-col">
+                                <span className="text-2xl font-bold text-white">{rides.filter(r => r.type === 'request').length}</span>
+                                <span className="text-xs text-gray-500 font-medium uppercase tracking-widest">Requests</span>
                             </div>
                         </div>
-                        <button
-                            onClick={() => setCreateModalOpen(true)}
-                            className="bg-gradient-to-r from-accent-sky to-accent-sky text-white font-bold py-3 px-6 md:py-4 md:px-8 rounded-xl hover:shadow-xl hover:scale-105 transition-all duration-200 flex items-center justify-center md:justify-start gap-2 group whitespace-nowrap w-full md:w-auto"
-                        >
-                            <span className="text-xl md:text-2xl group-hover:rotate-90 transition-transform duration-200">+</span>
-                            <span>Post a Ride</span>
-                        </button>
                     </div>
-                </div>
-            </header>
 
-            {/* Enhanced Tab Switcher */}
-            <div className="mb-8">
-                <div className="flex items-center gap-3 mb-4">
-                    <div className="h-1 w-8 md:w-12 bg-accent-sky rounded-full"></div>
-                    <h2 className="text-sm font-bold text-text-secondary-light dark:text-text-secondary uppercase tracking-wider">Browse Rides</h2>
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setCreateModalOpen(true)}
+                        className="relative group overflow-hidden bg-accent-sky text-white px-8 py-5 rounded-2xl font-black text-lg flex items-center justify-center gap-3 shadow-[0_20px_50px_rgba(14,165,233,0.3)] transition-all"
+                    >
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                        <Plus className="w-6 h-6 border-2 border-white rounded-md" />
+                        POST A RIDE
+                    </motion.button>
                 </div>
-                <div className="inline-flex gap-2 p-1.5 bg-secondary-light dark:bg-secondary rounded-xl border border-tertiary-light dark:border-tertiary w-full md:w-auto overflow-x-auto">
-                    <button
-                        onClick={() => setActiveTab('offer')}
-                        className={`flex-1 md:flex-none px-4 md:px-6 py-2 md:py-3 text-sm font-bold rounded-lg transition-all duration-200 whitespace-nowrap ${activeTab === 'offer'
-                            ? 'bg-gradient-to-r from-accent-sky to-accent-sky text-white shadow-lg'
-                            : 'text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50'
-                            }`}
-                    >
-                        🚗 From BPHC
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('request')}
-                        className={`flex-1 md:flex-none px-4 md:px-6 py-2 md:py-3 text-sm font-bold rounded-lg transition-all duration-200 whitespace-nowrap ${activeTab === 'request'
-                            ? 'bg-gradient-to-r from-accent-sky to-accent-sky text-white shadow-lg'
-                            : 'text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50'
-                            }`}
-                    >
-                        🚀 To BPHC
-                    </button>
+            </motion.header>
+
+            {/* Tab Switcher */}
+            <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="flex items-center gap-1 p-1.5 bg-secondary-light/50 dark:bg-secondary/50 backdrop-blur-md rounded-[1.25rem] border border-tertiary-light dark:border-white/5 w-fit">
+                    {(['offer', 'request'] as const).map((tab) => (
+                        <button
+                            key={tab}
+                            onClick={() => setActiveTab(tab)}
+                            className={`relative px-6 py-3 rounded-xl font-bold text-sm transition-all duration-300 flex items-center gap-2 ${activeTab === tab
+                                ? 'text-white'
+                                : 'text-text-secondary-light dark:text-text-secondary hover:text-text-main-light dark:hover:text-text-main'
+                                }`}
+                        >
+                            {activeTab === tab && (
+                                <motion.div
+                                    layoutId="activeTab"
+                                    className="absolute inset-0 bg-accent-sky rounded-xl shadow-lg"
+                                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                />
+                            )}
+                            <span className="relative z-10 flex items-center gap-2">
+                                {tab === 'offer' ? <Car className="w-4 h-4" /> : <Users className="w-4 h-4" />}
+                                {tab === 'offer' ? 'From Campus' : 'To Campus'}
+                            </span>
+                        </button>
+                    ))}
+                </div>
+
+                <div className="flex items-center gap-3 text-sm font-medium text-text-secondary-light dark:text-text-secondary">
+                    <Search className="w-4 h-4" />
+                    <span>{filteredRides.length} {activeTab === 'offer' ? 'Rides Available' : 'Ride Requests'}</span>
                 </div>
             </div>
 
-            {/* Enhanced Ride Cards */}
-            {filteredRides.length > 0 ? (
-                <div className="grid grid-cols-1 gap-5">
-                    {filteredRides.map(ride => (
-                        <RideCard
-                            key={ride.id}
-                            ride={ride}
-                            currentUserId={profile?.user_id}
-                            onEdit={() => setEditingRide(ride)}
-                            onRefresh={fetchRides}
-                        />
-                    ))}
-                </div>
-            ) : (
-                <div className="text-center py-12 md:py-24 bg-gradient-to-br from-secondary-light to-tertiary-light/30 dark:from-secondary dark:to-tertiary/30 rounded-2xl border-2 border-dashed border-tertiary-light dark:border-tertiary">
-                    <div className="inline-block p-6 bg-accent-sky/10 rounded-full mb-4">
-                        <CarIcon className="w-12 h-12 md:w-16 md:h-16 text-accent-sky opacity-50" />
-                    </div>
-                    <h3 className="text-xl md:text-2xl font-bold mb-2">No {activeTab === 'offer' ? 'ride offers' : 'ride requests'} yet</h3>
-                    <p className="text-sm md:text-base text-text-secondary-light dark:text-text-secondary">Be the first to post one!</p>
-                </div>
-            )}
+            {/* Ride Cards Grid */}
+            <AnimatePresence mode="popLayout">
+                {filteredRides.length > 0 ? (
+                    <motion.div
+                        layout
+                        className="grid grid-cols-1 gap-6"
+                    >
+                        {filteredRides.map(ride => (
+                            <RideCard
+                                key={ride.id}
+                                ride={ride}
+                                currentUserId={profile?.user_id}
+                                onEdit={() => setEditingRide(ride)}
+                                onRefresh={fetchRides}
+                            />
+                        ))}
+                    </motion.div>
+                ) : (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        className="flex flex-col items-center justify-center py-20 bg-secondary-light/30 dark:bg-secondary/30 rounded-[2.5rem] border-2 border-dashed border-tertiary-light dark:border-white/5"
+                    >
+                        <div className="w-24 h-24 bg-accent-sky/10 rounded-full flex items-center justify-center mb-6">
+                            <Search className="w-10 h-10 text-accent-sky" />
+                        </div>
+                        <h3 className="text-2xl font-bold text-text-main-light dark:text-text-main mb-2">No results found</h3>
+                        <p className="text-text-secondary-light dark:text-text-secondary mb-8">Try switching tabs or be the first to post!</p>
+                        <button
+                            onClick={() => setCreateModalOpen(true)}
+                            className="px-8 py-3 bg-white dark:bg-white/5 border border-tertiary-light dark:border-white/10 rounded-xl font-bold hover:bg-accent-sky hover:text-white hover:border-accent-sky transition-all"
+                        >
+                            Post First Ride
+                        </button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };
@@ -180,8 +238,6 @@ const RideCard: React.FC<{
         if (!confirm('Are you sure you want to cancel this ride?')) return;
         setIsDeleting(true);
         try {
-            // We'll update the status instead of deleting to keep history if needed, 
-            // but the policy allows update on own shares.
             const { error } = await supabase
                 .from('ride_shares')
                 .update({ status: 'cancelled' })
@@ -190,7 +246,6 @@ const RideCard: React.FC<{
             onRefresh();
         } catch (err) {
             console.error('Error cancelling ride:', err);
-            alert('Failed to cancel ride');
         } finally {
             setIsDeleting(false);
         }
@@ -204,16 +259,12 @@ const RideCard: React.FC<{
             const newStatus = newSeats === 0 ? 'full' : 'active';
             const { error } = await supabase
                 .from('ride_shares')
-                .update({
-                    seats: newSeats,
-                    status: newStatus
-                })
+                .update({ seats: newSeats, status: newStatus })
                 .eq('id', ride.id);
             if (error) throw error;
             onRefresh();
         } catch (err) {
             console.error('Error joining ride:', err);
-            alert('Failed to join ride');
         } finally {
             setIsJoining(false);
         }
@@ -225,140 +276,150 @@ const RideCard: React.FC<{
     const isCancelled = ride.status === 'cancelled';
 
     return (
-        <div className={`group bg-gradient-to-br from-secondary-light to-secondary-light dark:from-secondary dark:to-secondary rounded-2xl shadow-lg border border-tertiary-light dark:border-tertiary p-5 md:p-6 hover:border-accent-sky hover:shadow-2xl hover:shadow-sky-500/20 hover:-translate-y-1 transition-all duration-300 relative overflow-hidden ${isCancelled ? 'opacity-60 grayscale' : ''}`}>
-            {/* Decorative gradient overlay */}
-            {!isCancelled && (
-                <div className={`absolute top-0 right-0 w-32 h-32 ${isOffer ? 'bg-accent-sky/5' : 'bg-accent-sky/5'} rounded-full blur-2xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500`}></div>
-            )}
+        <motion.div
+            layout
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            whileHover={{ y: -4 }}
+            className={`relative group bg-secondary-light dark:bg-secondary rounded-[1.75rem] shadow-xl border border-tertiary-light dark:border-white/5 overflow-hidden transition-all duration-300 ${isCancelled ? 'opacity-60 grayscale' : ''}`}
+        >
+            {/* The "Ticket" Decorative Side */}
+            <div className={`absolute left-0 top-0 bottom-0 w-2 ${isOffer ? 'bg-brand-green' : 'bg-accent-sky'}`} />
 
-            <div className="relative z-10 flex flex-col lg:flex-row lg:items-center gap-6">
-                {/* Main Info */}
-                <div className="flex-1 space-y-4">
-                    {/* Route Display */}
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 text-xl md:text-2xl font-bold text-text-main-light dark:text-text-main">
-                        <div className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-gradient-to-r from-accent-sky/20 to-sky-500/10 rounded-xl border border-accent-sky/30 w-full sm:w-auto">
-                            <span className="text-lg md:text-xl">📍</span>
-                            <span className="truncate">{ride.origin}</span>
+            {/* Top Badge (Type) */}
+            <div className={`absolute top-0 right-10 px-4 py-1.5 rounded-b-xl text-[10px] font-black tracking-widest uppercase z-10 ${isCancelled ? 'bg-gray-500 text-white' :
+                isFull ? 'bg-red-500 text-white' :
+                    isOffer ? 'bg-brand-green text-white' : 'bg-accent-sky text-white'
+                }`}>
+                {isCancelled ? 'Cancelled' : isFull ? 'Full' : isOffer ? 'Ride Offer' : 'Ride Request'}
+            </div>
+
+            <div className="flex flex-col md:flex-row">
+                {/* Main Ticket Area */}
+                <div className="flex-1 p-6 md:p-8 space-y-6">
+                    {/* Route Section */}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                        <div className="space-y-1">
+                            <span className="text-[10px] font-bold text-text-tertiary-light dark:text-text-tertiary uppercase tracking-wider">From</span>
+                            <div className="text-xl font-black text-text-main-light dark:text-text-main flex items-center gap-2">
+                                <MapPin className="w-5 h-5 text-accent-sky" />
+                                {ride.origin}
+                            </div>
                         </div>
-                        <div className="hidden sm:block flex-shrink-0">
-                            <svg className="w-6 h-6 md:w-8 md:h-8 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                            </svg>
+
+                        <div className="flex items-center gap-2 px-4 py-1 bg-tertiary-light/50 dark:bg-white/5 rounded-full border border-tertiary-light dark:border-white/10">
+                            <ArrowRight className="w-4 h-4 text-accent-sky" />
                         </div>
-                        <div className="sm:hidden self-center transform rotate-90">
-                            <svg className="w-6 h-6 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                            </svg>
-                        </div>
-                        <div className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-gradient-to-r from-indigo-500/20 to-indigo-500/10 rounded-xl border border-accent-sky/30 w-full sm:w-auto">
-                            <span className="text-lg md:text-xl">📍</span>
-                            <span className="truncate">{ride.destination}</span>
+
+                        <div className="space-y-1">
+                            <span className="text-[10px] font-bold text-text-tertiary-light dark:text-text-tertiary uppercase tracking-wider">To</span>
+                            <div className="text-xl font-black text-text-main-light dark:text-text-main flex items-center gap-2">
+                                <MapPin className="w-5 h-5 text-brand-green" />
+                                {ride.destination}
+                            </div>
                         </div>
                     </div>
 
-                    {/* Details */}
-                    <div className="flex flex-wrap items-center gap-2 md:gap-3">
-                        <div className="flex items-center gap-2 px-2.5 py-1.5 md:px-3 md:py-2 bg-tertiary-light/60 dark:bg-tertiary/60 rounded-lg text-xs md:text-sm font-semibold text-text-secondary-light dark:text-text-secondary">
-                            <span>📅</span>
-                            <span>{format(new Date(ride.departure_time), 'MMM d, yyyy')}</span>
+                    {/* Metadata Section */}
+                    <div className="flex flex-wrap items-center gap-6">
+                        <div className="flex items-center gap-2 text-text-secondary-light dark:text-text-secondary">
+                            <Calendar className="w-4 h-4 text-accent-sky" />
+                            <span className="text-sm font-bold">{format(new Date(ride.departure_time), 'EEE, MMM d')}</span>
                         </div>
-                        <div className="flex items-center gap-2 px-2.5 py-1.5 md:px-3 md:py-2 bg-tertiary-light/60 dark:bg-tertiary/60 rounded-lg text-xs md:text-sm font-semibold text-text-secondary-light dark:text-text-secondary">
-                            <span>🕒</span>
-                            <span>{format(new Date(ride.departure_time), 'p')}</span>
+                        <div className="flex items-center gap-2 text-text-secondary-light dark:text-text-secondary">
+                            <Clock className="w-4 h-4 text-accent-sky" />
+                            <span className="text-sm font-bold">{format(new Date(ride.departure_time), 'p')}</span>
                         </div>
-                        <div className={`flex items-center gap-2 px-2.5 py-1.5 md:px-3 md:py-2 rounded-lg text-xs md:text-sm font-bold border ${isCancelled ? 'bg-gray-500/10 text-gray-400 border-gray-500/30' : isFull ? 'bg-red-500/10 text-red-400 border-red-500/30' : isOffer
-                            ? 'bg-green-500/10 text-green-400 border-green-500/30'
-                            : 'bg-blue-500/10 text-blue-400 border-blue-500/30'
-                            }`}>
-                            <span>{isFull ? '�' : '�💺'}</span>
-                            <span>
-                                {isCancelled ? 'Cancelled' : isFull ? 'Full' : `${ride.seats} ${ride.seats === 1 ? 'Seat' : 'Seats'} ${isOffer ? 'Available' : 'Needed'}`}
+                        <div className="flex items-center gap-2 text-text-secondary-light dark:text-text-secondary">
+                            <Users className="w-4 h-4 text-accent-sky" />
+                            <span className={`text-sm font-bold ${isFull ? 'text-red-500' : ''}`}>
+                                {isFull ? 'No seats left' : `${ride.seats} ${ride.seats === 1 ? 'Seat' : 'Seats'} ${isOffer ? 'Avail' : 'Needed'}`}
                             </span>
                         </div>
                     </div>
+
+                    {/* Description */}
+                    {ride.description && (
+                        <div className="p-4 bg-tertiary-light/30 dark:bg-white/[0.02] rounded-2xl border border-tertiary-light dark:border-white/5 text-sm text-text-secondary-light dark:text-text-tertiary leading-relaxed italic">
+                            &quot;{ride.description}&quot;
+                        </div>
+                    )}
                 </div>
 
-                {/* Description */}
-                {ride.description && (
-                    <div className="flex-1 min-w-0">
-                        <p className="text-sm text-text-secondary-light dark:text-text-secondary bg-tertiary-light/30 dark:bg-tertiary/30 p-3 rounded-lg border border-tertiary-light dark:border-tertiary line-clamp-3">
-                            {ride.description}
-                        </p>
-                    </div>
-                )}
+                {/* Vertical Divider (Ticket Tear Line) */}
+                <div className="hidden md:flex flex-col items-center justify-between py-2 overflow-visible">
+                    <div className="w-6 h-6 rounded-full bg-primary-light dark:bg-primary -mt-5 border border-tertiary-light dark:border-white/5 shadow-inner" />
+                    <div className="flex-1 w-px border-l-2 border-dashed border-tertiary-light dark:border-white/20" />
+                    <div className="w-6 h-6 rounded-full bg-primary-light dark:bg-primary -mb-5 border border-tertiary-light dark:border-white/5 shadow-inner" />
+                </div>
 
-                {/* User Info */}
-                <Link
-                    href={`/profile/${ride.user.username}`}
-                    className="inline-flex items-center gap-3 pt-2 group/avatar"
-                >
-                    <div className="relative">
-                        <Image
-                            src={ride.user.avatar_url || ''}
-                            alt="user"
-                            width={40}
-                            height={40}
-                            className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover ring-2 ring-tertiary-light dark:ring-tertiary group-hover/avatar:ring-sky-500 transition-all duration-200"
-                            unoptimized
-                        />
-                        <div className="absolute inset-0 rounded-full bg-accent-sky opacity-0 group-hover/avatar:opacity-20 transition-opacity duration-200"></div>
-                    </div>
-                    <div>
-                        <span className="text-sm font-bold text-text-main-light dark:text-text-main group-hover/avatar:text-accent-sky transition-colors duration-200">
-                            @{ride.user.username}
-                        </span>
-                        <p className="text-xs text-text-tertiary-light dark:text-text-tertiary">
-                            {isOwner ? 'You ' : ''}{isOffer ? 'Offering ride' : 'Looking for ride'}
-                        </p>
-                    </div>
-                </Link>
-            </div>
+                {/* Info & Side Action Area */}
+                <div className="w-full md:w-72 bg-tertiary-light/20 dark:bg-white/[0.01] p-6 md:p-8 flex flex-col justify-between items-center gap-6 text-center">
+                    <Link href={`/profile/${ride.user.username}`} className="group/avatar space-y-3 flex flex-col items-center">
+                        <div className="relative">
+                            <div className="absolute -inset-1 bg-gradient-to-br from-accent-sky to-brand-green rounded-full blur opacity-25 group-hover/avatar:opacity-75 transition duration-500" />
+                            <Image
+                                src={ride.user.avatar_url || ''}
+                                alt={ride.user.username}
+                                width={60}
+                                height={60}
+                                className="relative w-16 h-16 rounded-full object-cover border-4 border-white dark:border-[#1d1d1b] shadow-xl"
+                                unoptimized
+                            />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="font-black text-text-main-light dark:text-text-main group-hover/avatar:text-accent-sky transition-colors">@{ride.user.username}</span>
+                            <span className="text-[10px] font-bold text-text-tertiary-light dark:text-text-tertiary uppercase tracking-widest">{isOwner ? 'Your Post' : 'Traveler'}</span>
+                        </div>
+                    </Link>
 
-            {/* Actions */}
-            <div className="mt-6 flex flex-wrap gap-3">
-                {isOwner ? (
-                    <>
-                        <button
-                            onClick={onEdit}
-                            disabled={isCancelled}
-                            className="flex-1 lg:flex-none flex items-center justify-center gap-2 bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main font-bold py-2.5 px-5 rounded-xl hover:bg-tertiary-light/80 dark:hover:bg-tertiary/80 transition-all duration-200 disabled:opacity-50"
-                        >
-                            <span>✏️</span>
-                            <span>Edit</span>
-                        </button>
-                        <button
-                            onClick={handleDelete}
-                            disabled={isDeleting || isCancelled}
-                            className="flex-1 lg:flex-none flex items-center justify-center gap-2 bg-red-500/10 text-red-500 font-bold py-2.5 px-5 rounded-xl hover:bg-red-500/20 transition-all duration-200 disabled:opacity-50"
-                        >
-                            {isDeleting ? <Spinner className="h-5 w-5" /> : <span>🗑️</span>}
-                            <span>Cancel Ride</span>
-                        </button>
-                    </>
-                ) : (
-                    <>
-                        {!isCancelled && !isFull && (
-                            <button
-                                onClick={handleJoin}
-                                disabled={isJoining}
-                                className="flex-1 lg:flex-none flex items-center justify-center gap-2 bg-gradient-to-r from-brand-green to-emerald-500 text-white font-bold py-2.5 px-5 rounded-xl hover:shadow-lg hover:scale-105 transition-all duration-200 disabled:opacity-50"
-                            >
-                                {isJoining ? <Spinner className="h-5 w-5" /> : <span>🤝</span>}
-                                <span>{isOffer ? 'Join Ride' : 'Offer Ride'}</span>
-                            </button>
+                    <div className="w-full space-y-2">
+                        {isOwner ? (
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={onEdit}
+                                    disabled={isCancelled}
+                                    className="flex-1 py-3 bg-white dark:bg-white/5 hover:bg-tertiary-light dark:hover:bg-white/10 border border-tertiary-light dark:border-white/10 rounded-xl font-bold text-[10px] flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                                >
+                                    <Edit2 className="w-3 h-3" />
+                                    EDIT
+                                </button>
+                                <button
+                                    onClick={handleDelete}
+                                    disabled={isDeleting || isCancelled}
+                                    className="flex-1 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-xl font-bold text-[10px] flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                                >
+                                    {isDeleting ? <Spinner className="w-3 h-3" /> : <Trash2 className="w-3 h-3" />}
+                                    CANCEL
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col gap-2">
+                                {!isCancelled && !isFull && (
+                                    <button
+                                        onClick={handleJoin}
+                                        disabled={isJoining}
+                                        className="w-full py-3 bg-brand-green hover:bg-brand-green-darker text-white rounded-xl font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-brand-green/20 transition-all disabled:opacity-50"
+                                    >
+                                        {isJoining ? <Spinner className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                                        {isOffer ? 'JOIN RIDE' : 'OFFER RIDE'}
+                                    </button>
+                                )}
+                                <button
+                                    onClick={handleContact}
+                                    disabled={isCancelled}
+                                    className="w-full py-3 bg-accent-sky hover:bg-sky-600 text-white rounded-xl font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-accent-sky/20 transition-all disabled:opacity-50"
+                                >
+                                    <MessageCircle className="w-4 h-4" />
+                                    CONTACT
+                                </button>
+                            </div>
                         )}
-                        <button
-                            onClick={handleContact}
-                            disabled={isCancelled}
-                            className="flex-1 lg:flex-none flex items-center justify-center gap-2 bg-gradient-to-r from-accent-sky to-accent-sky text-white font-bold py-2.5 px-5 rounded-xl hover:shadow-lg hover:scale-105 transition-all duration-200 disabled:opacity-50"
-                        >
-                            <ChatIcon className="w-5 h-5" />
-                            <span>Contact</span>
-                        </button>
-                    </>
-                )}
+                    </div>
+                </div>
             </div>
-        </div>
+        </motion.div>
     );
 };
 
@@ -404,10 +465,7 @@ const RideModal: React.FC<{
             };
 
             if (editRide) {
-                const { error } = await supabase
-                    .from('ride_shares')
-                    .update(rideData)
-                    .eq('id', editRide.id);
+                const { error } = await supabase.from('ride_shares').update(rideData).eq('id', editRide.id);
                 if (error) throw error;
             } else {
                 const { error } = await supabase.from('ride_shares').insert(rideData);
@@ -417,165 +475,180 @@ const RideModal: React.FC<{
             onRideCreated();
             onClose();
         } catch (err: unknown) {
-            if (err instanceof Error) {
-                setError(err.message);
-            } else {
-                setError('An unknown error occurred.');
-            }
+            setError(err instanceof Error ? err.message : 'An unknown error occurred.');
         } finally { setIsSubmitting(false); }
     };
 
     return (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn" onClick={onClose}>
-            <div className="bg-gradient-to-br from-secondary-light to-tertiary-light/30 dark:from-secondary dark:to-tertiary/30 rounded-2xl shadow-2xl w-full max-w-lg border border-tertiary-light dark:border-tertiary animate-slideUp" onClick={e => e.stopPropagation()}>
-                <form onSubmit={handleSubmit} className="p-4 md:p-6">
-                    <header className="flex items-center justify-between pb-5 border-b border-tertiary-light dark:border-tertiary">
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4"
+            onClick={onClose}
+        >
+            <motion.div
+                initial={{ scale: 0.9, y: 20, opacity: 0 }}
+                animate={{ scale: 1, y: 0, opacity: 1 }}
+                exit={{ scale: 0.9, y: 20, opacity: 0 }}
+                className="bg-primary-light dark:bg-secondary rounded-[2.5rem] shadow-2xl w-full max-w-xl border border-tertiary-light dark:border-white/5 overflow-hidden"
+                onClick={e => e.stopPropagation()}
+            >
+                <div className="relative p-8 md:p-10">
+                    {/* Decorative Header Gradient */}
+                    <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-accent-sky via-brand-green to-accent-sky" />
+
+                    <div className="flex justify-between items-start mb-8">
                         <div>
-                            <h2 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-accent-sky to-accent-sky bg-clip-text text-transparent">
-                                {editRide ? 'Update Ride' : 'Post a Ride'}
+                            <h2 className="text-3xl font-black text-text-main-light dark:text-text-main tracking-tight">
+                                {editRide ? 'Update your trip' : 'Planning a trip?'}
                             </h2>
-                            <p className="text-sm text-text-secondary-light dark:text-text-secondary mt-1">
-                                {editRide ? 'Update your travel details' : 'Share your travel plans or find a ride'}
+                            <p className="text-text-secondary-light dark:text-text-secondary mt-1">
+                                Fill in the details to connect with others.
                             </p>
                         </div>
                         <button
-                            type="button"
                             onClick={onClose}
-                            className="hover:bg-tertiary-light dark:hover:bg-tertiary rounded-lg p-1 transition-colors"
+                            className="p-2 hover:bg-tertiary-light dark:hover:bg-white/5 rounded-full transition-colors"
                         >
-                            <XCircleIcon className="w-7 h-7 text-text-tertiary-light dark:text-text-tertiary" />
+                            <X className="w-6 h-6 text-text-tertiary-light dark:text-text-tertiary" />
                         </button>
-                    </header>
+                    </div>
 
-                    <div className="mt-6 space-y-5 max-h-[65vh] overflow-y-auto pr-2 custom-scrollbar">
-                        {/* Type Selector */}
-                        <div>
-                            <label className="block text-sm font-bold mb-2 text-text-main-light dark:text-text-main">I want to...</label>
-                            <div className="flex gap-2 p-1.5 bg-tertiary-light dark:bg-tertiary rounded-xl">
-                                <button
-                                    type="button"
-                                    onClick={() => setType('offer')}
-                                    className={`flex-1 py-2.5 md:py-3 px-4 rounded-lg font-bold text-sm transition-all duration-200 ${type === 'offer'
-                                        ? 'bg-gradient-to-r from-accent-sky to-accent-sky text-white shadow-lg'
-                                        : 'text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50'
-                                        }`}
-                                >
-                                    🚗 From Campus
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setType('request')}
-                                    className={`flex-1 py-2.5 md:py-3 px-4 rounded-lg font-bold text-sm transition-all duration-200 ${type === 'request'
-                                        ? 'bg-gradient-to-r from-accent-sky to-accent-sky text-white shadow-lg'
-                                        : 'text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50'
-                                        }`}
-                                >
-                                    🚀 To Campus
-                                </button>
-                            </div>
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        {/* Type Switcher */}
+                        <div className="grid grid-cols-2 gap-2 p-1.5 bg-tertiary-light/50 dark:bg-white/[0.03] rounded-2xl border border-tertiary-light dark:border-white/5">
+                            <button
+                                type="button"
+                                onClick={() => setType('offer')}
+                                className={`py-3 rounded-xl font-black text-[10px] tracking-widest transition-all ${type === 'offer'
+                                    ? 'bg-accent-sky text-white shadow-lg'
+                                    : 'text-text-secondary-light dark:text-text-secondary hover:text-text-main-light dark:hover:text-text-main'
+                                    }`}
+                            >
+                                OFFERING A RIDE
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setType('request')}
+                                className={`py-3 rounded-xl font-black text-[10px] tracking-widest transition-all ${type === 'request'
+                                    ? 'bg-accent-sky text-white shadow-lg'
+                                    : 'text-text-secondary-light dark:text-text-secondary hover:text-text-main-light dark:hover:text-text-main'
+                                    }`}
+                            >
+                                REQUESTING A RIDE
+                            </button>
                         </div>
 
-                        {/* Route */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-bold mb-2 text-text-main-light dark:text-text-main">From</label>
-                                <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg"></span>
+                        {/* Origin & Destination */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-text-tertiary-light dark:text-text-tertiary uppercase tracking-widest pl-1">From</label>
+                                <div className="relative group">
+                                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-accent-sky" />
                                     <input
                                         type="text"
                                         value={origin}
                                         onChange={e => setOrigin(e.target.value)}
+                                        placeholder="Start location"
+                                        className="w-full pl-12 pr-4 py-4 bg-tertiary-light/30 dark:bg-white/[0.02] border border-tertiary-light dark:border-white/5 rounded-2xl focus:border-accent-sky focus:ring-4 focus:ring-accent-sky/10 transition-all outline-none font-medium"
                                         required
-                                        placeholder="Start Location"
-                                        className="w-full pl-10 pr-3 py-3 bg-tertiary-light dark:bg-tertiary rounded-xl border-2 border-tertiary-light dark:border-gray-600 focus:border-accent-sky focus:ring-2 focus:ring-sky-500/20 transition-all outline-none"
                                     />
                                 </div>
                             </div>
-                            <div>
-                                <label className="block text-sm font-bold mb-2 text-text-main-light dark:text-text-main">To</label>
-                                <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg"></span>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-text-tertiary-light dark:text-text-tertiary uppercase tracking-widest pl-1">To</label>
+                                <div className="relative group">
+                                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-green" />
                                     <input
                                         type="text"
                                         value={destination}
                                         onChange={e => setDestination(e.target.value)}
-                                        required
                                         placeholder="Destination"
-                                        className="w-full pl-10 pr-3 py-3 bg-tertiary-light dark:bg-tertiary rounded-xl border-2 border-tertiary-light dark:border-gray-600 focus:border-accent-sky focus:ring-2 focus:ring-sky-500/20 transition-all outline-none"
+                                        className="w-full pl-12 pr-4 py-4 bg-tertiary-light/30 dark:bg-white/[0.02] border border-tertiary-light dark:border-white/5 rounded-2xl focus:border-brand-green focus:ring-4 focus:ring-brand-green/10 transition-all outline-none font-medium"
+                                        required
                                     />
                                 </div>
                             </div>
                         </div>
 
-                        {/* Date/Time and Seats */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-bold mb-2 text-text-main-light dark:text-text-main">Departure</label>
-                                <input
-                                    type="datetime-local"
-                                    value={departureTime}
-                                    onChange={e => setDepartureTime(e.target.value)}
-                                    required
-                                    className="w-full p-3 bg-tertiary-light dark:bg-tertiary rounded-xl border-2 border-tertiary-light dark:border-gray-600 focus:border-accent-sky focus:ring-2 focus:ring-sky-500/20 transition-all outline-none"
-                                />
+                        {/* Time & Seats */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-text-tertiary-light dark:text-text-tertiary uppercase tracking-widest pl-1">Departure</label>
+                                <div className="relative group">
+                                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-accent-sky pointer-events-none" />
+                                    <input
+                                        type="datetime-local"
+                                        value={departureTime}
+                                        onChange={e => setDepartureTime(e.target.value)}
+                                        className="w-full pl-12 pr-4 py-4 bg-tertiary-light/30 dark:bg-white/[0.02] border border-tertiary-light dark:border-white/5 rounded-2xl focus:border-accent-sky focus:ring-4 focus:ring-accent-sky/10 transition-all outline-none font-medium text-sm"
+                                        required
+                                    />
+                                </div>
                             </div>
-                            <div>
-                                <label className="block text-sm font-bold mb-2 text-text-main-light dark:text-text-main">
-                                    {type === 'offer' ? 'Seats Available' : 'Seats Needed'}
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-text-tertiary-light dark:text-text-tertiary uppercase tracking-widest pl-1">
+                                    {type === 'offer' ? 'Available Seats' : 'Seats Required'}
                                 </label>
-                                <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg">💺</span>
+                                <div className="relative group">
+                                    <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-accent-sky" />
                                     <input
                                         type="number"
-                                        value={seats}
-                                        onChange={e => setSeats(parseInt(e.target.value, 10))}
-                                        required
                                         min="1"
-                                        max="8"
-                                        className="w-full pl-10 pr-3 py-3 bg-tertiary-light dark:bg-tertiary rounded-xl border-2 border-tertiary-light dark:border-gray-600 focus:border-accent-sky focus:ring-2 focus:ring-sky-500/20 transition-all outline-none"
+                                        max="10"
+                                        value={seats}
+                                        onChange={e => setSeats(parseInt(e.target.value))}
+                                        className="w-full pl-12 pr-4 py-4 bg-tertiary-light/30 dark:bg-white/[0.02] border border-tertiary-light dark:border-white/5 rounded-2xl focus:border-accent-sky focus:ring-4 focus:ring-accent-sky/10 transition-all outline-none font-medium"
+                                        required
                                     />
                                 </div>
                             </div>
                         </div>
 
-                        {/* Description */}
-                        <div>
-                            <label className="block text-sm font-bold mb-2 text-text-main-light dark:text-text-main">Additional Details</label>
+                        {/* Details */}
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-text-tertiary-light dark:text-text-tertiary uppercase tracking-widest pl-1">Notes</label>
                             <textarea
                                 value={description}
                                 onChange={e => setDescription(e.target.value)}
-                                rows={4}
-                                placeholder="e.g., Only one small bag allowed, cost sharing details, meeting point, etc."
-                                className="w-full p-3 bg-tertiary-light dark:bg-tertiary rounded-xl border-2 border-tertiary-light dark:border-gray-600 focus:border-accent-sky focus:ring-2 focus:ring-sky-500/20 transition-all outline-none resize-none"
+                                placeholder="Meeting point, luggage info, cost sharing expectation..."
+                                rows={3}
+                                className="w-full p-4 bg-tertiary-light/30 dark:bg-white/[0.02] border border-tertiary-light dark:border-white/5 rounded-2xl focus:border-accent-sky focus:ring-4 focus:ring-accent-sky/10 transition-all outline-none font-medium resize-none"
                             />
                         </div>
-                    </div>
 
-                    {error && (
-                        <p className="text-red-400 text-sm mt-4 p-3 bg-red-500/10 rounded-lg border border-red-500/30">
-                            {error}
-                        </p>
-                    )}
+                        {error && (
+                            <motion.p
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 text-sm font-bold flex items-center gap-2"
+                            >
+                                <Info className="w-4 h-4" />
+                                {error}
+                            </motion.p>
+                        )}
 
-                    <footer className="flex justify-end space-x-3 pt-6 mt-6 border-t border-tertiary-light dark:border-tertiary">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="py-2.5 px-6 rounded-xl font-semibold hover:bg-tertiary-light dark:hover:bg-tertiary transition-all"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={isSubmitting}
-                            className="py-2.5 px-8 rounded-xl font-bold text-white bg-gradient-to-r from-accent-sky to-accent-sky hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
-                        >
-                            {isSubmitting ? <Spinner className="h-5 w-5" /> : (editRide ? 'Update Ride' : 'Post Ride')}
-                        </button>
-                    </footer>
-                </form>
-            </div>
-        </div>
+                        <div className="flex gap-4 pt-4">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="flex-1 py-4 px-6 border border-tertiary-light dark:border-white/10 rounded-2xl font-black text-[10px] hover:bg-tertiary-light dark:hover:bg-white/5 transition-all uppercase tracking-widest"
+                            >
+                                GO BACK
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={isSubmitting}
+                                className="flex-[2] py-4 px-6 bg-accent-sky text-white rounded-2xl font-black text-[10px] shadow-xl shadow-accent-sky/30 hover:shadow-accent-sky/40 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 uppercase tracking-widest disabled:opacity-50"
+                            >
+                                {isSubmitting ? <Spinner className="w-5 h-5" /> : (editRide ? 'UPDATE TRIP' : 'POST TRIP')}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </motion.div>
+        </motion.div>
     );
 };
 
