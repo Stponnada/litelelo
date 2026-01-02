@@ -19,6 +19,7 @@ const RideSharePage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'offer' | 'request'>('offer');
     const [isCreateModalOpen, setCreateModalOpen] = useState(false);
+    const [editingRide, setEditingRide] = useState<RideShare | null>(null);
 
     const fetchRides = useCallback(async () => {
         if (!profile?.campus) return;
@@ -57,8 +58,16 @@ const RideSharePage: React.FC = () => {
 
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            {isCreateModalOpen && profile && (
-                <CreateRideModal campus={profile.campus!} onClose={() => setCreateModalOpen(false)} onRideCreated={fetchRides} />
+            {(isCreateModalOpen || editingRide) && profile && (
+                <RideModal
+                    campus={profile.campus!}
+                    editRide={editingRide}
+                    onClose={() => {
+                        setCreateModalOpen(false);
+                        setEditingRide(null);
+                    }}
+                    onRideCreated={fetchRides}
+                />
             )}
 
             {/* Enhanced Header with Gradient Background */}
@@ -132,7 +141,15 @@ const RideSharePage: React.FC = () => {
             {/* Enhanced Ride Cards */}
             {filteredRides.length > 0 ? (
                 <div className="grid grid-cols-1 gap-5">
-                    {filteredRides.map(ride => <RideCard key={ride.id} ride={ride} />)}
+                    {filteredRides.map(ride => (
+                        <RideCard
+                            key={ride.id}
+                            ride={ride}
+                            currentUserId={profile?.user_id}
+                            onEdit={() => setEditingRide(ride)}
+                            onRefresh={fetchRides}
+                        />
+                    ))}
                 </div>
             ) : (
                 <div className="text-center py-12 md:py-24 bg-gradient-to-br from-secondary-light to-tertiary-light/30 dark:from-secondary dark:to-tertiary/30 rounded-2xl border-2 border-dashed border-tertiary-light dark:border-tertiary">
@@ -147,16 +164,72 @@ const RideSharePage: React.FC = () => {
     );
 };
 
-const RideCard: React.FC<{ ride: RideShare }> = ({ ride }) => {
+const RideCard: React.FC<{
+    ride: RideShare;
+    currentUserId?: string;
+    onEdit: () => void;
+    onRefresh: () => void;
+}> = ({ ride, currentUserId, onEdit, onRefresh }) => {
     const router = useRouter();
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [isJoining, setIsJoining] = useState(false);
+
     const handleContact = () => router.push(`/chat?recipient=${ride.user.user_id}`);
 
+    const handleDelete = async () => {
+        if (!confirm('Are you sure you want to cancel this ride?')) return;
+        setIsDeleting(true);
+        try {
+            // We'll update the status instead of deleting to keep history if needed, 
+            // but the policy allows update on own shares.
+            const { error } = await supabase
+                .from('ride_shares')
+                .update({ status: 'cancelled' })
+                .eq('id', ride.id);
+            if (error) throw error;
+            onRefresh();
+        } catch (err) {
+            console.error('Error cancelling ride:', err);
+            alert('Failed to cancel ride');
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    const handleJoin = async () => {
+        if (ride.seats <= 0) return;
+        setIsJoining(true);
+        try {
+            const newSeats = ride.seats - 1;
+            const newStatus = newSeats === 0 ? 'full' : 'active';
+            const { error } = await supabase
+                .from('ride_shares')
+                .update({
+                    seats: newSeats,
+                    status: newStatus
+                })
+                .eq('id', ride.id);
+            if (error) throw error;
+            onRefresh();
+        } catch (err) {
+            console.error('Error joining ride:', err);
+            alert('Failed to join ride');
+        } finally {
+            setIsJoining(false);
+        }
+    };
+
     const isOffer = ride.type === 'offer';
+    const isOwner = currentUserId === ride.user.user_id;
+    const isFull = ride.status === 'full' || ride.seats <= 0;
+    const isCancelled = ride.status === 'cancelled';
 
     return (
-        <div className="group bg-gradient-to-br from-secondary-light to-secondary-light dark:from-secondary dark:to-secondary rounded-2xl shadow-lg border border-tertiary-light dark:border-tertiary p-5 md:p-6 hover:border-accent-sky hover:shadow-2xl hover:shadow-sky-500/20 hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
+        <div className={`group bg-gradient-to-br from-secondary-light to-secondary-light dark:from-secondary dark:to-secondary rounded-2xl shadow-lg border border-tertiary-light dark:border-tertiary p-5 md:p-6 hover:border-accent-sky hover:shadow-2xl hover:shadow-sky-500/20 hover:-translate-y-1 transition-all duration-300 relative overflow-hidden ${isCancelled ? 'opacity-60 grayscale' : ''}`}>
             {/* Decorative gradient overlay */}
-            <div className={`absolute top-0 right-0 w-32 h-32 ${isOffer ? 'bg-accent-sky/5' : 'bg-accent-sky/5'} rounded-full blur-2xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500`}></div>
+            {!isCancelled && (
+                <div className={`absolute top-0 right-0 w-32 h-32 ${isOffer ? 'bg-accent-sky/5' : 'bg-accent-sky/5'} rounded-full blur-2xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500`}></div>
+            )}
 
             <div className="relative z-10 flex flex-col lg:flex-row lg:items-center gap-6">
                 {/* Main Info */}
@@ -178,7 +251,7 @@ const RideCard: React.FC<{ ride: RideShare }> = ({ ride }) => {
                             </svg>
                         </div>
                         <div className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-gradient-to-r from-indigo-500/20 to-indigo-500/10 rounded-xl border border-accent-sky/30 w-full sm:w-auto">
-                            <span className="text-lg md:text-xl"></span>
+                            <span className="text-lg md:text-xl">📍</span>
                             <span className="truncate">{ride.destination}</span>
                         </div>
                     </div>
@@ -193,21 +266,25 @@ const RideCard: React.FC<{ ride: RideShare }> = ({ ride }) => {
                             <span>🕒</span>
                             <span>{format(new Date(ride.departure_time), 'p')}</span>
                         </div>
-                        <div className={`flex items-center gap-2 px-2.5 py-1.5 md:px-3 md:py-2 rounded-lg text-xs md:text-sm font-bold border ${isOffer
+                        <div className={`flex items-center gap-2 px-2.5 py-1.5 md:px-3 md:py-2 rounded-lg text-xs md:text-sm font-bold border ${isCancelled ? 'bg-gray-500/10 text-gray-400 border-gray-500/30' : isFull ? 'bg-red-500/10 text-red-400 border-red-500/30' : isOffer
                             ? 'bg-green-500/10 text-green-400 border-green-500/30'
                             : 'bg-blue-500/10 text-blue-400 border-blue-500/30'
                             }`}>
-                            <span>💺</span>
-                            <span>{ride.seats} {ride.seats === 1 ? 'Seat' : 'Seats'} {isOffer ? 'Available' : 'Needed'}</span>
+                            <span>{isFull ? '�' : '�💺'}</span>
+                            <span>
+                                {isCancelled ? 'Cancelled' : isFull ? 'Full' : `${ride.seats} ${ride.seats === 1 ? 'Seat' : 'Seats'} ${isOffer ? 'Available' : 'Needed'}`}
+                            </span>
                         </div>
                     </div>
                 </div>
 
                 {/* Description */}
                 {ride.description && (
-                    <p className="text-sm text-text-secondary-light dark:text-text-secondary bg-tertiary-light/30 dark:bg-tertiary/30 p-3 rounded-lg border border-tertiary-light dark:border-tertiary">
-                        {ride.description}
-                    </p>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm text-text-secondary-light dark:text-text-secondary bg-tertiary-light/30 dark:bg-tertiary/30 p-3 rounded-lg border border-tertiary-light dark:border-tertiary line-clamp-3">
+                            {ride.description}
+                        </p>
+                    </div>
                 )}
 
                 {/* User Info */}
@@ -231,46 +308,87 @@ const RideCard: React.FC<{ ride: RideShare }> = ({ ride }) => {
                             @{ride.user.username}
                         </span>
                         <p className="text-xs text-text-tertiary-light dark:text-text-tertiary">
-                            {isOffer ? 'Offering ride' : 'Looking for ride'}
+                            {isOwner ? 'You ' : ''}{isOffer ? 'Offering ride' : 'Looking for ride'}
                         </p>
                     </div>
                 </Link>
             </div>
 
-            {/* Contact Button */}
-            <div className="lg:flex-shrink-0">
-                <button
-                    onClick={handleContact}
-                    className="w-full lg:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-accent-sky to-accent-sky text-white font-bold py-2.5 px-5 md:py-3 md:px-6 rounded-xl hover:shadow-lg hover:scale-105 transition-all duration-200"
-                >
-                    <ChatIcon className="w-5 h-5" />
-                    <span>Contact</span>
-                </button>
+            {/* Actions */}
+            <div className="mt-6 flex flex-wrap gap-3">
+                {isOwner ? (
+                    <>
+                        <button
+                            onClick={onEdit}
+                            disabled={isCancelled}
+                            className="flex-1 lg:flex-none flex items-center justify-center gap-2 bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main font-bold py-2.5 px-5 rounded-xl hover:bg-tertiary-light/80 dark:hover:bg-tertiary/80 transition-all duration-200 disabled:opacity-50"
+                        >
+                            <span>✏️</span>
+                            <span>Edit</span>
+                        </button>
+                        <button
+                            onClick={handleDelete}
+                            disabled={isDeleting || isCancelled}
+                            className="flex-1 lg:flex-none flex items-center justify-center gap-2 bg-red-500/10 text-red-500 font-bold py-2.5 px-5 rounded-xl hover:bg-red-500/20 transition-all duration-200 disabled:opacity-50"
+                        >
+                            {isDeleting ? <Spinner className="h-5 w-5" /> : <span>🗑️</span>}
+                            <span>Cancel Ride</span>
+                        </button>
+                    </>
+                ) : (
+                    <>
+                        {!isCancelled && !isFull && (
+                            <button
+                                onClick={handleJoin}
+                                disabled={isJoining}
+                                className="flex-1 lg:flex-none flex items-center justify-center gap-2 bg-gradient-to-r from-brand-green to-emerald-500 text-white font-bold py-2.5 px-5 rounded-xl hover:shadow-lg hover:scale-105 transition-all duration-200 disabled:opacity-50"
+                            >
+                                {isJoining ? <Spinner className="h-5 w-5" /> : <span>🤝</span>}
+                                <span>{isOffer ? 'Join Ride' : 'Offer Ride'}</span>
+                            </button>
+                        )}
+                        <button
+                            onClick={handleContact}
+                            disabled={isCancelled}
+                            className="flex-1 lg:flex-none flex items-center justify-center gap-2 bg-gradient-to-r from-accent-sky to-accent-sky text-white font-bold py-2.5 px-5 rounded-xl hover:shadow-lg hover:scale-105 transition-all duration-200 disabled:opacity-50"
+                        >
+                            <ChatIcon className="w-5 h-5" />
+                            <span>Contact</span>
+                        </button>
+                    </>
+                )}
             </div>
         </div>
     );
 };
 
-const CreateRideModal: React.FC<{ campus: string; onClose: () => void; onRideCreated: () => void; }> = ({ campus, onClose, onRideCreated }) => {
+const RideModal: React.FC<{
+    campus: string;
+    editRide?: RideShare | null;
+    onClose: () => void;
+    onRideCreated: () => void;
+}> = ({ campus, editRide, onClose, onRideCreated }) => {
     const { user } = useAuth();
-    const [type, setType] = useState<'offer' | 'request'>('offer');
-    const [origin, setOrigin] = useState(type === 'offer' ? campus : '');
-    const [destination, setDestination] = useState(type === 'request' ? campus : '');
-    const [departureTime, setDepartureTime] = useState('');
-    const [seats, setSeats] = useState(1);
-    const [description, setDescription] = useState('');
+    const [type, setType] = useState<'offer' | 'request'>(editRide?.type || 'offer');
+    const [origin, setOrigin] = useState(editRide?.origin || (type === 'offer' ? campus : ''));
+    const [destination, setDestination] = useState(editRide?.destination || (type === 'request' ? campus : ''));
+    const [departureTime, setDepartureTime] = useState(editRide ? format(new Date(editRide.departure_time), "yyyy-MM-dd'T'HH:mm") : '');
+    const [seats, setSeats] = useState(editRide?.seats || 1);
+    const [description, setDescription] = useState(editRide?.description || '');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
 
     useEffect(() => {
-        if (type === 'offer') {
-            setOrigin(campus);
-            setDestination('');
-        } else {
-            setOrigin('');
-            setDestination(campus);
+        if (!editRide) {
+            if (type === 'offer') {
+                setOrigin(campus);
+                setDestination('');
+            } else {
+                setOrigin('');
+                setDestination(campus);
+            }
         }
-    }, [type, campus]);
+    }, [type, campus, editRide]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -279,11 +397,23 @@ const CreateRideModal: React.FC<{ campus: string; onClose: () => void; onRideCre
         }
         setIsSubmitting(true);
         try {
-            const { error } = await supabase.from('ride_shares').insert({
+            const rideData = {
                 user_id: user.id, campus, type, origin, destination,
                 departure_time: new Date(departureTime).toISOString(), seats, description,
-            });
-            if (error) throw error;
+                status: editRide?.status || 'active'
+            };
+
+            if (editRide) {
+                const { error } = await supabase
+                    .from('ride_shares')
+                    .update(rideData)
+                    .eq('id', editRide.id);
+                if (error) throw error;
+            } else {
+                const { error } = await supabase.from('ride_shares').insert(rideData);
+                if (error) throw error;
+            }
+
             onRideCreated();
             onClose();
         } catch (err: unknown) {
@@ -302,10 +432,10 @@ const CreateRideModal: React.FC<{ campus: string; onClose: () => void; onRideCre
                     <header className="flex items-center justify-between pb-5 border-b border-tertiary-light dark:border-tertiary">
                         <div>
                             <h2 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-accent-sky to-accent-sky bg-clip-text text-transparent">
-                                Post a Ride
+                                {editRide ? 'Update Ride' : 'Post a Ride'}
                             </h2>
                             <p className="text-sm text-text-secondary-light dark:text-text-secondary mt-1">
-                                Share your travel plans or find a ride
+                                {editRide ? 'Update your travel details' : 'Share your travel plans or find a ride'}
                             </p>
                         </div>
                         <button
@@ -330,7 +460,7 @@ const CreateRideModal: React.FC<{ campus: string; onClose: () => void; onRideCre
                                         : 'text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50'
                                         }`}
                                 >
-                                    🚗 From BPHC
+                                    🚗 From Campus
                                 </button>
                                 <button
                                     type="button"
@@ -340,7 +470,7 @@ const CreateRideModal: React.FC<{ campus: string; onClose: () => void; onRideCre
                                         : 'text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/50 dark:hover:bg-tertiary/50'
                                         }`}
                                 >
-                                    🚀 To BPHC
+                                    🚀 To Campus
                                 </button>
                             </div>
                         </div>
@@ -440,7 +570,7 @@ const CreateRideModal: React.FC<{ campus: string; onClose: () => void; onRideCre
                             disabled={isSubmitting}
                             className="py-2.5 px-8 rounded-xl font-bold text-white bg-gradient-to-r from-accent-sky to-accent-sky hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
                         >
-                            {isSubmitting ? <Spinner /> : 'Post Ride'}
+                            {isSubmitting ? <Spinner className="h-5 w-5" /> : (editRide ? 'Update Ride' : 'Post Ride')}
                         </button>
                     </footer>
                 </form>
