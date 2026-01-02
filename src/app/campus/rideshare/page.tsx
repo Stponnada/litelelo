@@ -254,22 +254,33 @@ const RideCard: React.FC<{ ride: RideShare }> = ({ ride }) => {
 const CreateRideModal: React.FC<{ campus: string; onClose: () => void; onRideCreated: () => void; }> = ({ campus, onClose, onRideCreated }) => {
     const { user } = useAuth();
     const [type, setType] = useState<'offer' | 'request'>('offer');
-    const [destination, setDestination] = useState('');
+    const [origin, setOrigin] = useState(type === 'offer' ? campus : '');
+    const [destination, setDestination] = useState(type === 'request' ? campus : '');
     const [departureTime, setDepartureTime] = useState('');
     const [seats, setSeats] = useState(1);
     const [description, setDescription] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
 
+    useEffect(() => {
+        if (type === 'offer') {
+            setOrigin(campus);
+            setDestination('');
+        } else {
+            setOrigin('');
+            setDestination(campus);
+        }
+    }, [type, campus]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!user || !destination || !departureTime || seats < 1) {
+        if (!user || !origin || !destination || !departureTime || seats < 1) {
             setError('Please fill all required fields.'); return;
         }
         setIsSubmitting(true);
         try {
             const { error } = await supabase.from('ride_shares').insert({
-                user_id: user.id, campus, type, origin: campus, destination,
+                user_id: user.id, campus, type, origin, destination,
                 departure_time: new Date(departureTime).toISOString(), seats, description,
             });
             if (error) throw error;
@@ -342,8 +353,8 @@ const CreateRideModal: React.FC<{ campus: string; onClose: () => void; onRideCre
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg"></span>
                                     <input
                                         type="text"
-                                        value={destination}
-                                        onChange={e => setDestination(e.target.value)}
+                                        value={origin}
+                                        onChange={e => setOrigin(e.target.value)}
                                         required
                                         placeholder="Start Location"
                                         className="w-full pl-10 pr-3 py-3 bg-tertiary-light dark:bg-tertiary rounded-xl border-2 border-tertiary-light dark:border-gray-600 focus:border-accent-sky focus:ring-2 focus:ring-sky-500/20 transition-all outline-none"
@@ -380,7 +391,7 @@ const CreateRideModal: React.FC<{ campus: string; onClose: () => void; onRideCre
                             </div>
                             <div>
                                 <label className="block text-sm font-bold mb-2 text-text-main-light dark:text-text-main">
-                                    {type === 'offer' ? 'Seats Available' : 'Seats Available'}
+                                    {type === 'offer' ? 'Seats Available' : 'Seats Needed'}
                                 </label>
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg">💺</span>
