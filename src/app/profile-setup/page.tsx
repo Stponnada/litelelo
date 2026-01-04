@@ -52,6 +52,9 @@ const ProfileSetup: React.FC = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [currentStep, setCurrentStep] = useState(1);
+    const [isUsernameAvailable, setIsUsernameAvailable] = useState<boolean | null>(null);
+    const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+
 
     useEffect(() => {
         if (user?.email) {
@@ -111,6 +114,56 @@ const ProfileSetup: React.FC = () => {
             setFormData(prev => ({ ...prev, dining_hall: '' }));
         }
     }, [formData.campus]);
+
+    useEffect(() => {
+        const checkUsername = async () => {
+            if (!formData.username || formData.username.length < 3) {
+                setIsUsernameAvailable(null);
+                return;
+            }
+
+            // Only allow alphanumeric, underscores and dots
+            const usernameRegex = /^[a-zA-Z0-9_.]+$/;
+            if (!usernameRegex.test(formData.username)) {
+                setIsUsernameAvailable(false);
+                return;
+            }
+
+            setIsCheckingUsername(true);
+            try {
+                const { data, error: fetchError } = await supabase
+                    .from('profiles')
+                    .select('user_id')
+                    .eq('username', formData.username)
+                    .maybeSingle();
+
+                if (fetchError) throw fetchError;
+
+                if (data) {
+                    // Username exists. Check if it's the current user's.
+                    if (data.user_id === user?.id) {
+                        setIsUsernameAvailable(true); // It's mine
+                    } else {
+                        setIsUsernameAvailable(false); // Taken by someone else
+                    }
+                } else {
+                    setIsUsernameAvailable(true); // Not taken
+                }
+            } catch (err) {
+                console.error('Error checking username:', err);
+                // Don't set null here, just leave it as is
+            } finally {
+                setIsCheckingUsername(false);
+            }
+        };
+
+        const timer = setTimeout(() => {
+            checkUsername();
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [formData.username, user?.id]);
+
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -183,19 +236,31 @@ const ProfileSetup: React.FC = () => {
                 .select()
                 .single();
 
-            if (updateError) throw updateError;
+            if (updateError) {
+                if (updateError.code === '23505') {
+                    setError('This username is already taken. Please choose another one.');
+                    setIsSaving(false);
+                    return;
+                }
+                throw updateError;
+            }
+
 
             // REMOVED: await getKeyPair();
 
             updateProfileContext(updatedProfile);
 
             router.push('/welcome');
-        } catch (err: unknown) {
-            if (err instanceof Error) {
+        } catch (err: any) {
+            console.error('Error saving profile:', err);
+            if (err.code === '23505') {
+                setError('This username is already taken. Please choose another one.');
+            } else if (err.message) {
                 setError(err.message);
             } else {
                 setError('An unknown error occurred.');
             }
+
         } finally {
             setIsSaving(false);
         }
@@ -341,6 +406,29 @@ const ProfileSetup: React.FC = () => {
                                         className="w-full p-4 bg-tertiary-light dark:bg-tertiary border-2 border-transparent focus:border-brand-green rounded-xl text-text-main-light dark:text-text-main transition-all duration-300 outline-none"
                                         placeholder="Choose a unique username"
                                     />
+                                    {formData.username.length > 0 && (
+                                        <div className="mt-2 text-sm px-1 transition-all duration-300">
+                                            {formData.username.length < 3 ? (
+                                                <span className="text-text-tertiary-light dark:text-text-tertiary">Username must be at least 3 characters</span>
+                                            ) : !/^[a-zA-Z0-9_.]+$/.test(formData.username) ? (
+                                                <span className="text-red-500">Only letters, numbers, dots and underscores allowed</span>
+                                            ) : isCheckingUsername ? (
+                                                <span className="text-text-tertiary-light dark:text-text-tertiary flex items-center gap-2">
+                                                    <div className="w-3 h-3 border-2 border-brand-green border-t-transparent rounded-full animate-spin"></div>
+                                                    Checking availability...
+                                                </span>
+                                            ) : isUsernameAvailable === true ? (
+                                                <span className="text-brand-green flex items-center gap-1 font-medium italic">
+                                                    <span className="text-lg">✨</span> Username available!
+                                                </span>
+                                            ) : isUsernameAvailable === false ? (
+                                                <span className="text-red-500 flex items-center gap-1 font-medium">
+                                                    <span className="text-lg">⚠️</span> This username is unavailable or invalid
+                                                </span>
+                                            ) : null}
+                                        </div>
+                                    )}
+
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -613,9 +701,10 @@ const ProfileSetup: React.FC = () => {
                                     </button>
                                     <button
                                         type="submit"
-                                        disabled={isSaving || !formData.campus || !formData.full_name || !formData.username}
+                                        disabled={isSaving || !formData.campus || !formData.full_name || !formData.username || isUsernameAvailable === false}
                                         className="px-8 py-3 bg-gradient-to-r from-brand-green to-emerald-400 hover:from-brand-green-darker hover:to-emerald-500 text-black font-bold rounded-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center gap-2"
                                     >
+
                                         {isSaving ? (
                                             <>
                                                 <Spinner />

@@ -427,7 +427,7 @@ const CampusPage: React.FC = () => {
 
                             {/* 6. Handouts for you (Indigo Theme) */}
                             <ExternalToolCard
-                                href="https://h4u.app/"
+                                href="https://h4u.app/?utm_source=litelelo"
                                 icon={HandoutIcon}
                                 title="h4u."
                                 desc="Study Material"
@@ -438,7 +438,7 @@ const CampusPage: React.FC = () => {
 
                             {/* 7. QuietSpace (Lime/Fuchsia Theme) */}
                             <ExternalToolCard
-                                href="https://quietspace-mu.vercel.app/"
+                                href="https://quietspace-mu.vercel.app/?utm_source=litelelo"
                                 icon={SpaceInvaderIcon}
                                 title={<>QUIET<br />SPACE</>}
                                 desc="Empty Rooms"
@@ -449,7 +449,7 @@ const CampusPage: React.FC = () => {
 
                             {/* 8. Campus 101 (Teal Theme) */}
                             <ExternalToolCard
-                                href="https://campus101-sable.vercel.app/"
+                                href="https://campus101-sable.vercel.app/?utm_source=litelelo"
                                 icon={BuildingLibraryIcon}
                                 title={<>CAMPUS<br />101</>}
                                 desc="Campus Guide"
