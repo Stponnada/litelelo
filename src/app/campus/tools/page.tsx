@@ -50,7 +50,7 @@ const tools: Tool[] = [
     {
         name: "Logged In.",
         description: "A Chrome Web-Extension that logs you in to BITS Wifi Automatically every time",
-        url: "https://campus101-sable.vercel.app/",
+        url: "https://chromewebstore.google.com/detail/loggedin/ilfifcjoopoddgiienpaeibdfllennal?hl=en",
         icon: "L",
         color: "text-blue-300",
         bg: "bg-blue-300/10",

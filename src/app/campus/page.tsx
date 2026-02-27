@@ -402,7 +402,7 @@ const ExplorePage: React.FC = () => {
                 <section className="mb-14">
                     <SectionHeader
                         icon={<CubeIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />}
-                        title="Student Tools"
+                        title="Built @ BITS"
                         subtitle="Built by the community"
                         href="/campus/tools"
                         accentColor="bg-blue-500/10"
