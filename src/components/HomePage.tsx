@@ -9,13 +9,13 @@ import { Profile, Post as PostType, CampusEvent, MarketplaceListing, LostAndFoun
 import Spinner from './Spinner';
 import LightBox from './lightbox';
 import PostSkeleton from './PostSkeleton';
-import { XCircleIcon, PencilIcon, UserGroupIcon, CubeIcon, UserIcon } from './icons';
+import { XCircleIcon, PencilIcon, UserGroupIcon, UserIcon } from './icons';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Skeleton from './Skeleton';
 import FollowSuggestions from './FollowSuggestions';
-import GlobalSearchBar from './GlobalSearchBar';
+
 import ListingCard from './ListingCard';
 import EventCard from './EventCard';
 import ListingDetailModal from './ListingDetailModal';
@@ -90,7 +90,7 @@ const ProfileCard: React.FC<{ profile: Profile }> = ({ profile }) => (
 
 const CommunitiesWidget: React.FC = () => { const { user } = useAuth(); const [communities, setCommunities] = useState<{ id: string; name: string; avatar_url: string | null }[]>([]); useEffect(() => { if (!user) return; const fetchCommunities = async () => { try { const response = await fetch(`/api/communities/for-user/${user.id}`); const data = await response.json(); if (response.ok) setCommunities(data); else { /* Fallback */ const { data: directData } = await supabase.rpc('get_communities_for_user', { p_user_id: user.id }).limit(5); if (directData) setCommunities(directData); } } catch (e) { console.error("Failed to fetch communities cache:", e); } }; fetchCommunities(); }, [user]); return (<div className="bg-secondary-light/70 dark:bg-secondary/70 backdrop-blur-xl rounded-xl border border-tertiary-light/50 dark:border-white/5 p-4 shadow-sm"> <div className="flex items-center justify-between mb-3"> <h3 className="font-bold text-sm text-text-main-light dark:text-text-main">Communities</h3> <UserGroupIcon className="w-4 h-4 text-text-tertiary-light dark:text-text-tertiary" /> </div> {communities.length > 0 ? (<div className="space-y-2"> {communities.map(c => (<Link key={c.id} href={`/communities/${c.id}`} className="flex items-center gap-2.5 p-1.5 -mx-1.5 rounded-lg hover:bg-tertiary-light/50 dark:hover:bg-white/5 transition-colors group"> <Image src={getResizedAvatarUrl(c.avatar_url, 28, 28, c.name)} alt={c.name} width={28} height={28} className="w-7 h-7 rounded-md object-cover ring-1 ring-transparent group-hover:ring-brand-green/30 transition-all" unoptimized /> <span className="text-xs font-medium text-text-secondary-light dark:text-text-secondary truncate flex-1 group-hover:text-text-main-light dark:group-hover:text-text-main transition-colors">{c.name}</span> </Link>))} </div>) : <p className="text-xs text-text-tertiary-light dark:text-text-tertiary">No communities yet</p>} </div>); };
 
-const CryptoHubWidget: React.FC<{ profile: Profile }> = ({ profile }) => { const [isExpanded, setIsExpanded] = useState(false); return (<div className="bg-secondary-light/70 dark:bg-secondary/70 backdrop-blur-xl rounded-xl border border-tertiary-light/50 dark:border-white/5 p-4 shadow-sm"> <button onClick={() => setIsExpanded(!isExpanded)} className="w-full flex items-center justify-between group"> <div className="flex items-center gap-2.5"> <div className="p-1.5 rounded-md bg-brand-green/10 text-brand-green group-hover:bg-brand-green/20 transition-colors"><CubeIcon className="w-4 h-4" /></div> <h3 className="font-bold text-sm text-text-main-light dark:text-text-main">Bits-Coin</h3> </div> <svg className={`w-4 h-4 text-text-tertiary-light dark:text-text-tertiary transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /> </svg> </button> {isExpanded && (<div className="mt-3 pt-3 border-t border-tertiary-light/50 dark:border-white/10 animate-fadeIn"> <div className="text-center py-2"> <p className="text-[10px] font-medium text-text-tertiary-light dark:text-text-tertiary mb-0.5 uppercase tracking-wide">Balance</p> <p className="text-2xl font-black text-brand-green tracking-tight"> {profile.bits_coin_balance?.toFixed(2) || '0.00'} <span className="text-sm font-bold text-text-secondary-light dark:text-text-secondary">BC</span> </p> </div> <div className="flex gap-2"> <Link href="/easter-egg/blockchain" className="flex-1 text-center text-xs font-bold bg-brand-green/10 text-brand-green hover:bg-brand-green/20 py-2 rounded-lg transition-colors"> Wallet </Link> <Link href="/easter-egg/trading" className="flex-1 text-center text-xs font-bold bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 py-2 rounded-lg transition-colors"> Trade </Link> </div> </div>)} </div>); };
+
 
 const HomePage: React.FC = () => {
     const { posts, loading: postsLoading, error: postsError, addPostToContext, feedType, setFeedType, fetchPosts, hasMore } = usePosts();
@@ -101,9 +101,7 @@ const HomePage: React.FC = () => {
     const [selectedListing, setSelectedListing] = useState<MarketplaceListing | null>(null);
     const [isCreatePostModalOpen, setCreatePostModalOpen] = useState(false);
 
-    const [hasDiscoveredBlockchain] = useState(() => {
-        return typeof window !== 'undefined' ? localStorage.getItem('discoveredBlockchain') === 'true' : false;
-    });
+
 
     useEffect(() => {
         const sentinel = sentinelRef.current;
@@ -127,12 +125,12 @@ const HomePage: React.FC = () => {
 
     if (postsLoading && posts.length === 0) {
         return (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-                <main className="col-span-1 lg:col-span-9 space-y-2">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <main className="col-span-1 lg:col-span-8 space-y-2">
                     <Skeleton className="h-40 w-full rounded-xl" />
                     {[...Array(4)].map((_, i) => <PostSkeleton key={i} />)}
                 </main>
-                <aside className="hidden lg:block lg:col-span-3">
+                <aside className="hidden lg:block lg:col-span-4">
                     <div className="sticky top-24 space-y-3">
                         <Skeleton className="h-24 w-full rounded-xl" />
                         <Skeleton className="h-36 w-full rounded-xl" />
@@ -157,8 +155,8 @@ const HomePage: React.FC = () => {
             {selectedListing && <ListingDetailModal listing={selectedListing} onClose={() => setSelectedListing(null)} onEdit={() => { }} onDelete={() => { }} />}
             {isCreatePostModalOpen && currentUserProfile && (<div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-start justify-center p-4 pt-20 md:items-center md:pt-4" onClick={() => setCreatePostModalOpen(false)}> <div className="w-full max-w-2xl relative" onClick={(e) => e.stopPropagation()}> <button onClick={() => setCreatePostModalOpen(false)} className="absolute -top-12 right-0 text-white/80 hover:text-white transition-colors"> <XCircleIcon className="w-8 h-8" /> </button> <CreatePost onPostCreated={handlePostCreatedInModal} profile={currentUserProfile} /> </div> </div>)}
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-                <main className="col-span-1 lg:col-span-9">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <main className="col-span-1 lg:col-span-8">
                     <div className="mb-6 hidden lg:block">
                         {currentUserProfile && <CreatePost onPostCreated={addPostToContext} profile={currentUserProfile} />}
                     </div>
@@ -208,14 +206,12 @@ const HomePage: React.FC = () => {
                     )}
                 </main>
 
-                <aside className="hidden lg:block lg:col-span-3">
+                <aside className="hidden lg:block lg:col-span-4">
                     <div className="sticky top-24 space-y-4">
                         <div className="max-h-[calc(100vh-6rem)] overflow-y-auto scrollbar-hide space-y-4 pb-10">
-                            <GlobalSearchBar />
                             {currentUserProfile && <ProfileCard profile={currentUserProfile} />}
-                            <FollowSuggestions />
                             <CommunitiesWidget />
-                            {hasDiscoveredBlockchain && currentUserProfile && <CryptoHubWidget profile={currentUserProfile} />}
+                            <FollowSuggestions />
                         </div>
                     </div>
                 </aside>

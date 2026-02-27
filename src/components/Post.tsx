@@ -59,6 +59,13 @@ const Flair: React.FC<{ flair: { id: string; name: string; avatar_url: string | 
     </Link >
 );
 
+// Anonymous mask icon for confessions
+const AnonymousMaskIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+    </svg>
+);
+
 interface PostComponentProps {
     post: PostType;
     onImageClick?: (imageUrl: string) => void;
@@ -67,6 +74,7 @@ interface PostComponentProps {
     className?: string;
     communityId?: string | null;
     isPublic?: boolean;
+    isAnonymous?: boolean;
 }
 
 const PostComponent: React.FC<PostComponentProps & { prioritizeUser?: boolean }> = ({
@@ -77,7 +85,8 @@ const PostComponent: React.FC<PostComponentProps & { prioritizeUser?: boolean }>
     className = "mb-2",
     prioritizeUser = false,
     communityId,
-    isPublic
+    isPublic,
+    isAnonymous = false
 }) => {
     const router = useRouter();
     const { user } = useAuth();
@@ -270,20 +279,26 @@ const PostComponent: React.FC<PostComponentProps & { prioritizeUser?: boolean }>
                 {/* Main Post Content - Reduced Padding */}
                 <div className={`p-3.5 ${post.reposted_by ? 'pt-2.5' : ''}`}>
                     <div className="flex items-start gap-3">
-                        {/* Avatar - Smaller Size */}
-                        <Link href={showUserFirst ? `/profile/${post.original_poster_username}` : authorLink} onClick={e => e.stopPropagation()} className="flex-shrink-0 relative group/avatar">
-                            <Image
-                                src={showUserFirst
-                                    ? getResizedAvatarUrl(post.original_poster_avatar_url, 80, 80, post.original_poster_username)
-                                    : getResizedAvatarUrl(author.author_avatar_url, 80, 80, author.author_name || author.author_username)
-                                }
-                                alt={showUserFirst ? post.original_poster_username || '' : author.author_name || ''}
-                                width={40}
-                                height={40}
-                                className="relative rounded-full object-cover ring-1 ring-white dark:ring-white/10 shadow-sm"
-                                unoptimized
-                            />
-                        </Link>
+                        {/* Avatar - Anonymous or Regular */}
+                        {isAnonymous ? (
+                            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center shadow-sm ring-1 ring-white dark:ring-white/10">
+                                <AnonymousMaskIcon className="w-5 h-5 text-white" />
+                            </div>
+                        ) : (
+                            <Link href={showUserFirst ? `/profile/${post.original_poster_username}` : authorLink} onClick={e => e.stopPropagation()} className="flex-shrink-0 relative group/avatar">
+                                <Image
+                                    src={showUserFirst
+                                        ? getResizedAvatarUrl(post.original_poster_avatar_url, 80, 80, post.original_poster_username)
+                                        : getResizedAvatarUrl(author.author_avatar_url, 80, 80, author.author_name || author.author_username)
+                                    }
+                                    alt={showUserFirst ? post.original_poster_username || '' : author.author_name || ''}
+                                    width={40}
+                                    height={40}
+                                    className="relative rounded-full object-cover ring-1 ring-white dark:ring-white/10 shadow-sm"
+                                    unoptimized
+                                />
+                            </Link>
+                        )}
 
                         <div className="flex-1 min-w-0">
                             {/* Header: Author & Meta */}
@@ -291,14 +306,25 @@ const PostComponent: React.FC<PostComponentProps & { prioritizeUser?: boolean }>
                                 <div className="flex flex-col min-w-0">
                                     <div className="flex items-center flex-wrap gap-x-1.5">
                                         {/* Name - Reduced Size */}
-                                        <Link href={showUserFirst ? `/profile/${post.original_poster_username}` : authorLink} onClick={e => e.stopPropagation()} className="font-bold text-sm text-text-main-light dark:text-text-main hover:underline truncate">
-                                            {showUserFirst ? post.original_poster_username : author.author_name}
-                                        </Link>
+                                        {isAnonymous ? (
+                                            <span className="font-bold text-sm bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
+                                                Anonymous
+                                            </span>
+                                        ) : (
+                                            <Link href={showUserFirst ? `/profile/${post.original_poster_username}` : authorLink} onClick={e => e.stopPropagation()} className="font-bold text-sm text-text-main-light dark:text-text-main hover:underline truncate">
+                                                {showUserFirst ? post.original_poster_username : author.author_name}
+                                            </Link>
+                                        )}
 
-                                        {author.author_flair_details && <Flair flair={author.author_flair_details} />}
+                                        {!isAnonymous && author.author_flair_details && <Flair flair={author.author_flair_details} />}
 
                                         {/* Username & Time */}
-                                        {author.author_type !== 'community' && (
+                                        {isAnonymous ? (
+                                            <span className="text-xs text-text-tertiary-light dark:text-text-tertiary flex items-center gap-1">
+                                                • <span className="hover:underline">{formatTimestamp(post.created_at)}</span>
+                                                <span className="ml-1 px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-[10px] font-bold">Confession</span>
+                                            </span>
+                                        ) : author.author_type !== 'community' && (
                                             <span className="text-xs text-text-tertiary-light dark:text-text-tertiary flex items-center gap-1">
                                                 @{author.author_username} • <span className="hover:underline">{formatTimestamp(post.created_at)}</span>
                                                 {post.is_edited && <span className="ml-1">(edited)</span>}

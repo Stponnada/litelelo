@@ -66,7 +66,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           pt-16 md:pt-20 
           pb-20 md:pb-0
           transition-all duration-300 ease-in-out 
-          ${isSidebarExpanded ? 'md:pl-64' : 'md:pl-20'}
+          ${isSidebarExpanded ? 'md:pl-[280px]' : 'md:pl-20'}
         `}
             >
                 <div className={isFullWidthPage ? 'h-full' : 'p-4 md:p-8 max-w-7xl mx-auto'}>

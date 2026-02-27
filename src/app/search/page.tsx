@@ -11,6 +11,8 @@ import { format } from 'date-fns';
 import Image from 'next/image';
 import { getResizedAvatarUrl } from '@/utils/imageUtils';
 
+import { NewspaperIcon, BookOpenIcon, RocketLaunchIcon, CalendarIcon, UserGroupIcon, SearchIcon } from '@/components/icons';
+
 // --- Reusable Result Card Components ---
 
 const UserResultCard: React.FC<{ user: UserSearchResult }> = ({ user }) => (
@@ -90,6 +92,25 @@ const SearchPage: React.FC = () => {
     const [results, setResults] = useState<SearchResultsType | null>(null);
     const [loading, setLoading] = useState(!!initialQuery);
     const [activeTab, setActiveTab] = useState('all');
+    const [trendingPosts, setTrendingPosts] = useState<PostSearchResult[]>([]);
+    const [trendingBlogs, setTrendingBlogs] = useState<PostSearchResult[]>([]);
+
+    useEffect(() => {
+        const fetchDiscover = async () => {
+            try {
+                // Fetch some featured posts
+                const { data: posts } = await supabase.from('posts').select('id, content, author_id, profiles(full_name)').limit(3).order('created_at', { ascending: false });
+                if (posts) setTrendingPosts(posts.map(p => ({ id: p.id, content: p.content, author_full_name: (p.profiles as any)?.full_name || 'Anonymous' })));
+
+                // Fetch some featured blogs (using 'blog' folder for now or mock)
+                const { data: blogs } = await supabase.from('posts').select('id, content, author_id, profiles(full_name)').eq('content_type', 'blog').limit(2);
+                if (blogs) setTrendingBlogs(blogs.map(b => ({ id: b.id, content: b.content, author_full_name: (b.profiles as any)?.full_name || 'Anonymous' })));
+            } catch (err) {
+                console.error("Failed to fetch discovery content:", err);
+            }
+        };
+        fetchDiscover();
+    }, []);
 
     useEffect(() => {
         const performSearch = async () => {
@@ -137,10 +158,47 @@ const SearchPage: React.FC = () => {
             </div>
         );
         if (!results || totalResults === 0) {
+            if (searchTerm.trim().length === 0) {
+                return (
+                    <div className="p-6 space-y-8">
+                        <div>
+                            <h3 className="text-lg font-bold text-text-main-light dark:text-text-main mb-4 flex items-center gap-2">
+                                <BookOpenIcon className="w-5 h-5 text-brand-green" />
+                                Discover Stories
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {trendingBlogs.length > 0 ? trendingBlogs.map(blog => (
+                                    <PostResultCard key={blog.id} post={blog} />
+                                )) : (
+                                    <div className="p-8 text-center border-2 border-dashed border-tertiary-light dark:border-tertiary rounded-xl text-text-tertiary text-sm">
+                                        No featured blogs today
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div>
+                            <h2 className="text-lg font-bold text-text-main-light dark:text-text-main mb-4 flex items-center gap-2">
+                                <NewspaperIcon className="w-5 h-5 text-blue-500" />
+                                Recent Updates
+                            </h2>
+                            <div className="space-y-3">
+                                {trendingPosts.length > 0 ? trendingPosts.map(post => (
+                                    <PostResultCard key={post.id} post={post} />
+                                )) : (
+                                    <div className="p-4 text-center text-text-tertiary text-sm">
+                                        Nothing trending right now
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
             return (
                 <div className="text-center py-16">
                     <p className="text-text-tertiary-light dark:text-text-tertiary">
-                        {searchTerm.trim().length < 2 ? "Start typing to search..." : "No results found."}
+                        No results found for &quot;{searchTerm}&quot;
                     </p>
                 </div>
             );

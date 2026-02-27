@@ -128,7 +128,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
       border-r border-tertiary-light/50 dark:border-tertiary/50 z-40
       transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]
       overflow-visible
-      ${isExpanded ? 'w-64 shadow-2xl' : 'w-20'}
+      ${isExpanded ? 'w-[280px] shadow-2xl' : 'w-20'}
       `}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -137,8 +137,8 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
         {/* Navigation Links - Scrollable Area */}
         <nav className="flex-grow space-y-1 overflow-y-auto overflow-x-hidden scrollbar-hide">
           <NavLink to="/" icon={<HomeIcon className="w-7 h-7" />} text="Home" isExpanded={isExpanded} />
-          <NavLink to="/campus" icon={<BuildingLibraryIcon className="w-7 h-7" />} text="Campus" isExpanded={isExpanded} />
-          <NavLink to="/communities" icon={<UserGroupIcon className="w-7 h-7" />} text="Communities" isExpanded={isExpanded} />
+          <NavLink to="/campus" icon={<BuildingLibraryIcon className="w-7 h-7" />} text="Explore" isExpanded={isExpanded} />
+          <NavLink to="/communities" icon={<UserGroupIcon className="w-7 h-7" />} text="Clubs & Orgs" isExpanded={isExpanded} />
           <NavLink to="/search" icon={<SearchIcon className="w-7 h-7" />} text="Search" isExpanded={isExpanded} />
           <NavLink
             to="/chat"
@@ -163,7 +163,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
           <div className="relative group">
             {/* Popover Menu - Adaptive Positioning */}
             <div className={`
-                    absolute w-64 mb-2 p-2 z-50
+                    absolute w-[280px] mb-2 p-2 z-50
                     bg-secondary-light/95 dark:bg-secondary/95 backdrop-blur-xl
                     border border-tertiary-light dark:border-white/10 
                     rounded-2xl shadow-2xl 
@@ -185,7 +185,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-text-main-light dark:text-text-main truncate max-w-[150px]">{profile.full_name}</p>
+                    <p className="text-sm font-bold text-text-main-light dark:text-text-main truncate max-w-[200px]">{profile.full_name}</p>
                     <p className="text-xs text-text-tertiary-light dark:text-text-tertiary truncate">@{profile.username}</p>
                   </div>
                 </Link>
@@ -236,7 +236,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
               </div>
 
               <div className={`ml-3 overflow-hidden transition-all duration-300 ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}`}>
-                <p className="text-sm font-bold text-text-main-light dark:text-text-main truncate max-w-[150px]">{profile?.full_name}</p>
+                <p className="text-sm font-bold text-text-main-light dark:text-text-main truncate max-w-[200px]">{profile?.full_name}</p>
                 <p className="text-xs text-text-tertiary-light dark:text-text-tertiary truncate">@{profile?.username}</p>
               </div>
             </div>

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useChat } from '../hooks/useChat';
 import {
-  HomeIcon, BuildingLibraryIcon, ChatIcon, SearchIcon, GlobeIcon, UserGroupIcon, MapIcon
+  HomeIcon, BuildingLibraryIcon, ChatIcon, SearchIcon, UserGroupIcon
 } from './icons';
 
 
@@ -55,12 +55,6 @@ const BottomNavBar: React.FC = () => {
           <ChatIcon className="w-7 h-7" />
           {totalUnreadCount > 0 && <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-brand-green ring-2 ring-secondary-light dark:ring-secondary" />}
         </div>
-      </Link>
-      <Link
-        href="/directory"
-        className={getLinkClass('/directory')}
-      >
-        <GlobeIcon className="w-7 h-7" />
       </Link>
     </nav>
   );
