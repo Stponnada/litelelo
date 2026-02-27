@@ -11,7 +11,7 @@ import { format } from 'date-fns';
 import Image from 'next/image';
 import { getResizedAvatarUrl } from '@/utils/imageUtils';
 
-import { NewspaperIcon, BookOpenIcon, RocketLaunchIcon, CalendarIcon, UserGroupIcon, SearchIcon } from '@/components/icons';
+import { NewspaperIcon, BookOpenIcon, StarIcon, CalendarIcon, UserGroupIcon, SearchIcon, ArrowRightIcon } from '@/components/icons';
 
 // --- Reusable Result Card Components ---
 
@@ -92,19 +92,66 @@ const SearchPage: React.FC = () => {
     const [results, setResults] = useState<SearchResultsType | null>(null);
     const [loading, setLoading] = useState(!!initialQuery);
     const [activeTab, setActiveTab] = useState('all');
+    const [topUsers, setTopUsers] = useState<any[]>([]);
+    const [topCommunities, setTopCommunities] = useState<any[]>([]);
     const [trendingPosts, setTrendingPosts] = useState<PostSearchResult[]>([]);
-    const [trendingBlogs, setTrendingBlogs] = useState<PostSearchResult[]>([]);
+    const [trendingBlogs, setTrendingBlogs] = useState<any[]>([]);
 
     useEffect(() => {
         const fetchDiscover = async () => {
             try {
-                // Fetch some featured posts
-                const { data: posts } = await supabase.from('posts').select('id, content, author_id, profiles(full_name)').limit(3).order('created_at', { ascending: false });
-                if (posts) setTrendingPosts(posts.map(p => ({ id: p.id, content: p.content, author_full_name: (p.profiles as any)?.full_name || 'Anonymous' })));
+                // 1. Fetch Top Users & Communities using unified directory
+                const { data: directoryData } = await supabase.rpc('get_unified_directory');
+                if (directoryData) {
+                    const users = (directoryData as any[])
+                        .filter(item => item.type === 'user')
+                        .sort((a, b) => (b.follower_count || 0) - (a.follower_count || 0))
+                        .slice(0, 5);
+                    setTopUsers(users);
 
-                // Fetch some featured blogs (using 'blog' folder for now or mock)
-                const { data: blogs } = await supabase.from('posts').select('id, content, author_id, profiles(full_name)').eq('content_type', 'blog').limit(2);
-                if (blogs) setTrendingBlogs(blogs.map(b => ({ id: b.id, content: b.content, author_full_name: (b.profiles as any)?.full_name || 'Anonymous' })));
+                    const communities = (directoryData as any[])
+                        .filter(item => item.type === 'community')
+                        .sort((a, b) => (b.member_count || 0) - (a.member_count || 0))
+                        .slice(0, 5);
+                    setTopCommunities(communities);
+                }
+
+                // 2. Fetch Featured Blogs (must have post_type 'blog' and a title)
+                const { data: blogs } = await supabase
+                    .from('posts')
+                    .select('id, title, content, author:profiles!user_id(full_name, username, avatar_url)')
+                    .eq('post_type', 'blog')
+                    .not('title', 'is', null)
+                    .order('like_count', { ascending: false })
+                    .limit(4);
+
+                if (blogs) {
+                    setTrendingBlogs(blogs.map(b => ({
+                        id: b.id,
+                        content: b.content,
+                        author_full_name: (b.author as any)?.full_name || 'Anonymous',
+                        author_username: (b.author as any)?.username || 'anonymous',
+                        title: b.title
+                    })));
+                }
+
+                // 3. Fetch Recent Posts
+                const { data: posts } = await supabase
+                    .from('posts')
+                    .select('id, content, author:profiles!user_id(full_name, username, avatar_url)')
+                    .eq('post_type', 'text')
+                    .eq('is_deleted', false)
+                    .order('created_at', { ascending: false })
+                    .limit(5);
+
+                if (posts) {
+                    setTrendingPosts(posts.map(p => ({
+                        id: p.id,
+                        content: p.content,
+                        author_full_name: (p.author as any)?.full_name || 'Anonymous',
+                        author_username: (p.author as any)?.username || 'anonymous'
+                    })));
+                }
             } catch (err) {
                 console.error("Failed to fetch discovery content:", err);
             }
@@ -160,36 +207,96 @@ const SearchPage: React.FC = () => {
         if (!results || totalResults === 0) {
             if (searchTerm.trim().length === 0) {
                 return (
-                    <div className="p-6 space-y-8">
+                    <div className="p-6 space-y-10">
+                        {/* Featured Blogs */}
                         <div>
-                            <h3 className="text-lg font-bold text-text-main-light dark:text-text-main mb-4 flex items-center gap-2">
-                                <BookOpenIcon className="w-5 h-5 text-brand-green" />
-                                Discover Stories
+                            <h3 className="text-xl font-black text-zinc-900 dark:text-white mb-6 flex items-center gap-2">
+                                <BookOpenIcon className="w-6 h-6 text-brand-green" />
+                                Featured Stories
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {trendingBlogs.length > 0 ? trendingBlogs.map(blog => (
-                                    <PostResultCard key={blog.id} post={blog} />
+                                    <Link key={blog.id} href={`/blog/${blog.id}`} className="group p-4 rounded-xl bg-white dark:bg-white/5 border border-zinc-200 dark:border-white/10 hover:border-brand-green transition-all shadow-sm">
+                                        <h4 className="font-bold text-lg mb-2 group-hover:text-brand-green line-clamp-1">{blog.title}</h4>
+                                        <p className="text-sm text-zinc-500 dark:text-zinc-400 line-clamp-2 mb-3">{blog.content}</p>
+                                        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                                            <span>BY {blog.author_full_name}</span>
+                                        </div>
+                                    </Link>
                                 )) : (
-                                    <div className="p-8 text-center border-2 border-dashed border-tertiary-light dark:border-tertiary rounded-xl text-text-tertiary text-sm">
-                                        No featured blogs today
+                                    <div className="col-span-full p-12 text-center border-2 border-dashed border-zinc-200 dark:border-white/5 rounded-2xl text-zinc-400 text-sm italic">
+                                        No featured stories yet. Why not write one?
                                     </div>
                                 )}
                             </div>
                         </div>
 
+                        {/* Top Users & Communities */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            {/* Top Users */}
+                            <div>
+                                <h3 className="text-lg font-bold text-zinc-800 dark:text-zinc-200 mb-4 flex items-center gap-2">
+                                    <StarIcon className="w-5 h-5 text-amber-500" />
+                                    Top Voices
+                                </h3>
+                                <div className="space-y-2">
+                                    {topUsers.map(user => (
+                                        <Link key={user.id} href={`/profile/${user.username}`} className="flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors">
+                                            <Image
+                                                src={getResizedAvatarUrl(user.avatar_url, 40, 40, user.name)}
+                                                alt={user.name} width={40} height={40}
+                                                className="w-10 h-10 rounded-full object-cover"
+                                                unoptimized
+                                            />
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-bold text-sm truncate">{user.name}</p>
+                                                <p className="text-xs text-zinc-500 truncate">@{user.username}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-[10px] font-bold text-brand-green">{user.follower_count || 0}</p>
+                                                <p className="text-[8px] uppercase tracking-tighter text-zinc-400">Followers</p>
+                                            </div>
+                                        </Link>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Top Communities */}
+                            <div>
+                                <h3 className="text-lg font-bold text-zinc-800 dark:text-zinc-200 mb-4 flex items-center gap-2">
+                                    <UserGroupIcon className="w-5 h-5 text-blue-500" />
+                                    Active Communities
+                                </h3>
+                                <div className="space-y-2">
+                                    {topCommunities.map(comm => (
+                                        <Link key={comm.id} href={`/communities/${comm.id}`} className="flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors">
+                                            <Image
+                                                src={getResizedAvatarUrl(comm.avatar_url, 40, 40, comm.name)}
+                                                alt={comm.name} width={40} height={40}
+                                                className="w-10 h-10 rounded-lg object-cover"
+                                                unoptimized
+                                            />
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-bold text-sm truncate">{comm.name}</p>
+                                                <p className="text-[10px] text-zinc-500 truncate">{comm.member_count || 0} members</p>
+                                            </div>
+                                            <ArrowRightIcon className="w-4 h-4 text-zinc-300" />
+                                        </Link>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Recent Updates */}
                         <div>
-                            <h2 className="text-lg font-bold text-text-main-light dark:text-text-main mb-4 flex items-center gap-2">
-                                <NewspaperIcon className="w-5 h-5 text-blue-500" />
-                                Recent Updates
-                            </h2>
+                            <h3 className="text-lg font-bold text-zinc-800 dark:text-zinc-200 mb-4 flex items-center gap-2">
+                                <NewspaperIcon className="w-5 h-5 text-violet-500" />
+                                Recent Shouts
+                            </h3>
                             <div className="space-y-3">
-                                {trendingPosts.length > 0 ? trendingPosts.map(post => (
+                                {trendingPosts.map(post => (
                                     <PostResultCard key={post.id} post={post} />
-                                )) : (
-                                    <div className="p-4 text-center text-text-tertiary text-sm">
-                                        Nothing trending right now
-                                    </div>
-                                )}
+                                ))}
                             </div>
                         </div>
                     </div>

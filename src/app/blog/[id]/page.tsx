@@ -181,8 +181,7 @@ const BlogPage: React.FC = () => {
         <div className="min-h-screen bg-surface-light dark:bg-[#0a0a0a] text-text-main-light dark:text-[#ededed] font-sans selection:bg-brand-green/30">
 
             {/* --- HERO SECTION --- */}
-            {/* Full viewport height cover image with title overlay */}
-            <header className="relative w-full h-[85vh] md:h-[90vh] flex flex-col justify-end overflow-hidden">
+            <header className="relative w-full h-[50vh] md:h-[60vh] flex flex-col justify-end overflow-hidden">
                 {post.image_url && (
                     <div className="absolute inset-0 z-0">
                         <Image
@@ -193,22 +192,20 @@ const BlogPage: React.FC = () => {
                             priority
                             unoptimized
                         />
-                        {/* Complex Gradient Overlay for readability */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-surface-light via-surface-light/60 to-transparent dark:from-[#0a0a0a] dark:via-[#0a0a0a]/80 dark:to-transparent opacity-100" />
-                        <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent" />
+                        {/* More subtle Gradient Overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-surface-light via-surface-light/40 to-transparent dark:from-[#0a0a0a] dark:via-[#0a0a0a]/60 dark:to-transparent opacity-100" />
                     </div>
                 )}
 
-                <div className="relative z-10 w-full max-w-7xl mx-auto px-6 pb-16 md:pb-24">
-                    <div className="max-w-4xl space-y-6">
-                        {/* Timestamp only - Community badge removed */}
+                <div className="relative z-10 w-full max-w-7xl mx-auto px-6 pb-12">
+                    <div className="max-w-4xl space-y-4">
                         <div className="flex items-center gap-3 animate-fade-in">
-                            <span className="text-white/80 text-sm font-medium tracking-wide">
+                            <span className="text-zinc-600 dark:text-zinc-400 text-xs font-bold uppercase tracking-widest px-2 py-0.5 bg-zinc-100 dark:bg-white/10 rounded">
                                 {formatExactTimestamp(post.created_at)}
                             </span>
                         </div>
 
-                        <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white leading-[0.95] tracking-tight text-balance shadow-black drop-shadow-lg">
+                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-black dark:text-white leading-[1.1] tracking-tight drop-shadow-sm">
                             {post.title}
                         </h1>
                     </div>

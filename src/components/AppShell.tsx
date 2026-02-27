@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import Header from '@/components/Header';
 import LeftSidebar from '@/components/LeftSidebar';
 import BottomNavBar from '@/components/BottomNavBar';
 import AboutModal from '@/components/AboutModal';
@@ -51,8 +50,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <div className="bg-texture"></div>
             {isAboutModalOpen && <AboutModal onClose={() => setIsAboutModalOpen(false)} />}
 
-            <Header isSidebarExpanded={isSidebarExpanded} onOpenAboutModal={() => setIsAboutModalOpen(true)} />
-
             <LeftSidebar
                 isExpanded={isSidebarExpanded}
                 setIsExpanded={setIsSidebarExpanded}
@@ -63,13 +60,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <main
                 className={`
           min-h-screen
-          pt-16 md:pt-20 
+          pt-0
           pb-20 md:pb-0
           transition-all duration-300 ease-in-out 
           ${isSidebarExpanded ? 'md:pl-[280px]' : 'md:pl-20'}
         `}
             >
-                <div className={isFullWidthPage ? 'h-full' : 'p-4 md:p-8 max-w-7xl mx-auto'}>
+                <div className={isFullWidthPage ? 'h-full' : 'px-4 py-4 md:pt-8 md:px-8 md:pb-8 max-w-7xl mx-auto'}>
                     {children}
                 </div>
             </main>

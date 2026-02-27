@@ -11,6 +11,7 @@ import { formatTimestamp } from '../utils/timeUtils';
 interface NotificationPanelProps {
     isOpen: boolean;
     onClose: () => void;
+    className?: string; // Add this
 }
 
 const NotificationItem: React.FC<{ notification: NotificationType, onClose: () => void }> = ({ notification, onClose }) => {
@@ -101,7 +102,7 @@ const NotificationItem: React.FC<{ notification: NotificationType, onClose: () =
     );
 };
 
-const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, onClose }) => {
+const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, onClose, className }) => {
     const { notifications, loading, markAsRead, unreadCount } = useNotifications();
     const panelRef = React.useRef<HTMLDivElement>(null);
 
@@ -119,10 +120,12 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, onClose }
 
     if (!isOpen) return null;
 
+    const defaultClass = "absolute top-full right-0 mt-3 w-80 md:w-96 bg-secondary-light dark:bg-secondary rounded-xl shadow-2xl border border-tertiary-light dark:border-tertiary animate-fadeIn origin-top-right overflow-hidden";
+
     return (
         <div
             ref={panelRef}
-            className="absolute top-full right-0 mt-3 w-80 md:w-96 bg-secondary-light dark:bg-secondary rounded-xl shadow-2xl border border-tertiary-light dark:border-tertiary animate-fadeIn origin-top-right overflow-hidden"
+            className={className || defaultClass}
         >
             <div className="p-4 border-b border-tertiary-light dark:border-tertiary">
                 <h3 className="font-bold text-lg">Notifications</h3>

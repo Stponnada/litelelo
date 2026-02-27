@@ -25,7 +25,10 @@ import {
   ShieldCheckIcon,
   LockClosedIcon,
   SettingsCogIcon,
+  BellIcon,
 } from './icons';
+import NotificationPanel from './NotificationPanel';
+import { useNotifications } from '../hooks/useNotifications';
 
 interface LeftSidebarProps {
   isExpanded: boolean;
@@ -74,7 +77,9 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const router = useRouter();
   const { profile } = useAuth();
   const { totalUnreadCount } = useChat();
+  const { unreadCount } = useNotifications();
   const { theme, toggleTheme } = useTheme();
+  const [isNotificationsOpen, setNotificationsOpen] = useState(false);
 
   const initialSidebarMode = typeof window !== 'undefined' ? (localStorage.getItem('litelelo.sidebarMode') as 'hover' | 'expanded' | 'collapsed' | null) : null;
   const [sidebarMode, setSidebarMode] = useState<'hover' | 'expanded' | 'collapsed'>(initialSidebarMode || 'hover');
@@ -123,7 +128,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
   return (
     <aside
-      className={`hidden md:flex flex-col fixed top-0 left-0 h-screen pt-20
+      className={`hidden md:flex flex-col fixed top-0 left-0 h-screen
       bg-secondary-light/70 dark:bg-secondary/70 backdrop-blur-xl 
       border-r border-tertiary-light/50 dark:border-tertiary/50 z-40
       transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]
@@ -133,36 +138,64 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <div className="flex flex-col h-full p-3 overflow-visible">
-        {/* Navigation Links - Scrollable Area */}
-        <nav className="flex-grow space-y-1 overflow-y-auto overflow-x-hidden scrollbar-hide">
-          <NavLink to="/" icon={<HomeIcon className="w-7 h-7" />} text="Home" isExpanded={isExpanded} />
-          <NavLink to="/campus" icon={<BuildingLibraryIcon className="w-7 h-7" />} text="Explore" isExpanded={isExpanded} />
-          <NavLink to="/communities" icon={<UserGroupIcon className="w-7 h-7" />} text="Clubs & Orgs" isExpanded={isExpanded} />
-          <NavLink to="/search" icon={<SearchIcon className="w-7 h-7" />} text="Search" isExpanded={isExpanded} />
-          <NavLink
-            to="/chat"
-            icon={<ChatIcon className="w-7 h-7" />}
-            text="Chat"
-            isExpanded={isExpanded}
-            totalUnreadCount={totalUnreadCount}
-          />
-          <NavLink to="/directory" icon={<GlobeIcon className="w-7 h-7" />} text="Directory" isExpanded={isExpanded} />
-          {username && (
-            <NavLink
-              to={`/profile/${username}`}
-              icon={<UserIcon className="w-7 h-7" />}
-              text="Profile"
-              isExpanded={isExpanded}
-            />
-          )}
-        </nav>
+      <div className="flex flex-col h-full overflow-visible">
+        {/* Top Logo & Notifications Section */}
+        <div className={`flex items-center justify-between p-5 mb-2 transition-all duration-300 ${!isExpanded ? 'flex-col gap-4' : ''}`}>
+          <Link href="/" className="flex items-center gap-2 text-brand-green">
+            <span className={`font-raleway font-black tracking-tighter transition-all duration-300 ${isExpanded ? 'text-4xl' : 'text-2xl'}`}>
+              {isExpanded ? 'litelelo.' : 'l.'}
+            </span>
+          </Link>
 
-        {/* Bottom Section - Profile & Menu */}
-        <div className="mt-auto pt-4 border-t border-tertiary-light/50 dark:border-white/5 pb-4">
-          <div className="relative group">
-            {/* Popover Menu - Adaptive Positioning */}
-            <div className={`
+          <div className="relative">
+            <button
+              onClick={() => setNotificationsOpen(p => !p)}
+              className="p-2 relative rounded-xl hover:bg-brand-green/10 dark:hover:bg-white/5 transition-colors"
+            >
+              <BellIcon className="w-6 h-6 text-text-secondary-light dark:text-text-secondary" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-secondary-light dark:ring-secondary" />
+              )}
+            </button>
+            <NotificationPanel
+              isOpen={isNotificationsOpen}
+              onClose={() => setNotificationsOpen(false)}
+              className={`absolute z-50 w-80 md:w-96 bg-secondary-light dark:bg-secondary rounded-xl shadow-2xl border border-tertiary-light dark:border-tertiary animate-fadeIn overflow-hidden ${isExpanded ? 'right-0 top-full mt-2 origin-top-right' : 'left-full top-0 ml-4 origin-top-left'
+                }`}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col h-full p-3 overflow-visible">
+          {/* Navigation Links - Scrollable Area */}
+          <nav className="flex-grow space-y-1 overflow-y-auto overflow-x-hidden scrollbar-hide">
+            <NavLink to="/" icon={<HomeIcon className="w-7 h-7" />} text="Home" isExpanded={isExpanded} />
+            <NavLink to="/campus" icon={<BuildingLibraryIcon className="w-7 h-7" />} text="Explore" isExpanded={isExpanded} />
+            <NavLink to="/communities" icon={<UserGroupIcon className="w-7 h-7" />} text="Clubs & Orgs" isExpanded={isExpanded} />
+            <NavLink to="/search" icon={<SearchIcon className="w-7 h-7" />} text="Search" isExpanded={isExpanded} />
+            <NavLink
+              to="/chat"
+              icon={<ChatIcon className="w-7 h-7" />}
+              text="Chat"
+              isExpanded={isExpanded}
+              totalUnreadCount={totalUnreadCount}
+            />
+            <NavLink to="/directory" icon={<GlobeIcon className="w-7 h-7" />} text="Directory" isExpanded={isExpanded} />
+            {username && (
+              <NavLink
+                to={`/profile/${username}`}
+                icon={<UserIcon className="w-7 h-7" />}
+                text="Profile"
+                isExpanded={isExpanded}
+              />
+            )}
+          </nav>
+
+          {/* Bottom Section - Profile & Menu */}
+          <div className="mt-auto pt-4 border-t border-tertiary-light/50 dark:border-white/5 pb-4">
+            <div className="relative group">
+              {/* Popover Menu - Adaptive Positioning */}
+              <div className={`
                     absolute w-[280px] mb-2 p-2 z-50
                     bg-secondary-light/95 dark:bg-secondary/95 backdrop-blur-xl
                     border border-tertiary-light dark:border-white/10 
@@ -171,73 +204,71 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                     opacity-0 invisible scale-95
                     group-hover:opacity-100 group-hover:visible group-hover:scale-100
                     ${!isExpanded
-                ? 'left-full bottom-0 ml-4 origin-bottom-left' // Collapsed: Pop Right
-                : 'bottom-full left-0 mb-2 origin-bottom'      // Expanded: Pop Up
-              }
+                  ? 'left-full bottom-0 ml-4 origin-bottom-left' // Collapsed: Pop Right
+                  : 'bottom-full left-0 mb-2 origin-bottom'      // Expanded: Pop Up
+                }
                 `}>
-              {profile?.username && (
-                <Link href={`/profile/${profile.username}`} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-tertiary-light dark:hover:bg-white/5 transition-colors mb-1">
-                  <div className="w-10 h-10 rounded-full overflow-hidden border border-brand-green/30 bg-tertiary-light dark:bg-tertiary flex items-center justify-center">
-                    {profile.avatar_url ? (
-                      <Image src={profile.avatar_url} alt="Profile" width={40} height={40} className="w-full h-full object-cover" unoptimized />
-                    ) : (
-                      <UserIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-text-main-light dark:text-text-main truncate max-w-[200px]">{profile.full_name}</p>
-                    <p className="text-xs text-text-tertiary-light dark:text-text-tertiary truncate">@{profile.username}</p>
-                  </div>
-                </Link>
-              )}
-
-              <div className="space-y-1">
-                <button onClick={toggleTheme} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-white/5 rounded-lg transition-colors">
-                  {theme === 'dark' ? <SunIcon className="w-5 h-5" /> : theme === 'light' ? <UltradarkIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
-                  <span>{theme === 'dark' ? 'Light Mode' : theme === 'light' ? 'Ultradark Mode' : 'Dark Mode'}</span>
-                </button>
-                <Link href="/settings" className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-white/5 rounded-lg transition-colors">
-                  <SettingsCogIcon className="w-5 h-5" /> Settings
-                </Link>
-                <Link href="/help" className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-white/5 rounded-lg transition-colors">
-                  <QuestionMarkCircleIcon className="w-5 h-5" /> Help Center
-                </Link>
-                <button onClick={onOpenAboutModal} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-white/5 rounded-lg transition-colors">
-                  <InformationCircleIcon className="w-5 h-5" /> About
-                </button>
-                <Link href="/terms" className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-white/5 rounded-lg transition-colors">
-                  <ShieldCheckIcon className="w-5 h-5" /> Terms
-                </Link>
-                <Link href="/privacy" className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-white/5 rounded-lg transition-colors">
-                  <LockClosedIcon className="w-5 h-5" /> Privacy
-                </Link>
-                <div className="h-px bg-tertiary-light dark:bg-white/10 my-1" />
-                <button onClick={handleSignOut} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 rounded-lg transition-colors font-medium">
-                  <LogoutIcon className="w-5 h-5" /> Sign Out
-                </button>
-              </div>
-            </div>
-
-            {/* User Avatar Button */}
-            <div className={`flex items-center p-2 rounded-xl hover:bg-brand-green/10 dark:hover:bg-white/5 cursor-pointer transition-all duration-300 ${!isExpanded ? 'justify-center' : ''}`}>
-              <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-transparent group-hover:border-brand-green transition-all bg-tertiary-light dark:bg-tertiary flex items-center justify-center">
-                {profile?.avatar_url ? (
-                  <Image
-                    src={profile.avatar_url}
-                    alt="profile"
-                    width={40}
-                    height={40}
-                    className="w-full h-full object-cover"
-                    unoptimized
-                  />
-                ) : (
-                  <UserIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary" />
+                {profile?.username && (
+                  <Link href={`/profile/${profile.username}`} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-tertiary-light dark:hover:bg-white/5 transition-colors mb-1">
+                    <div className="w-10 h-10 rounded-full overflow-hidden border border-brand-green/30 bg-tertiary-light dark:bg-tertiary flex items-center justify-center">
+                      {profile.avatar_url ? (
+                        <Image src={profile.avatar_url} alt="Profile" width={40} height={40} className="w-full h-full object-cover" unoptimized />
+                      ) : (
+                        <UserIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-text-main-light dark:text-text-main truncate max-w-[200px]">{profile.full_name}</p>
+                      <p className="text-xs text-text-tertiary-light dark:text-text-tertiary truncate">@{profile.username}</p>
+                    </div>
+                  </Link>
                 )}
+
+                <div className="space-y-1">
+                  <button onClick={toggleTheme} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-white/5 rounded-lg transition-colors">
+                    {theme === 'dark' ? <SunIcon className="w-5 h-5" /> : theme === 'light' ? <UltradarkIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
+                    <span>{theme === 'dark' ? 'Light Mode' : theme === 'light' ? 'Ultradark Mode' : 'Dark Mode'}</span>
+                  </button>
+                  <Link href="/help" className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-white/5 rounded-lg transition-colors">
+                    <QuestionMarkCircleIcon className="w-5 h-5" /> Help Center
+                  </Link>
+                  <button onClick={onOpenAboutModal} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-white/5 rounded-lg transition-colors">
+                    <InformationCircleIcon className="w-5 h-5" /> About
+                  </button>
+                  <Link href="/terms" className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-white/5 rounded-lg transition-colors">
+                    <ShieldCheckIcon className="w-5 h-5" /> Terms
+                  </Link>
+                  <Link href="/privacy" className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-white/5 rounded-lg transition-colors">
+                    <LockClosedIcon className="w-5 h-5" /> Privacy
+                  </Link>
+                  <div className="h-px bg-tertiary-light dark:bg-white/10 my-1" />
+                  <button onClick={handleSignOut} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 rounded-lg transition-colors font-medium">
+                    <LogoutIcon className="w-5 h-5" /> Sign Out
+                  </button>
+                </div>
               </div>
 
-              <div className={`ml-3 overflow-hidden transition-all duration-300 ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}`}>
-                <p className="text-sm font-bold text-text-main-light dark:text-text-main truncate max-w-[200px]">{profile?.full_name}</p>
-                <p className="text-xs text-text-tertiary-light dark:text-text-tertiary truncate">@{profile?.username}</p>
+              {/* User Avatar Button */}
+              <div className={`flex items-center p-2 rounded-xl hover:bg-brand-green/10 dark:hover:bg-white/5 cursor-pointer transition-all duration-300 ${!isExpanded ? 'justify-center' : ''}`}>
+                <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-transparent group-hover:border-brand-green transition-all bg-tertiary-light dark:bg-tertiary flex items-center justify-center">
+                  {profile?.avatar_url ? (
+                    <Image
+                      src={profile.avatar_url}
+                      alt="profile"
+                      width={40}
+                      height={40}
+                      className="w-full h-full object-cover"
+                      unoptimized
+                    />
+                  ) : (
+                    <UserIcon className="w-5 h-5 text-text-tertiary-light dark:text-text-tertiary" />
+                  )}
+                </div>
+
+                <div className={`ml-3 overflow-hidden transition-all duration-300 ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}`}>
+                  <p className="text-sm font-bold text-text-main-light dark:text-text-main truncate max-w-[200px]">{profile?.full_name}</p>
+                  <p className="text-xs text-text-tertiary-light dark:text-text-tertiary truncate">@{profile?.username}</p>
+                </div>
               </div>
             </div>
           </div>

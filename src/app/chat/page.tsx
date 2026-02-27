@@ -227,7 +227,7 @@ const ChatPage: React.FC = () => {
     if (loading) return <ChatPageSkeleton />;
 
     return (
-        <div className="relative h-[calc(100vh-144px)] md:h-[calc(100vh-96px)] w-full overflow-hidden bg-primary-light dark:bg-primary shadow-2xl">
+        <div className="relative h-[calc(100vh-80px)] md:h-screen w-full overflow-hidden bg-primary-light dark:bg-primary shadow-2xl">
 
 
             {isGroupModalOpen && <CreateGroupModal onClose={() => setGroupModalOpen(false)} onGroupCreated={(id) => { setGroupModalOpen(false); fetchConversations(); setSelectedConversationId(id); }} />}

@@ -13,6 +13,7 @@ import {
     NewspaperIcon, BookOpenIcon, CubeIcon,
     ShoppingBagIcon, MapPinIcon, CampusPlacesIcon, PlusIcon
 } from '@/components/icons';
+import BlogPreviewCard from '@/components/BlogPreviewCard';
 
 // --- Utility Components ---
 
@@ -107,60 +108,6 @@ const NoticePreviewCard: React.FC<{ notice: CampusNotice }> = ({ notice }) => {
         </Link>
     );
 };
-
-// --- Blog Preview Card ---
-const BlogPreviewCard: React.FC<{ post: PostType }> = ({ post }) => (
-    <Link
-        href={`/blog/${post.id}`}
-        className="group relative flex flex-col overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
-    >
-        {post.image_url && (
-            <div className="relative h-44 overflow-hidden">
-                <Image
-                    src={post.image_url}
-                    alt={post.title || 'Blog post'}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    unoptimized
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-zinc-900 to-transparent opacity-60" />
-            </div>
-        )}
-        <div className="p-5 flex-1 flex flex-col">
-            <span className="text-[10px] font-bold text-brand-green uppercase tracking-widest mb-2">
-                Blog
-            </span>
-            <h3 className="font-bold text-base text-zinc-800 dark:text-zinc-100 line-clamp-2 mb-2 group-hover:text-brand-green transition-colors">
-                {post.title}
-            </h3>
-            {post.content && (
-                <p className="text-sm text-zinc-500 dark:text-zinc-400 line-clamp-2 leading-relaxed">
-                    {post.content.substring(0, 120)}...
-                </p>
-            )}
-            <div className="mt-auto pt-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    {post.author?.author_avatar_url && (
-                        <Image
-                            src={post.author.author_avatar_url}
-                            alt={post.author.author_name || ''}
-                            width={20}
-                            height={20}
-                            className="w-5 h-5 rounded-full"
-                            unoptimized
-                        />
-                    )}
-                    <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                        {post.author?.author_name}
-                    </span>
-                </div>
-                <span className="text-xs text-zinc-400 dark:text-zinc-500">
-                    {new Date(post.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                </span>
-            </div>
-        </div>
-    </Link>
-);
 
 // --- Event Mini Card ---
 interface CampusEventMini {
@@ -295,13 +242,13 @@ const ExplorePage: React.FC = () => {
                 const [noticesRes, eventsRes, blogsRes] = await Promise.all([
                     supabase.rpc('get_campus_notices_with_files', { p_campus: profile.campus }).limit(4),
                     supabase.rpc('get_campus_events', { p_campus: profile.campus }).limit(5),
-                    supabase.rpc('get_post_details', {
-                        p_feed_type: 'campus',
-                        p_campus: profile.campus,
-                        p_user_id: session.user.id,
-                        p_limit: 20,
-                        p_offset: 0,
-                    }),
+                    supabase
+                        .from('posts')
+                        .select('*, author:profiles!user_id(*)')
+                        .eq('post_type', 'blog')
+                        .not('title', 'is', null)
+                        .order('like_count', { ascending: false })
+                        .limit(4)
                 ]);
 
                 if (noticesRes.data) setNotices(noticesRes.data as CampusNotice[]);
@@ -351,9 +298,9 @@ const ExplorePage: React.FC = () => {
             <div className="relative max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10 py-8 md:py-12">
 
                 {/* Header */}
-                <header className="mb-10 md:mb-14 flex flex-col md:flex-row md:items-end justify-between gap-6">
-                    <div className="space-y-2">
-                        <h1 className="text-4xl md:text-6xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-zinc-900 to-zinc-500 dark:from-white dark:to-zinc-500">
+                <header className="mb-8 md:mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+                    <div className="space-y-1">
+                        <h1 className="text-3xl md:text-5xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-zinc-900 to-zinc-600 dark:from-white dark:to-zinc-500">
                             {greeting},<br />
                             <span className="text-zinc-800 dark:text-zinc-200">{profile?.full_name}</span>
                         </h1>

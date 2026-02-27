@@ -162,7 +162,7 @@ const HomePage: React.FC = () => {
                     </div>
 
                     {/* Sticky Tab Bar - Dense & Attached */}
-                    <div className="sticky top-16 md:top-20 z-30 mb-2 -mx-4 md:mx-0 px-4 md:px-0 pt-0 transition-all duration-300">
+                    <div className="sticky top-0 z-30 mb-2 -mx-4 md:mx-0 px-4 md:px-0 pt-0 transition-all duration-300">
                         <div className="bg-secondary-light/90 dark:bg-secondary/90 backdrop-blur-xl rounded-xl shadow-sm border-b border-x border-tertiary-light/50 dark:border-white/5 p-1 flex">
                             <button onClick={() => setFeedType('foryou')} className={`flex-1 py-2.5 rounded-lg font-bold text-xs sm:text-sm transition-all duration-200 ${feedType === 'foryou' ? 'bg-brand-green/10 text-brand-green shadow-sm' : 'text-text-tertiary-light dark:text-text-tertiary hover:text-text-main-light dark:hover:text-text-main hover:bg-tertiary-light/50 dark:hover:bg-white/5'}`}> For You </button>
                             <button onClick={() => setFeedType('following')} className={`flex-1 py-2.5 rounded-lg font-bold text-xs sm:text-sm transition-all duration-200 ${feedType === 'following' ? 'bg-brand-green/10 text-brand-green shadow-sm' : 'text-text-tertiary-light dark:text-text-tertiary hover:text-text-main-light dark:hover:text-text-main hover:bg-tertiary-light/50 dark:hover:bg-white/5'}`}> Following </button>
@@ -207,7 +207,7 @@ const HomePage: React.FC = () => {
                 </main>
 
                 <aside className="hidden lg:block lg:col-span-4">
-                    <div className="sticky top-24 space-y-4">
+                    <div className="sticky top-8 space-y-4">
                         <div className="max-h-[calc(100vh-6rem)] overflow-y-auto scrollbar-hide space-y-4 pb-10">
                             {currentUserProfile && <ProfileCard profile={currentUserProfile} />}
                             <CommunitiesWidget />
