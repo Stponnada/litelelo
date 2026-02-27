@@ -1,71 +1,44 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
+import { supabase } from '@/services/supabase';
+import { CampusTool } from '@/types';
+import Spinner from '@/components/Spinner';
 import { ArrowLeftIcon, ArrowTopRightOnSquareIcon, CubeIcon } from '@/components/icons';
 
-interface Tool {
-    name: string;
-    description: string;
-    url: string;
-    icon: string;
-    color: string;
-    bg: string;
-    border: string;
-    creator: string;
-    isInternal?: boolean;
-}
-
-const tools: Tool[] = [
-    {
-        name: "QuietSpace",
-        description: "Find available classrooms and library spots in real-time. Avoid the rush and find your perfect study zone.",
-        url: "https://quietspace-mu.vercel.app/",
-        icon: "Q",
-        color: "text-blue-500",
-        bg: "bg-blue-500/10",
-        border: "border-blue-500/20",
-        creator: "Shriniketh Deevanapalli"
-    },
-    {
-        name: "H4U (Handouts For You)",
-        description: "A centralized platform for course handouts, lecture notes, and study materials, making academic resources easily accessible to all students.",
-        url: "https://h4u.app/",
-        icon: "H",
-        color: "text-emerald-500",
-        bg: "bg-emerald-500/10",
-        border: "border-emerald-500/20",
-        creator: "H4U Team"
-    },
-    {
-        name: "Campus 101",
-        description: "The ultimate BITS directory. Contacts, locations, and essential campus info at your fingertips.",
-        url: "https://campus101-sable.vercel.app/",
-        icon: "C",
-        color: "text-blue-900",
-        bg: "bg-blue-900/10",
-        border: "border-blue-900/20",
-        creator: "Shriniketh Deevanapalli and Kushagra Singh"
-    },
-    {
-        name: "Logged In.",
-        description: "A Chrome Web-Extension that logs you in to BITS Wifi Automatically every time",
-        url: "https://chromewebstore.google.com/detail/loggedin/ilfifcjoopoddgiienpaeibdfllennal?hl=en",
-        icon: "L",
-        color: "text-blue-300",
-        bg: "bg-blue-300/10",
-        border: "border-blue-300/20",
-        creator: "Saathvik Manikandan"
-    }
-];
-
 export default function CampusToolsPage() {
+    const [tools, setTools] = useState<CampusTool[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchTools = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('campus_tools')
+                    .select('*')
+                    .order('order_index', { ascending: true });
+
+                if (error) throw error;
+                setTools(data || []);
+            } catch (err) {
+                console.error('Error fetching tools:', err);
+                // Fallback to empty or handled error state
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchTools();
+    }, []);
+
     return (
         <div className="min-h-screen bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 font-raleway">
             {/* Ambient Background */}
             <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-brand-green/10 dark:bg-brand-green/20 blur-[120px] rounded-full opacity-60 dark:opacity-20 pointer-events-none" />
 
-            <div className="relative max-w-5xl mx-auto px-6 py-12">
+            <div className="relative max-w-6xl mx-auto px-6 py-12">
                 {/* Back Button */}
                 <Link
                     href="/campus"
@@ -81,76 +54,105 @@ export default function CampusToolsPage() {
                         <div className="p-3 bg-brand-green/10 rounded-2xl">
                             <CubeIcon className="w-8 h-8 text-brand-green" />
                         </div>
-                        <h1 className="text-4xl md:text-5xl font-black tracking-tight">Student Tools</h1>
+                        <h1 className="text-4xl md:text-5xl font-black tracking-tight uppercase italic underline decoration-brand-green/30">Built @ BITS</h1>
                     </div>
                     <p className="text-lg text-zinc-500 dark:text-zinc-400 max-w-4xl">
                         Find the top websites and other software built by fellow Bits Students to Superpower your online college life.
                     </p>
                 </div>
 
-                {/* Tools Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {tools.map((tool) => (
-                        <div
-                            key={tool.name}
-                            className={`group relative p-8 rounded-3xl border ${tool.border} bg-white dark:bg-zinc-900/50 hover:shadow-2xl hover:-translate-y-1 transition-all duration-500`}
-                        >
-                            <div className="flex justify-between items-start mb-6">
-                                <div className={`w-14 h-14 rounded-2xl ${tool.bg} flex items-center justify-center text-2xl font-black ${tool.color}`}>
-                                    {tool.icon}
-                                </div>
-                                {tool.isInternal ? (
-                                    <span className="px-3 py-1 bg-zinc-100 dark:bg-zinc-800 rounded-full text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-                                        Internal
-                                    </span>
-                                ) : (
-                                    <span className="px-3 py-1 bg-brand-green/10 rounded-full text-[10px] font-bold uppercase tracking-wider text-brand-green">
-                                        External
-                                    </span>
-                                )}
-                            </div>
-
-                            <h3 className="text-2xl font-bold mb-3 group-hover:text-brand-green transition-colors">
-                                {tool.name}
-                            </h3>
-                            <p className="text-zinc-500 dark:text-zinc-400 mb-8 leading-relaxed">
-                                {tool.description}
-                            </p>
-
-                            <div className="flex items-center justify-between">
-                                <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
-                                    CREATED BY {tool.creator}
-                                </div>
-                                {tool.isInternal ? (
-                                    <Link href={tool.url} className="p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl hover:bg-brand-green hover:text-black transition-all">
-                                        Open Tool
-                                    </Link>
-                                ) : (
-                                    <a
-                                        href={tool.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl hover:bg-brand-green hover:text-black transition-all flex items-center gap-2"
-                                    >
-                                        Visit Website
-                                        <ArrowTopRightOnSquareIcon className="w-4 h-4" />
-                                    </a>
-                                )}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                {/* Footer Quote */}
-                <div className="mt-24 text-center">
-                    <div className="inline-block p-1 px-4 bg-brand-green/5 rounded-full border border-brand-green/10 mb-4">
-                        <span className="text-xs font-bold text-brand-green tracking-widest uppercase">Open Source Campus</span>
+                {loading ? (
+                    <div className="flex justify-center py-20">
+                        <Spinner />
                     </div>
-                    <p className="text-sm text-zinc-400 italic">
-                        Built a tool for campus? <Link href="/contact" className="text-brand-green underline decoration-brand-green/30">Get it listed here.</Link>
-                    </p>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {tools.map((tool) => (
+                            <a
+                                key={tool.id}
+                                href={tool.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="group relative flex flex-col overflow-hidden rounded-[2.5rem] bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-white/5 hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_20px_50px_rgba(0,0,0,0.3)] hover:-translate-y-2 transition-all duration-500"
+                            >
+                                {/* Preview Image Container */}
+                                <div className="relative aspect-video overflow-hidden">
+                                    {tool.image_url ? (
+                                        <Image
+                                            src={tool.image_url}
+                                            alt={tool.name}
+                                            fill
+                                            className="object-cover group-hover:scale-110 transition-transform duration-700"
+                                            unoptimized
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full bg-gradient-to-br from-zinc-200 to-zinc-300 dark:from-zinc-800 dark:to-zinc-700" />
+                                    )}
+
+                                    {/* Icon Overlay */}
+                                    <div className="absolute top-4 left-4">
+                                        <div className={`w-12 h-12 rounded-2xl backdrop-blur-xl ${tool.bg_color || 'bg-white/10'} border ${tool.border_color || 'border-white/20'} flex items-center justify-center text-xl font-black ${tool.icon_color || 'text-white'} shadow-xl`}>
+                                            {tool.icon_text}
+                                        </div>
+                                    </div>
+
+                                    {/* Type Badge */}
+                                    <div className="absolute top-4 right-4">
+                                        <span className="px-3 py-1 bg-black/40 backdrop-blur-md rounded-full text-[10px] font-bold uppercase tracking-widest text-white border border-white/10">
+                                            {tool.is_external ? 'External' : 'Internal'}
+                                        </span>
+                                    </div>
+
+                                    {/* Gradient Shadow */}
+                                    <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                                </div>
+
+                                {/* Content Details */}
+                                <div className="p-8 flex flex-col flex-1">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <h3 className="text-2xl font-bold group-hover:text-brand-green transition-colors leading-tight">
+                                            {tool.name}
+                                        </h3>
+                                        <ArrowTopRightOnSquareIcon className="w-5 h-5 text-zinc-400 group-hover:text-brand-green group-hover:translate-x-1 group-hover:-translate-y-1 transition-all" />
+                                    </div>
+
+                                    <p className="text-zinc-500 dark:text-zinc-400 mb-8 line-clamp-3 leading-relaxed">
+                                        {tool.description}
+                                    </p>
+
+                                    <div className="mt-auto space-y-4">
+                                        <div className="h-px bg-zinc-200 dark:bg-white/5" />
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex flex-col">
+                                                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400 mb-1">
+                                                    Author
+                                                </span>
+                                                <span className="text-xs font-bold text-zinc-800 dark:text-zinc-300">
+                                                    {tool.creator || 'BITS Community'}
+                                                </span>
+                                            </div>
+                                            <div className="w-10 h-10 rounded-full bg-brand-green/10 flex items-center justify-center group-hover:bg-brand-green group-hover:text-black transition-colors duration-500">
+                                                <ArrowTopRightOnSquareIcon className="w-4 h-4" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
+                        ))}
+                    </div>
+                )}
+
+                {/* Footer Section */}
+                <div className="mt-32 border-t border-zinc-200 dark:border-white/5 pt-12 text-center">
+                    <div className="max-w-xl mx-auto">
+                        <h4 className="text-2xl font-bold mb-4">Built something cool?</h4>
+                        <Link href="/contact" className="inline-flex items-center gap-2 px-8 py-3 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-2xl font-bold hover:bg-brand-green dark:hover:bg-brand-green hover:text-black dark:hover:text-black transition-all">
+                            Submit your Tool
+                        </Link>
+                    </div>
                 </div>
             </div>
         </div>
     );
 }
+

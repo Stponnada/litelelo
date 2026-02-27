@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/services/supabase';
-import { CampusNotice, Post as PostType } from '@/types';
+import { CampusNotice, Post as PostType, CampusTool } from '@/types';
 import Spinner from '@/components/Spinner';
 import {
     CalendarIcon, ClipboardDocumentListIcon,
@@ -220,6 +220,7 @@ const ExplorePage: React.FC = () => {
     const [notices, setNotices] = useState<CampusNotice[]>([]);
     const [events, setEvents] = useState<CampusEventMini[]>([]);
     const [blogPosts, setBlogPosts] = useState<PostType[]>([]);
+    const [campusTools, setCampusTools] = useState<CampusTool[]>([]);
     const [loading, setLoading] = useState(true);
     const [greeting, setGreeting] = useState('Hello');
 
@@ -246,7 +247,7 @@ const ExplorePage: React.FC = () => {
                     return;
                 }
 
-                const [noticesRes, eventsRes, blogsRes] = await Promise.all([
+                const [noticesRes, eventsRes, blogsRes, toolsRes] = await Promise.all([
                     supabase.rpc('get_campus_notices_with_files', { p_campus: profile.campus }).limit(4),
                     supabase.rpc('get_campus_events', { p_campus: profile.campus }).limit(5),
                     supabase
@@ -255,7 +256,8 @@ const ExplorePage: React.FC = () => {
                         .eq('post_type', 'blog')
                         .not('title', 'is', null)
                         .order('like_count', { ascending: false })
-                        .limit(4)
+                        .limit(4),
+                    supabase.from('campus_tools').select('*').order('order_index').limit(3)
                 ]);
 
                 if (noticesRes.data) setNotices(noticesRes.data as CampusNotice[]);
@@ -275,6 +277,7 @@ const ExplorePage: React.FC = () => {
                         .slice(0, 4);
                     setBlogPosts(blogs);
                 }
+                if (toolsRes.data) setCampusTools(toolsRes.data as CampusTool[]);
 
             } catch (err: unknown) {
                 console.error("Error fetching explore data:", err);
@@ -408,30 +411,17 @@ const ExplorePage: React.FC = () => {
                         accentColor="bg-blue-500/10"
                     />
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <ToolPreviewCard
-                            href="https://bits-quietspace.vercel.app/"
-                            icon={<span className="text-xl font-bold text-blue-500">Q</span>}
-                            title="QuietSpace"
-                            description="Live library occupancy tracker"
-                            accentClass="border-blue-100 dark:border-blue-900/30 bg-blue-50/30 dark:bg-blue-900/5"
-                            isExternal={true}
-                        />
-                        <ToolPreviewCard
-                            href="https://h4u-bits.vercel.app/"
-                            icon={<span className="text-xl font-bold text-emerald-500">H</span>}
-                            title="H4U"
-                            description="Real-time food delivery tracker"
-                            accentClass="border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/30 dark:bg-emerald-900/5"
-                            isExternal={true}
-                        />
-                        <ToolPreviewCard
-                            href="https://campus101.vercel.app/"
-                            icon={<span className="text-xl font-bold text-amber-500">C</span>}
-                            title="Campus 101"
-                            description="Student-curated contact directory"
-                            accentClass="border-amber-100 dark:border-amber-900/30 bg-amber-50/30 dark:bg-amber-900/5"
-                            isExternal={true}
-                        />
+                        {campusTools.map(tool => (
+                            <ToolPreviewCard
+                                key={tool.id}
+                                href={tool.url}
+                                icon={<span className={`text-xl font-bold ${tool.icon_color || ''}`}>{tool.icon_text}</span>}
+                                title={tool.name}
+                                description={tool.description}
+                                accentClass={`${tool.border_color || 'border-zinc-100'} ${tool.bg_color || 'bg-zinc-50'}`}
+                                isExternal={tool.is_external}
+                            />
+                        ))}
                     </div>
                 </section>
 

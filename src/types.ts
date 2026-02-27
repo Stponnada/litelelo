@@ -487,3 +487,19 @@ export interface RideShare {
     avatar_url: string | null;
   };
 }
+
+export interface CampusTool {
+  id: string;
+  name: string;
+  description: string;
+  url: string;
+  icon_text: string | null;
+  icon_color: string | null;
+  bg_color: string | null;
+  border_color: string | null;
+  creator: string | null;
+  image_url: string | null;
+  is_external: boolean;
+  order_index: number;
+  created_at: string;
+}
