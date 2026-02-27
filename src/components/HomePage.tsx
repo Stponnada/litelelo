@@ -208,7 +208,7 @@ const HomePage: React.FC = () => {
 
                 <aside className="hidden lg:block lg:col-span-4">
                     <div className="sticky top-8 space-y-4">
-                        <div className="max-h-[calc(100vh-6rem)] overflow-y-auto scrollbar-hide space-y-4 pb-10">
+                        <div className="max-h-[calc(100vh-40px)] overflow-y-auto scrollbar-hide space-y-4 pb-10">
                             {currentUserProfile && <ProfileCard profile={currentUserProfile} />}
                             <CommunitiesWidget />
                             <FollowSuggestions />

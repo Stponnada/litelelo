@@ -160,7 +160,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
             <NotificationPanel
               isOpen={isNotificationsOpen}
               onClose={() => setNotificationsOpen(false)}
-              className={`absolute z-50 w-80 md:w-96 bg-secondary-light dark:bg-secondary rounded-xl shadow-2xl border border-tertiary-light dark:border-tertiary animate-fadeIn overflow-hidden ${isExpanded ? 'right-0 top-full mt-2 origin-top-right' : 'left-full top-0 ml-4 origin-top-left'
+              className={`absolute z-50 w-80 md:w-96 bg-secondary-light dark:bg-secondary rounded-xl shadow-2xl border border-tertiary-light dark:border-tertiary animate-fadeIn overflow-hidden ${isExpanded ? 'left-0 top-full mt-2 origin-top-left' : 'left-full top-0 ml-4 origin-top-left'
                 }`}
             />
           </div>

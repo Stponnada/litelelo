@@ -231,59 +231,31 @@ const SearchPage: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Top Users & Communities */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            {/* Top Users */}
-                            <div>
-                                <h3 className="text-lg font-bold text-zinc-800 dark:text-zinc-200 mb-4 flex items-center gap-2">
-                                    <StarIcon className="w-5 h-5 text-amber-500" />
-                                    Top Voices
-                                </h3>
-                                <div className="space-y-2">
-                                    {topUsers.map(user => (
-                                        <Link key={user.id} href={`/profile/${user.username}`} className="flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors">
-                                            <Image
-                                                src={getResizedAvatarUrl(user.avatar_url, 40, 40, user.name)}
-                                                alt={user.name} width={40} height={40}
-                                                className="w-10 h-10 rounded-full object-cover"
-                                                unoptimized
-                                            />
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-bold text-sm truncate">{user.name}</p>
-                                                <p className="text-xs text-zinc-500 truncate">@{user.username}</p>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="text-[10px] font-bold text-brand-green">{user.follower_count || 0}</p>
-                                                <p className="text-[8px] uppercase tracking-tighter text-zinc-400">Followers</p>
-                                            </div>
-                                        </Link>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Top Communities */}
-                            <div>
-                                <h3 className="text-lg font-bold text-zinc-800 dark:text-zinc-200 mb-4 flex items-center gap-2">
-                                    <UserGroupIcon className="w-5 h-5 text-blue-500" />
-                                    Active Communities
-                                </h3>
-                                <div className="space-y-2">
-                                    {topCommunities.map(comm => (
-                                        <Link key={comm.id} href={`/communities/${comm.id}`} className="flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors">
-                                            <Image
-                                                src={getResizedAvatarUrl(comm.avatar_url, 40, 40, comm.name)}
-                                                alt={comm.name} width={40} height={40}
-                                                className="w-10 h-10 rounded-lg object-cover"
-                                                unoptimized
-                                            />
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-bold text-sm truncate">{comm.name}</p>
-                                                <p className="text-[10px] text-zinc-500 truncate">{comm.member_count || 0} members</p>
-                                            </div>
-                                            <ArrowRightIcon className="w-4 h-4 text-zinc-300" />
-                                        </Link>
-                                    ))}
-                                </div>
+                        {/* Top Users */}
+                        <div className="max-w-2xl">
+                            <h3 className="text-lg font-bold text-zinc-800 dark:text-zinc-200 mb-4 flex items-center gap-2">
+                                <StarIcon className="w-5 h-5 text-amber-500" />
+                                Top Voices
+                            </h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {topUsers.map(user => (
+                                    <Link key={user.id} href={`/profile/${user.username}`} className="flex items-center gap-3 p-3 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-100 dark:border-white/5 hover:bg-zinc-100 dark:hover:bg-white/10 transition-all">
+                                        <Image
+                                            src={getResizedAvatarUrl(user.avatar_url, 40, 40, user.name)}
+                                            alt={user.name} width={40} height={40}
+                                            className="w-10 h-10 rounded-full object-cover"
+                                            unoptimized
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-bold text-sm truncate">{user.name}</p>
+                                            <p className="text-xs text-zinc-500 truncate">@{user.username}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-[10px] font-bold text-brand-green">{user.follower_count || 0}</p>
+                                            <p className="text-[8px] uppercase tracking-tighter text-zinc-400">Followers</p>
+                                        </div>
+                                    </Link>
+                                ))}
                             </div>
                         </div>
 

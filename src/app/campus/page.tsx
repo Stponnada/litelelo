@@ -165,21 +165,28 @@ const ToolPreviewCard: React.FC<{
     title: string;
     description: string;
     accentClass: string;
-}> = ({ href, icon, title, description, accentClass }) => (
-    <Link
-        href={href}
-        className={`group flex items-center gap-4 p-5 rounded-2xl border ${accentClass} hover:shadow-md hover:-translate-y-0.5 transition-all duration-300`}
-    >
-        <div className="flex-shrink-0 p-3 rounded-xl bg-white dark:bg-zinc-800 shadow-sm">
-            {icon}
-        </div>
-        <div className="flex-1 min-w-0">
-            <h4 className="font-bold text-sm text-zinc-800 dark:text-zinc-100">{title}</h4>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-1">{description}</p>
-        </div>
-        <ArrowRightIcon className="w-4 h-4 text-zinc-400 opacity-0 group-hover:opacity-100 transition-all" />
-    </Link>
-);
+    isExternal?: boolean;
+}> = ({ href, icon, title, description, accentClass, isExternal }) => {
+    const Component = isExternal ? 'a' : Link;
+    const extraProps = isExternal ? { target: "_blank", rel: "noopener noreferrer" } as any : {};
+
+    return (
+        <Component
+            href={href}
+            {...extraProps}
+            className={`group flex items-center gap-4 p-5 rounded-2xl border ${accentClass} hover:shadow-md hover:-translate-y-0.5 transition-all duration-300`}
+        >
+            <div className="flex-shrink-0 p-3 rounded-xl bg-white dark:bg-zinc-800 shadow-sm">
+                {icon}
+            </div>
+            <div className="flex-1 min-w-0">
+                <h4 className="font-bold text-sm text-zinc-800 dark:text-zinc-100">{title}</h4>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-1">{description}</p>
+            </div>
+            <ArrowRightIcon className="w-4 h-4 text-zinc-400 opacity-0 group-hover:opacity-100 transition-all" />
+        </Component>
+    );
+};
 
 // --- Quick Utility Link ---
 const QuickUtilityLink: React.FC<{
@@ -402,25 +409,28 @@ const ExplorePage: React.FC = () => {
                     />
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <ToolPreviewCard
-                            href="/campus/quiet-space"
-                            icon={<span className="text-xl">🤫</span>}
+                            href="https://bits-quietspace.vercel.app/"
+                            icon={<span className="text-xl font-bold text-blue-500">Q</span>}
                             title="QuietSpace"
                             description="Live library occupancy tracker"
                             accentClass="border-blue-100 dark:border-blue-900/30 bg-blue-50/30 dark:bg-blue-900/5"
+                            isExternal={true}
                         />
                         <ToolPreviewCard
-                            href="/campus/h4u"
-                            icon={<span className="text-xl">🍕</span>}
+                            href="https://h4u-bits.vercel.app/"
+                            icon={<span className="text-xl font-bold text-emerald-500">H</span>}
                             title="H4U"
                             description="Real-time food delivery tracker"
                             accentClass="border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/30 dark:bg-emerald-900/5"
+                            isExternal={true}
                         />
                         <ToolPreviewCard
-                            href="/campus/directory"
-                            icon={<span className="text-xl">📞</span>}
+                            href="https://campus101.vercel.app/"
+                            icon={<span className="text-xl font-bold text-amber-500">C</span>}
                             title="Campus 101"
                             description="Student-curated contact directory"
                             accentClass="border-amber-100 dark:border-amber-900/30 bg-amber-50/30 dark:bg-amber-900/5"
+                            isExternal={true}
                         />
                     </div>
                 </section>
