@@ -38,13 +38,13 @@ const SectionHeader: React.FC<{
                 {icon}
             </div>
             <div>
-                <h2 className="text-xl md:text-2xl font-black text-zinc-900 dark:text-white tracking-tight">{title}</h2>
-                <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">{subtitle}</p>
+                <h2 className="text-xl md:text-2xl font-bold text-zinc-900 dark:text-white tracking-tight">{title}</h2>
+                <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">{subtitle}</p>
             </div>
         </div>
         <Link
             href={href}
-            className="flex items-center gap-1.5 text-sm font-bold text-zinc-500 dark:text-zinc-400 hover:text-brand-green dark:hover:text-brand-green transition-colors group"
+            className="flex items-center gap-1.5 text-sm font-semibold text-zinc-500 dark:text-zinc-400 hover:text-brand-green dark:hover:text-brand-green transition-colors group"
         >
             View All
             <ArrowRightIcon className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -79,7 +79,7 @@ const NoticePreviewCard: React.FC<{ notice: CampusNotice }> = ({ notice }) => {
                         {new Date(notice.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                     </span>
                 </div>
-                <h3 className="font-bold text-base text-zinc-800 dark:text-zinc-100 line-clamp-2 mb-2 group-hover:text-amber-700 dark:group-hover:text-amber-300 transition-colors">
+                <h3 className="font-semibold text-base text-zinc-800 dark:text-zinc-100 line-clamp-2 mb-2 group-hover:text-amber-700 dark:group-hover:text-amber-300 transition-colors">
                     {notice.title}
                 </h3>
                 {notice.description && (
@@ -132,13 +132,13 @@ const EventMiniCard: React.FC<{ event: CampusEventMini }> = ({ event }) => {
         >
             {/* Date badge */}
             <div className="flex-shrink-0 w-14 h-14 rounded-xl bg-violet-100 dark:bg-violet-900/40 flex flex-col items-center justify-center">
-                <span className="text-[10px] font-bold text-violet-600 dark:text-violet-400 uppercase">{month}</span>
-                <span className="text-xl font-black text-violet-800 dark:text-violet-200 leading-none">{day}</span>
+                <span className="text-[10px] font-semibold text-violet-600 dark:text-violet-400 uppercase">{month}</span>
+                <span className="text-xl font-bold text-violet-800 dark:text-violet-200 leading-none">{day}</span>
             </div>
 
             {/* Content */}
             <div className="flex-1 min-w-0">
-                <h4 className="font-bold text-sm text-zinc-800 dark:text-zinc-100 truncate group-hover:text-violet-600 dark:group-hover:text-violet-300 transition-colors">
+                <h4 className="font-semibold text-sm text-zinc-800 dark:text-zinc-100 truncate group-hover:text-violet-600 dark:group-hover:text-violet-300 transition-colors">
                     {event.name}
                 </h4>
                 {event.location && (
@@ -180,7 +180,7 @@ const ToolPreviewCard: React.FC<{
                 {icon}
             </div>
             <div className="flex-1 min-w-0">
-                <h4 className="font-bold text-sm text-zinc-800 dark:text-zinc-100">{title}</h4>
+                <h4 className="font-semibold text-sm text-zinc-800 dark:text-zinc-100">{title}</h4>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-1">{description}</p>
             </div>
             <ArrowRightIcon className="w-4 h-4 text-zinc-400 opacity-0 group-hover:opacity-100 transition-all" />
@@ -204,7 +204,7 @@ const QuickUtilityLink: React.FC<{
             {icon}
         </div>
         <div className="flex-1 min-w-0">
-            <h4 className="font-bold text-sm text-zinc-800 dark:text-zinc-100">{title}</h4>
+            <h4 className="font-semibold text-sm text-zinc-800 dark:text-zinc-100">{title}</h4>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">{description}</p>
         </div>
         <ArrowRightIcon className="w-4 h-4 text-zinc-400 opacity-0 group-hover:opacity-100 transition-all" />
@@ -310,9 +310,9 @@ const ExplorePage: React.FC = () => {
                 {/* Header */}
                 <header className="mb-8 md:mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
                     <div className="space-y-1">
-                        <h1 className="text-3xl md:text-5xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-zinc-900 to-zinc-600 dark:from-white dark:to-zinc-500">
+                        <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-zinc-900 to-zinc-600 dark:from-white dark:to-zinc-500">
                             {greeting},<br />
-                            <span className="text-zinc-800 dark:text-zinc-200">{profile?.full_name}</span>
+                            <span className="text-zinc-800 dark:text-zinc-200 font-medium">{profile?.full_name}</span>
                         </h1>
                     </div>
                 </header>
