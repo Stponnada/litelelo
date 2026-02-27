@@ -137,8 +137,8 @@ BEGIN
         p.is_public,
         p.visibility::text,
         (SELECT CASE 
-            WHEN EXISTS(SELECT 1 FROM likes WHERE post_id = p.id AND user_id = v_user_id AND vote_type = 'like') THEN 'like'
-            WHEN EXISTS(SELECT 1 FROM likes WHERE post_id = p.id AND user_id = v_user_id AND vote_type = 'dislike') THEN 'dislike'
+            WHEN EXISTS(SELECT 1 FROM likes WHERE post_id = p.id AND user_id = v_user_id AND like_type = 'like') THEN 'like'
+            WHEN EXISTS(SELECT 1 FROM likes WHERE post_id = p.id AND user_id = v_user_id AND like_type = 'dislike') THEN 'dislike'
             ELSE NULL
         END)::text as user_vote,
         EXISTS(SELECT 1 FROM bookmarks WHERE post_id = p.id AND user_id = v_user_id) as is_bookmarked,

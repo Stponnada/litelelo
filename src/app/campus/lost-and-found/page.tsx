@@ -16,15 +16,15 @@ const TabButton: React.FC<{ label: string; count?: number; isActive: boolean; on
     <button
         onClick={onClick}
         className={`px-6 py-3 text-sm font-bold rounded-xl transition-all duration-200 flex items-center gap-2 ${isActive
-            ? 'bg-gradient-to-r from-orange-500 to-red-600 text-white shadow-lg shadow-orange-500/30'
-            : 'bg-secondary-light dark:bg-secondary text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light/70 dark:hover:bg-tertiary/70 border border-tertiary-light dark:border-tertiary'
+            ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-lg'
+            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/70 border border-zinc-200 dark:border-zinc-700'
             }`}
     >
         {label}
         {count !== undefined && (
             <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${isActive
-                ? 'bg-white/20 text-white'
-                : 'bg-tertiary-light dark:bg-tertiary text-text-secondary-light dark:text-text-secondary'
+                ? 'bg-white/20 text-white dark:bg-black/20 dark:text-zinc-900'
+                : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-400'
                 }`}>
                 {count}
             </span>
@@ -108,19 +108,17 @@ const LostAndFoundPage: React.FC = () => {
             )}
 
             {/* Enhanced Header Section */}
-            <header className="mb-6 md:mb-10 relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500/20 via-red-500/10 to-transparent dark:from-orange-500/10 dark:via-red-500/5 p-4 md:p-8 border border-orange-500/20">
-                <div className="absolute top-0 right-0 w-32 h-32 md:w-64 md:h-64 bg-orange-500/10 rounded-full blur-3xl -mr-16 -mt-16 md:-mr-32 md:-mt-32"></div>
-                <div className="absolute bottom-0 left-0 w-24 h-24 md:w-48 md:h-48 bg-red-500/10 rounded-full blur-3xl -ml-12 -mb-12 md:-ml-24 md:-mb-24"></div>
+            <header className="mb-6 md:mb-10 relative py-8 md:py-12 border-b border-zinc-200 dark:border-white/5">
                 <div className="relative z-10">
                     <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 md:gap-6">
                         <div className="space-y-2 md:space-y-3">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 md:p-3 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl shadow-lg">
+                                <div className="p-2 md:p-3 bg-zinc-800 dark:bg-zinc-700 rounded-2xl shadow-lg">
                                     <svg className="w-6 h-6 md:w-8 md:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                     </svg>
                                 </div>
-                                <h1 className="text-3xl md:text-5xl font-extrabold text-text-main-light dark:text-text-main bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent">
+                                <h1 className="text-3xl md:text-5xl font-extrabold text-zinc-900 dark:text-white">
                                     Lost & Found
                                 </h1>
                             </div>
@@ -128,13 +126,13 @@ const LostAndFoundPage: React.FC = () => {
                                 Help reunite lost items with their owners or report what you&apos;ve found
                             </p>
                             <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs md:text-sm">
-                                <div className="flex items-center gap-2 bg-green-500/10 text-green-400 px-2.5 py-1 md:px-3 md:py-1.5 rounded-full border border-green-500/30">
+                                <div className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-2.5 py-1 md:px-3 md:py-1.5 rounded-full border border-zinc-200 dark:border-zinc-700">
                                     <svg className="w-3 h-3 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                     </svg>
                                     <span className="font-semibold">{foundCount} Found Items</span>
                                 </div>
-                                <div className="flex items-center gap-2 bg-red-500/10 text-red-400 px-2.5 py-1 md:px-3 md:py-1.5 rounded-full border border-red-500/30">
+                                <div className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-2.5 py-1 md:px-3 md:py-1.5 rounded-full border border-zinc-200 dark:border-zinc-700">
                                     <svg className="w-3 h-3 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                     </svg>
@@ -144,7 +142,7 @@ const LostAndFoundPage: React.FC = () => {
                         </div>
                         <button
                             onClick={() => setCreateModalOpen(true)}
-                            className="bg-gradient-to-r from-orange-500 to-red-600 text-white font-bold py-3 px-6 md:py-4 md:px-8 rounded-xl hover:shadow-xl hover:scale-105 transition-all duration-200 flex items-center justify-center md:justify-start gap-2 group whitespace-nowrap w-full md:w-auto"
+                            className="bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold py-3 px-6 md:py-4 md:px-8 rounded-xl hover:shadow-xl hover:scale-105 transition-all duration-200 flex items-center justify-center md:justify-start gap-2 group whitespace-nowrap w-full md:w-auto"
                         >
                             <span className="text-xl md:text-2xl group-hover:rotate-90 transition-transform duration-200">+</span>
                             <span>Post {activeTab === 'found' ? 'Found' : 'Lost'} Item</span>
@@ -156,10 +154,10 @@ const LostAndFoundPage: React.FC = () => {
             {/* Enhanced Tabs */}
             <div className="mb-8">
                 <div className="flex items-center gap-3 mb-4">
-                    <div className="h-1 w-8 md:w-12 bg-orange-500 rounded-full"></div>
+                    <div className="h-1 w-8 md:w-12 bg-zinc-800 dark:bg-zinc-400 rounded-full"></div>
                     <h2 className="text-sm font-bold text-text-secondary-light dark:text-text-secondary uppercase tracking-wider">Browse Items</h2>
                 </div>
-                <div className="inline-flex gap-2 md:gap-3 p-1.5 bg-secondary-light dark:bg-secondary rounded-xl border border-tertiary-light dark:border-tertiary w-full md:w-auto overflow-x-auto">
+                <div className="inline-flex gap-2 md:gap-3 p-1.5 bg-zinc-100 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 w-full md:w-auto overflow-x-auto">
                     <TabButton
                         label="✓ Found Items"
                         count={foundCount}
@@ -200,13 +198,13 @@ const LostAndFoundPage: React.FC = () => {
                     {filteredItems.length > 0 ? (
                         filteredItems.map(item => <ItemCard key={item.id} item={item} onItemReclaimed={handleItemReclaimed} />)
                     ) : (
-                        <div className="col-span-full flex flex-col items-center justify-center py-12 md:py-24 bg-gradient-to-br from-secondary-light to-tertiary-light/30 dark:from-secondary dark:to-tertiary/30 rounded-2xl border-2 border-dashed border-tertiary-light dark:border-tertiary">
-                            <div className="inline-block p-6 bg-orange-500/10 rounded-full mb-4">
-                                <svg className="w-12 h-12 md:w-16 md:h-16 text-orange-500 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="col-span-full flex flex-col items-center justify-center py-12 md:py-24 rounded-2xl border-2 border-dashed border-zinc-200 dark:border-zinc-800">
+                            <div className="inline-block p-6 bg-zinc-100 dark:bg-zinc-800 rounded-full mb-4">
+                                <svg className="w-12 h-12 md:w-16 md:h-16 text-zinc-400 dark:text-zinc-600 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                                 </svg>
                             </div>
-                            <h3 className="text-xl md:text-2xl font-bold text-text-main-light dark:text-text-main mb-2">
+                            <h3 className="text-xl md:text-2xl font-bold text-zinc-800 dark:text-zinc-100 mb-2">
                                 No {activeTab === 'found' ? 'found' : 'lost'} items yet
                             </h3>
                             <p className="text-sm md:text-base text-text-secondary-light dark:text-text-secondary">
@@ -235,7 +233,7 @@ const ItemCard: React.FC<{ item: ItemType; onItemReclaimed: (itemId: string) => 
     const isFound = item.item_type === 'found';
 
     return (
-        <div className="group bg-gradient-to-br from-secondary-light to-secondary-light dark:from-secondary dark:to-secondary rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl border border-tertiary-light dark:border-tertiary flex flex-col transition-all duration-300 hover:-translate-y-1 hover:border-orange-500 hover:shadow-orange-500/20 relative">
+        <div className="group bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col transition-all duration-300 hover:-translate-y-1 hover:border-zinc-400 dark:hover:border-zinc-600 relative">
             {/* Decorative gradient overlay */}
             <div className={`absolute top-0 right-0 w-32 h-32 ${isFound ? 'bg-green-500/5' : 'bg-red-500/5'} rounded-full blur-2xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500`}></div>
 
@@ -261,12 +259,12 @@ const ItemCard: React.FC<{ item: ItemType; onItemReclaimed: (itemId: string) => 
 
             {/* Content */}
             <div className="relative z-10 p-4 md:p-5 flex-grow flex flex-col">
-                <h3 className="text-lg md:text-xl font-bold text-text-main-light dark:text-text-main truncate mb-2 md:mb-3 group-hover:text-orange-500 transition-colors duration-200">
+                <h3 className="text-lg md:text-xl font-bold text-zinc-900 dark:text-zinc-100 truncate mb-2 md:mb-3 group-hover:text-zinc-600 dark:group-hover:text-zinc-300 transition-colors duration-200">
                     {item.title}
                 </h3>
 
-                <div className="flex items-start gap-2 mb-3 px-2.5 py-2 md:px-3 md:py-2 bg-tertiary-light/50 dark:bg-tertiary/50 rounded-lg border border-tertiary-light dark:border-tertiary">
-                    <svg className="w-3.5 h-3.5 md:w-4 md:h-4 text-orange-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex items-start gap-2 mb-3 px-2.5 py-2 md:px-3 md:py-2 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-100 dark:border-zinc-700">
+                    <svg className="w-3.5 h-3.5 md:w-4 md:h-4 text-zinc-400 dark:text-zinc-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
@@ -296,7 +294,7 @@ const ItemCard: React.FC<{ item: ItemType; onItemReclaimed: (itemId: string) => 
                                 alt={poster?.username || 'User'}
                                 width={40}
                                 height={40}
-                                className="w-10 h-10 rounded-full object-cover aspect-square ring-2 ring-tertiary-light dark:ring-tertiary group-hover/avatar:ring-orange-500 transition-all duration-200"
+                                className="w-10 h-10 rounded-full object-cover aspect-square ring-2 ring-zinc-200 dark:ring-zinc-700 group-hover/avatar:ring-zinc-400 transition-all duration-200"
                                 unoptimized
                             />
                             <div className="absolute inset-0 rounded-full bg-orange-500 opacity-0 group-hover/avatar:opacity-20 transition-opacity duration-200"></div>
@@ -305,7 +303,7 @@ const ItemCard: React.FC<{ item: ItemType; onItemReclaimed: (itemId: string) => 
                             <p className="text-[10px] font-semibold uppercase text-text-tertiary-light dark:text-text-tertiary tracking-wide mb-0.5">
                                 Posted by
                             </p>
-                            <p className="text-sm font-bold text-text-main-light dark:text-text-main group-hover/avatar:text-orange-500 transition-colors duration-200 truncate">
+                            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200 group-hover/avatar:text-zinc-600 dark:group-hover/avatar:text-zinc-400 transition-colors duration-200 truncate">
                                 @{poster?.username || 'Unknown'}
                             </p>
                         </div>
@@ -314,14 +312,14 @@ const ItemCard: React.FC<{ item: ItemType; onItemReclaimed: (itemId: string) => 
                     {isOwner ? (
                         <button
                             onClick={() => onItemReclaimed(item.id)}
-                            className="w-full font-bold py-2.5 px-4 rounded-lg text-sm transition-all bg-gradient-to-r from-green-500/20 to-green-600/20 border-2 border-green-500/30 text-green-500 hover:from-green-500 hover:to-green-600 hover:text-white hover:border-transparent hover:scale-105"
+                            className="w-full font-bold py-2.5 px-4 rounded-lg text-sm transition-all bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-900 dark:hover:bg-white hover:text-white dark:hover:text-zinc-900 hover:border-transparent hover:scale-105"
                         >
                             Mark {isFound ? 'Reclaimed' : 'Found'}
                         </button>
                     ) : (
                         <button
                             onClick={handleContact}
-                            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500/20 to-red-600/20 border-2 border-orange-500/30 font-bold text-sm py-2.5 px-4 rounded-lg hover:from-orange-500 hover:to-red-600 hover:border-transparent text-orange-500 hover:text-white transition-all hover:scale-105"
+                            className="w-full flex items-center justify-center gap-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 font-bold text-sm py-2.5 px-4 rounded-lg hover:bg-zinc-900 dark:hover:bg-white hover:border-transparent text-zinc-600 dark:text-zinc-300 hover:text-white dark:hover:text-zinc-900 transition-all hover:scale-105"
                         >
                             <ChatIcon className="w-4 h-4" />
                             <span>Contact</span>

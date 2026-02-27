@@ -120,19 +120,17 @@ const MarketplacePage: React.FC = () => {
                 )}
 
                 {/* Enhanced Header Section */}
-                <header className="mb-6 md:mb-10 relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-500/20 via-teal-500/10 to-transparent dark:from-green-500/10 dark:via-teal-500/5 p-4 md:p-8 border border-green-500/20">
-                    <div className="absolute top-0 right-0 w-32 h-32 md:w-64 md:h-64 bg-green-500/10 rounded-full blur-3xl -mr-16 -mt-16 md:-mr-32 md:-mt-32"></div>
-                    <div className="absolute bottom-0 left-0 w-24 h-24 md:w-48 md:h-48 bg-teal-500/10 rounded-full blur-3xl -ml-12 -mb-12 md:-ml-24 md:-mb-24"></div>
+                <header className="mb-6 md:mb-10 relative py-8 md:py-12 border-b border-zinc-200 dark:border-white/5">
                     <div className="relative z-10">
                         <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 md:gap-6">
                             <div className="space-y-2 md:space-y-3">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 md:p-3 bg-gradient-to-br from-green-500 to-teal-600 rounded-2xl shadow-lg">
+                                    <div className="p-2 md:p-3 bg-zinc-800 dark:bg-zinc-700 rounded-2xl shadow-lg">
                                         <svg className="w-6 h-6 md:w-8 md:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                                         </svg>
                                     </div>
-                                    <h1 className="text-3xl md:text-5xl font-extrabold text-text-main-light dark:text-text-main bg-gradient-to-r from-green-500 to-teal-600 bg-clip-text text-transparent font-sans">
+                                    <h1 className="text-3xl md:text-5xl font-extrabold text-zinc-900 dark:text-white font-sans">
                                         Marketplace
                                     </h1>
                                 </div>
@@ -140,11 +138,11 @@ const MarketplacePage: React.FC = () => {
                                     Buy, sell, and trade items with your campus community
                                 </p>
                                 <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs md:text-sm">
-                                    <div className="flex items-center gap-2 bg-green-500/10 text-green-400 px-2.5 py-1 md:px-3 md:py-1.5 rounded-full border border-green-500/30">
-                                        <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-green-400 rounded-full animate-pulse"></div>
+                                    <div className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-2.5 py-1 md:px-3 md:py-1.5 rounded-full border border-zinc-200 dark:border-zinc-700">
+                                        <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-zinc-400 dark:bg-zinc-500 rounded-full"></div>
                                         <span className="font-semibold">{listings.length} Active Listings</span>
                                     </div>
-                                    <div className="flex items-center gap-2 bg-teal-500/10 text-teal-400 px-2.5 py-1 md:px-3 md:py-1.5 rounded-full border border-teal-500/30">
+                                    <div className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-2.5 py-1 md:px-3 md:py-1.5 rounded-full border border-zinc-200 dark:border-zinc-700">
                                         <svg className="w-3 h-3 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                         </svg>
@@ -154,7 +152,7 @@ const MarketplacePage: React.FC = () => {
                             </div>
                             <button
                                 onClick={() => setCreateModalOpen(true)}
-                                className="bg-gradient-to-r from-green-500 to-teal-600 text-white font-bold py-3 px-6 md:py-4 md:px-8 rounded-xl hover:shadow-xl hover:scale-105 transition-all duration-200 flex items-center justify-center md:justify-start gap-2 group whitespace-nowrap w-full md:w-auto"
+                                className="bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold py-3 px-6 md:py-4 md:px-8 rounded-xl hover:shadow-xl hover:scale-105 transition-all duration-200 flex items-center justify-center md:justify-start gap-2 group whitespace-nowrap w-full md:w-auto"
                             >
                                 <span className="text-xl md:text-2xl group-hover:rotate-90 transition-transform duration-200">+</span>
                                 <span>Sell Item</span>
@@ -166,7 +164,7 @@ const MarketplacePage: React.FC = () => {
                 {/* Enhanced Filter Controls */}
                 <div className="mb-8">
                     <div className="flex items-center gap-3 mb-4">
-                        <div className="h-1 w-8 md:w-12 bg-green-500 rounded-full"></div>
+                        <div className="h-1 w-8 md:w-12 bg-zinc-800 dark:bg-zinc-400 rounded-full"></div>
                         <h2 className="text-sm font-bold text-text-secondary-light dark:text-text-secondary uppercase tracking-wider">Filter & Search</h2>
                     </div>
 
@@ -179,7 +177,7 @@ const MarketplacePage: React.FC = () => {
                                     placeholder="Search for items, keywords..."
                                     value={searchTerm}
                                     onChange={e => setSearchTerm(e.target.value)}
-                                    className="w-full pl-10 md:pl-12 pr-4 py-2.5 md:py-3 bg-tertiary-light dark:bg-tertiary rounded-xl border-2 border-tertiary-light dark:border-gray-600 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-all outline-none font-medium text-sm md:text-base"
+                                    className="w-full pl-10 md:pl-12 pr-4 py-2.5 md:py-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 focus:border-zinc-500 focus:ring-2 focus:ring-zinc-500/20 transition-all outline-none font-medium text-sm md:text-base"
                                 />
                                 <div className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 text-text-tertiary-light dark:text-text-tertiary">
                                     <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -204,7 +202,7 @@ const MarketplacePage: React.FC = () => {
                                     <select
                                         value={selectedCategory}
                                         onChange={e => setSelectedCategory(e.target.value)}
-                                        className="w-full sm:w-auto appearance-none pl-4 pr-10 py-2.5 md:py-3 bg-tertiary-light dark:bg-tertiary rounded-xl border-2 border-tertiary-light dark:border-gray-600 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-all outline-none font-semibold cursor-pointer text-sm md:text-base"
+                                        className="w-full sm:w-auto appearance-none pl-4 pr-10 py-2.5 md:py-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 focus:border-zinc-500 focus:ring-2 focus:ring-zinc-500/20 transition-all outline-none font-semibold cursor-pointer text-sm md:text-base"
                                     >
                                         <option value="All">All Categories</option>
                                         {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
@@ -220,7 +218,7 @@ const MarketplacePage: React.FC = () => {
                                     <select
                                         value={sortBy}
                                         onChange={e => setSortBy(e.target.value)}
-                                        className="w-full sm:w-auto appearance-none pl-4 pr-10 py-2.5 md:py-3 bg-tertiary-light dark:bg-tertiary rounded-xl border-2 border-tertiary-light dark:border-gray-600 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-all outline-none font-semibold cursor-pointer text-sm md:text-base"
+                                        className="w-full sm:w-auto appearance-none pl-4 pr-10 py-2.5 md:py-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 focus:border-zinc-500 focus:ring-2 focus:ring-zinc-500/20 transition-all outline-none font-semibold cursor-pointer text-sm md:text-base"
                                     >
                                         {Object.entries(SORT_OPTIONS).map(([key, value]) => (
                                             <option key={key} value={key}>{value}</option>
@@ -240,9 +238,9 @@ const MarketplacePage: React.FC = () => {
                             <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-tertiary-light dark:border-tertiary">
                                 <span className="text-xs md:text-sm font-semibold text-text-secondary-light dark:text-text-secondary">Active filters:</span>
                                 {searchTerm && (
-                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-500/10 text-green-400 rounded-full text-xs md:text-sm font-semibold border border-green-500/30">
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded-full text-xs md:text-sm font-semibold border border-zinc-200 dark:border-zinc-700">
                                         Search: &quot;{searchTerm}&quot;
-                                        <button onClick={() => setSearchTerm('')} className="hover:bg-green-500/20 rounded-full p-0.5">
+                                        <button onClick={() => setSearchTerm('')} className="hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-full p-0.5">
                                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                             </svg>
@@ -250,9 +248,9 @@ const MarketplacePage: React.FC = () => {
                                     </span>
                                 )}
                                 {selectedCategory !== 'All' && (
-                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-teal-500/10 text-teal-400 rounded-full text-xs md:text-sm font-semibold border border-teal-500/30">
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded-full text-xs md:text-sm font-semibold border border-zinc-200 dark:border-zinc-700">
                                         {selectedCategory}
-                                        <button onClick={() => setSelectedCategory('All')} className="hover:bg-teal-500/20 rounded-full p-0.5">
+                                        <button onClick={() => setSelectedCategory('All')} className="hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-full p-0.5">
                                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                             </svg>
@@ -274,7 +272,7 @@ const MarketplacePage: React.FC = () => {
                 <div>
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-3">
-                            <div className="h-1 w-12 bg-green-500 rounded-full"></div>
+                            <div className="h-1 w-12 bg-zinc-800 dark:bg-zinc-400 rounded-full"></div>
                             <h2 className="text-2xl font-bold text-text-main-light dark:text-text-main">
                                 {loading ? 'Loading...' : `${listings.length} ${listings.length === 1 ? 'Item' : 'Items'}`}
                             </h2>
@@ -298,9 +296,9 @@ const MarketplacePage: React.FC = () => {
                             ))}
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center justify-center py-12 md:py-24 px-4 text-center bg-gradient-to-br from-secondary-light to-tertiary-light/30 dark:from-secondary dark:to-tertiary/30 rounded-2xl border-2 border-dashed border-tertiary-light dark:border-tertiary">
-                            <div className="inline-block p-6 bg-green-500/10 rounded-full mb-4">
-                                <svg className="w-12 h-12 md:w-16 md:h-16 text-green-500 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="flex flex-col items-center justify-center py-12 md:py-24 px-4 text-center rounded-2xl border-2 border-dashed border-zinc-200 dark:border-zinc-800">
+                            <div className="inline-block p-6 bg-zinc-100 dark:bg-zinc-800 rounded-full mb-4">
+                                <svg className="w-12 h-12 md:w-16 md:h-16 text-zinc-400 dark:text-zinc-600 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                                 </svg>
                             </div>
@@ -315,7 +313,7 @@ const MarketplacePage: React.FC = () => {
                             {(searchTerm || selectedCategory !== 'All') && (
                                 <button
                                     onClick={() => { setSearchTerm(''); setSelectedCategory('All'); }}
-                                    className="px-6 py-3 bg-gradient-to-r from-green-500 to-teal-600 text-white font-bold rounded-xl hover:shadow-lg hover:scale-105 transition-all duration-200 text-sm md:text-base"
+                                    className="px-6 py-3 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold rounded-xl hover:shadow-lg hover:scale-105 transition-all duration-200 text-sm md:text-base"
                                 >
                                     Clear Filters
                                 </button>

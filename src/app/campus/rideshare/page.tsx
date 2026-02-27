@@ -82,7 +82,7 @@ const RideSharePage: React.FC = () => {
             <p className="text-text-secondary-light dark:text-text-secondary max-w-md mb-6">{error}</p>
             <button
                 onClick={() => fetchRides()}
-                className="px-6 py-2 bg-accent-sky text-white rounded-xl font-bold hover:scale-105 transition-transform"
+                className="px-6 py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl font-bold hover:scale-105 transition-transform"
             >
                 Try Again
             </button>
@@ -109,27 +109,23 @@ const RideSharePage: React.FC = () => {
             <motion.header
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mb-10 relative overflow-hidden rounded-[2.5rem] bg-[#1d1d1b] p-8 md:p-12 border border-white/5"
+                className="mb-10 relative py-8 md:py-12 border-b border-zinc-200 dark:border-white/5"
             >
-                {/* Decorative Elements */}
-                <div className="absolute top-0 right-0 w-96 h-96 bg-accent-sky/20 rounded-full blur-[100px] -mr-32 -mt-32" />
-                <div className="absolute bottom-0 left-0 w-64 h-64 bg-brand-green/10 rounded-full blur-[80px] -ml-24 -mb-24" />
-
                 <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
                     <div className="space-y-4">
-                        <h1 className="text-4xl md:text-6xl font-black text-white tracking-tight">
-                            Ride<span className="text-accent-sky">Share</span>
+                        <h1 className="text-4xl md:text-6xl font-black text-zinc-900 dark:text-white tracking-tight">
+                            Ride<span className="text-zinc-500 dark:text-zinc-400">Share</span>
                         </h1>
 
                         <div className="flex flex-wrap gap-4 pt-4">
                             <div className="flex flex-col">
-                                <span className="text-2xl font-bold text-white">{rides.filter(r => r.type === 'offer').length}</span>
-                                <span className="text-xs text-gray-500 font-medium uppercase tracking-widest">Available Rides</span>
+                                <span className="text-2xl font-bold text-zinc-900 dark:text-white">{rides.filter(r => r.type === 'offer').length}</span>
+                                <span className="text-xs text-zinc-400 dark:text-zinc-500 font-medium uppercase tracking-widest">Available Rides</span>
                             </div>
-                            <div className="w-px h-10 bg-white/10" />
+                            <div className="w-px h-10 bg-zinc-200 dark:bg-white/10" />
                             <div className="flex flex-col">
-                                <span className="text-2xl font-bold text-white">{rides.filter(r => r.type === 'request').length}</span>
-                                <span className="text-xs text-gray-500 font-medium uppercase tracking-widest">Requests</span>
+                                <span className="text-2xl font-bold text-zinc-900 dark:text-white">{rides.filter(r => r.type === 'request').length}</span>
+                                <span className="text-xs text-zinc-400 dark:text-zinc-500 font-medium uppercase tracking-widest">Requests</span>
                             </div>
                         </div>
                     </div>
@@ -138,7 +134,7 @@ const RideSharePage: React.FC = () => {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => setCreateModalOpen(true)}
-                        className="relative group overflow-hidden bg-accent-sky text-white px-8 py-5 rounded-2xl font-black text-lg flex items-center justify-center gap-3 shadow-[0_20px_50px_rgba(14,165,233,0.3)] transition-all"
+                        className="relative group overflow-hidden bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 px-8 py-5 rounded-2xl font-black text-lg flex items-center justify-center gap-3 shadow-xl transition-all hover:scale-105"
                     >
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                         <Plus className="w-6 h-6 border-2 border-white rounded-md" />
@@ -149,20 +145,20 @@ const RideSharePage: React.FC = () => {
 
             {/* Tab Switcher */}
             <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="flex items-center gap-1 p-1.5 bg-secondary-light/50 dark:bg-secondary/50 backdrop-blur-md rounded-[1.25rem] border border-tertiary-light dark:border-white/5 w-fit">
+                <div className="flex items-center gap-1 p-1.5 bg-zinc-100 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 w-fit">
                     {(['offer', 'request'] as const).map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
                             className={`relative px-6 py-3 rounded-xl font-bold text-sm transition-all duration-300 flex items-center gap-2 ${activeTab === tab
-                                ? 'text-white'
-                                : 'text-text-secondary-light dark:text-text-secondary hover:text-text-main-light dark:hover:text-text-main'
+                                ? 'text-white dark:text-zinc-900'
+                                : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
                                 }`}
                         >
                             {activeTab === tab && (
                                 <motion.div
                                     layoutId="activeTab"
-                                    className="absolute inset-0 bg-accent-sky rounded-xl shadow-lg"
+                                    className="absolute inset-0 bg-zinc-900 dark:bg-white rounded-xl shadow-lg"
                                     transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                                 />
                             )}
@@ -174,7 +170,7 @@ const RideSharePage: React.FC = () => {
                     ))}
                 </div>
 
-                <div className="flex items-center gap-3 text-sm font-medium text-text-secondary-light dark:text-text-secondary">
+                <div className="flex items-center gap-3 text-sm font-medium text-zinc-400 dark:text-zinc-500">
                     <Search className="w-4 h-4" />
                     <span>{filteredRides.length} {activeTab === 'offer' ? 'Rides Available' : 'Ride Requests'}</span>
                 </div>
@@ -202,16 +198,16 @@ const RideSharePage: React.FC = () => {
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.9 }}
-                        className="flex flex-col items-center justify-center py-20 bg-secondary-light/30 dark:bg-secondary/30 rounded-[2.5rem] border-2 border-dashed border-tertiary-light dark:border-white/5"
+                        className="flex flex-col items-center justify-center py-20 rounded-2xl border-2 border-dashed border-zinc-200 dark:border-zinc-800"
                     >
-                        <div className="w-24 h-24 bg-accent-sky/10 rounded-full flex items-center justify-center mb-6">
-                            <Search className="w-10 h-10 text-accent-sky" />
+                        <div className="w-24 h-24 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mb-6">
+                            <Search className="w-10 h-10 text-zinc-400 dark:text-zinc-500" />
                         </div>
                         <h3 className="text-2xl font-bold text-text-main-light dark:text-text-main mb-2">No results found</h3>
                         <p className="text-text-secondary-light dark:text-text-secondary mb-8">Try switching tabs or be the first to post!</p>
                         <button
                             onClick={() => setCreateModalOpen(true)}
-                            className="px-8 py-3 bg-white dark:bg-white/5 border border-tertiary-light dark:border-white/10 rounded-xl font-bold hover:bg-accent-sky hover:text-white hover:border-accent-sky transition-all"
+                            className="px-8 py-3 bg-zinc-900 dark:bg-white border border-zinc-200 dark:border-zinc-700 rounded-xl font-bold text-white dark:text-zinc-900 hover:scale-105 transition-all"
                         >
                             Post First Ride
                         </button>
@@ -285,12 +281,12 @@ const RideCard: React.FC<{
             className={`relative group bg-secondary-light dark:bg-secondary rounded-[1.75rem] shadow-xl border border-tertiary-light dark:border-white/5 overflow-hidden transition-all duration-300 ${isCancelled ? 'opacity-60 grayscale' : ''}`}
         >
             {/* The "Ticket" Decorative Side */}
-            <div className={`absolute left-0 top-0 bottom-0 w-2 ${isOffer ? 'bg-brand-green' : 'bg-accent-sky'}`} />
+            <div className={`absolute left-0 top-0 bottom-0 w-2 ${isOffer ? 'bg-zinc-800 dark:bg-zinc-300' : 'bg-zinc-400 dark:bg-zinc-600'}`} />
 
             {/* Top Badge (Type) */}
-            <div className={`absolute top-0 right-10 px-4 py-1.5 rounded-b-xl text-[10px] font-black tracking-widest uppercase z-10 ${isCancelled ? 'bg-gray-500 text-white' :
+            <div className={`absolute top-0 right-10 px-4 py-1.5 rounded-b-xl text-[10px] font-black tracking-widest uppercase z-10 ${isCancelled ? 'bg-zinc-500 text-white' :
                 isFull ? 'bg-red-500 text-white' :
-                    isOffer ? 'bg-brand-green text-white' : 'bg-accent-sky text-white'
+                    isOffer ? 'bg-zinc-800 dark:bg-white text-white dark:text-zinc-900' : 'bg-zinc-600 dark:bg-zinc-300 text-white dark:text-zinc-900'
                 }`}>
                 {isCancelled ? 'Cancelled' : isFull ? 'Full' : isOffer ? 'Ride Offer' : 'Ride Request'}
             </div>
@@ -303,19 +299,19 @@ const RideCard: React.FC<{
                         <div className="space-y-1">
                             <span className="text-[10px] font-bold text-text-tertiary-light dark:text-text-tertiary uppercase tracking-wider">From</span>
                             <div className="text-xl font-black text-text-main-light dark:text-text-main flex items-center gap-2">
-                                <MapPin className="w-5 h-5 text-accent-sky" />
+                                <MapPin className="w-5 h-5 text-zinc-400 dark:text-zinc-500" />
                                 {ride.origin}
                             </div>
                         </div>
 
                         <div className="flex items-center gap-2 px-4 py-1 bg-tertiary-light/50 dark:bg-white/5 rounded-full border border-tertiary-light dark:border-white/10">
-                            <ArrowRight className="w-4 h-4 text-accent-sky" />
+                            <ArrowRight className="w-4 h-4 text-zinc-400" />
                         </div>
 
                         <div className="space-y-1">
                             <span className="text-[10px] font-bold text-text-tertiary-light dark:text-text-tertiary uppercase tracking-wider">To</span>
                             <div className="text-xl font-black text-text-main-light dark:text-text-main flex items-center gap-2">
-                                <MapPin className="w-5 h-5 text-brand-green" />
+                                <MapPin className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
                                 {ride.destination}
                             </div>
                         </div>
@@ -324,15 +320,15 @@ const RideCard: React.FC<{
                     {/* Metadata Section */}
                     <div className="flex flex-wrap items-center gap-6">
                         <div className="flex items-center gap-2 text-text-secondary-light dark:text-text-secondary">
-                            <Calendar className="w-4 h-4 text-accent-sky" />
+                            <Calendar className="w-4 h-4 text-zinc-400 dark:text-zinc-500" />
                             <span className="text-sm font-bold">{format(new Date(ride.departure_time), 'EEE, MMM d')}</span>
                         </div>
                         <div className="flex items-center gap-2 text-text-secondary-light dark:text-text-secondary">
-                            <Clock className="w-4 h-4 text-accent-sky" />
+                            <Clock className="w-4 h-4 text-zinc-400 dark:text-zinc-500" />
                             <span className="text-sm font-bold">{format(new Date(ride.departure_time), 'p')}</span>
                         </div>
                         <div className="flex items-center gap-2 text-text-secondary-light dark:text-text-secondary">
-                            <Users className="w-4 h-4 text-accent-sky" />
+                            <Users className="w-4 h-4 text-zinc-400 dark:text-zinc-500" />
                             <span className={`text-sm font-bold ${isFull ? 'text-red-500' : ''}`}>
                                 {isFull ? 'No seats left' : `${ride.seats} ${ride.seats === 1 ? 'Seat' : 'Seats'} ${isOffer ? 'Avail' : 'Needed'}`}
                             </span>
@@ -355,10 +351,10 @@ const RideCard: React.FC<{
                 </div>
 
                 {/* Info & Side Action Area */}
-                <div className="w-full md:w-72 bg-tertiary-light/20 dark:bg-white/[0.01] p-6 md:p-8 flex flex-col justify-between items-center gap-6 text-center">
+                <div className="w-full md:w-72 border-t md:border-t-0 md:border-l border-zinc-200 dark:border-zinc-700/50 p-6 md:p-8 flex flex-col justify-between items-center gap-6 text-center">
                     <Link href={`/profile/${ride.user.username}`} className="group/avatar space-y-3 flex flex-col items-center">
                         <div className="relative">
-                            <div className="absolute -inset-1 bg-gradient-to-br from-accent-sky to-brand-green rounded-full blur opacity-25 group-hover/avatar:opacity-75 transition duration-500" />
+                            <div className="absolute -inset-1 bg-gradient-to-br from-zinc-400 to-zinc-600 dark:from-zinc-500 dark:to-zinc-700 rounded-full blur opacity-25 group-hover/avatar:opacity-75 transition duration-500" />
                             <Image
                                 src={ride.user.avatar_url || ''}
                                 alt={ride.user.username}
@@ -369,7 +365,7 @@ const RideCard: React.FC<{
                             />
                         </div>
                         <div className="flex flex-col">
-                            <span className="font-black text-text-main-light dark:text-text-main group-hover/avatar:text-accent-sky transition-colors">@{ride.user.username}</span>
+                            <span className="font-black text-zinc-800 dark:text-zinc-200 group-hover/avatar:text-zinc-500 dark:group-hover/avatar:text-zinc-400 transition-colors">@{ride.user.username}</span>
                             <span className="text-[10px] font-bold text-text-tertiary-light dark:text-text-tertiary uppercase tracking-widest">{isOwner ? 'Your Post' : 'Traveler'}</span>
                         </div>
                     </Link>
@@ -400,7 +396,7 @@ const RideCard: React.FC<{
                                     <button
                                         onClick={handleJoin}
                                         disabled={isJoining}
-                                        className="w-full py-3 bg-brand-green hover:bg-brand-green-darker text-white rounded-xl font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-brand-green/20 transition-all disabled:opacity-50"
+                                        className="w-full py-3 bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl font-black text-xs flex items-center justify-center gap-2 shadow-lg transition-all disabled:opacity-50"
                                     >
                                         {isJoining ? <Spinner className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                                         {isOffer ? 'JOIN RIDE' : 'OFFER RIDE'}
@@ -409,7 +405,7 @@ const RideCard: React.FC<{
                                 <button
                                     onClick={handleContact}
                                     disabled={isCancelled}
-                                    className="w-full py-3 bg-accent-sky hover:bg-sky-600 text-white rounded-xl font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-accent-sky/20 transition-all disabled:opacity-50"
+                                    className="w-full py-3 bg-zinc-800 dark:bg-zinc-200 hover:bg-zinc-700 dark:hover:bg-zinc-300 text-white dark:text-zinc-900 rounded-xl font-black text-xs flex items-center justify-center gap-2 shadow-lg transition-all disabled:opacity-50"
                                 >
                                     <MessageCircle className="w-4 h-4" />
                                     CONTACT
@@ -496,7 +492,7 @@ const RideModal: React.FC<{
             >
                 <div className="relative p-8 md:p-10">
                     {/* Decorative Header Gradient */}
-                    <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-accent-sky via-brand-green to-accent-sky" />
+                    <div className="absolute top-0 left-0 right-0 h-2 bg-zinc-800 dark:bg-white" />
 
                     <div className="flex justify-between items-start mb-8">
                         <div>
@@ -522,7 +518,7 @@ const RideModal: React.FC<{
                                 type="button"
                                 onClick={() => setType('offer')}
                                 className={`py-3 rounded-xl font-black text-[10px] tracking-widest transition-all ${type === 'offer'
-                                    ? 'bg-accent-sky text-white shadow-lg'
+                                    ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-lg'
                                     : 'text-text-secondary-light dark:text-text-secondary hover:text-text-main-light dark:hover:text-text-main'
                                     }`}
                             >
@@ -532,7 +528,7 @@ const RideModal: React.FC<{
                                 type="button"
                                 onClick={() => setType('request')}
                                 className={`py-3 rounded-xl font-black text-[10px] tracking-widest transition-all ${type === 'request'
-                                    ? 'bg-accent-sky text-white shadow-lg'
+                                    ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-lg'
                                     : 'text-text-secondary-light dark:text-text-secondary hover:text-text-main-light dark:hover:text-text-main'
                                     }`}
                             >
@@ -545,13 +541,13 @@ const RideModal: React.FC<{
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-text-tertiary-light dark:text-text-tertiary uppercase tracking-widest pl-1">From</label>
                                 <div className="relative group">
-                                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-accent-sky" />
+                                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
                                     <input
                                         type="text"
                                         value={origin}
                                         onChange={e => setOrigin(e.target.value)}
                                         placeholder="Start location"
-                                        className="w-full pl-12 pr-4 py-4 bg-tertiary-light/30 dark:bg-white/[0.02] border border-tertiary-light dark:border-white/5 rounded-2xl focus:border-accent-sky focus:ring-4 focus:ring-accent-sky/10 transition-all outline-none font-medium"
+                                        className="w-full pl-12 pr-4 py-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl focus:border-zinc-500 focus:ring-4 focus:ring-zinc-500/10 transition-all outline-none font-medium"
                                         required
                                     />
                                 </div>
@@ -559,13 +555,13 @@ const RideModal: React.FC<{
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-text-tertiary-light dark:text-text-tertiary uppercase tracking-widest pl-1">To</label>
                                 <div className="relative group">
-                                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-green" />
+                                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
                                     <input
                                         type="text"
                                         value={destination}
                                         onChange={e => setDestination(e.target.value)}
                                         placeholder="Destination"
-                                        className="w-full pl-12 pr-4 py-4 bg-tertiary-light/30 dark:bg-white/[0.02] border border-tertiary-light dark:border-white/5 rounded-2xl focus:border-brand-green focus:ring-4 focus:ring-brand-green/10 transition-all outline-none font-medium"
+                                        className="w-full pl-12 pr-4 py-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl focus:border-zinc-500 focus:ring-4 focus:ring-zinc-500/10 transition-all outline-none font-medium"
                                         required
                                     />
                                 </div>
@@ -577,12 +573,12 @@ const RideModal: React.FC<{
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-text-tertiary-light dark:text-text-tertiary uppercase tracking-widest pl-1">Departure</label>
                                 <div className="relative group">
-                                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-accent-sky pointer-events-none" />
+                                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
                                     <input
                                         type="datetime-local"
                                         value={departureTime}
                                         onChange={e => setDepartureTime(e.target.value)}
-                                        className="w-full pl-12 pr-4 py-4 bg-tertiary-light/30 dark:bg-white/[0.02] border border-tertiary-light dark:border-white/5 rounded-2xl focus:border-accent-sky focus:ring-4 focus:ring-accent-sky/10 transition-all outline-none font-medium text-sm"
+                                        className="w-full pl-12 pr-4 py-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl focus:border-zinc-500 focus:ring-4 focus:ring-zinc-500/10 transition-all outline-none font-medium text-sm"
                                         required
                                     />
                                 </div>
@@ -592,14 +588,14 @@ const RideModal: React.FC<{
                                     {type === 'offer' ? 'Available Seats' : 'Seats Required'}
                                 </label>
                                 <div className="relative group">
-                                    <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-accent-sky" />
+                                    <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
                                     <input
                                         type="number"
                                         min="1"
                                         max="10"
                                         value={seats}
                                         onChange={e => setSeats(parseInt(e.target.value))}
-                                        className="w-full pl-12 pr-4 py-4 bg-tertiary-light/30 dark:bg-white/[0.02] border border-tertiary-light dark:border-white/5 rounded-2xl focus:border-accent-sky focus:ring-4 focus:ring-accent-sky/10 transition-all outline-none font-medium"
+                                        className="w-full pl-12 pr-4 py-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl focus:border-zinc-500 focus:ring-4 focus:ring-zinc-500/10 transition-all outline-none font-medium"
                                         required
                                     />
                                 </div>
@@ -614,7 +610,7 @@ const RideModal: React.FC<{
                                 onChange={e => setDescription(e.target.value)}
                                 placeholder="Meeting point, luggage info, cost sharing expectation..."
                                 rows={3}
-                                className="w-full p-4 bg-tertiary-light/30 dark:bg-white/[0.02] border border-tertiary-light dark:border-white/5 rounded-2xl focus:border-accent-sky focus:ring-4 focus:ring-accent-sky/10 transition-all outline-none font-medium resize-none"
+                                className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl focus:border-zinc-500 focus:ring-4 focus:ring-zinc-500/10 transition-all outline-none font-medium resize-none"
                             />
                         </div>
 
@@ -640,7 +636,7 @@ const RideModal: React.FC<{
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="flex-[2] py-4 px-6 bg-accent-sky text-white rounded-2xl font-black text-[10px] shadow-xl shadow-accent-sky/30 hover:shadow-accent-sky/40 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 uppercase tracking-widest disabled:opacity-50"
+                                className="flex-[2] py-4 px-6 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-2xl font-black text-[10px] shadow-xl hover:shadow-zinc-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 uppercase tracking-widest disabled:opacity-50"
                             >
                                 {isSubmitting ? <Spinner className="w-5 h-5" /> : (editRide ? 'UPDATE TRIP' : 'POST TRIP')}
                             </button>
