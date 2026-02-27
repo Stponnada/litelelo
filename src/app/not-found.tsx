@@ -29,7 +29,7 @@ const NotFound = () => {
                     {/* 404 Heading */}
                     <div style={{ animation: 'float 4s ease-in-out infinite' }}>
                         <h1
-                            className="text-8xl md:text-9xl font-raleway font-black text-brand-green"
+                            className="text-8xl md:text-9xl font-sans font-black text-brand-green"
                             style={{ textShadow: '0 0 15px rgba(60, 251, 162, 0.4), 0 0 30px rgba(60, 251, 162, 0.2)' }}
                         >
                             404
@@ -38,7 +38,7 @@ const NotFound = () => {
 
                     {/* Message Card */}
                     <div className="max-w-md mx-auto mt-6">
-                        <h2 className="text-3xl md:text-4xl font-bold text-text-main-light dark:text-text-main font-raleway" style={{ animation: 'fadeIn 1s 0.2s ease-out forwards', opacity: 0 }}>
+                        <h2 className="text-3xl md:text-4xl font-bold text-text-main-light dark:text-text-main font-sans" style={{ animation: 'fadeIn 1s 0.2s ease-out forwards', opacity: 0 }}>
                             Page Not Found
                         </h2>
 

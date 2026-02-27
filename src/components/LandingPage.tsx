@@ -206,7 +206,7 @@ const LandingPage: React.FC = () => {
               <div className="absolute inset-0 backface-hidden bg-gradient-to-br from-gray-800 to-black rounded-3xl border border-white/10 shadow-2xl flex items-center justify-center">
                 <div className="text-center">
                   <div className="font-raleway text-brand-green text-4xl">litelelo</div>
-                  <div className="font-poppins text-gray-500 text-l mt-2">The Art of Taking Things Easy</div>
+                  <div className="font-outfit text-gray-500 text-l mt-2">The Art of Taking Things Easy</div>
                 </div>
               </div>
 
@@ -214,7 +214,7 @@ const LandingPage: React.FC = () => {
               <div className="absolute inset-0 backface-hidden rotate-y-180 bg-gradient-to-br from-brand-green/20 to-black rounded-3xl border border-brand-green/30 shadow-2xl flex items-center justify-center">
                 <div className="text-center p-6">
                   <div className="font-raleway text-white text-3xl font-bold">Life is Unfair</div>
-                  <div className="font-poppins text-brand-green text-sm mt-2">But we make it easier.</div>
+                  <div className="font-outfit text-brand-green text-sm mt-2">But we make it easier.</div>
                 </div>
               </div>
             </div>

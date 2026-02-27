@@ -298,7 +298,7 @@ const ExplorePage: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 relative selection:bg-brand-green selection:text-white font-raleway overflow-x-hidden">
+        <div className="min-h-screen bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 relative selection:bg-brand-green selection:text-white font-sans font-light overflow-x-hidden">
             <GrainTexture />
 
             {/* Ambient Glows */}

@@ -277,7 +277,7 @@ const Login: React.FC = () => {
             {/* Mobile: Combined container for branding and login */}
             <div className="relative z-10 w-full lg:w-1/2 flex flex-col items-center justify-center gap-8 px-4 py-8 lg:hidden">
                 <div className="text-center">
-                    <h1 className={`logo-transform text-6xl sm:text-7xl select-none tracking-tight ${isPlaying ? 'font-rubik-glitch text-neon-green animate-neon-glitch' : 'font-raleway font-bold text-transparent bg-clip-text bg-gradient-to-r from-brand-green to-emerald-400 [.bw_&]:to-gray-300'}`}>
+                    <h1 className={`logo-transform text-6xl sm:text-7xl select-none tracking-tight ${isPlaying ? 'font-rubik-glitch text-neon-green animate-neon-glitch' : 'font-sans font-bold text-transparent bg-clip-text bg-gradient-to-r from-brand-green to-emerald-400 [.bw_&]:to-gray-300'}`}>
                         litelelo.
                     </h1>
                     <p className="text-text-tertiary-light dark:text-text-tertiary mt-3 text-sm sm:text-base min-h-[24px] font-medium tracking-wide">
@@ -317,7 +317,7 @@ const Login: React.FC = () => {
             {/* Desktop: Branding on left */}
             <div className="relative z-10 hidden lg:flex w-1/2 items-center justify-end p-8 pr-20">
                 <div className="text-left">
-                    <h1 className={`logo-transform text-8xl select-none tracking-tighter ${isPlaying ? 'font-rubik-glitch text-neon-green animate-neon-glitch' : 'font-raleway font-bold text-transparent bg-clip-text bg-gradient-to-r from-brand-green to-emerald-400 [.bw_&]:to-gray-300'}`}>
+                    <h1 className={`logo-transform text-8xl select-none tracking-tighter ${isPlaying ? 'font-rubik-glitch text-neon-green animate-neon-glitch' : 'font-sans font-bold text-transparent bg-clip-text bg-gradient-to-r from-brand-green to-emerald-400 [.bw_&]:to-gray-300'}`}>
                         litelelo.
                     </h1>
                     <p className="text-text-tertiary-light dark:text-text-tertiary mt-4 text-lg min-h-[24px] font-medium tracking-wide max-w-md leading-relaxed">

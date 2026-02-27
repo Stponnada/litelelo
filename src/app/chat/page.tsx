@@ -100,7 +100,7 @@ const ChatEmptyState: React.FC = () => {
                         </div>
                     </div>
 
-                    <h3 className="text-3xl font-bold font-poppins text-text-main-light dark:text-text-main tracking-tight">
+                    <h3 className="text-3xl font-bold font-outfit text-text-main-light dark:text-text-main tracking-tight">
                         {slides[currentSlide].title}
                     </h3>
                     <p className="text-base text-text-secondary-light dark:text-text-secondary max-w-xs leading-relaxed mt-3">
@@ -241,7 +241,7 @@ const ChatPage: React.FC = () => {
                     <div className="p-5 border-b border-tertiary-light/50 dark:border-tertiary/50 bg-gradient-to-b from-secondary-light/50 to-transparent dark:from-secondary/50">
                         <div className="flex justify-between items-center mb-4">
                             <div>
-                                <h1 className="text-3xl font-bold font-poppins text-text-main-light dark:text-text-main">
+                                <h1 className="text-3xl font-bold font-outfit text-text-main-light dark:text-text-main">
                                     {showArchived ? 'Archived' : 'Chat'}
                                 </h1>
                                 <p className="text-xs text-text-tertiary-light dark:text-text-tertiary mt-0.5">

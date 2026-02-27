@@ -548,7 +548,7 @@ const EncryptionPinModal: React.FC<EncryptionPinModalProps> = ({ onComplete, onS
                                 />
                             </div>
                             <div>
-                                <h2 className="text-3xl font-black text-text-main-light dark:text-text-main tracking-tight font-poppins leading-tight">
+                                <h2 className="text-3xl font-black text-text-main-light dark:text-text-main tracking-tight font-outfit leading-tight">
                                     End-to-end encryption is here.
                                 </h2>
                                 <p className="text-[15px] text-text-secondary-light dark:text-text-secondary mt-4 leading-relaxed">
@@ -582,7 +582,7 @@ const EncryptionPinModal: React.FC<EncryptionPinModalProps> = ({ onComplete, onS
                                 />
                             </div>
                             <div>
-                                <h2 className="text-3xl font-black font-poppins text-text-main-light dark:text-text-main tracking-tight leading-tight">
+                                <h2 className="text-3xl font-black font-outfit text-text-main-light dark:text-text-main tracking-tight leading-tight">
                                     Unlock Access
                                 </h2>
                                 <p className="text-[15px] text-text-secondary-light dark:text-text-secondary mt-3">

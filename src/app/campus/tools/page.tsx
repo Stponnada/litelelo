@@ -34,7 +34,7 @@ export default function CampusToolsPage() {
     }, []);
 
     return (
-        <div className="min-h-screen bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 font-raleway">
+        <div className="min-h-screen bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 font-sans font-light">
             {/* Ambient Background */}
             <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-brand-green/10 dark:bg-brand-green/20 blur-[120px] rounded-full opacity-60 dark:opacity-20 pointer-events-none" />
 
