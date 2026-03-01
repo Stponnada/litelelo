@@ -70,7 +70,7 @@ const PasswordResetPage: React.FC = () => {
 
     if (!canReset) {
         return (
-            <div className="min-h-screen bg-primary-light dark:bg-primary flex flex-col items-center justify-center p-4">
+            <div className="min-h-screen bg-primary-light dark:bg-primary flex flex-col items-center justify-center p-4 font-raleway">
                 <div className="max-w-md text-center">
                     <h1 className="text-2xl font-bold text-red-500 mb-4">Invalid or Expired Link</h1>
                     <p className="text-text-secondary-light dark:text-text-secondary mb-4">This password reset link is not valid. Please request a new one.</p>
@@ -86,7 +86,7 @@ const PasswordResetPage: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen bg-primary-light dark:bg-primary flex flex-col items-center justify-center p-4">
+        <div className="min-h-screen bg-primary-light dark:bg-primary flex flex-col items-center justify-center p-4 font-raleway">
             <h1 className="text-5xl font-raleway font-black text-brand-green mb-8">litelelo.</h1>
             <div className="w-full max-w-md bg-secondary-light dark:bg-secondary p-8 rounded-lg shadow-lg">
                 {!success ? (

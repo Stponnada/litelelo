@@ -7,7 +7,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { SunIcon, MoonIcon, UltradarkIcon } from '@/components/icons';
 import Spinner from '@/components/Spinner';
 
-// === Icon Components (Kept for brevity) ===
+// === Icon Components ===
 const MusicIcon: React.FC<{ className?: string }> = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className={className}><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" /></svg>);
 const PauseIcon: React.FC<{ className?: string }> = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className={className}><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" /></svg>);
 const GoogleIcon: React.FC<{ className?: string }> = ({ className }) => (<svg className={className} viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z" /><path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C16.318 4 9.656 8.337 6.306 14.691z" /><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A8 8 0 0 1 24 36c-5.223 0-9.655-3.657-11.303-8.59H4.89v.01A20 20 0 0 0 24 44z" /><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C44.434 36.316 48 30.659 48 24c0-1.341-.138-2.65-.389-3.917z" /></svg>);
@@ -21,8 +21,7 @@ const BITS_DOMAINS = [
 
 type AuthView = 'signup' | 'login' | 'reset_request';
 
-// --- Form components defined outside the main component to prevent re-creation ---
-
+// --- Form components ---
 interface AuthFormProps {
     view: 'login' | 'signup';
     handleAuth: (e: React.FormEvent) => Promise<void>;
@@ -40,7 +39,7 @@ const AuthForm: React.FC<AuthFormProps> = ({
     confirmPassword, setConfirmPassword, loading, setView, setError, setMessage
 }) => (
     <form onSubmit={handleAuth} className="flex flex-col gap-3 sm:gap-4">
-        <input type="email" placeholder={view === 'signup' ? 'BITS Email' : 'BITS Email'} value={email} onChange={e => setEmail(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />
+        <input type="email" placeholder="BITS Email" value={email} onChange={e => setEmail(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />
         <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />
         {view === 'signup' && <input type="password" placeholder="Confirm Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required className="p-3 bg-tertiary-light dark:bg-tertiary border border-tertiary-light dark:border-gray-700 rounded-md text-sm text-text-main-light dark:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-green" />}
         {view === 'login' && (
@@ -251,7 +250,7 @@ const Login: React.FC = () => {
                 redirectTo: `${window.location.origin}/password-reset`,
             });
             if (error) throw error;
-            setMessage("Password reset link sent! Please check your email. Note: The email might take a few minutes to arrive. We're working on making this faster!");
+            setMessage("Password reset link sent! Please check your email.");
         } catch (err: unknown) {
             if (err instanceof Error) {
                 setError(err.message);
@@ -268,16 +267,14 @@ const Login: React.FC = () => {
     return (
         <div className="relative flex flex-col lg:flex-row items-center justify-center min-h-screen bg-primary-light dark:bg-primary overflow-hidden">
             <div className={`absolute inset-0 z-0 transition-all duration-[2s] ${isPlaying ? 'opacity-0' : 'opacity-100'}`}>
-                {/* Modern Professional Background */}
                 <div className="absolute inset-0 bg-gradient-to-br from-slate-100 via-white to-slate-100 dark:from-black dark:via-gray-900 dark:to-black [.bw_&]:dark:via-black"></div>
-
             </div>
             <canvas ref={canvasRef} className={`absolute inset-0 w-full h-full z-0 pointer-events-none transition-opacity duration-2000 ${isPlaying ? 'opacity-100' : 'opacity-0'}`} />
 
-            {/* Mobile: Combined container for branding and login */}
+            {/* Mobile Branding */}
             <div className="relative z-10 w-full lg:w-1/2 flex flex-col items-center justify-center gap-8 px-4 py-8 lg:hidden">
                 <div className="text-center">
-                    <h1 className={`logo-transform text-6xl sm:text-7xl select-none tracking-tight ${isPlaying ? 'font-rubik-glitch text-neon-green animate-neon-glitch' : 'font-sans font-bold text-transparent bg-clip-text bg-gradient-to-r from-brand-green to-emerald-400 [.bw_&]:to-gray-300'}`}>
+                    <h1 className={`logo-transform text-6xl sm:text-7xl select-none ${isPlaying ? 'font-rubik-glitch text-neon-green animate-neon-glitch tracking-tight' : 'font-raleway font-black tracking-tighter text-brand-green'}`}>
                         litelelo.
                     </h1>
                     <p className="text-text-tertiary-light dark:text-text-tertiary mt-3 text-sm sm:text-base min-h-[24px] font-medium tracking-wide">
@@ -286,9 +283,7 @@ const Login: React.FC = () => {
                 </div>
                 <div className="w-full max-w-md bg-white/80 dark:bg-black/20 [.bw_&]:dark:bg-black/40 backdrop-blur-xl border border-gray-200 dark:border-white/5 [.bw_&]:dark:border-white/10 p-6 sm:p-8 rounded-2xl shadow-2xl relative">
                     <h2 className="text-xl sm:text-2xl font-bold text-center text-text-main-light dark:text-text-main mb-5 sm:mb-6 tracking-tight">
-                        {view === 'login' && 'Welcome Back'}
-                        {view === 'signup' && 'Create Account'}
-                        {view === 'reset_request' && 'Reset Password'}
+                        {view === 'login' ? 'Welcome Back' : view === 'signup' ? 'Create Account' : 'Reset Password'}
                     </h2>
                     {view !== 'reset_request' && (
                         <>
@@ -302,22 +297,18 @@ const Login: React.FC = () => {
                         </>
                     )}
                     {view === 'reset_request' ? <ResetRequestForm handlePasswordResetRequest={handlePasswordResetRequest} email={email} setEmail={setEmail} loading={loading} /> : <AuthForm view={view} handleAuth={handleAuth} email={email} setEmail={setEmail} password={password} setPassword={setPassword} confirmPassword={confirmPassword} setConfirmPassword={setConfirmPassword} loading={loading} setView={setView} setError={setError} setMessage={setMessage} />}
-                    {error && <p className="mt-3 sm:mt-4 text-red-400 text-center text-sm bg-red-500/10 py-2 rounded-lg border border-red-500/20">{error}</p>}
-                    {message && <p className="mt-3 sm:mt-4 text-brand-green text-center text-sm bg-brand-green/10 py-2 rounded-lg border border-brand-green/20">{message}</p>}
                     <div className="mt-6 text-center">
                         <button onClick={() => { setView(view === 'login' ? 'signup' : 'login'); setError(null); setMessage(null); }} className="text-sm text-text-tertiary-light dark:text-text-tertiary hover:text-brand-green transition-colors font-medium">
-                            {view === 'login' && "New here? Create an account"}
-                            {view === 'signup' && 'Already have an account? Sign in'}
-                            {view === 'reset_request' && 'Back to Login'}
+                            {view === 'login' ? "New here? Create an account" : view === 'signup' ? 'Already have an account? Sign in' : 'Back to Login'}
                         </button>
                     </div>
                 </div>
             </div>
 
-            {/* Desktop: Branding on left */}
+            {/* Desktop Branding */}
             <div className="relative z-10 hidden lg:flex w-1/2 items-center justify-end p-8 pr-20">
                 <div className="text-left">
-                    <h1 className={`logo-transform text-8xl select-none tracking-tighter ${isPlaying ? 'font-rubik-glitch text-neon-green animate-neon-glitch' : 'font-sans font-bold text-transparent bg-clip-text bg-gradient-to-r from-brand-green to-emerald-400 [.bw_&]:to-gray-300'}`}>
+                    <h1 className={`logo-transform text-8xl select-none ${isPlaying ? 'font-rubik-glitch text-neon-green animate-neon-glitch tracking-tight' : 'font-raleway font-black tracking-tighter text-brand-green'}`}>
                         litelelo.
                     </h1>
                     <p className="text-text-tertiary-light dark:text-text-tertiary mt-4 text-lg min-h-[24px] font-medium tracking-wide max-w-md leading-relaxed">
@@ -326,18 +317,15 @@ const Login: React.FC = () => {
                 </div>
             </div>
 
-            {/* Desktop: Login Card on right */}
+            {/* Desktop Form */}
             <div className="relative z-10 hidden lg:flex w-1/2 flex-col items-start justify-center p-8 pl-20">
-                <div className="w-full max-w-[420px] bg-white/80 dark:bg-black/20 [.bw_&]:dark:bg-black/40 backdrop-blur-2xl border border-gray-200 dark:border-white/5 [.bw_&]:dark:border-white/10 p-10 rounded-3xl shadow-2xl relative overflow-hidden group">
-                    <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+                <div className="w-full max-w-[420px] bg-white/80 dark:bg-black/20 [.bw_&]:dark:bg-black/40 backdrop-blur-2xl border border-gray-200 dark:border-white/5 [.bw_&]:dark:border-white/10 p-10 rounded-3xl shadow-2xl relative">
                     <h2 className="text-3xl font-bold text-center text-text-main-light dark:text-text-main mb-8 tracking-tight">
-                        {view === 'login' && 'Welcome Back'}
-                        {view === 'signup' && 'Create Account'}
-                        {view === 'reset_request' && 'Reset Password'}
+                        {view === 'login' ? 'Welcome Back' : view === 'signup' ? 'Create Account' : 'Reset Password'}
                     </h2>
                     {view !== 'reset_request' && (
                         <>
-                            <button type="button" onClick={handleGoogleSignIn} disabled={loading} className="w-full flex items-center justify-center gap-3 p-3.5 bg-white hover:bg-gray-50 dark:bg-white/5 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10 rounded-xl text-sm font-medium text-text-main-light dark:text-text-main transition-all duration-200 disabled:opacity-50 hover:scale-[1.02] active:scale-[0.98]">
+                            <button type="button" onClick={handleGoogleSignIn} disabled={loading} className="w-full flex items-center justify-center gap-3 p-3.5 bg-white hover:bg-gray-50 dark:bg-white/5 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10 rounded-xl text-sm font-medium text-text-main-light dark:text-text-main transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]">
                                 <GoogleIcon className="w-5 h-5" /> Continue with Google
                             </button>
                             <div className="relative my-8">
@@ -347,24 +335,20 @@ const Login: React.FC = () => {
                         </>
                     )}
                     {view === 'reset_request' ? <ResetRequestForm handlePasswordResetRequest={handlePasswordResetRequest} email={email} setEmail={setEmail} loading={loading} /> : <AuthForm view={view} handleAuth={handleAuth} email={email} setEmail={setEmail} password={password} setPassword={setPassword} confirmPassword={confirmPassword} setConfirmPassword={setConfirmPassword} loading={loading} setView={setView} setError={setError} setMessage={setMessage} />}
-                    {error && <p className="mt-4 text-red-400 text-center text-sm bg-red-500/10 py-2.5 rounded-lg border border-red-500/20">{error}</p>}
-                    {message && <p className="mt-4 text-brand-green text-center text-sm bg-brand-green/10 py-2.5 rounded-lg border border-brand-green/20">{message}</p>}
                     <div className="mt-8 text-center">
                         <button onClick={() => { setView(view === 'login' ? 'signup' : 'login'); setError(null); setMessage(null); }} className="text-sm text-text-tertiary-light dark:text-text-tertiary hover:text-brand-green transition-colors font-medium">
-                            {view === 'login' && "New here? Create an account"}
-                            {view === 'signup' && 'Already have an account? Sign in'}
-                            {view === 'reset_request' && 'Back to Login'}
+                            {view === 'login' ? "New here? Create an account" : view === 'signup' ? 'Already have an account? Sign in' : 'Back to Login'}
                         </button>
                     </div>
                 </div>
             </div>
 
-            <div className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 flex items-center gap-3 sm:gap-4 z-20">
-                <button onClick={toggleMusic} title={isPlaying ? 'Pause Music' : 'Play Music'} className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 ${isPlaying ? 'bg-brand-green/20 border border-brand-green/30 text-brand-green' : 'bg-secondary-light dark:bg-secondary border border-tertiary-light dark:border-tertiary text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary'}`}>
-                    {isPlaying ? <PauseIcon className="w-5 h-5 sm:w-6 sm:h-6" /> : <MusicIcon className="w-5 h-5 sm:w-6 sm:h-6" />}
+            <div className="fixed bottom-6 right-6 flex items-center gap-4 z-20">
+                <button onClick={toggleMusic} className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all ${isPlaying ? 'bg-brand-green/20 text-brand-green' : 'bg-secondary-light dark:bg-secondary text-text-secondary hover:bg-tertiary'}`}>
+                    {isPlaying ? <PauseIcon className="w-6 h-6" /> : <MusicIcon className="w-6 h-6" />}
                 </button>
-                <button onClick={toggleTheme} title={`Switch to ${theme === 'light' ? 'Dark' : theme === 'dark' ? 'Ultradark' : 'Light'} Mode`} className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-secondary-light dark:bg-secondary border border-tertiary-light dark:border-tertiary shadow-lg flex items-center justify-center text-text-secondary-light dark:text-text-secondary hover:bg-tertiary-light dark:hover:bg-tertiary transition-colors">
-                    {theme === 'dark' ? <SunIcon className="w-5 h-5 sm:w-6 sm:h-6" /> : theme === 'light' ? <UltradarkIcon className="w-5 h-5 sm:w-6 sm:h-6" /> : <MoonIcon className="w-5 h-5 sm:w-6 sm:h-6" />}
+                <button onClick={toggleTheme} className="w-12 h-12 rounded-full bg-secondary-light dark:bg-secondary border border-tertiary shadow-lg flex items-center justify-center text-text-secondary hover:bg-tertiary transition-colors">
+                    {theme === 'dark' ? <SunIcon className="w-6 h-6" /> : theme === 'light' ? <UltradarkIcon className="w-6 h-6" /> : <MoonIcon className="w-6 h-6" />}
                 </button>
             </div>
         </div>

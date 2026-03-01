@@ -15,6 +15,9 @@ const config: Config = {
                 raleway: ['var(--font-raleway)', 'sans-serif'],
                 'rubik-glitch': ['var(--font-rubik-glitch)', 'cursive'],
             },
+            letterSpacing: {
+                tightest: '-0.075em',
+            },
             colors: {
                 'brand-green': 'rgb(var(--color-brand-green) / <alpha-value>)',
                 'brand-green-darker': 'rgb(var(--color-brand-green-darker) / <alpha-value>)',
