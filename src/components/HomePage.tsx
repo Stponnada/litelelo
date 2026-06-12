@@ -174,7 +174,7 @@ const HomePage: React.FC = () => {
     return (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Main discovery columns */}
-            <main className="col-span-1 lg:col-span-8 space-y-10">
+            <main className="col-span-1 lg:col-span-12 space-y-10">
                 {/* Batch section */}
                 <section>
                     <div className="mb-4">
@@ -228,8 +228,8 @@ const HomePage: React.FC = () => {
                 )}
             </main>
 
-            {/* Sidebar */}
-            <aside className="hidden lg:block lg:col-span-4">
+            {/* Sidebar removed — no useful info at this stage */}
+            <aside className="hidden">
                 <div className="sticky top-8 space-y-4">
                     {/* Your profile mini-card */}
                     <div className="bg-secondary-light/70 dark:bg-secondary/70 backdrop-blur-xl rounded-xl border border-tertiary-light/50 dark:border-white/5 p-4">
