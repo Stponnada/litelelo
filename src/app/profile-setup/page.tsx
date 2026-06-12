@@ -5,748 +5,240 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import Spinner from '@/components/Spinner';
-import { CameraIcon } from '@/components/icons';
-import { BITS_BRANCHES, isMscBranch } from '@/data/bitsBranches';
-// REMOVED: import { getKeyPair } from '@/services/encryption'; 
+import { BITS_BRANCHES } from '@/data/bitsBranches';
 
-import ImageCropper from '@/components/ImageCropper';
-import { BITS_DORMS } from '@/data/bitsDorms';
-import { BITS_MESSES } from '@/data/bitsMesses';
+const BITS_CAMPUS_MAP: Record<string, string> = {
+    hyderabad: 'Hyderabad',
+    goa: 'Goa',
+    pilani: 'Pilani',
+    dubai: 'Dubai',
+};
 
-const RELATIONSHIP_STATUSES = ['Single', 'In a Relationship', 'Married', "It's Complicated"];
-const MONTHS = [
-    { value: '01', label: 'January' }, { value: '02', label: 'February' },
-    { value: '03', label: 'March' }, { value: '04', label: 'April' },
-    { value: '05', label: 'May' }, { value: '06', label: 'June' },
-    { value: '07', label: 'July' }, { value: '08', label: 'August' },
-    { value: '09', label: 'September' }, { value: '10', label: 'October' },
-    { value: '11', label: 'November' }, { value: '12', label: 'December' },
-];
+const CAMPUSES = ['Hyderabad', 'Goa', 'Pilani', 'Dubai'];
+const CURRENT_YEAR = new Date().getFullYear();
+const BATCH_YEARS = Array.from({ length: CURRENT_YEAR - 2017 }, (_, i) => String(2018 + i));
 
 const ProfileSetup: React.FC = () => {
-    const { user, updateProfileContext } = useAuth();
+    const { user, isLoading, isProfileLoading, profile, updateProfileContext } = useAuth();
     const router = useRouter();
 
     const [formData, setFormData] = useState({
-        username: '', full_name: '', campus: '', admission_year: '', branch: '',
-        dual_degree_branch: '', relationship_status: '', dorm_building: '',
-        dorm_room: '', dining_hall: '', bio: '',
-        phone: '',
-        gender: '', birthday_year: '', birthday_month: '', birthday_day: '',
+        full_name: '',
+        username: '',
+        campus: '',
+        branch: '',
+        admission_year: '',
     });
-    const [avatarFile, setAvatarFile] = useState<File | null>(null);
-    const [bannerFile, setBannerFile] = useState<File | null>(null);
-    const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-    const [bannerPreview, setBannerPreview] = useState<string | null>(null);
-    const avatarInputRef = useRef<HTMLInputElement>(null);
-    const bannerInputRef = useRef<HTMLInputElement>(null);
-    const [cropperState, setCropperState] = useState<{
-        isOpen: boolean;
-        type: 'avatar' | 'banner' | null;
-        src: string | null;
-    }>({ isOpen: false, type: null, src: null });
-    const [availableBranches, setAvailableBranches] = useState<string[]>([]);
-    const [availableDorms, setAvailableDorms] = useState<string[]>([]);
-    const [availableMesses, setAvailableMesses] = useState<string[]>([]);
-    const [isDualDegreeStudent, setIsDualDegreeStudent] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [currentStep, setCurrentStep] = useState(1);
     const [isUsernameAvailable, setIsUsernameAvailable] = useState<boolean | null>(null);
     const [isCheckingUsername, setIsCheckingUsername] = useState(false);
-
+    const initialized = useRef(false);
 
     useEffect(() => {
-        if (user?.email) {
-            const emailDomain = user.email.split('@')[1];
-            const campusSubdomain = emailDomain?.split('.')[0];
-            const campusMap: { [key: string]: string } = { pilani: 'Pilani', goa: 'Goa', hyderabad: 'Hyderabad', dubai: 'Dubai' };
-            const detectedCampus = campusSubdomain ? campusMap[campusSubdomain] : '';
-
-            const yearMatch = user.email.match(/20\d{2}/);
-            const detectedYear = yearMatch ? yearMatch[0] : '';
-
-            setFormData(prev => ({
-                ...prev,
-                campus: detectedCampus,
-                admission_year: detectedYear
-            }));
+        if (!isLoading && !user) {
+            router.replace('/login');
         }
-    }, [user]);
+    }, [isLoading, user, router]);
 
+    // Pre-populate once from email and existing profile data
     useEffect(() => {
-        if (formData.campus && BITS_BRANCHES[formData.campus]) {
-            const campusData = BITS_BRANCHES[formData.campus];
-            setAvailableBranches(Object.values(campusData).flat());
-        } else { setAvailableBranches([]); }
-        setFormData(prev => ({ ...prev, branch: '', dual_degree_branch: '' }));
-    }, [formData.campus]);
+        if (!user?.email || initialized.current) return;
+        initialized.current = true;
 
-    useEffect(() => {
-        const isMsc = isMscBranch(formData.branch, formData.campus);
-        setIsDualDegreeStudent(isMsc);
-        if (!isMsc) setFormData(prev => ({ ...prev, dual_degree_branch: '' }));
-    }, [formData.branch, formData.campus]);
+        const emailDomain = user.email.split('@')[1] || '';
+        const subdomain = emailDomain.split('.')[0];
+        const detectedCampus = BITS_CAMPUS_MAP[subdomain] || '';
+        const yearMatch = user.email.match(/20\d{2}/);
+        const detectedYear = yearMatch ? yearMatch[0] : '';
 
+        setFormData(prev => ({
+            ...prev,
+            username: profile?.username || user.email!.split('@')[0],
+            full_name: profile?.full_name || '',
+            campus: detectedCampus || prev.campus,
+            admission_year: detectedYear || prev.admission_year,
+        }));
+    }, [user, profile]);
+
+    // Username availability check
     useEffect(() => {
-        const { campus, gender } = formData;
-        if (campus && gender && BITS_DORMS[campus] && BITS_DORMS[campus][gender]) {
-            const dorms = BITS_DORMS[campus][gender];
-            setAvailableDorms(dorms);
-            if (!dorms.includes(formData.dorm_building)) {
-                setFormData(prev => ({ ...prev, dorm_building: '' }));
-            }
-        } else {
-            setAvailableDorms([]);
-            setFormData(prev => ({ ...prev, dorm_building: '' }));
+        if (!formData.username || formData.username.length < 3) {
+            setIsUsernameAvailable(null);
+            return;
         }
-    }, [formData.campus, formData.gender]);
-
-    useEffect(() => {
-        if (formData.campus && BITS_MESSES[formData.campus]) {
-            const messes = BITS_MESSES[formData.campus];
-            setAvailableMesses(messes);
-            if (!messes.includes(formData.dining_hall)) {
-                setFormData(prev => ({ ...prev, dining_hall: '' }));
-            }
-        } else {
-            setAvailableMesses([]);
-            setFormData(prev => ({ ...prev, dining_hall: '' }));
+        if (!/^[a-zA-Z0-9_.]+$/.test(formData.username)) {
+            setIsUsernameAvailable(false);
+            return;
         }
-    }, [formData.campus]);
-
-    useEffect(() => {
-        const checkUsername = async () => {
-            if (!formData.username || formData.username.length < 3) {
-                setIsUsernameAvailable(null);
-                return;
-            }
-
-            // Only allow alphanumeric, underscores and dots
-            const usernameRegex = /^[a-zA-Z0-9_.]+$/;
-            if (!usernameRegex.test(formData.username)) {
-                setIsUsernameAvailable(false);
-                return;
-            }
-
+        const timer = setTimeout(async () => {
             setIsCheckingUsername(true);
-            try {
-                const { data, error: fetchError } = await supabase
-                    .from('profiles')
-                    .select('user_id')
-                    .eq('username', formData.username)
-                    .maybeSingle();
-
-                if (fetchError) throw fetchError;
-
-                if (data) {
-                    // Username exists. Check if it's the current user's.
-                    if (data.user_id === user?.id) {
-                        setIsUsernameAvailable(true); // It's mine
-                    } else {
-                        setIsUsernameAvailable(false); // Taken by someone else
-                    }
-                } else {
-                    setIsUsernameAvailable(true); // Not taken
-                }
-            } catch (err) {
-                console.error('Error checking username:', err);
-                // Don't set null here, just leave it as is
-            } finally {
-                setIsCheckingUsername(false);
-            }
-        };
-
-        const timer = setTimeout(() => {
-            checkUsername();
+            const { data } = await supabase
+                .from('profiles')
+                .select('user_id')
+                .eq('username', formData.username)
+                .maybeSingle();
+            setIsUsernameAvailable(!data || data.user_id === user?.id);
+            setIsCheckingUsername(false);
         }, 500);
-
         return () => clearTimeout(timer);
     }, [formData.username, user?.id]);
-
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setFormData({ ...formData, [name]: value });
-    };
-
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'banner') => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setCropperState({ isOpen: true, type, src: reader.result as string });
-            };
-            reader.readAsDataURL(file);
-        }
-        e.target.value = '';
-    };
-
-    const handleCropSave = (croppedImageFile: File) => {
-        const previewUrl = URL.createObjectURL(croppedImageFile);
-        if (cropperState.type === 'avatar') {
-            setAvatarFile(croppedImageFile);
-            setAvatarPreview(previewUrl);
-        } else if (cropperState.type === 'banner') {
-            setBannerFile(croppedImageFile);
-            setBannerPreview(previewUrl);
-        }
-        setCropperState({ isOpen: false, type: null, src: null });
-    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
+        if (!formData.full_name.trim()) { setError('Please enter your name.'); return; }
+        if (!formData.username.trim()) { setError('Please choose a username.'); return; }
+        if (isUsernameAvailable === false) { setError('That username is already taken.'); return; }
+        if (!formData.campus) { setError('Please select your campus.'); return; }
+        if (!formData.branch) { setError('Please select your branch.'); return; }
+        if (!formData.admission_year) { setError('Please select your batch year.'); return; }
+
         setIsSaving(true);
         setError(null);
         try {
-            let avatar_url = null;
-            let banner_url = null;
-
-            if (avatarFile) {
-                const filePath = `${user.id}/avatar.${avatarFile.name.split('.').pop()}`;
-                await supabase.storage.from('avatars').upload(filePath, avatarFile, { upsert: true });
-                const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
-                avatar_url = `${publicUrl}?t=${new Date().getTime()}`;
-            }
-            if (bannerFile) {
-                const filePath = `${user.id}/banner.${bannerFile.name.split('.').pop()}`;
-                await supabase.storage.from('avatars').upload(filePath, bannerFile, { upsert: true });
-                const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
-                banner_url = `${publicUrl}?t=${new Date().getTime()}`;
-            }
-
-            let birthday = null;
-            if (formData.birthday_year && formData.birthday_month && formData.birthday_day) {
-                birthday = `${formData.birthday_year}-${formData.birthday_month}-${formData.birthday_day}`;
-            }
-
-            const { data: updatedProfile, error: updateError } = await supabase.from('profiles').update({
-                username: formData.username,
-                full_name: formData.full_name, campus: formData.campus, admission_year: parseInt(formData.admission_year),
-                branch: formData.branch, dual_degree_branch: formData.dual_degree_branch || null,
-                relationship_status: formData.relationship_status, dorm_building: formData.dorm_building,
-                dorm_room: formData.dorm_room, dining_hall: formData.dining_hall, bio: formData.bio,
-                phone: formData.phone || null,
-                avatar_url, banner_url, profile_complete: true, updated_at: new Date().toISOString(),
-                gender: formData.gender || null,
-                birthday: birthday
-            }).eq('user_id', user.id)
+            const { data: updatedProfile, error: updateError } = await supabase
+                .from('profiles')
+                .update({
+                    full_name: formData.full_name.trim(),
+                    username: formData.username.trim(),
+                    campus: formData.campus,
+                    branch: formData.branch,
+                    admission_year: parseInt(formData.admission_year),
+                    profile_complete: true,
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('user_id', user.id)
                 .select()
                 .single();
 
             if (updateError) {
                 if (updateError.code === '23505') {
-                    setError('This username is already taken. Please choose another one.');
-                    setIsSaving(false);
-                    return;
+                    setError('That username is already taken.');
+                } else {
+                    throw updateError;
                 }
-                throw updateError;
+                return;
             }
 
-
-            // REMOVED: await getKeyPair();
+            // Bust stale Redis cache so the next fetchProfile sees profile_complete=true
+            fetch(`/api/profile/by-id/${user.id}`, { method: 'POST' }).catch(() => {});
 
             updateProfileContext(updatedProfile);
-
-            router.push('/welcome');
+            router.push('/');
         } catch (err: any) {
-            console.error('Error saving profile:', err);
-            if (err.code === '23505') {
-                setError('This username is already taken. Please choose another one.');
-            } else if (err.message) {
-                setError(err.message);
-            } else {
-                setError('An unknown error occurred.');
-            }
-
+            setError(err.message || 'Something went wrong.');
         } finally {
             setIsSaving(false);
         }
     };
 
-    const showDualDegreeField = isDualDegreeStudent && formData.admission_year && new Date().getFullYear() >= parseInt(formData.admission_year) + 1;
-
-    if (cropperState.isOpen && cropperState.src) {
+    if (isLoading || isProfileLoading || !user) {
         return (
-            <ImageCropper
-                imageSrc={cropperState.src}
-                aspect={cropperState.type === 'avatar' ? 1 : 16 / 6}
-                cropShape={cropperState.type === 'avatar' ? 'round' : 'rect'}
-                onSave={handleCropSave}
-                onClose={() => setCropperState({ isOpen: false, type: null, src: null })}
-                isSaving={false}
-            />
+            <div className="flex items-center justify-center h-screen bg-gray-900">
+                <Spinner />
+            </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-primary-light via-secondary-light to-primary-light dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4 py-8">
-            <div className="max-w-4xl mx-auto">
-                {/* Header Section */}
-                <div className="text-center mb-8 animate-fade-in">
-                    <h1 className="text-4xl md:text-5xl font-bold text-text-main-light dark:text-text-main mb-3 bg-gradient-to-r from-brand-green to-emerald-400 bg-clip-text text-transparent">
-                        Welcome to litelelo.
-                    </h1>
-                    <p className="text-lg text-text-secondary-light dark:text-text-secondary">
-                        Let&apos;s create your profile and get you connected
-                    </p>
+        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
+            <div className="w-full max-w-md">
+                <div className="text-center mb-8">
+                    <h1 className="text-4xl font-bold text-white mb-2">Welcome to litelelo.</h1>
+                    <p className="text-gray-400">Just a few things to get you set up.</p>
                 </div>
 
-                {/* Progress Steps */}
-                <div className="flex items-center justify-center mb-10 px-4">
-                    <div className="flex items-center space-x-2 md:space-x-4">
-                        {[1, 2, 3].map((step) => (
-                            <React.Fragment key={step}>
-                                <div className={`flex items-center justify-center w-10 h-10 rounded-full font-semibold transition-all duration-300 ${currentStep >= step
-                                    ? 'bg-brand-green text-black scale-110'
-                                    : 'bg-tertiary-light dark:bg-tertiary text-text-tertiary-light dark:text-text-tertiary'
-                                    }`}>
-                                    {step}
-                                </div>
-                                {step < 3 && (
-                                    <div className={`h-1 w-12 md:w-20 rounded transition-all duration-300 ${currentStep > step ? 'bg-brand-green' : 'bg-tertiary-light dark:bg-tertiary'
-                                        }`} />
-                                )}
-                            </React.Fragment>
-                        ))}
+                <form onSubmit={handleSubmit} className="bg-gray-800/50 backdrop-blur rounded-2xl p-6 space-y-4 border border-gray-700/50">
+
+                    {/* Full Name */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-1.5">Full Name</label>
+                        <input
+                            type="text"
+                            value={formData.full_name}
+                            onChange={e => setFormData(p => ({ ...p, full_name: e.target.value }))}
+                            placeholder="Your full name"
+                            className="w-full p-3 bg-gray-700/80 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-green"
+                        />
                     </div>
-                </div>
 
-                {/* Main Form Card */}
-                <div className="bg-secondary-light dark:bg-secondary rounded-2xl shadow-2xl overflow-hidden backdrop-blur-sm bg-opacity-95 dark:bg-opacity-95">
-                    <form onSubmit={handleSubmit}>
-                        {/* Banner & Avatar Section */}
+                    {/* Username */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-1.5">Username</label>
                         <div className="relative">
-                            <div className="relative h-48 md:h-56 bg-gradient-to-r from-brand-green/20 to-emerald-400/20 dark:from-brand-green/10 dark:to-emerald-400/10 group">
-                                {bannerPreview ? (
-                                    <img src={bannerPreview} className="w-full h-full object-cover" alt="Banner Preview" />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center">
-                                        <div className="text-center text-text-tertiary-light dark:text-text-tertiary">
-                                            <CameraIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                                            <p className="text-sm">Add a cover photo</p>
-                                        </div>
-                                    </div>
-                                )}
-                                <button
-                                    type="button"
-                                    onClick={() => bannerInputRef.current?.click()}
-                                    className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300"
-                                >
-                                    <div className="text-center text-white">
-                                        <CameraIcon className="w-10 h-10 mx-auto mb-2" />
-                                        <span className="text-sm font-medium">Change Cover</span>
-                                    </div>
-                                </button>
-                                <input type="file" ref={bannerInputRef} onChange={(e) => handleFileChange(e, 'banner')} accept="image/*" hidden />
-                            </div>
-
-                            {/* Avatar */}
-                            <div className="absolute -bottom-16 md:-bottom-20 left-1/2 transform -translate-x-1/2">
-                                <div className="relative group">
-                                    <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-secondary-light dark:border-secondary bg-tertiary-light dark:bg-tertiary shadow-xl overflow-hidden">
-                                        {avatarPreview ? (
-                                            <img src={avatarPreview} className="w-full h-full object-cover" alt="Avatar Preview" />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-text-tertiary-light dark:text-text-tertiary">
-                                                <CameraIcon className="w-12 h-12" />
-                                            </div>
-                                        )}
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => avatarInputRef.current?.click()}
-                                        className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300"
-                                    >
-                                        <CameraIcon className="w-8 h-8 text-white" />
-                                    </button>
-                                    <input type="file" ref={avatarInputRef} onChange={(e) => handleFileChange(e, 'avatar')} accept="image/*" hidden />
-                                </div>
-                            </div>
+                            <input
+                                type="text"
+                                value={formData.username}
+                                onChange={e => setFormData(p => ({ ...p, username: e.target.value.replace(/^@+/, '').toLowerCase() }))}
+                                placeholder="choose_a_username"
+                                className="w-full p-3 bg-gray-700/80 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-green pr-24"
+                            />
+                            <span className="absolute right-3 top-3.5 text-xs">
+                                {isCheckingUsername && <span className="text-gray-400">checking…</span>}
+                                {!isCheckingUsername && isUsernameAvailable === true && <span className="text-brand-green">available ✓</span>}
+                                {!isCheckingUsername && isUsernameAvailable === false && <span className="text-red-400">taken ✗</span>}
+                            </span>
                         </div>
+                    </div>
 
-                        {/* Form Fields */}
-                        <div className="px-6 md:px-10 pt-20 md:pt-24 pb-8 space-y-8">
-                            {/* Step 1: Basic Info */}
-                            <div className={`space-y-6 transition-all duration-500 ${currentStep === 1 ? 'block' : 'hidden'}`}>
-                                <div className="text-center mb-6">
-                                    <h3 className="text-2xl font-bold text-text-main-light dark:text-text-main mb-2">Basic Information</h3>
-                                    <p className="text-sm text-text-secondary-light dark:text-text-secondary">Tell us about yourself</p>
-                                </div>
+                    {/* Campus */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-1.5">Campus</label>
+                        <select
+                            value={formData.campus}
+                            onChange={e => setFormData(p => ({ ...p, campus: e.target.value, branch: '' }))}
+                            className="w-full p-3 bg-gray-700/80 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-brand-green"
+                        >
+                            <option value="">Select your campus</option>
+                            {CAMPUSES.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                    </div>
 
-                                <div>
-                                    <label htmlFor="full_name" className="block text-text-secondary-light dark:text-text-secondary text-sm font-semibold mb-2">
-                                        Full Name <span className="text-brand-green">*</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="full_name"
-                                        id="full_name"
-                                        value={formData.full_name}
-                                        onChange={handleChange}
-                                        required
-                                        className="w-full p-4 bg-tertiary-light dark:bg-tertiary border-2 border-transparent focus:border-brand-green rounded-xl text-text-main-light dark:text-text-main transition-all duration-300 outline-none"
-                                        placeholder="Enter your full name"
-                                    />
-                                </div>
+                    {/* Branch */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-1.5">Branch</label>
+                        <select
+                            value={formData.branch}
+                            onChange={e => setFormData(p => ({ ...p, branch: e.target.value }))}
+                            disabled={!formData.campus}
+                            className="w-full p-3 bg-gray-700/80 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-brand-green disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                            <option value="">{formData.campus ? 'Select your branch' : 'Select campus first'}</option>
+                            {Object.entries(BITS_BRANCHES[formData.campus] || {}).map(([degree, branchList]) =>
+                                (branchList as string[]).map(b => (
+                                    <option key={b} value={b}>{b} ({degree})</option>
+                                ))
+                            )}
+                        </select>
+                    </div>
 
-                                <div>
-                                    <label htmlFor="username" className="block text-text-secondary-light dark:text-text-secondary text-sm font-semibold mb-2">
-                                        Username <span className="text-brand-green">*</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="username"
-                                        id="username"
-                                        value={formData.username}
-                                        onChange={handleChange}
-                                        required
-                                        className="w-full p-4 bg-tertiary-light dark:bg-tertiary border-2 border-transparent focus:border-brand-green rounded-xl text-text-main-light dark:text-text-main transition-all duration-300 outline-none"
-                                        placeholder="Choose a unique username"
-                                    />
-                                    {formData.username.length > 0 && (
-                                        <div className="mt-2 text-sm px-1 transition-all duration-300">
-                                            {formData.username.length < 3 ? (
-                                                <span className="text-text-tertiary-light dark:text-text-tertiary">Username must be at least 3 characters</span>
-                                            ) : !/^[a-zA-Z0-9_.]+$/.test(formData.username) ? (
-                                                <span className="text-red-500">Only letters, numbers, dots and underscores allowed</span>
-                                            ) : isCheckingUsername ? (
-                                                <span className="text-text-tertiary-light dark:text-text-tertiary flex items-center gap-2">
-                                                    <div className="w-3 h-3 border-2 border-brand-green border-t-transparent rounded-full animate-spin"></div>
-                                                    Checking availability...
-                                                </span>
-                                            ) : isUsernameAvailable === true ? (
-                                                <span className="text-brand-green flex items-center gap-1 font-medium italic">
-                                                    <span className="text-lg">✨</span> Username available!
-                                                </span>
-                                            ) : isUsernameAvailable === false ? (
-                                                <span className="text-red-500 flex items-center gap-1 font-medium">
-                                                    <span className="text-lg">⚠️</span> This username is unavailable or invalid
-                                                </span>
-                                            ) : null}
-                                        </div>
-                                    )}
+                    {/* Batch Year */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-1.5">Batch Year</label>
+                        <select
+                            value={formData.admission_year}
+                            onChange={e => setFormData(p => ({ ...p, admission_year: e.target.value }))}
+                            className="w-full p-3 bg-gray-700/80 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-brand-green"
+                        >
+                            <option value="">When did you join BITS?</option>
+                            {BATCH_YEARS.slice().reverse().map(y => (
+                                <option key={y} value={y}>Class of {y}</option>
+                            ))}
+                        </select>
+                    </div>
 
-                                </div>
+                    {error && <p className="text-red-400 text-sm pt-1">{error}</p>}
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="block text-text-secondary-light dark:text-text-secondary text-sm font-semibold mb-2">Campus</label>
-                                        <div className="w-full p-4 bg-gradient-to-r from-brand-green/10 to-emerald-400/10 border-2 border-brand-green/30 rounded-xl text-text-main-light dark:text-text-main">
-                                            {formData.campus ? (
-                                                <div className="flex items-center justify-between">
-                                                    <span className="font-medium">{formData.campus}</span>
-                                                </div>
-                                            ) : (
-                                                'Detecting from email...'
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-text-secondary-light dark:text-text-secondary text-sm font-semibold mb-2">Admission Year</label>
-                                        <div className="w-full p-4 bg-gradient-to-r from-brand-green/10 to-emerald-400/10 border-2 border-brand-green/30 rounded-xl text-text-main-light dark:text-text-main">
-                                            {formData.admission_year ? (
-                                                <div className="flex items-center justify-between">
-                                                    <span className="font-medium">{formData.admission_year}</span>
-                                                </div>
-                                            ) : (
-                                                'Detecting from email...'
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className={`grid gap-6 ${showDualDegreeField ? 'md:grid-cols-2' : 'grid-cols-1'}`}>
-                                    <div>
-                                        <label htmlFor="branch" className="block text-text-secondary-light dark:text-text-secondary text-sm font-semibold mb-2">
-                                            Primary Degree <span className="text-brand-green">*</span>
-                                        </label>
-                                        <select
-                                            name="branch"
-                                            id="branch"
-                                            value={formData.branch}
-                                            onChange={handleChange}
-                                            required
-                                            disabled={!formData.campus}
-                                            className="w-full p-4 bg-tertiary-light dark:bg-tertiary border-2 border-transparent focus:border-brand-green rounded-xl text-text-main-light dark:text-text-main disabled:opacity-50 transition-all duration-300 outline-none"
-                                        >
-                                            <option value="">Select Branch</option>
-                                            {availableBranches.map(b => <option key={b} value={b}>{b}</option>)}
-                                        </select>
-                                    </div>
-
-                                    {showDualDegreeField && (
-                                        <div>
-                                            <label htmlFor="dual_degree_branch" className="block text-text-secondary-light dark:text-text-secondary text-sm font-semibold mb-2">
-                                                B.E. Branch <span className="text-text-tertiary-light dark:text-text-tertiary text-xs">(Optional)</span>
-                                            </label>
-                                            <select
-                                                name="dual_degree_branch"
-                                                id="dual_degree_branch"
-                                                value={formData.dual_degree_branch}
-                                                onChange={handleChange}
-                                                className="w-full p-4 bg-tertiary-light dark:bg-tertiary border-2 border-transparent focus:border-brand-green rounded-xl text-text-main-light dark:text-text-main transition-all duration-300 outline-none"
-                                            >
-                                                <option value="">Select B.E. Branch</option>
-                                                {formData.campus ? BITS_BRANCHES[formData.campus]['B.E.'].map(b => <option key={b} value={b}>{b}</option>) : null}
-                                            </select>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="flex justify-end">
-                                    <button
-                                        type="button"
-                                        onClick={() => setCurrentStep(2)}
-                                        className="px-8 py-3 bg-brand-green hover:bg-brand-green-darker text-black font-bold rounded-xl transition-all duration-300 transform hover:scale-105"
-                                    >
-                                        Next Step →
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Step 2: Personal Details */}
-                            <div className={`space-y-6 transition-all duration-500 ${currentStep === 2 ? 'block' : 'hidden'}`}>
-                                <div className="text-center mb-6">
-                                    <h3 className="text-2xl font-bold text-text-main-light dark:text-text-main mb-2">Personal Details</h3>
-                                    <p className="text-text-secondary-light dark:text-text-secondary mt-2">Let&apos;s get your profile set up so you can start connecting.</p>
-                                </div>
-
-                                <div>
-                                    <label className="block text-text-secondary-light dark:text-text-secondary text-sm font-semibold mb-3">Gender</label>
-                                    <div className="flex gap-4">
-                                        {['Male', 'Female'].map((gender) => (
-                                            <label
-                                                key={gender}
-                                                className={`flex-1 p-4 border-2 rounded-xl cursor-pointer transition-all duration-300 ${formData.gender === gender
-                                                    ? 'border-brand-green bg-brand-green/10'
-                                                    : 'border-tertiary-light dark:border-gray-700 hover:border-brand-green/50'
-                                                    }`}
-                                            >
-                                                <input
-                                                    type="radio"
-                                                    name="gender"
-                                                    value={gender}
-                                                    checked={formData.gender === gender}
-                                                    onChange={handleChange}
-                                                    className="sr-only"
-                                                />
-                                                <span className="text-text-main-light dark:text-text-main font-medium">{gender}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-text-secondary-light dark:text-text-secondary text-sm font-semibold mb-2">Birthday</label>
-                                    <div className="grid grid-cols-3 gap-3">
-                                        <select
-                                            name="birthday_day"
-                                            value={formData.birthday_day}
-                                            onChange={handleChange}
-                                            className="w-full p-4 bg-tertiary-light dark:bg-tertiary border-2 border-transparent focus:border-brand-green rounded-xl text-text-main-light dark:text-text-main transition-all duration-300 outline-none"
-                                        >
-                                            <option value="">Day</option>
-                                            {Array.from({ length: 31 }, (_, i) => i + 1).map(d => <option key={d} value={d.toString().padStart(2, '0')}>{d}</option>)}
-                                        </select>
-                                        <select
-                                            name="birthday_month"
-                                            value={formData.birthday_month}
-                                            onChange={handleChange}
-                                            className="w-full p-4 bg-tertiary-light dark:bg-tertiary border-2 border-transparent focus:border-brand-green rounded-xl text-text-main-light dark:text-text-main transition-all duration-300 outline-none"
-                                        >
-                                            <option value="">Month</option>
-                                            {MONTHS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-                                        </select>
-                                        <select
-                                            name="birthday_year"
-                                            value={formData.birthday_year}
-                                            onChange={handleChange}
-                                            className="w-full p-4 bg-tertiary-light dark:bg-tertiary border-2 border-transparent focus:border-brand-green rounded-xl text-text-main-light dark:text-text-main transition-all duration-300 outline-none"
-                                        >
-                                            <option value="">Year</option>
-                                            {Array.from({ length: 50 }, (_, i) => new Date().getFullYear() - i - 16).map(y => <option key={y} value={y}>{y}</option>)}
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label htmlFor="relationship_status" className="block text-text-secondary-light dark:text-text-secondary text-sm font-semibold mb-2">Relationship Status</label>
-                                    <select
-                                        name="relationship_status"
-                                        id="relationship_status"
-                                        value={formData.relationship_status}
-                                        onChange={handleChange}
-                                        className="w-full p-4 bg-tertiary-light dark:bg-tertiary border-2 border-transparent focus:border-brand-green rounded-xl text-text-main-light dark:text-text-main transition-all duration-300 outline-none"
-                                    >
-                                        <option value="">Select Status</option>
-                                        {RELATIONSHIP_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label htmlFor="phone" className="block text-text-secondary-light dark:text-text-secondary text-sm font-semibold mb-2">Phone <span className="text-text-tertiary-light dark:text-text-tertiary text-xs">(Optional)</span></label>
-                                    <input
-                                        type="tel"
-                                        name="phone"
-                                        id="phone"
-                                        value={formData.phone}
-                                        onChange={handleChange}
-                                        placeholder="e.g., +91 98765 43210"
-                                        className="w-full p-4 bg-tertiary-light dark:bg-tertiary border-2 border-transparent focus:border-brand-green rounded-xl text-text-main-light dark:text-text-main transition-all duration-300 outline-none"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label htmlFor="bio" className="block text-text-secondary-light dark:text-text-secondary text-sm font-semibold mb-2">Bio</label>
-                                    <textarea
-                                        name="bio"
-                                        id="bio"
-                                        value={formData.bio}
-                                        onChange={handleChange}
-                                        rows={4}
-                                        placeholder="Tell us about yourself... your interests, hobbies, or anything you'd like to share!"
-                                        className="w-full p-4 bg-tertiary-light dark:bg-tertiary border-2 border-transparent focus:border-brand-green rounded-xl text-text-main-light dark:text-text-main resize-y transition-all duration-300 outline-none"
-                                    />
-                                </div>
-
-                                <div className="flex justify-between">
-                                    <button
-                                        type="button"
-                                        onClick={() => setCurrentStep(1)}
-                                        className="px-8 py-3 bg-tertiary-light dark:bg-tertiary hover:bg-gray-300 dark:hover:bg-gray-700 text-text-main-light dark:text-text-main font-bold rounded-xl transition-all duration-300"
-                                    >
-                                        ← Back
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setCurrentStep(3)}
-                                        className="px-8 py-3 bg-brand-green hover:bg-brand-green-darker text-black font-bold rounded-xl transition-all duration-300 transform hover:scale-105"
-                                    >
-                                        Next Step →
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Step 3: Campus Life */}
-                            <div className={`space-y-6 transition-all duration-500 ${currentStep === 3 ? 'block' : 'hidden'}`}>
-                                <div className="text-center mb-6">
-                                    <h3 className="text-2xl font-bold text-text-main-light dark:text-text-main mb-2">Campus Life</h3>
-                                    <p className="text-sm text-text-secondary-light dark:text-text-secondary">Where can people find you on campus?</p>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label htmlFor="dorm_building" className="block text-text-secondary-light dark:text-text-secondary text-sm font-semibold mb-2">Dorm Building</label>
-                                        <select
-                                            name="dorm_building"
-                                            id="dorm_building"
-                                            value={formData.dorm_building}
-                                            onChange={handleChange}
-                                            disabled={availableDorms.length === 0}
-                                            className="w-full p-4 bg-tertiary-light dark:bg-tertiary border-2 border-transparent focus:border-brand-green rounded-xl text-text-main-light dark:text-text-main transition-all duration-300 outline-none disabled:opacity-50"
-                                        >
-                                            <option value="">Select Dorm</option>
-                                            {availableDorms.map(dorm => <option key={dorm} value={dorm}>{dorm}</option>)}
-                                        </select>
-                                    </div>
-
-                                    <div>
-                                        <label htmlFor="dorm_room" className="block text-text-secondary-light dark:text-text-secondary text-sm font-semibold mb-2">Dorm Room</label>
-                                        <input
-                                            type="number"
-                                            name="dorm_room"
-                                            id="dorm_room"
-                                            value={formData.dorm_room}
-                                            onChange={handleChange}
-                                            placeholder="e.g. 101"
-                                            pattern="^[1-9][0-9]{2}$"
-                                            title="Please enter a 3-digit room number."
-                                            className="w-full p-4 bg-tertiary-light dark:bg-tertiary border-2 border-transparent focus:border-brand-green rounded-xl text-text-main-light dark:text-text-main transition-all duration-300 outline-none"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label htmlFor="dining_hall" className="block text-text-secondary-light dark:text-text-secondary text-sm font-semibold mb-2">Dining Hall</label>
-                                    <select
-                                        name="dining_hall"
-                                        id="dining_hall"
-                                        value={formData.dining_hall}
-                                        onChange={handleChange}
-                                        disabled={availableMesses.length === 0}
-                                        className="w-full p-4 bg-tertiary-light dark:bg-tertiary border-2 border-transparent focus:border-brand-green rounded-xl text-text-main-light dark:text-text-main transition-all duration-300 outline-none disabled:opacity-50"
-                                    >
-                                        <option value="">Select Mess</option>
-                                        {availableMesses.map(hall => <option key={hall} value={hall}>{hall}</option>)}
-                                    </select>
-                                </div>
-
-                                {error && (
-                                    <div className="p-4 bg-red-500/10 border-2 border-red-500 rounded-xl">
-                                        <p className="text-red-500 text-center font-medium">{error}</p>
-                                    </div>
-                                )}
-
-                                <div className="flex justify-between pt-4">
-                                    <button
-                                        type="button"
-                                        onClick={() => setCurrentStep(2)}
-                                        className="px-8 py-3 bg-tertiary-light dark:bg-tertiary hover:bg-gray-300 dark:hover:bg-gray-700 text-text-main-light dark:text-text-main font-bold rounded-xl transition-all duration-300"
-                                    >
-                                        ← Back
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={isSaving || !formData.campus || !formData.full_name || !formData.username || isUsernameAvailable === false}
-                                        className="px-8 py-3 bg-gradient-to-r from-brand-green to-emerald-400 hover:from-brand-green-darker hover:to-emerald-500 text-black font-bold rounded-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center gap-2"
-                                    >
-
-                                        {isSaving ? (
-                                            <>
-                                                <Spinner />
-                                                <span>Saving...</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <span>Complete Profile</span>
-                                                <span>✓</span>
-                                            </>
-                                        )}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-
-                {/* Footer Tips */}
-                <div className="mt-8 text-center">
-                    <p className="text-sm text-text-tertiary-light dark:text-text-tertiary">
-                        💡 Tip: Add a profile picture and cover photo to make your profile stand out!
-                    </p>
-                </div>
+                    <button
+                        type="submit"
+                        disabled={isSaving || isUsernameAvailable === false}
+                        className="w-full py-3 bg-brand-green text-black font-semibold rounded-lg hover:bg-brand-green-darker transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+                    >
+                        {isSaving ? <Spinner /> : 'Get started →'}
+                    </button>
+                </form>
             </div>
-
-            <style>{`
-        @keyframes fade-in {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        .animate-fade-in {
-          animation: fade-in 0.6s ease-out;
-        }
-      `}</style>
         </div>
     );
 };
