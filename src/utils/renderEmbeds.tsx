@@ -4,6 +4,23 @@ import React from 'react';
 import { Tweet } from 'react-tweet';
 import { renderWithMentions } from './renderMentions';
 
+class TweetErrorBoundary extends React.Component<
+    { children: React.ReactNode },
+    { hasError: boolean }
+> {
+    constructor(props: { children: React.ReactNode }) {
+        super(props);
+        this.state = { hasError: false };
+    }
+    static getDerivedStateFromError() {
+        return { hasError: true };
+    }
+    render() {
+        if (this.state.hasError) return null;
+        return this.props.children;
+    }
+}
+
 const YOUTUBE_REGEX = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9\-_]{11})/;
 const TWITTER_REGEX = /(?:https?:\/\/)?(?:www\.)?(?:twitter\.com|x\.com)\/(?:[a-zA-Z0-9_]+)\/status\/(\d+)/;
 const URL_REGEX = /(https?:\/\/[^\s]+)/g;
@@ -63,15 +80,13 @@ export const renderContentWithEmbeds = (text: string): React.ReactNode[] => {
     if (twitterMatch && twitterMatch[1]) {
       return (
         <div key={`tweet-${index}`} className="my-4 grid place-items-center" onClick={(e) => e.stopPropagation()}>
-          {/* --- THE FIX: Added style to remove internal padding --- */}
           <div
-            // --- MY FIX: Changed max-w-sm to sm:max-w-sm to make it responsive. ---
-            // This ensures the tweet embed is full-width on mobile and doesn't overflow,
-            // while maintaining the max-width on desktop for better layout.
             className="w-full sm:max-w-sm min-w-0"
             style={{ '--tweet-padding': '0px' } as React.CSSProperties}
           >
-            <Tweet id={twitterMatch[1]} />
+            <TweetErrorBoundary>
+              <Tweet id={twitterMatch[1]} />
+            </TweetErrorBoundary>
           </div>
         </div>
       );
