@@ -133,20 +133,20 @@ const ProfileSetup: React.FC = () => {
         }
     };
 
-    if (isLoading || isProfileLoading || !user) {
+    if (isLoading || !user) {
         return (
-            <div className="flex items-center justify-center h-screen bg-gray-900">
+            <div className="flex items-center justify-center h-screen bg-primary">
                 <Spinner />
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-primary flex items-center justify-center p-4">
             <div className="w-full max-w-md">
                 <div className="text-center mb-8">
-                    <h1 className="text-4xl font-bold text-white mb-2">Welcome to litelelo.</h1>
-                    <p className="text-gray-400">Just a few things to get you set up.</p>
+                    <span className="font-raleway font-black tracking-tighter text-brand-green text-5xl">litelelo.</span>
+                    <p className="text-gray-400 mt-3">Just a few things to get you set up.</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="bg-gray-800/50 backdrop-blur rounded-2xl p-6 space-y-4 border border-gray-700/50">

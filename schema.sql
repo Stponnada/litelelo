@@ -3144,17 +3144,31 @@ ALTER FUNCTION "public"."handle_new_message_notification"() OWNER TO "postgres";
 CREATE OR REPLACE FUNCTION "public"."handle_new_user"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
+DECLARE
+  base_username TEXT;
+  final_username TEXT;
+  counter INT := 0;
 BEGIN
-  -- Insert a new row into the public.profiles table.
-  -- It sets the user_id and email from the new user record.
-  -- It also extracts a default username from the email (e.g., "f2025xxxx" from "f2025xxxx@hyderabad.bits-pilani.ac.in").
+  base_username := split_part(NEW.email, '@', 1);
+  -- Strip chars not allowed by username_format_check constraint
+  base_username := regexp_replace(base_username, '[^a-zA-Z0-9_.]', '', 'g');
+  IF base_username = '' THEN base_username := 'user'; END IF;
+
+  final_username := base_username;
+
+  -- Append incrementing suffix until we find a free username
+  WHILE EXISTS (SELECT 1 FROM public.profiles WHERE username = final_username) LOOP
+    counter := counter + 1;
+    final_username := base_username || counter::text;
+  END LOOP;
+
   INSERT INTO public.profiles (user_id, email, username, full_name, avatar_url)
   VALUES (
     NEW.id,
     NEW.email,
-    split_part(NEW.email, '@', 1),
-    NEW.raw_user_meta_data ->> 'full_name', -- Get full name from Google
-    NEW.raw_user_meta_data ->> 'avatar_url'  -- Get avatar from Google
+    final_username,
+    NEW.raw_user_meta_data ->> 'full_name',
+    NEW.raw_user_meta_data ->> 'avatar_url'
   );
   RETURN NEW;
 END;
