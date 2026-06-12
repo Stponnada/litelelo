@@ -89,7 +89,7 @@ const ProfileSetup: React.FC = () => {
         if (!user) return;
         if (!formData.full_name.trim()) { setError('Please enter your name.'); return; }
         if (!formData.username.trim()) { setError('Please choose a username.'); return; }
-        if (isUsernameAvailable === false) { setError('That username is already taken.'); return; }
+        if (isCheckingUsername || isUsernameAvailable !== true) { setError('Please wait for the username check to complete.'); return; }
         if (!formData.campus) { setError('Please select your campus.'); return; }
         if (!formData.branch) { setError('Please select your branch.'); return; }
         if (!formData.admission_year) { setError('Please select your batch year.'); return; }
@@ -232,7 +232,7 @@ const ProfileSetup: React.FC = () => {
 
                     <button
                         type="submit"
-                        disabled={isSaving || isUsernameAvailable === false}
+                        disabled={isSaving || isCheckingUsername || isUsernameAvailable !== true}
                         className="w-full py-3 bg-brand-green text-black font-semibold rounded-lg hover:bg-brand-green-darker transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
                     >
                         {isSaving ? <Spinner /> : 'Get started →'}
