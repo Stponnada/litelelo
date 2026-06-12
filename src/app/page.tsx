@@ -46,10 +46,12 @@ function PageContent() {
     return <LandingPage />;
   }
 
-  // While loading profile, show spinner.
-  // If we've already confirmed this user has a complete profile, render home
-  // even if a background re-fetch temporarily returns stale data.
-  if (isProfileLoading || (!profile && !profileWasComplete)) {
+  // Once we've confirmed a complete profile, render home immediately —
+  // never block on background re-fetches (token refresh on tab focus etc.)
+  if (profileWasComplete) return <HomePage />;
+
+  // First-time load: wait until we know the profile state
+  if (isProfileLoading || !profile) {
     return (
       <div className="flex items-center justify-center h-screen bg-primary-light dark:bg-primary">
         <Spinner />
@@ -57,15 +59,12 @@ function PageContent() {
     );
   }
 
-  if (!profileWasComplete && profile && !profile.profile_complete) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-primary-light dark:bg-primary">
-        <Spinner />
-      </div>
-    );
-  }
-
-  return <HomePage />;
+  // Profile loaded but incomplete — useEffect will redirect to /profile-setup
+  return (
+    <div className="flex items-center justify-center h-screen bg-primary-light dark:bg-primary">
+      <Spinner />
+    </div>
+  );
 }
 
 export default function Page() {
