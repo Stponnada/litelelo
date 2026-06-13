@@ -440,7 +440,7 @@ export interface BitsCoinRequest {
   deadline: string | null; // Added
 }
 
-export type NotificationType = 'like' | 'comment' | 'follow' | 'mention' | 'bits_coin_claim' | 'new_message' | 'community_join_request' | 'friend_request' | 'community_added' | 'new_post' | 'repost';
+export type NotificationType = 'like' | 'comment' | 'follow' | 'wave' | 'mention' | 'bits_coin_claim' | 'new_message' | 'community_join_request' | 'friend_request' | 'community_added' | 'new_post' | 'repost';
 
 export interface Notification {
   id: string;

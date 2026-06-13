@@ -31,6 +31,10 @@ const NotificationItem: React.FC<{ notification: NotificationType, onClose: () =
             text = 'started following you.';
             link = `/profile/${notification.actor.username}`;
             break;
+        case 'wave':
+            text = 'waved at you 👋';
+            link = `/profile/${notification.actor.username}`;
+            break;
         case 'mention':
             text = 'mentioned you in a post.';
             link = `/post/${notification.entity_id}`;

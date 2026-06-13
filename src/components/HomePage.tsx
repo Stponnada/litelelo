@@ -9,6 +9,7 @@ import { getResizedAvatarUrl } from '@/utils/imageUtils';
 import Skeleton from './Skeleton';
 import FuzzyAutocomplete from './FuzzyAutocomplete';
 import { INDIAN_CITIES, canonicalizeCity } from '@/data/indianCities';
+import type { Profile } from '@/types';
 
 const CITY_QUICK_PICKS = ['Bangalore', 'Mumbai', 'Delhi', 'Hyderabad', 'Pune', 'Chennai', 'Kolkata', 'Jaipur'];
 
@@ -55,9 +56,11 @@ const PERSON_COLUMNS =
 const PersonCard: React.FC<{
     person: DiscoveryPerson;
     isFollowing: boolean;
+    isWaved: boolean;
     onFollow: (userId: string) => void;
+    onWave: (userId: string) => void;
     showStatus?: boolean;
-}> = ({ person, isFollowing, onFollow, showStatus }) => (
+}> = ({ person, isFollowing, isWaved, onFollow, onWave, showStatus }) => (
     <div className="bg-secondary-light/70 dark:bg-secondary/70 backdrop-blur-xl rounded-xl border border-tertiary-light/50 dark:border-white/5 p-4 flex flex-col items-center text-center gap-3 hover:border-brand-green/20 transition-colors group">
         <Link href={`/profile/${person.username}`} className="flex-shrink-0 relative">
             <Image
@@ -92,17 +95,30 @@ const PersonCard: React.FC<{
                 </p>
             )}
         </div>
-        <button
-            onClick={() => !isFollowing && onFollow(person.user_id)}
-            disabled={isFollowing}
-            className={`w-full py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                isFollowing
-                    ? 'bg-tertiary-light dark:bg-white/5 text-text-tertiary-light dark:text-text-tertiary cursor-default'
-                    : 'bg-brand-green text-black hover:bg-brand-green-darker active:scale-95'
-            }`}
-        >
-            {isFollowing ? 'Following' : 'Follow'}
-        </button>
+        <div className="w-full space-y-1.5">
+            <button
+                onClick={() => !isWaved && onWave(person.user_id)}
+                disabled={isWaved}
+                className={`w-full py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    isWaved
+                        ? 'bg-brand-green/15 text-brand-green cursor-default'
+                        : 'bg-brand-green text-black hover:bg-brand-green-darker active:scale-95'
+                }`}
+            >
+                {isWaved ? 'Waved 👋' : 'Wave 👋'}
+            </button>
+            <button
+                onClick={() => !isFollowing && onFollow(person.user_id)}
+                disabled={isFollowing}
+                className={`w-full text-xs font-medium transition-colors ${
+                    isFollowing
+                        ? 'text-text-tertiary-light dark:text-text-tertiary cursor-default'
+                        : 'text-text-secondary-light dark:text-text-secondary hover:text-brand-green'
+                }`}
+            >
+                {isFollowing ? 'Following' : 'Follow'}
+            </button>
+        </div>
     </div>
 );
 
@@ -121,10 +137,12 @@ const PeopleGrid: React.FC<{
     people: DiscoveryPerson[];
     loading: boolean;
     followingIds: Set<string>;
+    wavedIds: Set<string>;
     onFollow: (id: string) => void;
+    onWave: (id: string) => void;
     emptyMessage: string;
     showStatus?: boolean;
-}> = ({ people, loading, followingIds, onFollow, emptyMessage, showStatus }) => {
+}> = ({ people, loading, followingIds, wavedIds, onFollow, onWave, emptyMessage, showStatus }) => {
     if (loading) {
         return (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -142,7 +160,9 @@ const PeopleGrid: React.FC<{
                     key={person.user_id}
                     person={person}
                     isFollowing={followingIds.has(person.user_id)}
+                    isWaved={wavedIds.has(person.user_id)}
                     onFollow={onFollow}
+                    onWave={onWave}
                     showStatus={showStatus}
                 />
             ))}
@@ -310,6 +330,49 @@ const ClubsCard: React.FC<{ communities: CommunityItem[]; loading: boolean }> = 
     </div>
 );
 
+// ---------- The mirror: how you appear to everyone, before you wave ----------
+
+const MirrorCard: React.FC<{ profile: Profile }> = ({ profile }) => {
+    const needsPhoto = !profile.avatar_url;
+    const needsIntro = !profile.bio;
+    return (
+        <div className="bg-gradient-to-br from-brand-green/10 to-transparent border border-brand-green/30 rounded-xl p-4 sm:p-5">
+            <div className="flex items-center gap-4">
+                <Image
+                    src={getResizedAvatarUrl(profile.avatar_url, 64, 64, profile.full_name || profile.username)}
+                    alt="You"
+                    width={64}
+                    height={64}
+                    className="w-16 h-16 rounded-full object-cover ring-2 ring-brand-green/40 flex-shrink-0"
+                    unoptimized
+                />
+                <div className="min-w-0 flex-1">
+                    <p className="text-[11px] uppercase tracking-wide text-brand-green font-semibold">Before you say hi 👋</p>
+                    <p className="font-bold text-text-main-light dark:text-text-main truncate">{profile.full_name || profile.username}</p>
+                    <p className="text-xs text-text-tertiary-light dark:text-text-tertiary truncate">
+                        {profile.bio || profile.branch || 'This is how everyone sees you.'}
+                    </p>
+                </div>
+                <Link
+                    href={`/profile/${profile.username}`}
+                    className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-green text-black hover:bg-brand-green-darker"
+                >
+                    Edit
+                </Link>
+            </div>
+            {(needsPhoto || needsIntro) && (
+                <p className="text-xs text-text-secondary-light dark:text-text-secondary mt-3">
+                    {needsPhoto && needsIntro
+                        ? 'No photo or intro yet — people remember faces, not blanks. Get yourself ready before you wave.'
+                        : needsPhoto
+                        ? 'Add a photo — people remember faces, not blanks.'
+                        : 'Add a one-line intro so people know who you are.'}
+                </p>
+            )}
+        </div>
+    );
+};
+
 // ---------- Dashboard ----------
 
 const HomePage: React.FC = () => {
@@ -317,6 +380,7 @@ const HomePage: React.FC = () => {
     const incoming = !!profile?.is_incoming;
 
     const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
+    const [wavedIds, setWavedIds] = useState<Set<string>>(new Set());
 
     // Incoming-focused
     const [cityPeople, setCityPeople] = useState<DiscoveryPerson[]>([]);
@@ -347,6 +411,12 @@ const HomePage: React.FC = () => {
                 .select('following_id')
                 .eq('follower_id', user.id);
             setFollowingIds(new Set((followingData || []).map((f: any) => f.following_id)));
+
+            const { data: wavesData } = await supabase
+                .from('waves')
+                .select('recipient_id')
+                .eq('sender_id', user.id);
+            setWavedIds(new Set((wavesData || []).map((w: any) => w.recipient_id)));
 
             if (incoming) {
                 // From your city: seniors + incoming, seniors surfaced first.
@@ -451,6 +521,14 @@ const HomePage: React.FC = () => {
         await supabase.from('followers').insert({ follower_id: user.id, following_id: userIdToFollow });
     }, [user]);
 
+    const handleWave = useCallback(async (recipientId: string) => {
+        if (!user) return;
+        setWavedIds(prev => new Set([...prev, recipientId]));
+        await supabase
+            .from('waves')
+            .upsert({ sender_id: user.id, recipient_id: recipientId }, { onConflict: 'sender_id,recipient_id', ignoreDuplicates: true });
+    }, [user]);
+
     if (!profile) return null;
 
     const firstName = (profile.full_name || profile.username || '').split(' ')[0];
@@ -482,6 +560,9 @@ const HomePage: React.FC = () => {
                 )}
             </section>
 
+            {/* The mirror — glance at yourself before you go say hi */}
+            <MirrorCard profile={profile} />
+
             {/* On-campus users with no hometown: nudge to add it for incoming juniors */}
             {!incoming && !profile.hometown && (
                 <CityPrompt onSaved={city => updateProfileContext({ ...profile, hometown: city })} />
@@ -499,7 +580,9 @@ const HomePage: React.FC = () => {
                                 people={cityPeople}
                                 loading={loadingCity}
                                 followingIds={followingIds}
+                                wavedIds={wavedIds}
                                 onFollow={handleFollow}
+                                onWave={handleWave}
                                 emptyMessage="No one from your city yet — you might be the first! Share litelelo with friends from home."
                                 showStatus
                             />
@@ -517,7 +600,9 @@ const HomePage: React.FC = () => {
                             people={batchmates}
                             loading={loadingBatch}
                             followingIds={followingIds}
+                            wavedIds={wavedIds}
                             onFollow={handleFollow}
+                            onWave={handleWave}
                             emptyMessage="No batchmates here yet — invite your friends!"
                         />
                     </Section>
@@ -531,7 +616,9 @@ const HomePage: React.FC = () => {
                                 people={languagePeople}
                                 loading={loadingLanguage}
                                 followingIds={followingIds}
+                                wavedIds={wavedIds}
                                 onFollow={handleFollow}
+                                onWave={handleWave}
                                 emptyMessage="No one else yet — add your language in settings to match."
                             />
                         </Section>
@@ -544,7 +631,9 @@ const HomePage: React.FC = () => {
                                 people={branchPeople}
                                 loading={loadingBranch}
                                 followingIds={followingIds}
+                                wavedIds={wavedIds}
                                 onFollow={handleFollow}
+                                onWave={handleWave}
                                 emptyMessage="No one else from your branch yet."
                             />
                         </Section>
