@@ -4,12 +4,15 @@ import { supabase } from '@/services/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import Image from 'next/image';
 import Link from 'next/link';
-import { format, isAfter } from 'date-fns';
+import { isAfter } from 'date-fns';
 import { getResizedAvatarUrl } from '@/utils/imageUtils';
 import Skeleton from './Skeleton';
 import FuzzyAutocomplete from './FuzzyAutocomplete';
+import BlogPreviewCard from './BlogPreviewCard';
+import { SectionHeader, NoticePreviewCard, EventMiniCard, type CampusEventMini } from './campus/ExploreCards';
+import { ClipboardDocumentListIcon, BookOpenIcon, CalendarIcon } from './icons';
 import { INDIAN_CITIES, canonicalizeCity } from '@/data/indianCities';
-import type { Profile } from '@/types';
+import type { Profile, CampusNotice, Post as PostType } from '@/types';
 
 const CITY_QUICK_PICKS = ['Bangalore', 'Mumbai', 'Delhi', 'Hyderabad', 'Pune', 'Chennai', 'Kolkata', 'Jaipur'];
 
@@ -25,21 +28,6 @@ interface DiscoveryPerson {
     hometown: string | null;
     language: string | null;
     is_incoming: boolean;
-}
-
-interface EventItem {
-    id: string;
-    name: string;
-    start_time: string;
-    location: string | null;
-    image_url: string | null;
-}
-
-interface NoticeItem {
-    id: string;
-    title: string;
-    description: string | null;
-    created_at: string;
 }
 
 interface CommunityItem {
@@ -240,62 +228,14 @@ const ExploreCampusCard: React.FC<{ incoming: boolean }> = ({ incoming }) => (
     </Link>
 );
 
-const EventsCard: React.FC<{ events: EventItem[]; loading: boolean }> = ({ events, loading }) => (
-    <div className="bg-secondary-light/70 dark:bg-secondary/70 backdrop-blur-xl rounded-xl border border-tertiary-light/50 dark:border-white/5 p-5">
-        <div className="flex items-center justify-between mb-3">
-            <h3 className="font-bold text-text-main-light dark:text-text-main">📅 Upcoming events</h3>
-            <Link href="/campus/events" className="text-xs text-brand-green hover:underline">See all</Link>
-        </div>
-        {loading ? (
-            <div className="space-y-2"><Skeleton className="h-10 rounded" /><Skeleton className="h-10 rounded" /></div>
-        ) : events.length === 0 ? (
-            <p className="text-sm text-text-tertiary-light dark:text-text-tertiary">Nothing scheduled yet.</p>
-        ) : (
-            <ul className="space-y-2">
-                {events.map(ev => (
-                    <li key={ev.id}>
-                        <Link href={`/campus/events/${ev.id}`} className="flex items-center gap-3 group">
-                            <div className="w-11 h-11 rounded-lg bg-tertiary-light dark:bg-white/5 flex flex-col items-center justify-center flex-shrink-0">
-                                <span className="text-[10px] uppercase text-text-tertiary-light dark:text-text-tertiary leading-none">{format(new Date(ev.start_time), 'MMM')}</span>
-                                <span className="text-sm font-bold text-text-main-light dark:text-text-main leading-tight">{format(new Date(ev.start_time), 'd')}</span>
-                            </div>
-                            <div className="min-w-0">
-                                <p className="text-sm font-medium text-text-main-light dark:text-text-main truncate group-hover:text-brand-green transition-colors">{ev.name}</p>
-                                <p className="text-xs text-text-tertiary-light dark:text-text-tertiary truncate">
-                                    {format(new Date(ev.start_time), 'h:mm a')}{ev.location ? ` · ${ev.location}` : ''}
-                                </p>
-                            </div>
-                        </Link>
-                    </li>
-                ))}
-            </ul>
-        )}
+const GridSkeleton: React.FC<{ cols?: string }> = ({ cols = 'sm:grid-cols-2 lg:grid-cols-4' }) => (
+    <div className={`grid grid-cols-1 ${cols} gap-4`}>
+        {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-40 rounded-2xl" />)}
     </div>
 );
 
-const NoticesCard: React.FC<{ notices: NoticeItem[]; loading: boolean }> = ({ notices, loading }) => (
-    <div className="bg-secondary-light/70 dark:bg-secondary/70 backdrop-blur-xl rounded-xl border border-tertiary-light/50 dark:border-white/5 p-5">
-        <div className="flex items-center justify-between mb-3">
-            <h3 className="font-bold text-text-main-light dark:text-text-main">📣 From clubs & orgs</h3>
-            <Link href="/campus/noticeboard" className="text-xs text-brand-green hover:underline">See all</Link>
-        </div>
-        {loading ? (
-            <div className="space-y-2"><Skeleton className="h-10 rounded" /><Skeleton className="h-10 rounded" /></div>
-        ) : notices.length === 0 ? (
-            <p className="text-sm text-text-tertiary-light dark:text-text-tertiary">No announcements yet.</p>
-        ) : (
-            <ul className="space-y-3">
-                {notices.map(n => (
-                    <li key={n.id}>
-                        <Link href="/campus/noticeboard" className="block group">
-                            <p className="text-sm font-medium text-text-main-light dark:text-text-main truncate group-hover:text-brand-green transition-colors">{n.title}</p>
-                            {n.description && <p className="text-xs text-text-tertiary-light dark:text-text-tertiary line-clamp-1">{n.description}</p>}
-                        </Link>
-                    </li>
-                ))}
-            </ul>
-        )}
-    </div>
+const EmptyHint: React.FC<{ text: string }> = ({ text }) => (
+    <p className="text-sm text-text-tertiary-light dark:text-text-tertiary py-4">{text}</p>
 );
 
 const ClubsCard: React.FC<{ communities: CommunityItem[]; loading: boolean }> = ({ communities, loading }) => (
@@ -396,11 +336,13 @@ const HomePage: React.FC = () => {
     const [loadingBranch, setLoadingBranch] = useState(true);
     const [loadingClubs, setLoadingClubs] = useState(true);
 
-    // Shared campus band
-    const [events, setEvents] = useState<EventItem[]>([]);
-    const [notices, setNotices] = useState<NoticeItem[]>([]);
-    const [loadingEvents, setLoadingEvents] = useState(true);
+    // Shared campus content
+    const [notices, setNotices] = useState<CampusNotice[]>([]);
+    const [events, setEvents] = useState<CampusEventMini[]>([]);
+    const [blogs, setBlogs] = useState<PostType[]>([]);
     const [loadingNotices, setLoadingNotices] = useState(true);
+    const [loadingEvents, setLoadingEvents] = useState(true);
+    const [loadingBlogs, setLoadingBlogs] = useState(true);
 
     useEffect(() => {
         if (!user || !profile) return;
@@ -493,23 +435,36 @@ const HomePage: React.FC = () => {
                 setLoadingClubs(false);
             }
 
-            // Shared campus band.
+            // Shared campus content (announcements + events).
             if (profile.campus) {
+                const { data: noticeData } = await supabase
+                    .rpc('get_campus_notices_with_files', { p_campus: profile.campus })
+                    .limit(4);
+                setNotices((noticeData as CampusNotice[]) || []);
+                setLoadingNotices(false);
+
                 const { data: eventData } = await supabase.rpc('get_campus_events', { p_campus: profile.campus });
-                const upcoming = (eventData || [])
-                    .filter((e: any) => isAfter(new Date(e.start_time), new Date()))
-                    .sort((a: any, b: any) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+                const upcoming = ((eventData as CampusEventMini[]) || [])
+                    .filter(e => isAfter(new Date(e.start_time), new Date()))
+                    .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
                     .slice(0, 4);
                 setEvents(upcoming);
                 setLoadingEvents(false);
-
-                const { data: noticeData } = await supabase.rpc('get_campus_notices_with_files', { p_campus: profile.campus });
-                setNotices((noticeData || []).slice(0, 3));
-                setLoadingNotices(false);
             } else {
-                setLoadingEvents(false);
                 setLoadingNotices(false);
+                setLoadingEvents(false);
             }
+
+            // Featured blogs (not campus-scoped; ranked by popularity).
+            const { data: blogData } = await supabase
+                .from('posts')
+                .select('*, author:profiles!user_id(*)')
+                .eq('post_type', 'blog')
+                .not('title', 'is', null)
+                .order('like_count', { ascending: false })
+                .limit(4);
+            setBlogs((blogData as PostType[]) || []);
+            setLoadingBlogs(false);
         };
 
         fetchAll();
@@ -641,13 +596,63 @@ const HomePage: React.FC = () => {
                 </>
             )}
 
-            {/* Shared campus band */}
-            <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <EventsCard events={events} loading={loadingEvents} />
-                <NoticesCard notices={notices} loading={loadingNotices} />
-                {!incoming && <ClubsCard communities={communities} loading={loadingClubs} />}
-                <ExploreCampusCard incoming={incoming} />
+            {/* Announcements */}
+            <section>
+                <SectionHeader
+                    icon={<ClipboardDocumentListIcon className="w-6 h-6 text-amber-600 dark:text-amber-400" />}
+                    title="Announcements"
+                    subtitle="Official updates & notices"
+                    href="/campus/noticeboard"
+                    accentColor="bg-amber-500/10"
+                />
+                {loadingNotices ? <GridSkeleton /> : notices.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {notices.map(n => <NoticePreviewCard key={n.id} notice={n} />)}
+                    </div>
+                ) : <EmptyHint text="No announcements yet." />}
             </section>
+
+            {/* Featured Blogs */}
+            <section>
+                <SectionHeader
+                    icon={<BookOpenIcon className="w-6 h-6 text-brand-green" />}
+                    title="Featured Blogs"
+                    subtitle="Stories from campus"
+                    href="/blog"
+                    accentColor="bg-brand-green/10"
+                />
+                {loadingBlogs ? <GridSkeleton /> : blogs.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {blogs.map(p => <BlogPreviewCard key={p.id} post={p} />)}
+                    </div>
+                ) : <EmptyHint text="No blogs yet — be the first to write one." />}
+            </section>
+
+            {/* Upcoming Events */}
+            <section>
+                <SectionHeader
+                    icon={<CalendarIcon className="w-6 h-6 text-violet-600 dark:text-violet-400" />}
+                    title="Upcoming Events"
+                    subtitle="What's happening"
+                    href="/campus/events"
+                    accentColor="bg-violet-500/10"
+                />
+                {loadingEvents ? <GridSkeleton cols="md:grid-cols-2" /> : events.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {events.map(e => <EventMiniCard key={e.id} event={e} />)}
+                    </div>
+                ) : <EmptyHint text="No upcoming events." />}
+            </section>
+
+            {/* On-campus: your clubs + the campus hub */}
+            {!incoming ? (
+                <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <ClubsCard communities={communities} loading={loadingClubs} />
+                    <ExploreCampusCard incoming={incoming} />
+                </section>
+            ) : (
+                <ExploreCampusCard incoming={incoming} />
+            )}
         </div>
     );
 };
