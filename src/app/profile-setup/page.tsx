@@ -6,7 +6,10 @@ import { supabase } from '@/services/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import Spinner from '@/components/Spinner';
 import ImageCropper from '@/components/ImageCropper';
+import FuzzyAutocomplete from '@/components/FuzzyAutocomplete';
 import { BITS_BRANCHES } from '@/data/bitsBranches';
+import { INDIAN_CITIES, canonicalizeCity } from '@/data/indianCities';
+import { LANGUAGES, canonicalizeLanguage } from '@/data/languages';
 
 const BITS_CAMPUS_MAP: Record<string, string> = {
     hyderabad: 'Hyderabad',
@@ -19,6 +22,8 @@ const CAMPUSES = ['Hyderabad', 'Goa', 'Pilani', 'Dubai'];
 const CURRENT_YEAR = new Date().getFullYear();
 const BATCH_YEARS = Array.from({ length: CURRENT_YEAR - 2017 }, (_, i) => String(2018 + i));
 const INTRO_MAX = 80;
+const CITY_QUICK_PICKS = ['Bangalore', 'Mumbai', 'Delhi', 'Hyderabad', 'Pune', 'Chennai', 'Kolkata', 'Jaipur'];
+const LANGUAGE_QUICK_PICKS = ['Hindi', 'Telugu', 'Tamil', 'Kannada', 'Malayalam', 'Marathi', 'Bengali', 'English'];
 
 const ProfileSetup: React.FC = () => {
     const { user, isLoading, profile, updateProfileContext } = useAuth();
@@ -31,6 +36,7 @@ const ProfileSetup: React.FC = () => {
         branch: '',
         admission_year: '',
         hometown: '',
+        language: '',
         intro: '',
     });
     const [isIncoming, setIsIncoming] = useState(false);
@@ -163,11 +169,10 @@ const ProfileSetup: React.FC = () => {
                 profile_complete: true,
                 updated_at: new Date().toISOString(),
             };
-            // Only collect the extra discovery fields from incoming students for now.
-            if (isIncoming) {
-                updatePayload.hometown = formData.hometown.trim();
-                if (formData.intro.trim()) updatePayload.bio = formData.intro.trim();
-            }
+            updatePayload.hometown = formData.hometown.trim() ? canonicalizeCity(formData.hometown) : null;
+            updatePayload.language = formData.language.trim() ? canonicalizeLanguage(formData.language) : null;
+            // The one-line intro is part of the incoming-student experience only.
+            if (isIncoming && formData.intro.trim()) updatePayload.bio = formData.intro.trim();
 
             const { data: updatedProfile, error: updateError } = await supabase
                 .from('profiles')
@@ -335,39 +340,60 @@ const ProfileSetup: React.FC = () => {
                         </div>
                     )}
 
-                    {/* Incoming-only discovery fields */}
+                    {/* Hometown — the core discovery axis for incoming students */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                            Hometown / City{!isIncoming && <span className="text-gray-500 font-normal"> (optional)</span>}
+                        </label>
+                        <FuzzyAutocomplete
+                            options={INDIAN_CITIES}
+                            value={formData.hometown}
+                            onChange={v => setFormData(p => ({ ...p, hometown: v }))}
+                            canonicalize={canonicalizeCity}
+                            placeholder="Search or type your city…"
+                            quickPicks={CITY_QUICK_PICKS}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                            {isIncoming
+                                ? 'Find batchmates and seniors from your city — meet up before you even reach campus.'
+                                : 'Lets juniors and others from your city find you.'}
+                        </p>
+                    </div>
+
+                    {/* Language — broader-than-city axis, matters most once on campus */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                            Language <span className="text-gray-500 font-normal">(optional)</span>
+                        </label>
+                        <FuzzyAutocomplete
+                            options={LANGUAGES}
+                            value={formData.language}
+                            onChange={v => setFormData(p => ({ ...p, language: v }))}
+                            canonicalize={canonicalizeLanguage}
+                            placeholder="Search or type a language…"
+                            quickPicks={LANGUAGE_QUICK_PICKS}
+                        />
+                    </div>
+
+                    {/* One-line intro — incoming students only */}
                     {isIncoming && (
-                        <>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-1.5">Hometown / City</label>
-                                <input
-                                    type="text"
-                                    value={formData.hometown}
-                                    onChange={e => setFormData(p => ({ ...p, hometown: e.target.value }))}
-                                    placeholder="e.g. Bangalore, Mumbai, Delhi"
-                                    className="w-full p-3 bg-gray-700/80 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-green"
-                                />
-                                <p className="text-xs text-gray-500 mt-1">Find batchmates from your city and meet up before campus.</p>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-1.5">One-line intro <span className="text-gray-500 font-normal">(optional)</span></label>
-                                <input
-                                    type="text"
-                                    value={formData.intro}
-                                    maxLength={INTRO_MAX}
-                                    onChange={e => setFormData(p => ({ ...p, intro: e.target.value }))}
-                                    placeholder="Something about you — what you're into"
-                                    className="w-full p-3 bg-gray-700/80 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-green"
-                                />
-                                <p className="text-xs text-gray-500 mt-1 text-right">{formData.intro.length}/{INTRO_MAX}</p>
-                            </div>
-
-                            <p className="text-xs text-gray-500 leading-relaxed">
-                                Only what you see here is shared with other students. litelelo is independent and student-built — nothing is sent to the college.
-                            </p>
-                        </>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-1.5">One-line intro <span className="text-gray-500 font-normal">(optional)</span></label>
+                            <input
+                                type="text"
+                                value={formData.intro}
+                                maxLength={INTRO_MAX}
+                                onChange={e => setFormData(p => ({ ...p, intro: e.target.value }))}
+                                placeholder="Something about you — what you're into"
+                                className="w-full p-3 bg-gray-700/80 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-green"
+                            />
+                            <p className="text-xs text-gray-500 mt-1 text-right">{formData.intro.length}/{INTRO_MAX}</p>
+                        </div>
                     )}
+
+                    <p className="text-xs text-gray-500 leading-relaxed">
+                        Only what you see here is shared with other students. litelelo is independent and student-built — nothing is sent to the college.
+                    </p>
 
                     {error && <p className="text-red-400 text-sm pt-1">{error}</p>}
 

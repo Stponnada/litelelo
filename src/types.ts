@@ -59,6 +59,7 @@ export interface Profile {
   admission_year: number | null;
   branch: string | null;
   hometown: string | null;
+  language: string | null;
   is_incoming?: boolean;
   dual_degree_branch: string | null;
   relationship_status: string | null;
