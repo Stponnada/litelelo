@@ -104,7 +104,7 @@ const PersonCard: React.FC<{
                         : 'text-text-secondary-light dark:text-text-secondary hover:text-brand-green'
                 }`}
             >
-                {isFollowing ? 'Following' : 'Follow'}
+                {isFollowing ? 'Requested' : 'Add friend'}
             </button>
         </div>
     </div>
@@ -472,10 +472,12 @@ const HomePage: React.FC = () => {
         fetchAll();
     }, [user?.id, incoming, profile?.campus, profile?.admission_year, profile?.hometown, profile?.language, profile?.branch]);
 
+    // Friends-only: the secondary action sends a friend request (pending) rather
+    // than a one-way follow. followingIds tracks outgoing edges ("Requested").
     const handleFollow = useCallback(async (userIdToFollow: string) => {
         if (!user) return;
         setFollowingIds(prev => new Set([...prev, userIdToFollow]));
-        await supabase.from('followers').insert({ follower_id: user.id, following_id: userIdToFollow });
+        await supabase.rpc('send_friend_request', { recipient_id: userIdToFollow });
     }, [user]);
 
     const handleWave = useCallback(async (recipientId: string) => {

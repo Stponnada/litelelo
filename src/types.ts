@@ -61,6 +61,11 @@ export interface Profile {
   hometown: string | null;
   language: string | null;
   is_incoming?: boolean;
+  interests: string[] | null;
+  favorite_music: string | null;
+  favorite_movies: string | null;
+  looking_for: string[] | null;
+  ask_me_about: string | null;
   dual_degree_branch: string | null;
   relationship_status: string | null;
   dorm_building: string | null;

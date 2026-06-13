@@ -132,39 +132,13 @@ const FriendshipButtons: React.FC<{
             );
         }
 
-        // You follow them, but they don't follow back
-        if (profile.is_following) {
-            return (
-                <>
-                    <button onClick={onMessage} className="p-2 sm:p-3 rounded-full bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main hover:bg-tertiary-light/80 dark:hover:bg-tertiary/80 transition-colors" title="Message"><ChatIcon className="w-5 h-5" /></button>
-                    <button onClick={onUnfollow} disabled={isToggling} className="font-bold py-2 px-4 sm:px-6 rounded-full bg-brand-green text-black hover:bg-brand-green-darker transition-all text-sm sm:text-base">
-                        {isToggling ? <Spinner /> : 'Following'}
-                    </button>
-                </>
-            );
-        }
-
-        // They follow you, but you don't follow back
-        if (profile.is_followed_by) {
-            return (
-                <>
-                    <button onClick={onMessage} className="p-2 sm:p-3 rounded-full bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main hover:bg-tertiary-light/80 dark:hover:bg-tertiary/80 transition-colors" title="Message"><ChatIcon className="w-5 h-5" /></button>
-                    <button onClick={onFollow} disabled={isToggling} className="font-bold py-2 px-4 sm:px-8 rounded-full bg-brand-green text-black hover:bg-brand-green-darker shadow-lg shadow-brand-green/20 transition-all flex items-center gap-2 text-sm sm:text-base">
-                        {isToggling ? <Spinner /> : 'Follow Back'}
-                    </button>
-                </>
-            );
-        }
-
-        // Default case: No relationship
+        // Default: not friends and no pending request — offer to add them.
+        // (Legacy one-way "follow" edges fall through to here in the friends-only model.)
         return (
             <>
                 <button onClick={onMessage} className="p-2 sm:p-3 rounded-full bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main hover:bg-tertiary-light/80 dark:hover:bg-tertiary/80 transition-colors" title="Message"><ChatIcon className="w-5 h-5" /></button>
-                <button onClick={onFollow} disabled={isToggling} className="font-semibold py-2 px-4 sm:px-6 rounded-full bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main hover:bg-tertiary-light/80 dark:hover:bg-tertiary/80 transition-colors text-sm sm:text-base">
-                    {isToggling ? <Spinner /> : 'Follow'}
-                </button>
                 <button onClick={onSendRequest} disabled={isToggling} className="font-bold py-2 px-4 sm:px-6 rounded-full bg-brand-green text-black hover:bg-brand-green-darker shadow-lg shadow-brand-green/20 transition-all flex items-center gap-2 text-sm sm:text-base">
-                    <UserPlusIcon className="w-5 h-5" /> <span className="hidden sm:inline">Add Friend</span><span className="sm:hidden">Add</span>
+                    {isToggling ? <Spinner /> : <><UserPlusIcon className="w-5 h-5" /> <span className="hidden sm:inline">Add Friend</span><span className="sm:hidden">Add</span></>}
                 </button>
             </>
         );
@@ -553,24 +527,11 @@ const ProfilePage: React.FC = () => {
 
                                 <div className="flex items-center justify-center sm:justify-start gap-6 mt-3 text-sm text-black sm:text-white">
                                     <button
-                                        onClick={() => setFollowModalState({ isOpen: true, listType: 'following' })}
-                                        /* 2. Removed text-white from here */
+                                        onClick={() => setIsFriendsModalOpen(true)}
                                         className="hover:text-brand-green transition-colors drop-shadow-lg"
                                     >
-                                        <span className="font-bold text-base">
-                                            {profile.following_count}
-                                        </span>
-                                        <span className="ml-1">Following</span>
-                                    </button>
-                                    <button
-                                        onClick={() => setFollowModalState({ isOpen: true, listType: 'followers' })}
-                                        /* 3. Removed text-white from here */
-                                        className="hover:text-brand-green transition-colors drop-shadow-lg"
-                                    >
-                                        <span className="font-bold text-base">
-                                            {profile.follower_count}
-                                        </span>
-                                        <span className="ml-1">Followers</span>
+                                        <span className="font-bold text-base">{friends.length}</span>
+                                        <span className="ml-1">{friends.length === 1 ? 'Friend' : 'Friends'}</span>
                                     </button>
                                 </div>
                             </div>
@@ -694,18 +655,20 @@ const ProfilePage: React.FC = () => {
                                                 <span>Friends</span>
                                                 <span className="text-xs text-text-tertiary-light font-normal">{friends.length}</span>
                                             </button>
-                                            <div className="grid grid-cols-4 gap-2">
-                                                {friends.slice(0, 8).map(friend => (
-                                                    <Link href={`/profile/${friend.username}`} key={friend.user_id} className="group">
+                                            <div className="grid grid-cols-3 gap-3">
+                                                {friends.slice(0, 9).map(friend => (
+                                                    <Link href={`/profile/${friend.username}`} key={friend.user_id} className="group flex flex-col items-center text-center">
                                                         <Image
                                                             src={friend.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.full_name || friend.username)}&background=random&color=fff&bold=true`}
                                                             alt={friend.username}
-                                                            width={40}
-                                                            height={40}
-                                                            className="w-10 h-10 rounded-full object-cover ring-2 ring-transparent group-hover:ring-brand-green transition-all mx-auto"
-                                                            title={friend.full_name || friend.username}
+                                                            width={48}
+                                                            height={48}
+                                                            className="w-12 h-12 rounded-full object-cover ring-2 ring-transparent group-hover:ring-brand-green transition-all"
                                                             unoptimized
                                                         />
+                                                        <span className="mt-1 text-[11px] leading-tight text-text-secondary-light dark:text-text-secondary group-hover:text-brand-green transition-colors truncate w-full">
+                                                            {friend.full_name || friend.username}
+                                                        </span>
                                                     </Link>
                                                 ))}
                                             </div>
