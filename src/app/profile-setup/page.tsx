@@ -84,12 +84,17 @@ const ProfileSetup: React.FC = () => {
         }
         const timer = setTimeout(async () => {
             setIsCheckingUsername(true);
+            // Case-insensitive match, excluding the user's own row so they can keep
+            // their current name. Escape LIKE wildcards since usernames may contain "_".
+            // limit(1) (not maybeSingle) avoids errors if any legacy case-variant duplicates exist.
+            const pattern = formData.username.replace(/[\\%_]/g, m => `\\${m}`);
             const { data } = await supabase
                 .from('profiles')
                 .select('user_id')
-                .eq('username', formData.username)
-                .maybeSingle();
-            setIsUsernameAvailable(!data || data.user_id === user?.id);
+                .ilike('username', pattern)
+                .neq('user_id', user?.id ?? '')
+                .limit(1);
+            setIsUsernameAvailable(!data || data.length === 0);
             setIsCheckingUsername(false);
         }, 500);
         return () => clearTimeout(timer);
@@ -339,7 +344,7 @@ const ProfileSetup: React.FC = () => {
                                     type="text"
                                     value={formData.hometown}
                                     onChange={e => setFormData(p => ({ ...p, hometown: e.target.value }))}
-                                    placeholder="e.g. Hyderabad, Pune, Delhi"
+                                    placeholder="e.g. Bangalore, Mumbai, Delhi"
                                     className="w-full p-3 bg-gray-700/80 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-green"
                                 />
                                 <p className="text-xs text-gray-500 mt-1">Find batchmates from your city and meet up before campus.</p>
