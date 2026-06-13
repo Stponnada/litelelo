@@ -133,8 +133,8 @@ const PeopleGrid: React.FC<{
 }> = ({ people, loading, followingIds, wavedIds, onFollow, onWave, emptyMessage, showStatus }) => {
     if (loading) {
         return (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {[...Array(6)].map((_, i) => <CardSkeleton key={i} />)}
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
+                {[...Array(6)].map((_, i) => <div key={i} className="flex-none w-36"><CardSkeleton /></div>)}
             </div>
         );
     }
@@ -142,17 +142,19 @@ const PeopleGrid: React.FC<{
         return <p className="text-sm text-text-tertiary-light dark:text-text-tertiary py-4">{emptyMessage}</p>;
     }
     return (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        // Dense single-row carousel — keeps people from dominating the scroll.
+        <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x">
             {people.map(person => (
-                <PersonCard
-                    key={person.user_id}
-                    person={person}
-                    isFollowing={followingIds.has(person.user_id)}
-                    isWaved={wavedIds.has(person.user_id)}
-                    onFollow={onFollow}
-                    onWave={onWave}
-                    showStatus={showStatus}
-                />
+                <div key={person.user_id} className="flex-none w-36 snap-start">
+                    <PersonCard
+                        person={person}
+                        isFollowing={followingIds.has(person.user_id)}
+                        isWaved={wavedIds.has(person.user_id)}
+                        onFollow={onFollow}
+                        onWave={onWave}
+                        showStatus={showStatus}
+                    />
+                </div>
             ))}
         </div>
     );
@@ -371,7 +373,7 @@ const HomePage: React.FC = () => {
                         .neq('user_id', user.id)
                         .order('is_incoming', { ascending: true })
                         .order('follower_count', { ascending: false })
-                        .limit(24);
+                        .limit(15);
                     setCityPeople(data || []);
                 }
                 setLoadingCity(false);
@@ -386,7 +388,7 @@ const HomePage: React.FC = () => {
                         .eq('profile_complete', true)
                         .neq('user_id', user.id)
                         .order('follower_count', { ascending: false })
-                        .limit(18);
+                        .limit(12);
                     setBatchmates(data || []);
                 }
                 setLoadingBatch(false);
@@ -401,7 +403,7 @@ const HomePage: React.FC = () => {
                         .eq('profile_complete', true)
                         .neq('user_id', user.id)
                         .order('follower_count', { ascending: false })
-                        .limit(18);
+                        .limit(12);
                     setLanguagePeople(data || []);
                 }
                 setLoadingLanguage(false);
@@ -416,7 +418,7 @@ const HomePage: React.FC = () => {
                         .eq('profile_complete', true)
                         .neq('user_id', user.id)
                         .order('follower_count', { ascending: false })
-                        .limit(18);
+                        .limit(12);
                     setBranchPeople(data || []);
                 }
                 setLoadingBranch(false);
@@ -439,7 +441,7 @@ const HomePage: React.FC = () => {
             if (profile.campus) {
                 const { data: noticeData } = await supabase
                     .rpc('get_campus_notices_with_files', { p_campus: profile.campus })
-                    .limit(4);
+                    .limit(6);
                 setNotices((noticeData as CampusNotice[]) || []);
                 setLoadingNotices(false);
 
