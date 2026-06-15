@@ -75,9 +75,20 @@ const DirectoryPage: React.FC = () => {
         const fetchProfiles = async () => {
             setLoading(true);
             try {
-                const { data, error: fetchError } = await supabase.rpc('get_unified_directory');
-                if (fetchError) throw fetchError;
-                setAllProfiles((data as DirectoryProfile[]) || []);
+                // The API caps each response at 1000 rows, so page through the RPC
+                // until a short page signals the end — otherwise users past 1000 vanish.
+                const PAGE_SIZE = 1000;
+                const all: DirectoryProfile[] = [];
+                for (let from = 0; ; from += PAGE_SIZE) {
+                    const { data, error: fetchError } = await supabase
+                        .rpc('get_unified_directory')
+                        .range(from, from + PAGE_SIZE - 1);
+                    if (fetchError) throw fetchError;
+                    const batch = (data as DirectoryProfile[]) || [];
+                    all.push(...batch);
+                    if (batch.length < PAGE_SIZE) break;
+                }
+                setAllProfiles(all);
             } catch (err: any) {
                 setError(err.message || 'Error loading directory');
             } finally {
