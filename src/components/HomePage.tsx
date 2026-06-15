@@ -348,49 +348,89 @@ const MirrorCard: React.FC<{ profile: Profile }> = ({ profile }) => {
     const needsIntro = !profile.bio;
     return (
         <section>
-            <div className="mb-4">
-                <h2 className="text-lg font-bold text-text-main-light dark:text-text-main">This is how others see you</h2>
-                <p className="text-xs text-text-tertiary-light dark:text-text-tertiary mt-0.5">
-                    Your card in everyone&apos;s discovery lists — tap Edit to change it.
-                </p>
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+                <div>
+                    <h2 className="text-lg font-bold text-text-main-light dark:text-text-main">This is how others see you</h2>
+                    <p className="text-xs text-text-tertiary-light dark:text-text-tertiary mt-0.5">
+                        Your card in discovery lists, and your profile page when someone taps through.
+                    </p>
+                </div>
+                <Link
+                    href={`/profile/${profile.username}`}
+                    className="py-1.5 px-4 rounded-lg text-xs font-semibold bg-brand-green text-black hover:bg-brand-green-darker"
+                >
+                    Edit profile
+                </Link>
             </div>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                {/* Same shape as the cards others see, so it reads as a true preview of you */}
-                <div className="w-40 flex-none bg-secondary-light/70 dark:bg-secondary/70 backdrop-blur-xl rounded-xl border border-brand-green/30 p-4 flex flex-col items-center text-center gap-3">
-                    <Image
-                        src={getResizedAvatarUrl(profile.avatar_url, 72, 72, profile.full_name || profile.username)}
-                        alt="You"
-                        width={72}
-                        height={72}
-                        className="w-16 h-16 rounded-full object-cover ring-2 ring-brand-green/40 flex-shrink-0"
-                        unoptimized
-                    />
-                    <div className="w-full min-w-0">
-                        <p className="font-bold text-sm text-text-main-light dark:text-text-main truncate">{profile.full_name || profile.username}</p>
-                        <p className="text-xs text-text-tertiary-light dark:text-text-tertiary truncate">@{profile.username}</p>
+            <div className="grid grid-cols-1 lg:grid-cols-[11rem_1fr] gap-4 items-start">
+                {/* Preview 1: the card others see in lists */}
+                <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-text-tertiary-light dark:text-text-tertiary mb-2">In discovery lists</p>
+                    <div className="bg-secondary-light/70 dark:bg-secondary/70 backdrop-blur-xl rounded-xl border border-brand-green/30 p-4 flex flex-col items-center text-center gap-3">
+                        <Image
+                            src={getResizedAvatarUrl(profile.avatar_url, 72, 72, profile.full_name || profile.username)}
+                            alt="You"
+                            width={72}
+                            height={72}
+                            className="w-16 h-16 rounded-full object-cover ring-2 ring-brand-green/40 flex-shrink-0"
+                            unoptimized
+                        />
+                        <div className="w-full min-w-0">
+                            <p className="font-bold text-sm text-text-main-light dark:text-text-main truncate">{profile.full_name || profile.username}</p>
+                            <p className="text-xs text-text-tertiary-light dark:text-text-tertiary truncate">@{profile.username}</p>
+                            {(profile.bio || profile.branch) && (
+                                <p className="text-[11px] text-text-secondary-light dark:text-text-secondary mt-1.5 leading-snug line-clamp-2">
+                                    {profile.bio || profile.branch}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Preview 2: the profile page someone lands on after tapping the card */}
+                <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-text-tertiary-light dark:text-text-tertiary mb-2">On your profile page</p>
+                    <div className="rounded-xl border border-brand-green/30 overflow-hidden bg-secondary-light/70 dark:bg-secondary/70">
+                        <div className="relative h-24 sm:h-28">
+                            {profile.banner_url ? (
+                                <Image src={profile.banner_url} alt="Banner" fill className="object-cover" unoptimized />
+                            ) : (
+                                <div className="w-full h-full bg-gradient-to-br from-brand-green/20 to-blue-500/20" />
+                            )}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                        </div>
+                        <div className="px-4 pb-3 -mt-10 relative flex items-end gap-3">
+                            <Image
+                                src={getResizedAvatarUrl(profile.avatar_url, 96, 96, profile.full_name || profile.username)}
+                                alt="You"
+                                width={96}
+                                height={96}
+                                className="w-20 h-20 rounded-full object-cover border-4 border-secondary-light dark:border-secondary flex-shrink-0"
+                                unoptimized
+                            />
+                            <div className="min-w-0 flex-1 pb-1">
+                                <p className="font-bold text-lg text-text-main-light dark:text-text-main truncate">{profile.full_name || profile.username}</p>
+                                <p className="text-xs text-text-tertiary-light dark:text-text-tertiary truncate">@{profile.username}</p>
+                            </div>
+                        </div>
                         {(profile.bio || profile.branch) && (
-                            <p className="text-[11px] text-text-secondary-light dark:text-text-secondary mt-1.5 leading-snug line-clamp-2">
-                                {profile.bio || profile.branch}
-                            </p>
+                            <div className="px-4 pb-4">
+                                <p className="text-[11px] font-bold uppercase tracking-wide text-text-tertiary-light dark:text-text-tertiary mb-1">About</p>
+                                <p className="text-sm text-text-secondary-light dark:text-text-secondary leading-relaxed line-clamp-2">{profile.bio || profile.branch}</p>
+                            </div>
                         )}
                     </div>
-                    <Link
-                        href={`/profile/${profile.username}`}
-                        className="w-full py-1.5 rounded-lg text-xs font-semibold bg-brand-green text-black hover:bg-brand-green-darker"
-                    >
-                        Edit profile
-                    </Link>
                 </div>
-                {(needsPhoto || needsIntro) && (
-                    <p className="text-sm text-text-secondary-light dark:text-text-secondary flex-1">
-                        {needsPhoto && needsIntro
-                            ? 'No photo or intro yet — people remember faces, not blanks. Get yourself ready before you wave.'
-                            : needsPhoto
-                            ? 'Add a photo — people remember faces, not blanks.'
-                            : 'Add a one-line intro so people know who you are.'}
-                    </p>
-                )}
             </div>
+            {(needsPhoto || needsIntro) && (
+                <p className="text-sm text-text-secondary-light dark:text-text-secondary mt-3">
+                    {needsPhoto && needsIntro
+                        ? 'No photo or intro yet — people remember faces, not blanks. Get yourself ready before you wave.'
+                        : needsPhoto
+                        ? 'Add a photo — people remember faces, not blanks.'
+                        : 'Add a one-line intro so people know who you are.'}
+                </p>
+            )}
         </section>
     );
 };
@@ -604,7 +644,7 @@ const HomePage: React.FC = () => {
     const firstName = (profile.full_name || profile.username || '').split(' ')[0];
 
     return (
-        <div className="space-y-10 max-w-5xl mx-auto">
+        <div className="space-y-8 max-w-6xl mx-auto">
             {/* Hero */}
             <section>
                 {incoming ? (
