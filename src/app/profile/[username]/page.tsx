@@ -180,6 +180,7 @@ const ProfilePage: React.FC = () => {
 
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isTogglingFollow, setIsTogglingFollow] = useState(false);
+    const [hasWaved, setHasWaved] = useState(false);
 
     const [activeTab, setActiveTab] = useState<'posts' | 'mentions' | 'media'>('posts');
     const [posts, setPosts] = useState<PostType[]>([]);
@@ -200,23 +201,49 @@ const ProfilePage: React.FC = () => {
     const [isMutualFriendsModalOpen, setIsMutualFriendsModalOpen] = useState(false);
     const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
+    // get_profile_details is fetched through a cached, service-role API route, so it
+    // can't know who's viewing (relationship flags come back blank/shared) and it
+    // doesn't return hometown/language. Enrich the base profile client-side with the
+    // authenticated session so the friend button state and hometown are correct.
+    const enrichProfile = useCallback(async (p: any) => {
+        if (!p?.user_id) return p;
+        const extraPromise = supabase
+            .from('profiles')
+            .select('hometown, language')
+            .eq('user_id', p.user_id)
+            .single();
+        const relPromise = (currentUser && p.user_id !== currentUser.id)
+            ? supabase
+                .from('followers')
+                .select('follower_id, following_id, status')
+                .or(`and(follower_id.eq.${currentUser.id},following_id.eq.${p.user_id}),and(follower_id.eq.${p.user_id},following_id.eq.${currentUser.id})`)
+            : Promise.resolve({ data: null as any });
+        const [{ data: extra }, { data: edges }] = await Promise.all([extraPromise, relPromise]);
+        const merged: any = {
+            ...p,
+            hometown: extra?.hometown ?? p.hometown ?? null,
+            language: extra?.language ?? p.language ?? null,
+        };
+        if (edges && currentUser) {
+            const outgoing = (edges as any[]).find(e => e.follower_id === currentUser.id);
+            const incoming = (edges as any[]).find(e => e.following_id === currentUser.id);
+            merged.is_following = !!outgoing;
+            merged.is_followed_by = !!incoming;
+            merged.has_sent_request = outgoing?.status === 'pending';
+            merged.has_received_request = incoming?.status === 'pending';
+        }
+        return merged;
+    }, [currentUser?.id]);
+
     const fetchProfileData = useCallback(async () => {
         if (!username) return;
         setProfileLoading(true);
         try {
-            // Use our new Redis-cached API route
+            // Use our Redis-cached API route for the base (viewer-agnostic) profile.
             const response = await fetch(`/api/profile/${username}`);
             const data = await response.json();
-
             if (!response.ok) throw new Error(data.error || "Profile not found");
-
-            if (data.fromCache) {
-                console.log(`%c[Redis] Cache HIT for @${username}`, 'color: #00ff00; font-weight: bold;');
-            } else {
-                console.log(`%c[Supabase] Cache MISS for @${username}`, 'color: #ff9900; font-weight: bold;');
-            }
-
-            setProfile(data);
+            setProfile(await enrichProfile(data));
         } catch (err: unknown) {
             console.error("Error fetching profile data via API, falling back to Supabase:", err);
             // Fallback to direct Supabase call if API fails
@@ -227,11 +254,39 @@ const ProfilePage: React.FC = () => {
                 .single<ProfileRpcResult>();
 
             if (directError || !directData) throw directError || new Error("Profile not found");
-            setProfile(directData);
+            setProfile(await enrichProfile(directData));
         } finally {
             setProfileLoading(false);
         }
-    }, [username]);
+    }, [username, enrichProfile]);
+
+    // Whether the current user has already waved at this profile (for the Wave button).
+    useEffect(() => {
+        if (!profile || !currentUser || profile.user_id === currentUser.id) { setHasWaved(false); return; }
+        let active = true;
+        supabase
+            .from('waves')
+            .select('sender_id')
+            .eq('sender_id', currentUser.id)
+            .eq('recipient_id', profile.user_id)
+            .maybeSingle()
+            .then(({ data }) => { if (active) setHasWaved(!!data); });
+        return () => { active = false; };
+    }, [profile?.user_id, currentUser?.id]);
+
+    const handleWaveProfile = useCallback(async () => {
+        if (!currentUser || !profile || hasWaved) return;
+        setHasWaved(true);
+        const wave = () => supabase
+            .from('waves')
+            .upsert({ sender_id: currentUser.id, recipient_id: profile.user_id }, { onConflict: 'sender_id,recipient_id', ignoreDuplicates: true });
+        let { error } = await wave();
+        if (error) {
+            await supabase.auth.refreshSession().catch(() => {});
+            ({ error } = await wave());
+        }
+        if (error) { console.error('litelelo: wave failed, reverting', error); setHasWaved(false); }
+    }, [currentUser, profile, hasWaved]);
 
     const fetchPostsAndMentions = useCallback(async () => {
         if (!profile) return;
@@ -551,16 +606,28 @@ const ProfilePage: React.FC = () => {
                                         </button>
                                     </>
                                 ) : (
-                                    <FriendshipButtons
-                                        profile={profile}
-                                        isToggling={isTogglingFollow}
-                                        onFollow={handleFollow}
-                                        onUnfollow={handleUnfollow}
-                                        onMessage={handleMessageUser}
-                                        onSendRequest={handleSendRequest}
-                                        onAcceptRequest={handleAcceptRequest}
-                                        onCancelOrDenyRequest={handleCancelOrDenyRequest}
-                                    />
+                                    <>
+                                        <button
+                                            onClick={handleWaveProfile}
+                                            disabled={hasWaved}
+                                            className={`font-bold py-2 px-4 sm:px-6 rounded-full transition-all text-sm sm:text-base ${hasWaved
+                                                ? 'bg-brand-green/15 text-brand-green cursor-default'
+                                                : 'bg-tertiary-light dark:bg-tertiary text-text-main-light dark:text-text-main hover:bg-tertiary-light/80 dark:hover:bg-tertiary/80'}`}
+                                            title={hasWaved ? 'You waved at them' : 'Wave'}
+                                        >
+                                            {hasWaved ? 'Waved 👋' : 'Wave 👋'}
+                                        </button>
+                                        <FriendshipButtons
+                                            profile={profile}
+                                            isToggling={isTogglingFollow}
+                                            onFollow={handleFollow}
+                                            onUnfollow={handleUnfollow}
+                                            onMessage={handleMessageUser}
+                                            onSendRequest={handleSendRequest}
+                                            onAcceptRequest={handleAcceptRequest}
+                                            onCancelOrDenyRequest={handleCancelOrDenyRequest}
+                                        />
+                                    </>
                                 )}
                             </div>
                         </div>
@@ -602,6 +669,8 @@ const ProfilePage: React.FC = () => {
                                     <div className="space-y-2.5 text-sm text-text-secondary-light dark:text-text-secondary">
                                         <ProfileDetail label="Birthday" value={formattedBirthday} />
                                         <ProfileDetail label="Campus" value={profile.campus} />
+                                        <ProfileDetail label="Hometown" value={profile.hometown} />
+                                        <ProfileDetail label="Language" value={profile.language} />
                                         <ProfileDetail label="Class of" value={profile.admission_year ? `${profile.admission_year + 4}` : null} />
                                         <ProfileDetail label="Primary Degree" value={profile.branch} />
                                         <ProfileDetail label="B.E. Degree" value={profile.dual_degree_branch} />

@@ -251,6 +251,11 @@ const CityPrompt: React.FC<{ onSaved: (city: string) => void }> = ({ onSaved }) 
         if (!canonical || !user) return;
         setSaving(true);
         const { error } = await supabase.from('profiles').update({ hometown: canonical }).eq('user_id', user.id);
+        if (!error) {
+            // Bust the cached profile, or a reload re-reads the pre-save copy and the
+            // prompt reappears (the cache is keyed by user id, not by hometown).
+            await fetch(`/api/profile/by-id/${user.id}`, { method: 'POST' }).catch(() => {});
+        }
         setSaving(false);
         if (!error) onSaved(canonical);
     };
