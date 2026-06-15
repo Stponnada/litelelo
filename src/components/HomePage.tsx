@@ -4,6 +4,7 @@ import { supabase } from '@/services/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { isAfter } from 'date-fns';
 import { getResizedAvatarUrl } from '@/utils/imageUtils';
 import Skeleton from './Skeleton';
@@ -21,6 +22,7 @@ interface DiscoveryPerson {
     username: string;
     full_name: string | null;
     avatar_url: string | null;
+    bio: string | null;
     branch: string | null;
     campus: string | null;
     admission_year: number | null;
@@ -47,7 +49,7 @@ interface CommunityItem {
 }
 
 const PERSON_COLUMNS =
-    'user_id, username, full_name, avatar_url, branch, campus, admission_year, follower_count, hometown, language, is_incoming';
+    'user_id, username, full_name, avatar_url, bio, branch, campus, admission_year, follower_count, hometown, language, is_incoming';
 
 // ---------- People ----------
 
@@ -58,25 +60,25 @@ const PersonCard: React.FC<{
     onFollow: (userId: string) => void;
     onWave: (userId: string) => void;
     showStatus?: boolean;
-}> = ({ person, isFollowing, isWaved, onFollow, onWave, showStatus }) => (
-    <div className="bg-secondary-light/70 dark:bg-secondary/70 backdrop-blur-xl rounded-xl border border-tertiary-light/50 dark:border-white/5 p-4 flex flex-col items-center text-center gap-3 hover:border-brand-green/20 transition-colors group">
-        <Link href={`/profile/${person.username}`} className="flex-shrink-0 relative">
-            <Image
-                src={getResizedAvatarUrl(person.avatar_url, 72, 72, person.full_name || person.username)}
-                alt={person.full_name || person.username}
-                width={72}
-                height={72}
-                className="w-16 h-16 rounded-full object-cover ring-2 ring-transparent group-hover:ring-brand-green/30 transition-all"
-                unoptimized
-            />
-        </Link>
+}> = ({ person, isFollowing, isWaved, onFollow, onWave, showStatus }) => {
+    const router = useRouter();
+    return (
+    <div
+        onClick={() => router.push(`/profile/${person.username}`)}
+        className="cursor-pointer bg-secondary-light/70 dark:bg-secondary/70 backdrop-blur-xl rounded-xl border border-tertiary-light/50 dark:border-white/5 p-4 flex flex-col items-center text-center gap-3 hover:border-brand-green/20 transition-colors group"
+    >
+        <Image
+            src={getResizedAvatarUrl(person.avatar_url, 72, 72, person.full_name || person.username)}
+            alt={person.full_name || person.username}
+            width={72}
+            height={72}
+            className="w-16 h-16 rounded-full object-cover ring-2 ring-transparent group-hover:ring-brand-green/30 transition-all flex-shrink-0"
+            unoptimized
+        />
         <div className="w-full min-w-0">
-            <Link
-                href={`/profile/${person.username}`}
-                className="font-bold text-sm text-text-main-light dark:text-text-main hover:text-brand-green transition-colors block truncate"
-            >
+            <p className="font-bold text-sm text-text-main-light dark:text-text-main group-hover:text-brand-green transition-colors truncate">
                 {person.full_name || person.username}
-            </Link>
+            </p>
             <p className="text-xs text-text-tertiary-light dark:text-text-tertiary truncate">@{person.username}</p>
             {showStatus && (
                 <span className={`inline-block mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
@@ -92,8 +94,14 @@ const PersonCard: React.FC<{
                     {person.branch}
                 </p>
             )}
+            {person.bio && (
+                <p className="text-[11px] text-text-secondary-light dark:text-text-secondary mt-1.5 leading-snug line-clamp-2">
+                    {person.bio}
+                </p>
+            )}
         </div>
-        <div className="w-full space-y-1.5">
+        {/* stopPropagation so tapping Wave/Add friend doesn't also open the profile */}
+        <div className="w-full space-y-1.5" onClick={(e) => e.stopPropagation()}>
             <button
                 onClick={() => !isWaved && onWave(person.user_id)}
                 disabled={isWaved}
@@ -118,7 +126,8 @@ const PersonCard: React.FC<{
             </button>
         </div>
     </div>
-);
+    );
+};
 
 const CardSkeleton: React.FC = () => (
     <div className="bg-secondary-light/70 dark:bg-secondary/70 rounded-xl border border-tertiary-light/50 dark:border-white/5 p-4 flex flex-col items-center gap-3">
@@ -338,40 +347,51 @@ const MirrorCard: React.FC<{ profile: Profile }> = ({ profile }) => {
     const needsPhoto = !profile.avatar_url;
     const needsIntro = !profile.bio;
     return (
-        <div className="bg-gradient-to-br from-brand-green/10 to-transparent border border-brand-green/30 rounded-xl p-4 sm:p-5">
-            <div className="flex items-center gap-4">
-                <Image
-                    src={getResizedAvatarUrl(profile.avatar_url, 64, 64, profile.full_name || profile.username)}
-                    alt="You"
-                    width={64}
-                    height={64}
-                    className="w-16 h-16 rounded-full object-cover ring-2 ring-brand-green/40 flex-shrink-0"
-                    unoptimized
-                />
-                <div className="min-w-0 flex-1">
-                    <p className="text-[11px] uppercase tracking-wide text-brand-green font-semibold">Before you say hi 👋</p>
-                    <p className="font-bold text-text-main-light dark:text-text-main truncate">{profile.full_name || profile.username}</p>
-                    <p className="text-xs text-text-tertiary-light dark:text-text-tertiary truncate">
-                        {profile.bio || profile.branch || 'This is how everyone sees you.'}
-                    </p>
-                </div>
-                <Link
-                    href={`/profile/${profile.username}`}
-                    className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-green text-black hover:bg-brand-green-darker"
-                >
-                    Edit
-                </Link>
-            </div>
-            {(needsPhoto || needsIntro) && (
-                <p className="text-xs text-text-secondary-light dark:text-text-secondary mt-3">
-                    {needsPhoto && needsIntro
-                        ? 'No photo or intro yet — people remember faces, not blanks. Get yourself ready before you wave.'
-                        : needsPhoto
-                        ? 'Add a photo — people remember faces, not blanks.'
-                        : 'Add a one-line intro so people know who you are.'}
+        <section>
+            <div className="mb-4">
+                <h2 className="text-lg font-bold text-text-main-light dark:text-text-main">This is how others see you</h2>
+                <p className="text-xs text-text-tertiary-light dark:text-text-tertiary mt-0.5">
+                    Your card in everyone&apos;s discovery lists — tap Edit to change it.
                 </p>
-            )}
-        </div>
+            </div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                {/* Same shape as the cards others see, so it reads as a true preview of you */}
+                <div className="w-40 flex-none bg-secondary-light/70 dark:bg-secondary/70 backdrop-blur-xl rounded-xl border border-brand-green/30 p-4 flex flex-col items-center text-center gap-3">
+                    <Image
+                        src={getResizedAvatarUrl(profile.avatar_url, 72, 72, profile.full_name || profile.username)}
+                        alt="You"
+                        width={72}
+                        height={72}
+                        className="w-16 h-16 rounded-full object-cover ring-2 ring-brand-green/40 flex-shrink-0"
+                        unoptimized
+                    />
+                    <div className="w-full min-w-0">
+                        <p className="font-bold text-sm text-text-main-light dark:text-text-main truncate">{profile.full_name || profile.username}</p>
+                        <p className="text-xs text-text-tertiary-light dark:text-text-tertiary truncate">@{profile.username}</p>
+                        {(profile.bio || profile.branch) && (
+                            <p className="text-[11px] text-text-secondary-light dark:text-text-secondary mt-1.5 leading-snug line-clamp-2">
+                                {profile.bio || profile.branch}
+                            </p>
+                        )}
+                    </div>
+                    <Link
+                        href={`/profile/${profile.username}`}
+                        className="w-full py-1.5 rounded-lg text-xs font-semibold bg-brand-green text-black hover:bg-brand-green-darker"
+                    >
+                        Edit profile
+                    </Link>
+                </div>
+                {(needsPhoto || needsIntro) && (
+                    <p className="text-sm text-text-secondary-light dark:text-text-secondary flex-1">
+                        {needsPhoto && needsIntro
+                            ? 'No photo or intro yet — people remember faces, not blanks. Get yourself ready before you wave.'
+                            : needsPhoto
+                            ? 'Add a photo — people remember faces, not blanks.'
+                            : 'Add a one-line intro so people know who you are.'}
+                    </p>
+                )}
+            </div>
+        </section>
     );
 };
 

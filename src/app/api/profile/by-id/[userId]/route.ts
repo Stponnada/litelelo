@@ -42,8 +42,11 @@ export async function GET(
             return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
         }
 
-        // 3. Save to Redis
-        if (redis) {
+        // 3. Save to Redis — but only for completed profiles. A freshly-OAuth'd
+        // profile is seeded with Google defaults (avatar/name) and
+        // profile_complete=false; caching that would serve stale Google data and
+        // bounce the user back to profile-setup on refresh until the TTL expires.
+        if (redis && data.profile_complete) {
             try {
                 await redis.set(cacheKey, data, { ex: 600 });
             } catch (e) {

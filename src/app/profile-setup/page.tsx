@@ -190,8 +190,10 @@ const ProfileSetup: React.FC = () => {
                 return;
             }
 
-            // Bust stale Redis cache so the next fetchProfile sees profile_complete=true
-            fetch(`/api/profile/by-id/${user.id}`, { method: 'POST' }).catch(() => {});
+            // Bust stale Redis cache so the next fetchProfile sees profile_complete=true.
+            // Awaited (not fire-and-forget) so a refresh right after setup can't lose
+            // the race and read a stale cached copy seeded with Google defaults.
+            await fetch(`/api/profile/by-id/${user.id}`, { method: 'POST' }).catch(() => {});
 
             updateProfileContext(updatedProfile);
             router.push('/');
