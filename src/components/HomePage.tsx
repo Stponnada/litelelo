@@ -609,35 +609,74 @@ const HomePage: React.FC = () => {
         fetchAll();
     }, [user?.id, incoming, profile?.campus, profile?.admission_year, profile?.hometown, profile?.language, profile?.branch]);
 
+    // supabase-js returns { error } instead of throwing, and these handlers used to
+    // ignore it — so a transient failure (most often a briefly-stale access token)
+    // left the optimistic UI showing success while nothing was written ("shaky").
+    // Run the write, and on failure refresh the session and retry once; if it still
+    // fails, revert the optimistic state so the button never lies about what was saved.
+    const runWrite = useCallback(async (
+        write: () => PromiseLike<{ error: unknown }>,
+        revert: () => void,
+    ): Promise<boolean> => {
+        let { error } = await write();
+        if (error) {
+            await supabase.auth.refreshSession().catch(() => {});
+            ({ error } = await write());
+        }
+        if (error) {
+            console.error('litelelo: action failed, reverting optimistic UI', error);
+            revert();
+            return false;
+        }
+        return true;
+    }, []);
+
     // Friends-only: the secondary action sends a friend request (pending) rather
     // than a one-way follow. followingIds tracks outgoing edges ("Requested").
     const handleFollow = useCallback(async (userIdToFollow: string) => {
         if (!user) return;
         setFollowingIds(prev => new Set([...prev, userIdToFollow]));
-        await supabase.rpc('send_friend_request', { recipient_id: userIdToFollow });
-    }, [user]);
+        await runWrite(
+            () => supabase.rpc('send_friend_request', { recipient_id: userIdToFollow }),
+            () => setFollowingIds(prev => { const n = new Set(prev); n.delete(userIdToFollow); return n; }),
+        );
+    }, [user, runWrite]);
 
     const handleWave = useCallback(async (recipientId: string) => {
         if (!user) return;
         setWavedIds(prev => new Set([...prev, recipientId]));
-        await supabase
-            .from('waves')
-            .upsert({ sender_id: user.id, recipient_id: recipientId }, { onConflict: 'sender_id,recipient_id', ignoreDuplicates: true });
-    }, [user]);
+        await runWrite(
+            () => supabase
+                .from('waves')
+                .upsert({ sender_id: user.id, recipient_id: recipientId }, { onConflict: 'sender_id,recipient_id', ignoreDuplicates: true }),
+            () => setWavedIds(prev => { const n = new Set(prev); n.delete(recipientId); return n; }),
+        );
+    }, [user, runWrite]);
 
     const handleAcceptRequest = useCallback(async (requesterId: string) => {
         if (!user) return;
+        const removed = friendRequests.find(r => r.user_id === requesterId);
         setFriendRequests(prev => prev.filter(r => r.user_id !== requesterId));
         // Accepting makes the edge mutual — treat them as a friend going forward.
         setFollowingIds(prev => new Set([...prev, requesterId]));
-        await supabase.rpc('accept_friend_request', { requester_id: requesterId });
-    }, [user]);
+        await runWrite(
+            () => supabase.rpc('accept_friend_request', { requester_id: requesterId }),
+            () => {
+                if (removed) setFriendRequests(prev => [removed, ...prev]);
+                setFollowingIds(prev => { const n = new Set(prev); n.delete(requesterId); return n; });
+            },
+        );
+    }, [user, friendRequests, runWrite]);
 
     const handleDeclineRequest = useCallback(async (requesterId: string) => {
         if (!user) return;
+        const removed = friendRequests.find(r => r.user_id === requesterId);
         setFriendRequests(prev => prev.filter(r => r.user_id !== requesterId));
-        await supabase.rpc('cancel_or_deny_friend_request', { other_user_id: requesterId });
-    }, [user]);
+        await runWrite(
+            () => supabase.rpc('cancel_or_deny_friend_request', { other_user_id: requesterId }),
+            () => { if (removed) setFriendRequests(prev => [removed, ...prev]); },
+        );
+    }, [user, friendRequests, runWrite]);
 
     if (!profile) return null;
 
