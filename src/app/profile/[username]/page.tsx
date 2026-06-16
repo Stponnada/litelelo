@@ -18,6 +18,7 @@ import { BITS_MESSES } from '@/data/bitsMesses';
 import ImageCropper from '@/components/ImageCropper';
 import FollowListModal from '@/components/FollowListModal';
 import LightBox from '@/components/lightbox';
+import Wall from '@/components/Wall';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
@@ -632,6 +633,14 @@ const ProfilePage: React.FC = () => {
                             </div>
                         </div>
                     </div>
+                </div>
+
+                {/* Wall — friendships (public) plus, for the owner, waves and requests */}
+                <div className="px-4 sm:px-6 mb-6">
+                    <h3 className="text-sm font-bold text-text-main-light dark:text-white mb-3">
+                        {isOwnProfile ? 'Your wall' : `${profile.full_name || profile.username}'s wall`}
+                    </h3>
+                    <Wall ownerId={profile.user_id} isOwner={isOwnProfile} ownerName={profile.full_name} />
                 </div>
 
                 <div className="px-4 sm:px-6">

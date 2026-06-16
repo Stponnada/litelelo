@@ -10,6 +10,7 @@ import { getResizedAvatarUrl } from '@/utils/imageUtils';
 import Skeleton from './Skeleton';
 import FuzzyAutocomplete from './FuzzyAutocomplete';
 import BlogPreviewCard from './BlogPreviewCard';
+import Wall from './Wall';
 import { SectionHeader, NoticePreviewCard, EventMiniCard, type CampusEventMini } from './campus/ExploreCards';
 import { ClipboardDocumentListIcon, BookOpenIcon, CalendarIcon } from './icons';
 import { INDIAN_CITIES, canonicalizeCity } from '@/data/indianCities';
@@ -29,16 +30,6 @@ interface DiscoveryPerson {
     follower_count: number;
     hometown: string | null;
     language: string | null;
-    is_incoming: boolean;
-}
-
-interface IncomingRequest {
-    user_id: string;
-    username: string;
-    full_name: string | null;
-    avatar_url: string | null;
-    branch: string | null;
-    hometown: string | null;
     is_incoming: boolean;
 }
 
@@ -188,56 +179,6 @@ const Section: React.FC<{ title: string; subtitle?: string; children: React.Reac
         {children}
     </section>
 );
-
-// ---------- Incoming friend requests (people waiting on you) ----------
-
-const RequestCard: React.FC<{
-    person: IncomingRequest;
-    onAccept: (userId: string) => void;
-    onDecline: (userId: string) => void;
-}> = ({ person, onAccept, onDecline }) => {
-    const context = person.hometown
-        ? `${person.is_incoming ? 'Incoming' : 'Senior'} · ${person.hometown}`
-        : person.branch || (person.is_incoming ? 'Incoming student' : `@${person.username}`);
-    return (
-        <div className="flex items-center gap-3 bg-secondary-light/70 dark:bg-secondary/70 backdrop-blur-xl rounded-xl border border-tertiary-light/50 dark:border-white/5 p-3">
-            <Link href={`/profile/${person.username}`} className="flex-shrink-0">
-                <Image
-                    src={getResizedAvatarUrl(person.avatar_url, 48, 48, person.full_name || person.username)}
-                    alt={person.full_name || person.username}
-                    width={48}
-                    height={48}
-                    className="w-12 h-12 rounded-full object-cover"
-                    unoptimized
-                />
-            </Link>
-            <div className="flex-1 min-w-0">
-                <Link
-                    href={`/profile/${person.username}`}
-                    className="font-semibold text-sm text-text-main-light dark:text-text-main hover:text-brand-green transition-colors block truncate"
-                >
-                    {person.full_name || person.username}
-                </Link>
-                <p className="text-xs text-text-tertiary-light dark:text-text-tertiary truncate">{context}</p>
-            </div>
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-                <button
-                    onClick={() => onAccept(person.user_id)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-green text-black hover:bg-brand-green-darker active:scale-95 transition-all"
-                >
-                    Accept
-                </button>
-                <button
-                    onClick={() => onDecline(person.user_id)}
-                    aria-label="Decline request"
-                    className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-text-tertiary-light dark:text-text-tertiary hover:bg-tertiary-light dark:hover:bg-white/10 transition-colors"
-                >
-                    Decline
-                </button>
-            </div>
-        </div>
-    );
-};
 
 // ---------- Inline city capture (returning users with no hometown) ----------
 
@@ -449,8 +390,6 @@ const HomePage: React.FC = () => {
     const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
     const [wavedIds, setWavedIds] = useState<Set<string>>(new Set());
 
-    // Incoming friend requests — people waiting on you to accept.
-    const [friendRequests, setFriendRequests] = useState<IncomingRequest[]>([]);
 
     // Incoming-focused
     const [cityPeople, setCityPeople] = useState<DiscoveryPerson[]>([]);
@@ -489,20 +428,6 @@ const HomePage: React.FC = () => {
                 .select('recipient_id')
                 .eq('sender_id', user.id);
             setWavedIds(new Set((wavesData || []).map((w: any) => w.recipient_id)));
-
-            // Incoming friend requests: pending edges pointing at me.
-            const { data: requestData } = await supabase
-                .from('followers')
-                .select('created_at, sender:profiles!followers_follower_id_fkey(user_id, username, full_name, avatar_url, branch, hometown, is_incoming)')
-                .eq('following_id', user.id)
-                .eq('status', 'pending')
-                .order('created_at', { ascending: false })
-                .limit(20);
-            setFriendRequests(
-                (requestData || [])
-                    .map((r: any) => r.sender)
-                    .filter(Boolean)
-            );
 
             if (incoming) {
                 // From your city: seniors + incoming, seniors surfaced first.
@@ -658,31 +583,6 @@ const HomePage: React.FC = () => {
         );
     }, [user, runWrite]);
 
-    const handleAcceptRequest = useCallback(async (requesterId: string) => {
-        if (!user) return;
-        const removed = friendRequests.find(r => r.user_id === requesterId);
-        setFriendRequests(prev => prev.filter(r => r.user_id !== requesterId));
-        // Accepting makes the edge mutual — treat them as a friend going forward.
-        setFollowingIds(prev => new Set([...prev, requesterId]));
-        await runWrite(
-            () => supabase.rpc('accept_friend_request', { requester_id: requesterId }),
-            () => {
-                if (removed) setFriendRequests(prev => [removed, ...prev]);
-                setFollowingIds(prev => { const n = new Set(prev); n.delete(requesterId); return n; });
-            },
-        );
-    }, [user, friendRequests, runWrite]);
-
-    const handleDeclineRequest = useCallback(async (requesterId: string) => {
-        if (!user) return;
-        const removed = friendRequests.find(r => r.user_id === requesterId);
-        setFriendRequests(prev => prev.filter(r => r.user_id !== requesterId));
-        await runWrite(
-            () => supabase.rpc('cancel_or_deny_friend_request', { other_user_id: requesterId }),
-            () => { if (removed) setFriendRequests(prev => [removed, ...prev]); },
-        );
-    }, [user, friendRequests, runWrite]);
-
     if (!profile) return null;
 
     const firstName = (profile.full_name || profile.username || '').split(' ')[0];
@@ -717,22 +617,13 @@ const HomePage: React.FC = () => {
             {/* The mirror — glance at yourself before you go say hi */}
             <MirrorCard profile={profile} />
 
-            {/* Friend requests — people waiting on you, surfaced front and center */}
-            {friendRequests.length > 0 && (
+            {/* Your wall — waves, friend requests, and new friendships, newest first */}
+            {user && (
                 <Section
-                    title={friendRequests.length === 1 ? '1 friend request' : `${friendRequests.length} friend requests`}
-                    subtitle="People who want to connect with you."
+                    title="Your wall"
+                    subtitle="Waves, friend requests, and new friends — what happened while you were away."
                 >
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {friendRequests.map(person => (
-                            <RequestCard
-                                key={person.user_id}
-                                person={person}
-                                onAccept={handleAcceptRequest}
-                                onDecline={handleDeclineRequest}
-                            />
-                        ))}
-                    </div>
+                    <Wall ownerId={user.id} isOwner ownerName={profile.full_name} />
                 </Section>
             )}
 
