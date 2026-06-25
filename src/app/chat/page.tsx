@@ -12,39 +12,13 @@ import ChatPageSkeleton from '@/components/ChatPageSkeleton';
 
 import { useChat } from '@/hooks/useChat';
 import { formatTimestamp } from '@/utils/timeUtils';
-import { ChatIcon, UserGroupIcon, SearchIcon, PinIcon, ArchiveIcon, PlusIcon, LockClosedIcon, ShieldCheckIcon } from '@/components/icons';
+import { ChatIcon, UserGroupIcon, SearchIcon, PinIcon, ArchiveIcon, PlusIcon } from '@/components/icons';
 import { supabase } from '@/services/supabase';
-import { tryRestoreEncryptionKey, decryptMessage } from '@/services/encryption';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const MessagePreview: React.FC<{ conv: ConversationSummary }> = ({ conv }) => {
-    const [decrypted, setDecrypted] = useState<string | null>(null);
-
-    useEffect(() => {
-        const decrypt = async () => {
-            if (conv.last_message_encrypted_content) {
-                try {
-                    const plaintext = await decryptMessage(
-                        conv.last_message_encrypted_content,
-                        conv.last_message_encrypted_key_sender || null,
-                        conv.last_message_encrypted_key_recipient || null
-                    );
-                    setDecrypted(plaintext);
-                } catch (err) {
-                    console.error("Failed to decrypt preview:", err);
-                }
-            }
-        };
-        decrypt();
-    }, [conv.last_message_encrypted_content, conv.last_message_encrypted_key_sender, conv.last_message_encrypted_key_recipient]);
-
     if (conv.last_message_encrypted_content) {
-        return (
-            <span className="flex items-center gap-1">
-                <LockClosedIcon className="w-3 h-3 opacity-60 flex-shrink-0" />
-                <span className="truncate">{decrypted || 'Encrypted message'}</span>
-            </span>
-        );
+        return <span className="truncate italic opacity-70">Encrypted message</span>;
     }
 
     return <>{conv.last_message_content || 'No messages yet'}</>;
@@ -53,27 +27,22 @@ const MessagePreview: React.FC<{ conv: ConversationSummary }> = ({ conv }) => {
 const ChatEmptyState: React.FC = () => {
     const [currentSlide, setCurrentSlide] = useState(0);
 
-    useEffect(() => {
-        const timer = setInterval(() => {
-            setCurrentSlide(prev => (prev + 1) % 2);
-        }, 4000);
-        return () => clearInterval(timer);
-    }, []);
-
     const slides = [
         {
             id: 'select',
             icon: <ChatIcon className="w-12 h-12 text-brand-green" />,
             title: "Select a chat",
             description: "Pick a conversation to start chatting."
-        },
-        {
-            id: 'e2ee',
-            icon: <ShieldCheckIcon className="w-12 h-12 text-blue-500 dark:text-brand-green" />,
-            title: "Privacy Protected",
-            description: "Your messages are secured with asymmetric RSA encryption."
         }
     ];
+
+    useEffect(() => {
+        if (slides.length <= 1) return;
+        const timer = setInterval(() => {
+            setCurrentSlide(prev => (prev + 1) % slides.length);
+        }, 4000);
+        return () => clearInterval(timer);
+    }, [slides.length]);
 
     return (
         <div className="hidden md:flex flex-col items-center justify-center h-full text-center p-8">
@@ -145,14 +114,6 @@ const ChatPage: React.FC = () => {
     const [isStartConvoModalOpen, setStartConvoModalOpen] = useState(false);
     const [showArchived, setShowArchived] = useState(false);
     const [placeholderConversation, setPlaceholderConversation] = useState<ConversationSummary | null>(null);
-
-    // Silently try restoring encryption key if previously set up
-    useEffect(() => {
-        if (user) {
-            tryRestoreEncryptionKey(user.id);
-        }
-    }, [user]);
-
 
     // Logic for handling deep links to specific users
     useEffect(() => {
