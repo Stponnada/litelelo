@@ -9,9 +9,9 @@ const ProfilePageSkeleton: React.FC = () => {
     <div className="w-full max-w-7xl mx-auto pb-8">
       {/* Header Section */}
       <div className="relative mb-6">
-        <Skeleton className="h-56 sm:h-72 w-full rounded-b-3xl" />
+        <Skeleton className="h-44 sm:h-64 w-full rounded-b-3xl" />
         <div className="px-4 sm:px-8">
-          <div className="relative -mt-20 sm:-mt-24 flex flex-col sm:flex-row items-end gap-6">
+          <div className="relative -mt-20 sm:-mt-28 flex flex-col sm:flex-row items-end gap-6">
             <Skeleton className="w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 border-secondary-light dark:border-secondary" />
             <div className="flex-1 space-y-3 pb-2">
               <Skeleton className="h-8 w-48 rounded-lg" />

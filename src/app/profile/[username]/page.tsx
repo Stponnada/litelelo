@@ -535,7 +535,7 @@ const ProfilePage: React.FC = () => {
                 {/* Main Profile Card */}
                 <div className="relative mb-6 overflow-visible">
                     {/* Banner Image */}
-                    <div className="h-48 sm:h-96 bg-gradient-to-br from-tertiary-light to-tertiary-light/50 dark:from-tertiary dark:to-tertiary/50 relative rounded-b-3xl overflow-hidden shadow-lg">
+                    <div className="h-44 sm:h-64 bg-gradient-to-br from-tertiary-light to-tertiary-light/50 dark:from-tertiary dark:to-tertiary/50 relative rounded-b-3xl overflow-hidden shadow-lg">
                         {profile.banner_url ? (
                             <Image
                                 src={profile.banner_url}
@@ -552,7 +552,7 @@ const ProfilePage: React.FC = () => {
                     </div>
 
                     {/* Profile Info Overlay */}
-                    <div className="px-4 sm:px-8 pb-4 relative -mt-20 sm:-mt-40 flex flex-col sm:flex-row items-end gap-4 sm:gap-6">
+                    <div className="px-4 sm:px-8 pb-3 relative -mt-20 sm:-mt-28 flex flex-col sm:flex-row items-end gap-4 sm:gap-6">
                         {/* Avatar */}
                         <div className="relative z-10 flex-shrink-0 mx-auto sm:mx-0">
                             <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 border-secondary-light dark:border-secondary bg-tertiary overflow-hidden shadow-2xl">
