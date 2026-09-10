@@ -113,4 +113,4 @@ This started as a personal project for my campus, so it isn't set up with contri
 
 ## License
 
-TBD — add a license before making this public.
+[MIT](LICENSE) — fork it, adapt it for your college, no strings attached.
