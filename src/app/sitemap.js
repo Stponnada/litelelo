@@ -7,11 +7,11 @@ export default async function sitemap() {
     const baseUrl = "https://litelelo.in";
 
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const publishable = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
     let supabase = null;
-    if (url && anon) {
-        supabase = createClient(url, anon);
+    if (url && publishable) {
+        supabase = createClient(url, publishable);
     }
 
     // Fetch dynamic routes safely

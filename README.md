@@ -60,13 +60,13 @@ Some features here — **paper trading** (`/easter-egg/trading`, backed by Mongo
 
 2. **Create `.env.local`** in the repo root:
    ```
-   NEXT_PUBLIC_SUPABASE_URL=       # your Supabase project URL
-   NEXT_PUBLIC_SUPABASE_KEY=       # your Supabase anon key
-   SUPABASE_SERVICE_ROLE_KEY=      # server-side only, bypasses RLS (used by API routes)
-   GEMINI_API_KEY=                 # optional, comma-separated for key rotation
-   MONGODB_URI=                    # optional, paper trading only
-   UPSTASH_REDIS_REST_URL=         # optional
-   UPSTASH_REDIS_REST_TOKEN=       # optional
+   NEXT_PUBLIC_SUPABASE_URL=              # your Supabase project URL
+   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=  # the new sb_publishable_... key (client-side)
+   SUPABASE_SECRET_KEY=                   # the new sb_secret_... key (server-side only, bypasses RLS)
+   GEMINI_API_KEY=                        # optional, comma-separated for key rotation
+   MONGODB_URI=                           # optional, paper trading only
+   UPSTASH_REDIS_REST_URL=                # optional
+   UPSTASH_REDIS_REST_TOKEN=               # optional
    ```
 
 3. **Set up the database:** apply the schema in [`schema.sql`](schema.sql) to your Supabase project, then apply the SQL migrations in [`supabase/migrations/`](supabase/migrations/) in order.

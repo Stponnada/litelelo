@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { redis } from '@/services/redis';
 
-// Use Service Role Key to bypass RLS and get full profile data
+// Use the secret key to bypass RLS and get full profile data
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    process.env.SUPABASE_SECRET_KEY!
 );
 
 export async function GET(
