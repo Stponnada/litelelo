@@ -10,6 +10,8 @@ litelelo was built by a BITS Hyderabad student, for BITSians. It's a real, worki
 
 Think of it as a **reference implementation**: if you want to build a social network for your own college, this codebase shows one complete way to do it — auth, feeds, chat, communities, notifications, the works. Fork it, rip out what you don't need, and make it yours.
 
+> **Just looking around?** The live site is at [litelelo.in](https://litelelo.in) — sign-up isn't gated on a BITS email domain, so anyone can create an account and explore it, even if you're not a BITSian.
+
 A more polished, properly configurable "spin up a social network for your college" version may be published separately in the future.
 
 ## Features
